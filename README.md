@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Event Platform
 
-## Getting Started
+A modern, SEO-first event platform for creating, discovering, and managing events with invitations, RSVPs, and transactional communication.
 
-First, run the development server:
+Domains:
+1. eventsfixer.com
+2. eventsfixer.ca
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎯 Goal
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Build a **lightweight, scalable event platform** that supports:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* Event creation and publishing
+* Public discovery (SEO-friendly)
+* Invitations and RSVP tracking
+* Reliable transactional email delivery
 
-## Learn More
+The platform prioritizes **developer experience (DX)**, **performance**, and **cost efficiency** during early-stage growth.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧭 Intended Scope
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Core Capabilities
 
-## Deploy on Vercel
+* Public event pages (indexable, crawlable)
+* Event metadata (date, time, location, description)
+* Invitation + RSVP workflow
+* Transactional email (invites, confirmations, updates)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Non-Goals (for now)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* Ticketing & payments
+* Complex seat management
+* Native mobile apps
+* Real-time chat or social features
+
+---
+
+## 🧱 Architectural Principles
+
+* **SEO-first**: Multi-page, statically generated pages where possible
+* **Serverless-lean**: Pay-per-use backend with minimal operational overhead
+* **Composable stack**: Best-of-breed tools that integrate cleanly
+* **Iterative delivery**: MVP → feedback → incremental expansion
+
+---
+
+## 🛠️ Proposed Tech Stack (Initial)
+
+* **Frontend**: Next.js (App Router, static generation)
+* **Hosting**: Firebase Hosting
+* **Database**: Firestore (structured event & RSVP data)
+* **Backend**: Firebase Cloud Functions v2 (Cloud Run)
+* **Email**: Mailgun (transactional)
+* **Styling**: TailwindCSS + scoped CSS Modules
+* **Content (optional)**: Headless CMS (Sanity) for blog/editorial content
+
+---
+
+## 🚀 MVP Target
+
+**Deliver a production-ready MVP that allows:**
+
+* Creating and publishing events
+* Rendering SEO-optimized public event pages
+* Sending invitations via email
+* Capturing and persisting RSVPs
+* Viewing basic RSVP counts per event
+
+**Constraints:**
+
+* ≤ 100 events in year one
+* Low infrastructure cost
+* Simple operational model
+* Clear upgrade paths for future features
+
+---
+
+## 📈 Post-MVP Considerations (Not Implemented Yet)
+
+* Paid events / ticketing
+* Admin dashboard & analytics
+* Event templates
+* Organization / multi-host support
+* Search & filtering
+* iCal / Google Calendar integrations
+
+---
+
+## 📄 Status
+
+🟡 **Planning & Design Phase**
+Architecture, DX standards, and styling strategy are being finalized.
+
+---
+
+> This README is intentionally minimal.
+> Expect rapid iteration as architecture and features solidify.
