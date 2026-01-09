@@ -48,15 +48,27 @@ The platform prioritizes **developer experience (DX)**, **performance**, and **c
 
 ---
 
-## 🛠️ Proposed Tech Stack (Initial)
+## 🛠️ Tech Stack
 
-* **Frontend**: Next.js (App Router, static generation)
-* **Hosting**: Firebase Hosting
-* **Database**: Firestore (structured event & RSVP data)
-* **Backend**: Firebase Cloud Functions v2 (Cloud Run)
-* **Email**: Mailgun (transactional)
-* **Styling**: TailwindCSS + scoped CSS Modules
-* **Content (optional)**: Headless CMS (Sanity) for blog/editorial content
+### Core Infrastructure
+
+* **Frontend**: Next.js 15+ (App Router) + React 19 + TypeScript
+* **Hosting**: Vercel or Firebase Hosting
+* **Database**: Supabase Postgres (with Prisma ORM)
+* **Auth**: Firebase Authentication
+* **Backend**: Next.js Route Handlers + Firebase Functions v2 (async workers)
+* **Email**: Mailgun (transactional delivery)
+* **Async Jobs**: Google Cloud Tasks + Cloud Scheduler
+* **Styling**: Tailwind CSS v4 + CSS Modules
+
+### Key Libraries
+
+* **Validation**: Zod
+* **Forms**: React Hook Form + @hookform/resolvers
+* **Email Templates**: React Email
+* **Testing**: Vitest + Testing Library + Playwright
+* **Icons**: Lucide React
+* **Date Handling**: date-fns + date-fns-tz
 
 ---
 
@@ -92,10 +104,57 @@ The platform prioritizes **developer experience (DX)**, **performance**, and **c
 
 ## 📄 Status
 
-🟡 **Planning & Design Phase**
-Architecture, DX standards, and styling strategy are being finalized.
+� **Ready for Implementation**
+
+Architecture decisions finalized. See [IMPLEMENTATION-STRATEGY.md](./IMPLEMENTATION-STRATEGY.md) for comprehensive technical details.
 
 ---
 
-> This README is intentionally minimal.
-> Expect rapid iteration as architecture and features solidify.
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+# Configure environment variables
+
+# Run database migrations
+npm run db:migrate
+
+# Start development server
+npm run dev
+```
+
+---
+
+## 📚 Documentation
+
+* [Implementation Strategy](./IMPLEMENTATION-STRATEGY.md) — Architecture decisions & implementation guide
+* [CSS Guidelines](./docs/css-implementation-guidelines.md) — Styling patterns & conventions
+* [DX Strategy](./docs/event-platform-dx-implementation-strategy.md) — Developer experience details
+
+---
+
+## 🏗️ Project Structure
+
+```
+src/
+├── app/              # Next.js App Router pages & API routes
+│   ├── (auth)/      # Protected routes (dashboard, event management)
+│   ├── (public)/    # Public routes (discovery, event pages)
+│   └── api/         # API endpoints
+├── components/       # React components
+│   ├── ui/          # Primitive components
+│   ├── forms/       # Form components
+│   └── features/    # Feature-specific components
+├── lib/             # Utilities (db, auth, email, tokens)
+├── schemas/         # Zod validation schemas
+└── emails/          # React Email templates
+```
+
+---
+
+> This README provides a high-level overview.
+> Refer to linked documentation for implementation details.
