@@ -1,0 +1,91 @@
+import { getAuth } from "firebase-admin/auth";
+import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
+import { NextRequest } from "next/server";
+import { db } from "./db";
+import type { User } from "@prisma/client";
+
+// Initialize Firebase Admin SDK
+let firebaseApp: App;
+
+function getFirebaseAdmin(): App {
+  if (firebaseApp) return firebaseApp;
+
+  if (getApps().length > 0) {
+    firebaseApp = getApps()[0];
+    return firebaseApp;
+  }
+
+  // Only initialize if we have the required environment variables
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+  if (!projectId || !clientEmail || !privateKey) {
+    throw new Error(
+      "Missing Firebase Admin credentials. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY."
+    );
+  }
+
+  firebaseApp = initializeApp({
+    credential: cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+  });
+
+  return firebaseApp;
+}
+
+/**
+ * Verifies the Firebase ID token from the Authorization header
+ * and returns the user from the database (creating if necessary)
+ */
+export async function verifyAuth(request: NextRequest): Promise<User | null> {
+  const authHeader = request.headers.get("authorization");
+
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.slice(7);
+
+  try {
+    getFirebaseAdmin();
+    const decoded = await getAuth().verifyIdToken(token);
+
+    // Get or create user in our database
+    const user = await db.user.upsert({
+      where: { firebaseUid: decoded.uid },
+      update: {
+        email: decoded.email ?? "",
+        name: decoded.name ?? null,
+        avatarUrl: decoded.picture ?? null,
+      },
+      create: {
+        firebaseUid: decoded.uid,
+        email: decoded.email ?? "",
+        name: decoded.name ?? null,
+        avatarUrl: decoded.picture ?? null,
+      },
+    });
+
+    return user;
+  } catch (error) {
+    console.error("Auth verification failed:", error);
+    return null;
+  }
+}
+
+/**
+ * Gets the current user from a request, throwing if not authenticated
+ */
+export async function requireAuth(request: NextRequest): Promise<User> {
+  const user = await verifyAuth(request);
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  return user;
+}

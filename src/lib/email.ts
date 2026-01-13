@@ -1,0 +1,402 @@
+import { render } from "@react-email/components";
+import { db } from "./db";
+import { InviteEmail } from "@/emails/InviteEmail";
+import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
+import type { EmailStatus, Prisma } from "@prisma/client";
+
+// Mailgun configuration
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+const MAILGUN_BASE_URL = process.env.MAILGUN_REGION_BASE_URL || "https://api.mailgun.net";
+const MAIL_FROM = process.env.MAIL_FROM || "Events <noreply@eventsfixer.com>";
+
+type MailgunResponse = {
+  id: string;
+  message: string;
+};
+
+type SendEmailOptions = {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  tags?: string[];
+};
+
+/**
+ * Send an email via Mailgun
+ */
+export async function sendEmail(options: SendEmailOptions): Promise<MailgunResponse> {
+  if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+    throw new Error("Mailgun configuration missing. Set MAILGUN_API_KEY and MAILGUN_DOMAIN.");
+  }
+
+  const formData = new FormData();
+  formData.append("from", MAIL_FROM);
+  formData.append("to", options.to);
+  formData.append("subject", options.subject);
+  formData.append("html", options.html);
+
+  if (options.text) {
+    formData.append("text", options.text);
+  }
+
+  if (options.tags) {
+    options.tags.forEach((tag) => formData.append("o:tag", tag));
+  }
+
+  const response = await fetch(
+    `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,
+      },
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Mailgun error: ${response.status} - ${errorText}`);
+  }
+
+  return response.json() as Promise<MailgunResponse>;
+}
+
+type InviteEmailPayload = {
+  guestName?: string;
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventLocation?: string;
+  eventDescription?: string;
+  hostName: string;
+  rsvpUrl: string;
+};
+
+type ConfirmationEmailPayload = {
+  guestName: string;
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventLocation?: string;
+  response: "YES" | "NO" | "MAYBE";
+  guestCount: number;
+  hostName: string;
+};
+
+/**
+ * Queue an invite email for sending
+ */
+export async function queueInviteEmail(
+  inviteId: string,
+  toEmail: string,
+  payload: InviteEmailPayload
+): Promise<string> {
+  const subject = `You're invited to ${payload.eventTitle}`;
+
+  const emailRecord = await db.emailOutbox.create({
+    data: {
+      inviteId,
+      template: "INVITE",
+      toEmail,
+      subject,
+      payload: payload as Prisma.InputJsonValue,
+      status: "QUEUED",
+    },
+  });
+
+  return emailRecord.id;
+}
+
+/**
+ * Queue a confirmation email for sending
+ */
+export async function queueConfirmationEmail(
+  inviteId: string | null,
+  toEmail: string,
+  payload: ConfirmationEmailPayload
+): Promise<string> {
+  const subject =
+    payload.response === "YES"
+      ? `You're confirmed for ${payload.eventTitle}!`
+      : payload.response === "NO"
+        ? `RSVP received for ${payload.eventTitle}`
+        : `RSVP received for ${payload.eventTitle}`;
+
+  const emailRecord = await db.emailOutbox.create({
+    data: {
+      inviteId,
+      template: "CONFIRMATION",
+      toEmail,
+      subject,
+      payload: payload as Prisma.InputJsonValue,
+      status: "QUEUED",
+    },
+  });
+
+  return emailRecord.id;
+}
+
+/**
+ * Process and send a queued email
+ */
+export async function processEmail(emailId: string): Promise<void> {
+  const email = await db.emailOutbox.findUnique({
+    where: { id: emailId },
+  });
+
+  if (!email || email.status !== "QUEUED") {
+    return;
+  }
+
+  // Mark as sending
+  await db.emailOutbox.update({
+    where: { id: emailId },
+    data: { status: "SENDING" },
+  });
+
+  try {
+    const payload = email.payload as Record<string, unknown>;
+    let html: string;
+
+    switch (email.template) {
+      case "INVITE":
+        html = await render(InviteEmail(payload as unknown as InviteEmailPayload));
+        break;
+      case "CONFIRMATION":
+        html = await render(ConfirmationEmail(payload as unknown as ConfirmationEmailPayload));
+        break;
+      default:
+        throw new Error(`Unknown template: ${email.template}`);
+    }
+
+    const result = await sendEmail({
+      to: email.toEmail,
+      subject: email.subject,
+      html,
+      tags: [email.template.toLowerCase()],
+    });
+
+    // Update status to sent
+    await db.emailOutbox.update({
+      where: { id: emailId },
+      data: {
+        status: "SENT",
+        providerMessageId: result.id,
+        sentAt: new Date(),
+      },
+    });
+
+    // Update invite status if this is an invite email
+    if (email.inviteId && email.template === "INVITE") {
+      await db.invite.update({
+        where: { id: email.inviteId },
+        data: {
+          status: "SENT",
+          sentAt: new Date(),
+        },
+      });
+    }
+  } catch (error) {
+    // Mark as failed
+    await db.emailOutbox.update({
+      where: { id: emailId },
+      data: {
+        status: "FAILED",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+    });
+
+    throw error;
+  }
+}
+
+/**
+ * Process all queued emails (batch processing)
+ */
+export async function processQueuedEmails(limit = 10): Promise<number> {
+  const queuedEmails = await db.emailOutbox.findMany({
+    where: { status: "QUEUED" },
+    take: limit,
+    orderBy: { createdAt: "asc" },
+  });
+
+  let processed = 0;
+  for (const email of queuedEmails) {
+    try {
+      await processEmail(email.id);
+      processed++;
+    } catch (error) {
+      console.error(`Failed to process email ${email.id}:`, error);
+    }
+  }
+
+  return processed;
+}
+
+/**
+ * Update email status from Mailgun webhook
+ */
+export async function updateEmailStatus(
+  providerMessageId: string,
+  status: EmailStatus,
+  timestamp?: Date
+): Promise<void> {
+  const updateData: Record<string, unknown> = { status };
+
+  if (status === "DELIVERED" && timestamp) {
+    updateData.deliveredAt = timestamp;
+  } else if (status === "OPENED" && timestamp) {
+    updateData.openedAt = timestamp;
+  }
+
+  const email = await db.emailOutbox.updateMany({
+    where: { providerMessageId },
+    data: updateData,
+  });
+
+  // If email was bounced, update the invite status too
+  if (status === "BOUNCED" && email.count > 0) {
+    const emailRecord = await db.emailOutbox.findFirst({
+      where: { providerMessageId },
+      select: { inviteId: true },
+    });
+
+    if (emailRecord?.inviteId) {
+      await db.invite.update({
+        where: { id: emailRecord.inviteId },
+        data: { status: "BOUNCED" },
+      });
+    }
+  }
+
+  // If email was opened and it's an invite, update invite status
+  if (status === "OPENED") {
+    const emailRecord = await db.emailOutbox.findFirst({
+      where: { providerMessageId },
+      select: { inviteId: true, template: true },
+    });
+
+    if (emailRecord?.inviteId && emailRecord.template === "INVITE") {
+      await db.invite.update({
+        where: { id: emailRecord.inviteId },
+        data: {
+          status: "OPENED",
+          openedAt: timestamp || new Date(),
+        },
+      });
+    }
+  }
+}
+
+/**
+ * Get email statistics for an event
+ */
+export async function getEmailStats(eventId: string): Promise<{
+  total: number;
+  queued: number;
+  sent: number;
+  delivered: number;
+  opened: number;
+  failed: number;
+  bounced: number;
+}> {
+  const inviteIds = await db.invite.findMany({
+    where: { eventId },
+    select: { id: true },
+  });
+
+  const ids = inviteIds.map((i) => i.id);
+
+  if (ids.length === 0) {
+    return {
+      total: 0,
+      queued: 0,
+      sent: 0,
+      delivered: 0,
+      opened: 0,
+      failed: 0,
+      bounced: 0,
+    };
+  }
+
+  const stats = await db.emailOutbox.groupBy({
+    by: ["status"],
+    where: {
+      inviteId: { in: ids },
+    },
+    _count: true,
+  });
+
+  const result = {
+    total: 0,
+    queued: 0,
+    sent: 0,
+    delivered: 0,
+    opened: 0,
+    failed: 0,
+    bounced: 0,
+  };
+
+  for (const stat of stats) {
+    const count = stat._count;
+    result.total += count;
+
+    switch (stat.status) {
+      case "QUEUED":
+        result.queued = count;
+        break;
+      case "SENDING":
+      case "SENT":
+        result.sent += count;
+        break;
+      case "DELIVERED":
+        result.delivered = count;
+        break;
+      case "OPENED":
+        result.opened = count;
+        break;
+      case "FAILED":
+        result.failed = count;
+        break;
+      case "BOUNCED":
+        result.bounced = count;
+        break;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Resend a failed email
+ */
+export async function resendEmail(emailId: string): Promise<string> {
+  const email = await db.emailOutbox.findUnique({
+    where: { id: emailId },
+  });
+
+  if (!email) {
+    throw new Error("Email not found");
+  }
+
+  if (email.status !== "FAILED" && email.status !== "BOUNCED") {
+    throw new Error("Can only resend failed or bounced emails");
+  }
+
+  // Create a new email record
+  const newEmail = await db.emailOutbox.create({
+    data: {
+      inviteId: email.inviteId,
+      template: email.template,
+      toEmail: email.toEmail,
+      subject: email.subject,
+      payload: email.payload || {},
+      status: "QUEUED",
+    },
+  });
+
+  return newEmail.id;
+}
