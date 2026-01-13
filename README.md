@@ -3,8 +3,10 @@
 A modern, SEO-first event platform for creating, discovering, and managing events with invitations, RSVPs, and transactional communication.
 
 Domains:
-1. eventsfixer.com
-2. eventsfixer.ca
+1. eventfxr.com
+2. eventfxr.ca
+3. eventsfixer.com
+4. eventsfixer.ca
 
 ---
 
@@ -52,7 +54,7 @@ The platform prioritizes **developer experience (DX)**, **performance**, and **c
 
 ### Core Infrastructure
 
-* **Frontend**: Next.js 15+ (App Router) + React 19 + TypeScript
+* **Frontend**: Next.js 16 (App Router) + React 19 + TypeScript
 * **Hosting**: Vercel or Firebase Hosting
 * **Database**: Supabase Postgres (with Prisma ORM)
 * **Auth**: Firebase Authentication
@@ -104,9 +106,20 @@ The platform prioritizes **developer experience (DX)**, **performance**, and **c
 
 ## 📄 Status
 
-� **Ready for Implementation**
+**MVP Complete**
 
-Architecture decisions finalized. See [IMPLEMENTATION-STRATEGY.md](./IMPLEMENTATION-STRATEGY.md) for comprehensive technical details.
+All core features implemented:
+
+- Event creation, editing, publishing, and deletion
+- SEO-optimized public event pages with dynamic sitemap
+- Invitation system with unique token-based RSVP links
+- RSVP submission and tracking
+- Email delivery via Mailgun with webhook status tracking
+- Firebase authentication with protected dashboard routes
+- Rate limiting middleware
+- Security headers (HSTS, CSP, X-Frame-Options)
+- Health check endpoint for monitoring
+- Comprehensive unit tests (57 tests passing)
 
 ---
 
@@ -125,6 +138,16 @@ npm run db:migrate
 
 # Start development server
 npm run dev
+
+# Run tests
+npm test
+
+# Type check and lint
+npm run typecheck
+npm run lint
+
+# Production build
+npm run build
 ```
 
 ---
@@ -143,15 +166,26 @@ npm run dev
 src/
 ├── app/              # Next.js App Router pages & API routes
 │   ├── (auth)/      # Protected routes (dashboard, event management)
-│   ├── (public)/    # Public routes (discovery, event pages)
-│   └── api/         # API endpoints
+│   ├── (marketing)/ # Public routes (discovery, event pages)
+│   ├── api/         # API endpoints
+│   └── rsvp/        # Token-based RSVP pages
 ├── components/       # React components
 │   ├── ui/          # Primitive components
 │   ├── forms/       # Form components
-│   └── features/    # Feature-specific components
-├── lib/             # Utilities (db, auth, email, tokens)
+│   ├── features/    # Feature-specific components
+│   └── providers/   # Context providers (Auth)
+├── lib/             # Utilities (db, auth, email, tokens, rate-limit)
 ├── schemas/         # Zod validation schemas
-└── emails/          # React Email templates
+├── hooks/           # Custom React hooks
+└── middleware.ts    # Rate limiting middleware
+
+tests/
+├── unit/            # Unit tests (Vitest)
+└── e2e/             # End-to-end tests (Playwright)
+
+prisma/
+├── schema/          # Prisma schema files
+└── migrations/      # Database migrations
 ```
 
 ---

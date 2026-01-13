@@ -113,3 +113,4 @@ REPORT.md
 *.internal.md
 TODO.md
 NOTES.md
+/src/generated/prisma

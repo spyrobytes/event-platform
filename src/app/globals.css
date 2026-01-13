@@ -1,26 +1,162 @@
 @import "tailwindcss";
 
+/* =============================================================================
+   THEME: Aurora Night (Dark-first design)
+   See docs/css-implementation-guidelines.md Section 13
+   ============================================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand direction: "Aurora Night" */
+  --primary: 14 22 39;       /* deep navy */
+  --surface: 10 15 25;       /* near-black blue */
+  --surface-2: 18 28 46;     /* elevated surface */
+  --surface-3: 26 40 66;     /* hover surface */
+
+  --foreground: 240 245 255; /* near-white */
+  --muted: 170 185 210;      /* soft text */
+  --border: 40 60 95;        /* subtle lines */
+
+  /* Accent: vivid but not neon */
+  --accent: 112 243 255;         /* aurora cyan */
+  --accent-foreground: 7 12 20;
+
+  /* Optional secondary accent (sparingly used) */
+  --secondary: 255 119 168;      /* aurora rose */
+
+  /* Semantic aliases */
+  --background: var(--surface);
+  --card: var(--surface-2);
+  --card-foreground: var(--foreground);
+
+  /* Form elements */
+  --input: var(--surface-2);
+  --input-border: var(--border);
+  --ring: var(--accent);
+
+  /* Status colors */
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --success: 34 197 94;
+  --warning: 234 179 8;
+
+  /* Radius */
+  --radius: 0.5rem;
 }
+
+/* Light theme (optional; can be enabled later) */
+[data-theme="light"] {
+  --primary: 245 247 252;
+  --surface: 255 255 255;
+  --surface-2: 245 247 252;
+  --surface-3: 236 240 248;
+
+  --foreground: 18 24 38;
+  --muted: 80 95 120;
+  --border: 210 220 235;
+
+  --accent: 0 168 198;
+  --accent-foreground: 255 255 255;
+
+  --secondary: 214 68 118;
+
+  --background: var(--surface);
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+
+  --input: var(--surface);
+  --input-border: var(--border);
+}
+
+/* =============================================================================
+   TAILWIND v4 THEME MAPPING
+   ============================================================================= */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Colors */
+  --color-primary: rgb(var(--primary));
+  --color-surface: rgb(var(--surface));
+  --color-surface-2: rgb(var(--surface-2));
+  --color-surface-3: rgb(var(--surface-3));
+  --color-foreground: rgb(var(--foreground));
+  --color-muted: rgb(var(--muted));
+  --color-border: rgb(var(--border));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-background: rgb(var(--background));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-input: rgb(var(--input));
+  --color-input-border: rgb(var(--input-border));
+  --color-ring: rgb(var(--ring));
+  --color-destructive: rgb(var(--destructive));
+  --color-destructive-foreground: rgb(var(--destructive-foreground));
+  --color-success: rgb(var(--success));
+  --color-warning: rgb(var(--warning));
+
+  /* Typography */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 12px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus ring utility */
+*:focus-visible {
+  outline: 2px solid rgb(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: rgb(var(--accent) / 0.3);
+  color: rgb(var(--foreground));
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-foreground));
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
 }
