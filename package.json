@@ -38,6 +38,9 @@
     "tailwind-merge": "^3.4.0",
     "zod": "^4.3.5"
   },
+  "overrides": {
+    "magicast": "^0.5.1"
+  },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@react-email/components": "^1.0.4",
