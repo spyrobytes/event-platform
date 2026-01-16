@@ -2,6 +2,7 @@ import { render } from "@react-email/components";
 import { db } from "./db";
 import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
+import { ReminderEmail } from "@/emails/ReminderEmail";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration
@@ -86,6 +87,17 @@ type ConfirmationEmailPayload = {
   hostName: string;
 };
 
+type ReminderEmailPayload = {
+  guestName: string;
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventLocation?: string;
+  hostName: string;
+  eventUrl: string;
+  guestCount: number;
+};
+
 /**
  * Queue an invite email for sending
  */
@@ -140,6 +152,30 @@ export async function queueConfirmationEmail(
 }
 
 /**
+ * Queue a reminder email for sending
+ */
+export async function queueReminderEmail(
+  inviteId: string,
+  toEmail: string,
+  payload: ReminderEmailPayload
+): Promise<string> {
+  const subject = `Reminder: ${payload.eventTitle} is tomorrow!`;
+
+  const emailRecord = await db.emailOutbox.create({
+    data: {
+      inviteId,
+      template: "REMINDER",
+      toEmail,
+      subject,
+      payload: payload as Prisma.InputJsonValue,
+      status: "QUEUED",
+    },
+  });
+
+  return emailRecord.id;
+}
+
+/**
  * Process and send a queued email
  */
 export async function processEmail(emailId: string): Promise<void> {
@@ -167,6 +203,9 @@ export async function processEmail(emailId: string): Promise<void> {
         break;
       case "CONFIRMATION":
         html = await render(ConfirmationEmail(payload as unknown as ConfirmationEmailPayload));
+        break;
+      case "REMINDER":
+        html = await render(ReminderEmail(payload as unknown as ReminderEmailPayload));
         break;
       default:
         throw new Error(`Unknown template: ${email.template}`);
