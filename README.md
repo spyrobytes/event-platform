@@ -1,4 +1,4 @@
-# Event Platform
+# Event Platform - EventFXr
 
 A modern, SEO-first event platform for creating, discovering, and managing events with invitations, RSVPs, and transactional communication.
 
@@ -20,6 +20,14 @@ Build a **lightweight, scalable event platform** that supports:
 * Reliable transactional email delivery
 
 The platform prioritizes **developer experience (DX)**, **performance**, and **cost efficiency** during early-stage growth.
+
+**Core workflow:**
+
+1. Organizer creates event
+2. Organizer sends invitations
+3. Invitee RSVPs via secure link (magic token)
+4. Reminders and confirmations via email
+5. Dashboard with analytics & insights
 
 ---
 
@@ -55,12 +63,12 @@ The platform prioritizes **developer experience (DX)**, **performance**, and **c
 ### Core Infrastructure
 
 * **Frontend**: Next.js 16 (App Router) + React 19 + TypeScript
-* **Hosting**: Vercel or Firebase Hosting
+* **Hosting**: Vercel
 * **Database**: Supabase Postgres (with Prisma ORM)
 * **Auth**: Firebase Authentication
-* **Backend**: Next.js Route Handlers + Firebase Functions v2 (async workers)
-* **Email**: Mailgun (transactional delivery)
-* **Async Jobs**: Google Cloud Tasks + Cloud Scheduler
+* **Backend**: Next.js Route Handlers
+* **Email**: Mailgun (transactional delivery) + React Email
+* **Async Jobs**: Vercel Cron
 * **Styling**: Tailwind CSS v4 + CSS Modules
 
 ### Key Libraries
