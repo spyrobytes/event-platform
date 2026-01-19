@@ -1,15 +1,40 @@
 import { render } from "@react-email/components";
+import { createTransport, type Transporter } from "nodemailer";
 import { db } from "./db";
 import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
 import { ReminderEmail } from "@/emails/ReminderEmail";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
-// Mailgun configuration
+// Mailgun configuration (production)
 const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
 const MAILGUN_BASE_URL = process.env.MAILGUN_REGION_BASE_URL || "https://api.mailgun.net";
 const MAIL_FROM = process.env.MAIL_FROM || "Events <noreply@eventsfixer.com>";
+
+// SMTP configuration (local development with Mailpit)
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || "1025", 10);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+
+// Detect email transport mode
+const isSmtpMode = !!SMTP_HOST;
+
+// Lazy-initialized SMTP transporter
+let smtpTransporter: Transporter | null = null;
+
+function getSmtpTransporter(): Transporter {
+  if (!smtpTransporter) {
+    smtpTransporter = createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: false, // Mailpit doesn't use TLS
+      auth: SMTP_USER ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    });
+  }
+  return smtpTransporter;
+}
 
 type MailgunResponse = {
   id: string;
@@ -25,11 +50,44 @@ type SendEmailOptions = {
 };
 
 /**
- * Send an email via Mailgun
+ * Send an email via SMTP (local dev) or Mailgun (production)
  */
 export async function sendEmail(options: SendEmailOptions): Promise<MailgunResponse> {
+  if (isSmtpMode) {
+    return sendEmailViaSMTP(options);
+  }
+  return sendEmailViaMailgun(options);
+}
+
+/**
+ * Send an email via SMTP (Mailpit for local development)
+ */
+async function sendEmailViaSMTP(options: SendEmailOptions): Promise<MailgunResponse> {
+  const transporter = getSmtpTransporter();
+
+  const info = await transporter.sendMail({
+    from: MAIL_FROM,
+    to: options.to,
+    subject: options.subject,
+    html: options.html,
+    text: options.text,
+  });
+
+  // Return a Mailgun-compatible response
+  return {
+    id: info.messageId || `smtp-${Date.now()}`,
+    message: "Queued. Thank you.",
+  };
+}
+
+/**
+ * Send an email via Mailgun API (production)
+ */
+async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunResponse> {
   if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
-    throw new Error("Mailgun configuration missing. Set MAILGUN_API_KEY and MAILGUN_DOMAIN.");
+    throw new Error(
+      "Email configuration missing. Set MAILGUN_API_KEY and MAILGUN_DOMAIN for production, or SMTP_HOST for local development."
+    );
   }
 
   const formData = new FormData();

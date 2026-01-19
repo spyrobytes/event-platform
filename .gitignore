@@ -39,14 +39,15 @@ serviceAccountKey*.json
 # FIREBASE
 # =============================================================================
 .firebase/
-.firebaserc
 firebase-debug.log
 firestore-debug.log
 database-debug.log
 pubsub-debug.log
 ui-debug.log
+auth-debug.log
 firebase-export-*/
 emulator-data/
+.firebase-emulator-data/
 
 # =============================================================================
 # NEXT.JS

@@ -7,6 +7,9 @@ import type { User } from "@prisma/client";
 // Initialize Firebase Admin SDK
 let firebaseApp: App;
 
+// Check if running with emulator
+const isEmulatorMode = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
+
 function getFirebaseAdmin(): App {
   if (firebaseApp) return firebaseApp;
 
@@ -15,7 +18,15 @@ function getFirebaseAdmin(): App {
     return firebaseApp;
   }
 
-  // Only initialize if we have the required environment variables
+  // In emulator mode with demo project, credentials are not required
+  if (isEmulatorMode) {
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID || "demo-event-platform";
+    firebaseApp = initializeApp({ projectId });
+    return firebaseApp;
+  }
+
+  // Production: require full credentials
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");

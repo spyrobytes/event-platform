@@ -26,8 +26,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
+    // Use dev:local for E2E tests (connects to Firebase Emulator + Mailpit)
+    command: "npm run dev:local",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    timeout: 120000,
   },
 });
