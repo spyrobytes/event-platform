@@ -3,7 +3,7 @@ import Link from "next/link";
 const FOOTER_LINKS = {
   discover: [
     { label: "Browse Events", href: "/events" },
-    { label: "Cities", href: "/events" },
+    { label: "Cities", href: "/cities" },
   ],
   organizers: [
     { label: "Create Event", href: "/dashboard/events/new" },
