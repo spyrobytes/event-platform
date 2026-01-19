@@ -66,20 +66,49 @@ export async function verifyAuth(request: NextRequest): Promise<User | null> {
     const decoded = await getAuth().verifyIdToken(token);
 
     // Get or create user in our database
-    const user = await db.user.upsert({
+    // First try to find by firebaseUid
+    let user = await db.user.findUnique({
       where: { firebaseUid: decoded.uid },
-      update: {
-        email: decoded.email ?? "",
-        name: decoded.name ?? null,
-        avatarUrl: decoded.picture ?? null,
-      },
-      create: {
-        firebaseUid: decoded.uid,
-        email: decoded.email ?? "",
-        name: decoded.name ?? null,
-        avatarUrl: decoded.picture ?? null,
-      },
     });
+
+    if (user) {
+      // Update existing user
+      user = await db.user.update({
+        where: { id: user.id },
+        data: {
+          email: decoded.email ?? "",
+          name: decoded.name ?? null,
+          avatarUrl: decoded.picture ?? null,
+        },
+      });
+    } else {
+      // Not found by firebaseUid - check if email exists (e.g., emulator restart)
+      const existingByEmail = decoded.email
+        ? await db.user.findUnique({ where: { email: decoded.email } })
+        : null;
+
+      if (existingByEmail) {
+        // Update existing user's firebaseUid (emulator generated new UID for same email)
+        user = await db.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            firebaseUid: decoded.uid,
+            name: decoded.name ?? null,
+            avatarUrl: decoded.picture ?? null,
+          },
+        });
+      } else {
+        // Create new user
+        user = await db.user.create({
+          data: {
+            firebaseUid: decoded.uid,
+            email: decoded.email ?? "",
+            name: decoded.name ?? null,
+            avatarUrl: decoded.picture ?? null,
+          },
+        });
+      }
+    }
 
     return user;
   } catch (error) {

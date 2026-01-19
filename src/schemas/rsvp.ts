@@ -12,7 +12,10 @@ export const submitRsvpSchema = z.object({
     .string()
     .min(1, "Name is required")
     .max(200, "Name must be less than 200 characters"),
-  guestEmail: z.string().email("Invalid email address").optional(),
+  guestEmail: z
+    .string()
+    .transform((v) => (v === "" ? undefined : v))
+    .pipe(z.string().email("Invalid email address").optional()),
   guestCount: z.number().int().min(1).max(11).optional().default(1),
   dietaryRestrictions: z.string().max(500, "Dietary restrictions must be less than 500 characters").optional(),
   notes: z.string().max(1000, "Notes must be less than 1000 characters").optional(),

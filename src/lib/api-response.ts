@@ -12,10 +12,10 @@ export type APIError = {
 };
 
 /**
- * Creates a success JSON response
+ * Creates a success JSON response wrapped in { data: ... }
  */
 export function successResponse<T>(data: T, status: number = 200) {
-  return NextResponse.json(data, { status });
+  return NextResponse.json({ data }, { status });
 }
 
 /**
