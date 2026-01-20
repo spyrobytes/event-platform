@@ -16,7 +16,156 @@
 -- =============================================================================
 
 -- Clean existing data (in reverse dependency order)
-TRUNCATE email_outbox, rsvps, invites, events, organization_members, organizations, users CASCADE;
+TRUNCATE email_outbox, rsvps, invites, event_page_versions, media_assets, events, organization_members, organizations, users, page_templates CASCADE;
+
+-- =============================================================================
+-- PAGE TEMPLATES
+-- =============================================================================
+-- Pre-defined templates for custom event pages
+
+INSERT INTO page_templates (id, name, category, description, preview_url, defaults, schema_version, is_active, created_at) VALUES
+  (
+    'wedding_v1',
+    'Classic Wedding',
+    'wedding',
+    'An elegant template for wedding celebrations with romantic typography and soft colors.',
+    NULL,
+    '{
+      "schemaVersion": 1,
+      "theme": {
+        "preset": "romantic",
+        "primaryColor": "#B76E79",
+        "fontPair": "serif_sans"
+      },
+      "hero": {
+        "title": "We''re Getting Married",
+        "subtitle": "Join us to celebrate our special day",
+        "align": "center",
+        "overlay": "soft"
+      },
+      "sections": [
+        {
+          "type": "details",
+          "enabled": true,
+          "data": {
+            "dateText": "Saturday, June 15th, 2026",
+            "locationText": "The Grand Ballroom"
+          }
+        },
+        {
+          "type": "schedule",
+          "enabled": true,
+          "data": {
+            "items": [
+              {"time": "3:00 PM", "title": "Ceremony", "description": "Join us as we exchange vows"},
+              {"time": "4:00 PM", "title": "Cocktail Hour", "description": "Drinks and hors d''oeuvres"},
+              {"time": "5:30 PM", "title": "Reception", "description": "Dinner, dancing, and celebration"}
+            ]
+          }
+        }
+      ]
+    }',
+    1,
+    true,
+    NOW()
+  ),
+  (
+    'conference_v1',
+    'Modern Conference',
+    'conference',
+    'A professional template for corporate events, conferences, and seminars.',
+    NULL,
+    '{
+      "schemaVersion": 1,
+      "theme": {
+        "preset": "modern",
+        "primaryColor": "#2563EB",
+        "fontPair": "modern"
+      },
+      "hero": {
+        "title": "Annual Conference 2026",
+        "subtitle": "Innovation. Collaboration. Growth.",
+        "align": "left",
+        "overlay": "strong"
+      },
+      "sections": [
+        {
+          "type": "details",
+          "enabled": true,
+          "data": {
+            "dateText": "March 15-17, 2026",
+            "locationText": "Convention Center"
+          }
+        },
+        {
+          "type": "schedule",
+          "enabled": true,
+          "data": {
+            "items": [
+              {"time": "9:00 AM", "title": "Registration & Breakfast"},
+              {"time": "10:00 AM", "title": "Keynote Address"},
+              {"time": "12:00 PM", "title": "Networking Lunch"},
+              {"time": "2:00 PM", "title": "Breakout Sessions"}
+            ]
+          }
+        },
+        {
+          "type": "faq",
+          "enabled": true,
+          "data": {
+            "items": [
+              {"q": "What is the dress code?", "a": "Business casual attire is recommended."},
+              {"q": "Is parking available?", "a": "Yes, complimentary parking is available on-site."}
+            ]
+          }
+        }
+      ]
+    }',
+    1,
+    true,
+    NOW()
+  ),
+  (
+    'party_v1',
+    'Celebration Party',
+    'party',
+    'A vibrant template for birthday parties, anniversaries, and casual celebrations.',
+    NULL,
+    '{
+      "schemaVersion": 1,
+      "theme": {
+        "preset": "classic",
+        "primaryColor": "#F59E0B",
+        "fontPair": "classic"
+      },
+      "hero": {
+        "title": "Let''s Celebrate!",
+        "subtitle": "You''re invited to join the fun",
+        "align": "center",
+        "overlay": "none"
+      },
+      "sections": [
+        {
+          "type": "details",
+          "enabled": true,
+          "data": {
+            "dateText": "Saturday Night",
+            "locationText": "The Party Venue"
+          }
+        },
+        {
+          "type": "gallery",
+          "enabled": false,
+          "data": {
+            "assetIds": []
+          }
+        }
+      ]
+    }',
+    1,
+    true,
+    NOW()
+  );
 
 -- =============================================================================
 -- USERS
