@@ -7,6 +7,17 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
+  // Snapshot configuration for visual regression tests
+  snapshotDir: "./tests/e2e/__snapshots__",
+  snapshotPathTemplate: "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{-projectName}{ext}",
+  expect: {
+    toHaveScreenshot: {
+      // Allow 0.5% pixel difference for anti-aliasing variations
+      maxDiffPixelRatio: 0.005,
+      // Animation timeout - wait for animations to complete
+      animations: "disabled",
+    },
+  },
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -23,6 +34,16 @@ export default defineConfig({
     {
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
+    },
+    // Visual regression tests run only on Chromium for consistency
+    {
+      name: "visual-regression",
+      testMatch: /visual.*\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        // Consistent viewport for visual tests
+        viewport: { width: 1280, height: 720 },
+      },
     },
   ],
   webServer: {

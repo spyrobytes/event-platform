@@ -4,6 +4,8 @@ import type { MediaAsset } from "@prisma/client";
 
 // Template imports
 import { WeddingTemplateV1 } from "./WeddingTemplateV1";
+import { ConferenceTemplateV1 } from "./ConferenceTemplateV1";
+import { PartyTemplateV1 } from "./PartyTemplateV1";
 
 /**
  * Props that all template components must accept
@@ -29,9 +31,8 @@ export type TemplateComponent = ComponentType<TemplateProps>;
  */
 export const TEMPLATES: Record<string, TemplateComponent> = {
   wedding_v1: WeddingTemplateV1,
-  // Future templates:
-  // conference_v1: ConferenceTemplateV1,
-  // party_v1: PartyTemplateV1,
+  conference_v1: ConferenceTemplateV1,
+  party_v1: PartyTemplateV1,
 };
 
 /**
@@ -58,3 +59,5 @@ export function getAvailableTemplateIds(): string[] {
 
 // Re-export templates for direct import
 export { WeddingTemplateV1 } from "./WeddingTemplateV1";
+export { ConferenceTemplateV1 } from "./ConferenceTemplateV1";
+export { PartyTemplateV1 } from "./PartyTemplateV1";

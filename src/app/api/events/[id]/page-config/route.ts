@@ -11,6 +11,7 @@ import {
   validateAndMigrate,
   createMinimalConfig,
 } from "@/lib/config-migrations";
+import { revalidateEventPage } from "@/lib/revalidation";
 import { eventPageConfigV1Schema } from "@/schemas/event-page";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 
@@ -131,14 +132,23 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
     });
 
-    // Update event
-    await db.event.update({
+    // Update event and get slug for revalidation
+    const updatedEvent = await db.event.update({
       where: { id: eventId },
       data: {
         pageConfig: validatedConfig,
         ...(templateId && { templateId }),
       },
+      select: {
+        slug: true,
+        publishedAt: true,
+      },
     });
+
+    // Revalidate public page if published
+    if (updatedEvent.publishedAt) {
+      await revalidateEventPage(updatedEvent.slug);
+    }
 
     return successResponse({ updated: true });
   } catch (error) {
@@ -173,6 +183,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const fullEvent = await db.event.findUnique({
         where: { id: eventId },
         select: {
+          slug: true,
           pageConfig: true,
           title: true,
           templateId: true,
@@ -207,14 +218,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
 
+      // Revalidate the public page
+      await revalidateEventPage(fullEvent.slug);
+
       return successResponse({ published: true, publishedAt: new Date() });
     } else if (action === "unpublish") {
+      // Get slug before unpublishing for revalidation
+      const event = await db.event.findUnique({
+        where: { id: eventId },
+        select: { slug: true },
+      });
+
       await db.event.update({
         where: { id: eventId },
         data: {
           publishedAt: null,
         },
       });
+
+      // Revalidate to clear the cached page
+      if (event) {
+        await revalidateEventPage(event.slug);
+      }
 
       return successResponse({ published: false });
     } else {

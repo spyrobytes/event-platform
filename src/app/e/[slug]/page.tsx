@@ -1,14 +1,47 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
-import { getTemplate } from "@/components/templates";
+import { TEMPLATES } from "@/components/templates";
 import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
+/**
+ * ISR Configuration
+ * - Pages are statically generated at build time
+ * - Revalidated every 60 seconds as a fallback
+ * - On-demand revalidation triggered when page config is updated
+ */
+export const revalidate = 60;
+
+/**
+ * Default template ID used when event has no template or template not found
+ */
+const DEFAULT_TEMPLATE_ID = "wedding_v1";
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+/**
+ * Generate static params for published events
+ * This pre-generates pages at build time for all published events
+ */
+export async function generateStaticParams() {
+  const publishedEvents = await db.event.findMany({
+    where: {
+      publishedAt: { not: null },
+    },
+    select: {
+      slug: true,
+    },
+    take: 1000, // Limit to prevent build time issues
+  });
+
+  return publishedEvents.map((event) => ({
+    slug: event.slug,
+  }));
+}
 
 /**
  * Fetch event data by slug
@@ -113,17 +146,9 @@ export default async function PublicEventPage({ params }: PageProps) {
     notFound();
   }
 
-  // Get template component
-  const templateId = event.templateId || "wedding_v1";
-  const Template = getTemplate(templateId);
-
-  if (!Template) {
-    // Fallback to default template
-    const DefaultTemplate = getTemplate("wedding_v1");
-    if (!DefaultTemplate) {
-      throw new Error(`No template found for event ${event.id}`);
-    }
-  }
+  // Resolve template ID with fallback
+  const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
+  const resolvedTemplateId = templateId in TEMPLATES ? templateId : DEFAULT_TEMPLATE_ID;
 
   // Validate and migrate config if needed
   let config: EventPageConfigV1;
@@ -156,7 +181,8 @@ export default async function PublicEventPage({ params }: PageProps) {
     createdAt: new Date(),
   })) as unknown as MediaAsset[];
 
-  const TemplateComponent = Template || getTemplate("wedding_v1")!;
+  // Use direct component reference from TEMPLATES to satisfy static component rules
+  const Template = TEMPLATES[resolvedTemplateId];
 
-  return <TemplateComponent config={config} assets={assets} />;
+  return <Template config={config} assets={assets} />;
 }

@@ -101,6 +101,8 @@ export async function POST(request: NextRequest) {
         slug,
         creatorId: user.id,
         status: "DRAFT",
+        // Default to wedding template if not specified
+        templateId: data.templateId || "wedding_v1",
       },
       select: {
         id: true,
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
         status: true,
         coverImageUrl: true,
         maxAttendees: true,
+        templateId: true,
         createdAt: true,
       },
     });
