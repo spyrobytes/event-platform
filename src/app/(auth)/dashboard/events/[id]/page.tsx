@@ -198,6 +198,9 @@ export default function EventDetailPage() {
               {isPublishing ? "Publishing..." : "Publish"}
             </Button>
           )}
+          <Link href={`/dashboard/events/${event.id}/page-preview`}>
+            <Button variant="outline">Page</Button>
+          </Link>
           <Link href={`/dashboard/events/${event.id}/invites`}>
             <Button variant="outline">Invites</Button>
           </Link>

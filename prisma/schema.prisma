@@ -289,7 +289,7 @@ model MediaAsset {
 }
 
 enum AssetKind {
-  UPLOAD
+  HERO
   GALLERY
 }
 
