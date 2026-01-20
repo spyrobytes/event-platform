@@ -30,8 +30,13 @@ type EventListProps = {
   emptyMessage?: string;
   className?: string;
   cardClassName?: string;
-  getHref?: (event: EventListData) => string;
+  /** Base path for event links. Use ":slug" or ":id" as placeholder. Default: "/events/:slug" */
+  hrefPattern?: string;
 };
+
+function buildHref(event: EventListData, pattern: string): string {
+  return pattern.replace(":slug", event.slug).replace(":id", event.id);
+}
 
 export function EventList({
   events,
@@ -39,7 +44,7 @@ export function EventList({
   emptyMessage = "No events found",
   className,
   cardClassName,
-  getHref,
+  hrefPattern = "/events/:slug",
 }: EventListProps) {
   if (events.length === 0) {
     return (
@@ -56,7 +61,7 @@ export function EventList({
           key={event.id}
           event={event}
           showStatus={showStatus}
-          href={getHref?.(event)}
+          href={buildHref(event, hrefPattern)}
           className={cardClassName}
         />
       ))}

@@ -156,7 +156,6 @@ export default async function HomePage() {
               <EventList
                 events={events}
                 showStatus={false}
-                getHref={(event) => `/events/${event.slug}`}
               />
             </div>
           </section>

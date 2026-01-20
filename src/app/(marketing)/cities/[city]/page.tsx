@@ -138,7 +138,6 @@ export default async function CityPage({ params }: CityPageProps) {
             events={events}
             showStatus={false}
             emptyMessage={`No upcoming events in ${displayName}. Check back later!`}
-            getHref={(event) => `/events/${event.slug}`}
           />
         </div>
 

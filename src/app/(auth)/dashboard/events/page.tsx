@@ -107,7 +107,7 @@ export default function EventsPage() {
         <EventList
           events={events}
           emptyMessage="You haven't created any events yet. Click 'Create Event' to get started."
-          getHref={(event) => `/dashboard/events/${event.id}`}
+          hrefPattern="/dashboard/events/:id"
         />
       )}
     </div>

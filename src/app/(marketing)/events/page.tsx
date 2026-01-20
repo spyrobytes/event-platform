@@ -141,7 +141,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                   ? `No upcoming events in ${city}. Check back later!`
                   : "No upcoming events found. Check back later!"
               }
-              getHref={(event) => `/events/${event.slug}`}
             />
 
             {totalPages > 1 && (
