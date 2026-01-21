@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 /**
+ * Valid template IDs
+ */
+export const VALID_TEMPLATE_IDS = ["wedding_v1", "conference_v1", "party_v1"] as const;
+export type TemplateId = (typeof VALID_TEMPLATE_IDS)[number];
+
+/**
  * Schema for creating a new event
  */
 export const createEventSchema = z.object({
@@ -26,6 +32,7 @@ export const createEventSchema = z.object({
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).default("PUBLIC"),
   maxAttendees: z.number().int().positive().max(10000).optional(),
   coverImageUrl: z.string().url().optional(),
+  templateId: z.enum(VALID_TEMPLATE_IDS).optional(),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -56,6 +63,7 @@ export const updateEventSchema = z.object({
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).optional(),
   maxAttendees: z.number().int().positive().max(10000).nullable().optional(),
   coverImageUrl: z.string().url().nullable().optional(),
+  templateId: z.enum(VALID_TEMPLATE_IDS).nullable().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createEventSchema, type CreateEventInput } from "@/schemas/event";
+import { TemplateSelector, getDefaultTemplateId } from "@/components/features";
+import { createEventSchema, type CreateEventInput, type TemplateId } from "@/schemas/event";
 
 type EventFormMode = "create" | "edit";
 
@@ -72,12 +73,14 @@ export function EventForm({
       country: defaultValues?.country ?? "",
       maxAttendees: defaultValues?.maxAttendees,
       coverImageUrl: defaultValues?.coverImageUrl ?? "",
+      templateId: defaultValues?.templateId ?? getDefaultTemplateId(),
       ...defaultValues,
     },
   });
 
   const visibility = watch("visibility");
   const timezone = watch("timezone");
+  const templateId = watch("templateId");
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
@@ -89,6 +92,25 @@ export function EventForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      {/* Template Selection - only show on create */}
+      {mode === "create" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Choose a Template</CardTitle>
+            <CardDescription>
+              Select a visual style for your event page. You can customize it later.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TemplateSelector
+              value={templateId || null}
+              onChange={(id) => setValue("templateId", id as TemplateId)}
+              disabled={isLoading}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Basic Information</CardTitle>
