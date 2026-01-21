@@ -72,8 +72,104 @@ const SAMPLE_CONFIG: EventPageConfigV1 = {
         assetIds: [],
       },
     },
+    {
+      type: "rsvp",
+      enabled: true,
+      data: {
+        heading: "RSVP",
+        description: "Please let us know if you can make it!",
+        showMaybeOption: true,
+        allowPlusOnes: true,
+        maxPlusOnes: 2,
+        successMessage: "Thank you for your response!",
+      },
+    },
+    {
+      type: "speakers",
+      enabled: true,
+      data: {
+        heading: "Featured Speakers",
+        description: "Meet the amazing people who will be presenting at this event.",
+        items: [
+          {
+            name: "Dr. Jane Smith",
+            role: "Keynote Speaker",
+            bio: "A renowned expert in technology and innovation with over 20 years of experience.",
+            links: [
+              { type: "twitter", url: "https://twitter.com/janesmith" },
+              { type: "linkedin", url: "https://linkedin.com/in/janesmith" },
+            ],
+          },
+          {
+            name: "John Doe",
+            role: "Panel Moderator",
+            bio: "Award-winning journalist and thought leader in sustainable business practices.",
+            links: [
+              { type: "website", url: "https://johndoe.com" },
+            ],
+          },
+          {
+            name: "Emily Chen",
+            role: "Workshop Leader",
+            bio: "Creative director with a passion for design thinking and user experience.",
+          },
+        ],
+      },
+    },
+    {
+      type: "sponsors",
+      enabled: true,
+      data: {
+        heading: "Our Sponsors",
+        description: "Thank you to our generous sponsors for making this event possible.",
+        showTiers: true,
+        items: [
+          {
+            name: "TechCorp International",
+            tier: "platinum",
+            description: "Leading the future of technology",
+            websiteUrl: "https://techcorp.example.com",
+          },
+          {
+            name: "Innovation Labs",
+            tier: "gold",
+            description: "Where ideas come to life",
+            websiteUrl: "https://innovationlabs.example.com",
+          },
+          {
+            name: "Global Solutions Inc",
+            tier: "gold",
+            websiteUrl: "https://globalsolutions.example.com",
+          },
+          {
+            name: "StartUp Ventures",
+            tier: "silver",
+          },
+          {
+            name: "Community Partners",
+            tier: "partner",
+          },
+        ],
+      },
+    },
+    {
+      type: "map",
+      enabled: true,
+      data: {
+        heading: "Find Us",
+        venueName: "The Grand Convention Center",
+        address: "123 Event Plaza, New York, NY 10001",
+        latitude: 40.7128,
+        longitude: -74.006,
+        zoom: 15,
+        showDirectionsLink: true,
+      },
+    },
   ],
 };
+
+// Sample event ID for testing RSVP (non-functional in preview)
+const SAMPLE_EVENT_ID = "test-event-preview";
 
 // Empty assets for testing (no images)
 const SAMPLE_ASSETS: MediaAsset[] = [];
@@ -93,5 +189,5 @@ export default async function TemplatePreviewPage({ params }: PageProps) {
 
   const Template = TEMPLATES[templateId];
 
-  return <Template config={SAMPLE_CONFIG} assets={SAMPLE_ASSETS} />;
+  return <Template config={SAMPLE_CONFIG} assets={SAMPLE_ASSETS} eventId={SAMPLE_EVENT_ID} />;
 }

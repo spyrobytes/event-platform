@@ -55,6 +55,7 @@ export default function EventDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -152,6 +153,34 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleDuplicate = async () => {
+    if (!event || isDuplicating) return;
+
+    setIsDuplicating(true);
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(`/api/events/${event.id}/duplicate`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to duplicate event");
+      }
+
+      const result = await response.json();
+      router.push(`/dashboard/events/${result.data.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to duplicate event");
+      setIsDuplicating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -207,6 +236,9 @@ export default function EventDetailPage() {
           <Link href={`/dashboard/events/${event.id}/edit`}>
             <Button variant="outline">Edit</Button>
           </Link>
+          <Button variant="outline" onClick={handleDuplicate} disabled={isDuplicating}>
+            {isDuplicating ? "Duplicating..." : "Duplicate"}
+          </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
             {isDeleting ? "Deleting..." : "Delete"}
           </Button>

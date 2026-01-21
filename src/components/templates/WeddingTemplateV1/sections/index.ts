@@ -3,3 +3,7 @@ export { DetailsSection } from "./DetailsSection";
 export { ScheduleSection } from "./ScheduleSection";
 export { FAQSection } from "./FAQSection";
 export { GallerySection } from "./GallerySection";
+export { RSVPSection } from "./RSVPSection";
+export { SpeakersSection } from "./SpeakersSection";
+export { SponsorsSection } from "./SponsorsSection";
+export { MapSection } from "./MapSection";

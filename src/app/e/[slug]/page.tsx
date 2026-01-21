@@ -184,5 +184,5 @@ export default async function PublicEventPage({ params }: PageProps) {
   // Use direct component reference from TEMPLATES to satisfy static component rules
   const Template = TEMPLATES[resolvedTemplateId];
 
-  return <Template config={config} assets={assets} />;
+  return <Template config={config} assets={assets} eventId={event.id} />;
 }

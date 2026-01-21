@@ -138,12 +138,99 @@ export const gallerySectionSchema = z.object({
   data: gallerySectionDataSchema,
 });
 
+// RSVP Section
+export const rsvpSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("RSVP"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  showMaybeOption: z.boolean().default(true),
+  allowPlusOnes: z.boolean().default(false),
+  maxPlusOnes: z.number().min(0).max(10).default(0),
+  successMessage: z.string().max(200, "Success message must be 200 characters or less").optional(),
+});
+
+export const rsvpSectionSchema = z.object({
+  type: z.literal("rsvp"),
+  enabled: z.boolean(),
+  data: rsvpSectionDataSchema,
+});
+
+// Speakers/Guests Section
+export const speakerLinkSchema = z.object({
+  type: z.enum(["website", "twitter", "linkedin", "instagram"]),
+  url: z.string().url("Must be a valid URL"),
+});
+
+export const speakerItemSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  role: z.string().max(100, "Role must be 100 characters or less").optional(),
+  bio: z.string().max(500, "Bio must be 500 characters or less").optional(),
+  imageAssetId: z.string().cuid().optional(),
+  links: z.array(speakerLinkSchema).max(4, "Maximum 4 links per speaker").optional(),
+});
+
+export const speakersSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("Speakers"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  items: z.array(speakerItemSchema).max(12, "Maximum 12 speakers allowed"),
+});
+
+export const speakersSectionSchema = z.object({
+  type: z.literal("speakers"),
+  enabled: z.boolean(),
+  data: speakersSectionDataSchema,
+});
+
+// Sponsors Section
+export const sponsorTierSchema = z.enum(["platinum", "gold", "silver", "bronze", "partner"]);
+
+export const sponsorItemSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  tier: sponsorTierSchema.optional(),
+  logoAssetId: z.string().cuid().optional(),
+  websiteUrl: z.string().url("Must be a valid URL").optional(),
+  description: z.string().max(200, "Description must be 200 characters or less").optional(),
+});
+
+export const sponsorsSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("Our Sponsors"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  showTiers: z.boolean().default(false),
+  items: z.array(sponsorItemSchema).max(20, "Maximum 20 sponsors allowed"),
+});
+
+export const sponsorsSectionSchema = z.object({
+  type: z.literal("sponsors"),
+  enabled: z.boolean(),
+  data: sponsorsSectionDataSchema,
+});
+
+// Map/Location Section
+export const mapSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("Location"),
+  venueName: z.string().max(100, "Venue name must be 100 characters or less").optional(),
+  address: z.string().max(300, "Address must be 300 characters or less"),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  zoom: z.number().min(1).max(20).default(15),
+  showDirectionsLink: z.boolean().default(true),
+});
+
+export const mapSectionSchema = z.object({
+  type: z.literal("map"),
+  enabled: z.boolean(),
+  data: mapSectionDataSchema,
+});
+
 // Union of all sections
 export const sectionSchema = z.discriminatedUnion("type", [
   detailsSectionSchema,
   scheduleSectionSchema,
   faqSectionSchema,
   gallerySectionSchema,
+  rsvpSectionSchema,
+  speakersSectionSchema,
+  sponsorsSectionSchema,
+  mapSectionSchema,
 ]);
 
 export type Section = z.infer<typeof sectionSchema>;
@@ -151,6 +238,14 @@ export type DetailsSection = z.infer<typeof detailsSectionSchema>;
 export type ScheduleSection = z.infer<typeof scheduleSectionSchema>;
 export type FAQSection = z.infer<typeof faqSectionSchema>;
 export type GallerySection = z.infer<typeof gallerySectionSchema>;
+export type RSVPSection = z.infer<typeof rsvpSectionSchema>;
+export type SpeakersSection = z.infer<typeof speakersSectionSchema>;
+export type SpeakerItem = z.infer<typeof speakerItemSchema>;
+export type SpeakerLink = z.infer<typeof speakerLinkSchema>;
+export type SponsorsSection = z.infer<typeof sponsorsSectionSchema>;
+export type SponsorItem = z.infer<typeof sponsorItemSchema>;
+export type SponsorTier = z.infer<typeof sponsorTierSchema>;
+export type MapSection = z.infer<typeof mapSectionSchema>;
 
 // =============================================================================
 // FULL PAGE CONFIG
@@ -174,6 +269,8 @@ export const PAGE_CONFIG_LIMITS = {
   maxGalleryImages: 20,
   maxFaqItems: 10,
   maxScheduleItems: 20,
+  maxSpeakers: 12,
+  maxSponsors: 20,
   heroTitleLength: 80,
   heroSubtitleLength: 120,
   maxFileSizeBytes: 5 * 1024 * 1024, // 5MB

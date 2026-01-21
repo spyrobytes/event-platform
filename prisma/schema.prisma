@@ -98,6 +98,10 @@ model Event {
   configVersion Int     @default(1) @map("config_version")
   pageConfig    Json?   @map("page_config")
 
+  // Preview sharing
+  previewToken          String?   @unique @map("preview_token")
+  previewTokenExpiresAt DateTime? @map("preview_token_expires_at")
+
   publishedAt DateTime? @map("published_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")

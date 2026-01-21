@@ -14,7 +14,12 @@ import {
   ScheduleEditor,
   FAQEditor,
   GalleryEditor,
+  RSVPEditor,
+  SpeakersEditor,
+  SponsorsEditor,
+  MapEditor,
   VersionHistory,
+  PreviewShareCard,
 } from "@/components/features";
 import type {
   EventPageConfigV1,
@@ -22,6 +27,10 @@ import type {
   ScheduleSection,
   FAQSection,
   GallerySection,
+  RSVPSection,
+  SpeakersSection,
+  SponsorsSection,
+  MapSection,
 } from "@/schemas/event-page";
 
 type PageConfigResponse = {
@@ -157,6 +166,62 @@ export default function PageEditorPage() {
     []
   );
 
+  const updateRSVPData = useCallback(
+    (index: number, data: RSVPSection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as RSVPSection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateSpeakersData = useCallback(
+    (index: number, data: SpeakersSection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as SpeakersSection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateSponsorsData = useCallback(
+    (index: number, data: SponsorsSection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as SponsorsSection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateMapData = useCallback(
+    (index: number, data: MapSection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as MapSection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
   const addSection = useCallback(
     (type: Section["type"]) => {
       setConfig((prev) => {
@@ -192,6 +257,53 @@ export default function PageEditorPage() {
               type: "gallery",
               enabled: true,
               data: { assetIds: [] },
+            };
+            break;
+          case "rsvp":
+            newSection = {
+              type: "rsvp",
+              enabled: true,
+              data: {
+                heading: "RSVP",
+                showMaybeOption: true,
+                allowPlusOnes: false,
+                maxPlusOnes: 0,
+              },
+            };
+            break;
+          case "speakers":
+            newSection = {
+              type: "speakers",
+              enabled: true,
+              data: {
+                heading: "Speakers",
+                items: [],
+              },
+            };
+            break;
+          case "sponsors":
+            newSection = {
+              type: "sponsors",
+              enabled: true,
+              data: {
+                heading: "Our Sponsors",
+                showTiers: false,
+                items: [],
+              },
+            };
+            break;
+          case "map":
+            newSection = {
+              type: "map",
+              enabled: true,
+              data: {
+                heading: "Location",
+                address: "",
+                latitude: 0,
+                longitude: 0,
+                zoom: 15,
+                showDirectionsLink: true,
+              },
             };
             break;
           default:
@@ -339,6 +451,9 @@ export default function PageEditorPage() {
         onRollback={handleVersionRollback}
         isPreviewMode={isPreviewingVersion}
       />
+
+      {/* Preview Sharing */}
+      <PreviewShareCard eventId={params.id} getIdToken={getIdToken} />
 
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
@@ -548,6 +663,32 @@ export default function PageEditorPage() {
                 onChange={(assetIds) => updateGalleryAssets(index, assetIds)}
               />
             )}
+            {section.type === "rsvp" && section.enabled && (
+              <RSVPEditor
+                data={section.data}
+                onChange={(data) => updateRSVPData(index, data)}
+              />
+            )}
+            {section.type === "speakers" && section.enabled && (
+              <SpeakersEditor
+                data={section.data}
+                assets={pageData?.assets || []}
+                onChange={(data) => updateSpeakersData(index, data)}
+              />
+            )}
+            {section.type === "sponsors" && section.enabled && (
+              <SponsorsEditor
+                data={section.data}
+                assets={pageData?.assets || []}
+                onChange={(data) => updateSponsorsData(index, data)}
+              />
+            )}
+            {section.type === "map" && section.enabled && (
+              <MapEditor
+                data={section.data}
+                onChange={(data) => updateMapData(index, data)}
+              />
+            )}
             {!section.enabled && (
               <p className="text-sm text-muted-foreground">
                 This section is disabled. Enable it to edit.
@@ -607,7 +748,47 @@ export default function PageEditorPage() {
                 + Gallery
               </Button>
             )}
-            {config.sections.length === 4 && (
+            {!config.sections.some((s) => s.type === "rsvp") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("rsvp")}
+              >
+                + RSVP
+              </Button>
+            )}
+            {!config.sections.some((s) => s.type === "speakers") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("speakers")}
+              >
+                + Speakers
+              </Button>
+            )}
+            {!config.sections.some((s) => s.type === "sponsors") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("sponsors")}
+              >
+                + Sponsors
+              </Button>
+            )}
+            {!config.sections.some((s) => s.type === "map") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("map")}
+              >
+                + Map
+              </Button>
+            )}
+            {config.sections.length === 8 && (
               <p className="text-sm text-muted-foreground">
                 All section types have been added.
               </p>

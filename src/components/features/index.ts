@@ -9,4 +9,4 @@ export {
   getTemplateInfo,
   getDefaultTemplateId,
 } from "./TemplateSelector";
-export { ScheduleEditor, FAQEditor, GalleryEditor, VersionHistory } from "./PageEditor";
+export { ScheduleEditor, FAQEditor, GalleryEditor, RSVPEditor, SpeakersEditor, SponsorsEditor, MapEditor, VersionHistory, PreviewShareCard } from "./PageEditor";

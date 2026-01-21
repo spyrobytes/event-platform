@@ -13,6 +13,7 @@ import { PartyTemplateV1 } from "./PartyTemplateV1";
 export type TemplateProps = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
+  eventId?: string;
 };
 
 /**

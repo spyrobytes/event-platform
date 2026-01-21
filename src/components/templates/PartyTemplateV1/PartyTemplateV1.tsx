@@ -6,11 +6,16 @@ import {
   ScheduleSection,
   FAQSection,
   GallerySection,
+  RSVPSection,
+  SpeakersSection,
+  SponsorsSection,
+  MapSection,
 } from "./sections";
 
 type PartyTemplateV1Props = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
+  eventId?: string;
 };
 
 /**
@@ -19,7 +24,7 @@ type PartyTemplateV1Props = {
  * A vibrant, fun template for birthday parties, anniversaries, and casual celebrations.
  * Features playful typography, colorful accents, and festive decorations.
  */
-export function PartyTemplateV1({ config, assets }: PartyTemplateV1Props) {
+export function PartyTemplateV1({ config, assets, eventId }: PartyTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
@@ -72,6 +77,45 @@ export function PartyTemplateV1({ config, assets }: PartyTemplateV1Props) {
                 key={`${section.type}-${index}`}
                 data={section.data}
                 assets={assets}
+                primaryColor={theme.primaryColor}
+              />
+            );
+
+          case "rsvp":
+            return eventId ? (
+              <RSVPSection
+                key={`${section.type}-${index}`}
+                data={section.data}
+                eventId={eventId}
+                primaryColor={theme.primaryColor}
+              />
+            ) : null;
+
+          case "speakers":
+            return (
+              <SpeakersSection
+                key={`${section.type}-${index}`}
+                data={section.data}
+                assets={assets}
+                primaryColor={theme.primaryColor}
+              />
+            );
+
+          case "sponsors":
+            return (
+              <SponsorsSection
+                key={`${section.type}-${index}`}
+                data={section.data}
+                assets={assets}
+                primaryColor={theme.primaryColor}
+              />
+            );
+
+          case "map":
+            return (
+              <MapSection
+                key={`${section.type}-${index}`}
+                data={section.data}
                 primaryColor={theme.primaryColor}
               />
             );

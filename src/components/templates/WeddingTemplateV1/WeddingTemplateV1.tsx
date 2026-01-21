@@ -6,11 +6,16 @@ import {
   ScheduleSection,
   FAQSection,
   GallerySection,
+  RSVPSection,
+  SpeakersSection,
+  SponsorsSection,
+  MapSection,
 } from "./sections";
 
 type WeddingTemplateV1Props = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
+  eventId?: string;
 };
 
 /**
@@ -19,7 +24,7 @@ type WeddingTemplateV1Props = {
  * A romantic, elegant template for wedding celebrations.
  * Features soft typography and a warm color palette.
  */
-export function WeddingTemplateV1({ config, assets }: WeddingTemplateV1Props) {
+export function WeddingTemplateV1({ config, assets, eventId }: WeddingTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
@@ -72,6 +77,45 @@ export function WeddingTemplateV1({ config, assets }: WeddingTemplateV1Props) {
                 key={`${section.type}-${index}`}
                 data={section.data}
                 assets={assets}
+                primaryColor={theme.primaryColor}
+              />
+            );
+
+          case "rsvp":
+            return eventId ? (
+              <RSVPSection
+                key={`${section.type}-${index}`}
+                data={section.data}
+                eventId={eventId}
+                primaryColor={theme.primaryColor}
+              />
+            ) : null;
+
+          case "speakers":
+            return (
+              <SpeakersSection
+                key={`${section.type}-${index}`}
+                data={section.data}
+                assets={assets}
+                primaryColor={theme.primaryColor}
+              />
+            );
+
+          case "sponsors":
+            return (
+              <SponsorsSection
+                key={`${section.type}-${index}`}
+                data={section.data}
+                assets={assets}
+                primaryColor={theme.primaryColor}
+              />
+            );
+
+          case "map":
+            return (
+              <MapSection
+                key={`${section.type}-${index}`}
+                data={section.data}
                 primaryColor={theme.primaryColor}
               />
             );
