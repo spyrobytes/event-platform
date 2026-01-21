@@ -26,21 +26,34 @@ type PageProps = {
 /**
  * Generate static params for published events
  * This pre-generates pages at build time for all published events
+ * Returns empty array if database is not available (e.g., CI builds)
  */
 export async function generateStaticParams() {
-  const publishedEvents = await db.event.findMany({
-    where: {
-      publishedAt: { not: null },
-    },
-    select: {
-      slug: true,
-    },
-    take: 1000, // Limit to prevent build time issues
-  });
+  // Skip static generation if DATABASE_URL is not set (e.g., CI builds)
+  // Pages will be generated on-demand via ISR instead
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
 
-  return publishedEvents.map((event) => ({
-    slug: event.slug,
-  }));
+  try {
+    const publishedEvents = await db.event.findMany({
+      where: {
+        publishedAt: { not: null },
+      },
+      select: {
+        slug: true,
+      },
+      take: 1000, // Limit to prevent build time issues
+    });
+
+    return publishedEvents.map((event) => ({
+      slug: event.slug,
+    }));
+  } catch {
+    // If database connection fails, return empty array
+    // Pages will be generated on-demand via ISR
+    return [];
+  }
 }
 
 /**
