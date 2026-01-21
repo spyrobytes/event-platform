@@ -134,7 +134,8 @@ export async function navigateToEventDetail(page: Page, eventId: string): Promis
  * Save page editor changes
  */
 export async function savePageEditorChanges(page: Page): Promise<void> {
-  const saveButton = page.getByRole("button", { name: "Save Changes" });
+  // Use first() since there are Save Changes buttons in both header and footer
+  const saveButton = page.getByRole("button", { name: "Save Changes" }).first();
   await saveButton.click();
   // Wait for save to complete (button should become disabled or show success)
   await page.waitForTimeout(1000);
@@ -144,9 +145,30 @@ export async function savePageEditorChanges(page: Page): Promise<void> {
  * Add a section in the page editor
  */
 export async function addSection(page: Page, sectionType: string): Promise<void> {
+  // Scroll to the "Add Section" card first
+  const addSectionCard = page.locator("text=Add Section").first();
+  await addSectionCard.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+
+  // Find and click the add button
   const addButton = page.getByRole("button", { name: `+ ${sectionType}` });
-  if (await addButton.isVisible()) {
-    await addButton.click();
+  await addButton.waitFor({ state: "visible", timeout: 5000 });
+  await addButton.scrollIntoViewIfNeeded();
+
+  // Click the button with force to bypass any overlay issues
+  await addButton.click({ force: true });
+
+  // Wait a bit for the state to update
+  await page.waitForTimeout(500);
+
+  // Verify the button is no longer visible (section was added)
+  // If it's still visible after 2 seconds, something went wrong
+  try {
+    await addButton.waitFor({ state: "hidden", timeout: 2000 });
+  } catch {
+    // If button is still visible, try clicking again
+    await addButton.click({ force: true });
+    await addButton.waitFor({ state: "hidden", timeout: 3000 });
   }
 }
 
