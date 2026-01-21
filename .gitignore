@@ -115,3 +115,7 @@ REPORT.md
 TODO.md
 NOTES.md
 /src/generated/prisma
+
+# Playwright test artifacts
+playwright-report/
+test-results/
