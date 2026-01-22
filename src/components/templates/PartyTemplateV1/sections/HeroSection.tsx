@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -32,13 +31,10 @@ export function HeroSection({ config, heroAsset, primaryColor }: HeroSectionProp
     >
       {/* Background Image or Gradient */}
       {heroAsset?.publicUrl ? (
-        <Image
+        <img
           src={heroAsset.publicUrl}
           alt={heroAsset.alt || config.title}
-          fill
-          sizes="100vw"
-          className="object-cover"
-          priority
+          className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
         <div

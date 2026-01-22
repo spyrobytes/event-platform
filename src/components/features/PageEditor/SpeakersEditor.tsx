@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -280,12 +279,10 @@ export function SpeakersEditor({
                           )}
                         >
                           {asset.publicUrl && (
-                            <Image
+                            <img
                               src={asset.publicUrl}
                               alt={asset.alt || "Speaker photo"}
-                              fill
-                              sizes="64px"
-                              className="object-cover"
+                              className="h-full w-full object-cover"
                             />
                           )}
                         </button>

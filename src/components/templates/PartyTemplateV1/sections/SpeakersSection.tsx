@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { SectionWrapper, SectionTitle } from "../../shared";
 import type { MediaAsset } from "@prisma/client";
 import type { SpeakerItem, SpeakerLink } from "@/schemas/event-page";
@@ -89,11 +88,10 @@ export function SpeakersSection({ data, assets, primaryColor }: SpeakersSectionP
                 style={{ borderColor: `${primaryColor}50` }}
               >
                 {speakerImage?.publicUrl ? (
-                  <Image
+                  <img
                     src={speakerImage.publicUrl}
                     alt={speaker.name}
-                    fill
-                    className="object-cover"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
                   <div

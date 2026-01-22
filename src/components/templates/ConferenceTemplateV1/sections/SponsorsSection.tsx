@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { SectionWrapper, SectionTitle } from "../../shared";
 import type { MediaAsset } from "@prisma/client";
 import type { SponsorItem, SponsorTier } from "@/schemas/event-page";
@@ -105,11 +104,9 @@ export function SponsorsSection({ data, assets, primaryColor }: SponsorsSectionP
                     >
                       <div className="flex h-full flex-col items-center justify-center">
                         {logoAsset?.publicUrl ? (
-                          <Image
+                          <img
                             src={logoAsset.publicUrl}
                             alt={sponsor.name}
-                            width={size.width}
-                            height={size.height}
                             className="object-contain transition-transform group-hover:scale-105"
                             style={{ maxWidth: size.width, maxHeight: size.height }}
                           />

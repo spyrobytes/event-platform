@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { SectionWrapper, SectionTitle } from "../../shared";
 import type { MediaAsset } from "@prisma/client";
 import type { SponsorItem, SponsorTier } from "@/schemas/event-page";
@@ -95,11 +94,9 @@ export function SponsorsSection({ data, assets, primaryColor }: SponsorsSectionP
                     <div className="flex min-w-[120px] flex-col items-center">
                       {logoAsset?.publicUrl ? (
                         <div className="flex h-16 w-32 items-center justify-center">
-                          <Image
+                          <img
                             src={logoAsset.publicUrl}
                             alt={sponsor.name}
-                            width={120}
-                            height={60}
                             className="max-h-16 w-auto object-contain"
                           />
                         </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -294,12 +293,10 @@ export function SponsorsEditor({
                           )}
                         >
                           {asset.publicUrl && (
-                            <Image
+                            <img
                               src={asset.publicUrl}
                               alt={asset.alt || "Sponsor logo"}
-                              fill
-                              sizes="96px"
-                              className="object-contain p-1"
+                              className="h-full w-full object-contain p-1"
                             />
                           )}
                         </button>

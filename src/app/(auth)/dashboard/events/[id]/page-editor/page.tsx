@@ -20,6 +20,7 @@ import {
   MapEditor,
   VersionHistory,
   PreviewShareCard,
+  MediaUploadCard,
 } from "@/components/features";
 import type {
   EventPageConfigV1,
@@ -352,6 +353,63 @@ export default function PageEditorPage() {
     setHasChanges(true);
   }, []);
 
+  const handleAssetUploaded = useCallback(
+    (newAsset: {
+      id: string;
+      kind: string;
+      publicUrl: string | null;
+      width: number | null;
+      height: number | null;
+      alt: string;
+    }) => {
+      setPageData((prev) =>
+        prev
+          ? {
+              ...prev,
+              assets: [...prev.assets, newAsset],
+            }
+          : null
+      );
+    },
+    []
+  );
+
+  const handleAssetDeleted = useCallback(
+    (assetId: string) => {
+      setPageData((prev) =>
+        prev
+          ? {
+              ...prev,
+              assets: prev.assets.filter((a) => a.id !== assetId),
+            }
+          : null
+      );
+
+      // Clean up config references
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const updatedHero =
+          prev.hero.heroImageAssetId === assetId
+            ? { ...prev.hero, heroImageAssetId: undefined }
+            : prev.hero;
+        const updatedSections = prev.sections.map((section) => {
+          if (section.type === "gallery") {
+            return {
+              ...section,
+              data: {
+                assetIds: section.data.assetIds.filter((id) => id !== assetId),
+              },
+            };
+          }
+          return section;
+        });
+        return { ...prev, hero: updatedHero, sections: updatedSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
   const handleSave = async () => {
     if (!config || saving) return;
 
@@ -544,20 +602,32 @@ export default function PageEditorPage() {
               placeholder="Optional subtitle"
             />
           </div>
-          {pageData?.assets && pageData.assets.length > 0 && (
-            <div className="space-y-2">
-              <Label>Hero Image</Label>
+          {/* Hero Image Selection */}
+          <div className="space-y-2">
+            <Label>Hero Image</Label>
+            <p className="text-xs text-muted-foreground">
+              {pageData?.assets?.filter((a) => a.kind === "HERO").length
+                ? "Click an image to select it as your hero background"
+                : "Upload a hero image in the Media Library below to use it here"}
+            </p>
+            {pageData?.assets?.filter((a) => a.kind === "HERO").length ? (
               <div className="grid grid-cols-4 gap-2">
                 <button
                   type="button"
                   onClick={() => updateHero({ heroImageAssetId: undefined })}
-                  className={`aspect-video rounded border-2 p-2 text-xs ${
+                  className={`aspect-video rounded border-2 p-2 transition-all ${
                     !config.hero.heroImageAssetId
-                      ? "border-primary bg-primary/10"
-                      : "border-muted"
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                      : "border-muted hover:border-muted-foreground"
                   }`}
+                  title="Use gradient background instead of image"
                 >
-                  None
+                  <div className="flex h-full flex-col items-center justify-center gap-1 text-muted-foreground">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-[10px]">No Image</span>
+                  </div>
                 </button>
                 {pageData.assets
                   .filter((a) => a.kind === "HERO")
@@ -566,11 +636,12 @@ export default function PageEditorPage() {
                       key={asset.id}
                       type="button"
                       onClick={() => updateHero({ heroImageAssetId: asset.id })}
-                      className={`aspect-video overflow-hidden rounded border-2 ${
+                      className={`group relative aspect-video overflow-hidden rounded border-2 transition-all ${
                         config.hero.heroImageAssetId === asset.id
-                          ? "border-primary"
-                          : "border-muted"
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-muted hover:border-muted-foreground"
                       }`}
+                      title={asset.alt || "Select this hero image"}
                     >
                       {asset.publicUrl && (
                         <img
@@ -579,13 +650,36 @@ export default function PageEditorPage() {
                           className="h-full w-full object-cover"
                         />
                       )}
+                      {/* Selected indicator */}
+                      {config.hero.heroImageAssetId === asset.id && (
+                        <div className="absolute bottom-1 right-1 rounded-full bg-primary p-0.5 text-primary-foreground">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
                     </button>
                   ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="rounded-lg border border-dashed p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No hero images uploaded yet
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Media Library */}
+      <MediaUploadCard
+        eventId={params.id}
+        assets={pageData?.assets || []}
+        onAssetUploaded={handleAssetUploaded}
+        onAssetDeleted={handleAssetDeleted}
+        getIdToken={getIdToken}
+      />
 
       {/* Sections */}
       {config.sections.map((section, index) => (

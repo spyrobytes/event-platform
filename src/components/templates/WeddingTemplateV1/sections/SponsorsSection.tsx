@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { SectionWrapper, SectionTitle } from "../../shared";
 import type { MediaAsset } from "@prisma/client";
 import type { SponsorItem, SponsorTier } from "@/schemas/event-page";
@@ -88,11 +87,9 @@ export function SponsorsSection({ data, assets, primaryColor }: SponsorsSectionP
                       style={{ borderColor: `${primaryColor}20` }}
                     >
                       {logoAsset?.publicUrl ? (
-                        <Image
+                        <img
                           src={logoAsset.publicUrl}
                           alt={sponsor.name}
-                          width={120}
-                          height={60}
                           className="max-h-16 w-auto object-contain"
                         />
                       ) : (

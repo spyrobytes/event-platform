@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { SectionWrapper, SectionTitle } from "../../shared";
 import type { MediaAsset } from "@prisma/client";
 
@@ -51,12 +50,10 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
               className="group relative aspect-square overflow-hidden rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2"
               style={{ "--tw-ring-color": primaryColor } as React.CSSProperties}
             >
-              <Image
+              <img
                 src={asset.publicUrl || ""}
                 alt={asset.alt || `Gallery image ${index + 1}`}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
             </button>
@@ -99,13 +96,11 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
           )}
 
           {/* Image */}
-          <div className="relative h-[80vh] w-[90vw] max-w-5xl">
-            <Image
+          <div className="flex h-[80vh] w-[90vw] max-w-5xl items-center justify-center">
+            <img
               src={galleryAssets[lightboxIndex].publicUrl || ""}
               alt={galleryAssets[lightboxIndex].alt || `Gallery image ${lightboxIndex + 1}`}
-              fill
-              sizes="90vw"
-              className="object-contain"
+              className="max-h-full max-w-full object-contain"
             />
           </div>
 

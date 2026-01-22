@@ -7,3 +7,4 @@ export { SponsorsEditor } from "./SponsorsEditor";
 export { MapEditor } from "./MapEditor";
 export { VersionHistory } from "./VersionHistory";
 export { PreviewShareCard } from "./PreviewShareCard";
+export { MediaUploadCard } from "./MediaUploadCard";

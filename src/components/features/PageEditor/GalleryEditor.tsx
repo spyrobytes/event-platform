@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type Asset = {
@@ -93,6 +92,11 @@ export function GalleryEditor({
 
   return (
     <div className="space-y-6">
+      {/* Instructions */}
+      <p className="text-xs text-muted-foreground">
+        Click images below to add them to your gallery. Drag to reorder selected images.
+      </p>
+
       {/* Selected images */}
       {selectedAssets.length > 0 && (
         <div className="space-y-3">
@@ -106,12 +110,10 @@ export function GalleryEditor({
                 className="group relative aspect-square overflow-hidden rounded-lg border-2 border-primary bg-muted"
               >
                 {asset.publicUrl && (
-                  <Image
+                  <img
                     src={asset.publicUrl}
                     alt={asset.alt || `Gallery image ${index + 1}`}
-                    fill
-                    sizes="150px"
-                    className="object-cover"
+                    className="h-full w-full object-cover"
                   />
                 )}
                 {/* Order badge */}
@@ -179,12 +181,10 @@ export function GalleryEditor({
                 )}
               >
                 {asset.publicUrl && (
-                  <Image
+                  <img
                     src={asset.publicUrl}
                     alt={asset.alt || "Gallery image"}
-                    fill
-                    sizes="150px"
-                    className="object-cover"
+                    className="h-full w-full object-cover"
                   />
                 )}
                 {/* Add overlay */}
