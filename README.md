@@ -185,7 +185,7 @@ src/
 ├── lib/             # Utilities (db, auth, email, tokens, rate-limit)
 ├── schemas/         # Zod validation schemas
 ├── hooks/           # Custom React hooks
-└── middleware.ts    # Rate limiting middleware
+└── proxy.ts         # Rate limiting proxy
 
 tests/
 ├── unit/            # Unit tests (Vitest)
