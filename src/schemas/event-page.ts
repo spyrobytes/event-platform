@@ -127,9 +127,30 @@ export const faqSectionSchema = z.object({
   data: faqSectionDataSchema,
 });
 
-// Gallery Section
+// Gallery Section - Enhanced with storytelling support
+export const galleryItemSchema = z.object({
+  assetId: z.string().cuid(),
+  caption: z.string().max(200, "Caption must be 200 characters or less").optional(),
+  title: z.string().max(60, "Title must be 60 characters or less").optional(),
+  moment: z.string().max(30, "Moment must be 30 characters or less").optional(),
+});
+
+export const galleryDisplayModeSchema = z.enum(["grid", "carousel", "masonry", "slideshow"]);
+export const galleryTransitionSchema = z.enum(["fade", "slide", "zoom", "flip"]);
+
 export const gallerySectionDataSchema = z.object({
-  assetIds: z.array(z.string().cuid()).max(20, "Maximum 20 gallery images allowed"),
+  // Section heading
+  heading: z.string().max(60, "Heading must be 60 characters or less").optional(),
+  // New items array with per-image metadata
+  items: z.array(galleryItemSchema).max(20, "Maximum 20 gallery images allowed").optional(),
+  // Legacy field for backward compatibility - will be migrated to items
+  assetIds: z.array(z.string().cuid()).max(20).optional(),
+  // Display settings (all optional for backward compatibility)
+  displayMode: galleryDisplayModeSchema.optional(),
+  autoPlay: z.boolean().optional(),
+  autoPlayInterval: z.number().min(2).max(15).optional(),
+  transition: galleryTransitionSchema.optional(),
+  showCaptions: z.boolean().optional(),
 });
 
 export const gallerySectionSchema = z.object({
@@ -137,6 +158,34 @@ export const gallerySectionSchema = z.object({
   enabled: z.boolean(),
   data: gallerySectionDataSchema,
 });
+
+/**
+ * Helper to normalize gallery data - converts legacy assetIds to items format
+ */
+export function normalizeGalleryData(data: GallerySection["data"]): {
+  heading: string;
+  items: Array<{ assetId: string; caption?: string; title?: string; moment?: string }>;
+  displayMode: "grid" | "carousel" | "masonry" | "slideshow";
+  autoPlay: boolean;
+  autoPlayInterval: number;
+  transition: "fade" | "slide" | "zoom" | "flip";
+  showCaptions: boolean;
+} {
+  // If items exist, use them; otherwise convert assetIds to items
+  const items = data.items && data.items.length > 0
+    ? data.items
+    : (data.assetIds || []).map(assetId => ({ assetId }));
+
+  return {
+    heading: data.heading || "Gallery",
+    items,
+    displayMode: data.displayMode || "grid",
+    autoPlay: data.autoPlay || false,
+    autoPlayInterval: data.autoPlayInterval || 5,
+    transition: data.transition || "fade",
+    showCaptions: data.showCaptions !== false,
+  };
+}
 
 // RSVP Section
 export const rsvpSectionDataSchema = z.object({
@@ -340,6 +389,9 @@ export type DetailsSection = z.infer<typeof detailsSectionSchema>;
 export type ScheduleSection = z.infer<typeof scheduleSectionSchema>;
 export type FAQSection = z.infer<typeof faqSectionSchema>;
 export type GallerySection = z.infer<typeof gallerySectionSchema>;
+export type GalleryItem = z.infer<typeof galleryItemSchema>;
+export type GalleryDisplayMode = z.infer<typeof galleryDisplayModeSchema>;
+export type GalleryTransition = z.infer<typeof galleryTransitionSchema>;
 export type RSVPSection = z.infer<typeof rsvpSectionSchema>;
 export type SpeakersSection = z.infer<typeof speakersSectionSchema>;
 export type SpeakerItem = z.infer<typeof speakerItemSchema>;

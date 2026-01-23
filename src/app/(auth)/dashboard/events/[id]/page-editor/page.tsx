@@ -172,13 +172,13 @@ export default function PageEditorPage() {
     []
   );
 
-  const updateGalleryAssets = useCallback(
-    (index: number, assetIds: string[]) => {
+  const updateGalleryData = useCallback(
+    (index: number, data: GallerySection["data"]) => {
       setConfig((prev) => {
         if (!prev) return prev;
         const newSections = [...prev.sections];
         const section = newSections[index] as GallerySection;
-        newSections[index] = { ...section, data: { assetIds } };
+        newSections[index] = { ...section, data };
         return { ...prev, sections: newSections };
       });
       setHasChanges(true);
@@ -536,10 +536,14 @@ export default function PageEditorPage() {
             : prev.hero;
         const updatedSections = prev.sections.map((section) => {
           if (section.type === "gallery") {
+            const newAssetIds = (section.data.assetIds || []).filter((id) => id !== assetId);
+            const newItems = (section.data.items || []).filter((item) => item.assetId !== assetId);
             return {
               ...section,
               data: {
-                assetIds: section.data.assetIds.filter((id) => id !== assetId),
+                ...section.data,
+                assetIds: newAssetIds,
+                items: newItems,
               },
             };
           }
@@ -914,9 +918,9 @@ export default function PageEditorPage() {
             )}
             {section.type === "gallery" && section.enabled && (
               <GalleryEditor
-                selectedIds={section.data.assetIds}
+                data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(assetIds) => updateGalleryAssets(index, assetIds)}
+                onChange={(data) => updateGalleryData(index, data)}
               />
             )}
             {section.type === "rsvp" && section.enabled && (
