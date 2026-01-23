@@ -107,7 +107,7 @@ next-env.d.ts
 artifacts/
 docs/
 scripts/
-CLAUDE.md
+# CLAUDE.md
 REPORT.md
 .claude/
 *.draft.md
