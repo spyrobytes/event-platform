@@ -21,7 +21,15 @@ Build a **lightweight, scalable event platform** that supports:
 
 The platform prioritizes **developer experience (DX)**, **performance**, and **cost efficiency** during early-stage growth.
 
-**Core workflow:**
+##  🧩 Philosophy
+
+- Core: **narrative-first pages**, **smart defaults**, **temporal behavior**, and **modular components**
+- Page Flow: Story-driven **event pages** with **editorial photography** and **structured sections**
+- UX: **intuitive editor**, **live previews**, and **easy sharing**
+- Guidance: We are building an editorial, crafted, respectful experience — not a page builder.
+
+
+## 🛠️ Core workflow:
 
 1. Organizer creates event
 2. Organizer sends invitations
