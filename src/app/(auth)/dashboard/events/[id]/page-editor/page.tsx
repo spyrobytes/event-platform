@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   TemplateSelector,
   getTemplateInfo,
+  WeddingVariantPicker,
   ScheduleEditor,
   FAQEditor,
   GalleryEditor,
@@ -21,6 +22,11 @@ import {
   VersionHistory,
   PreviewShareCard,
   MediaUploadCard,
+  StoryEditor,
+  TravelStayEditor,
+  WeddingPartyEditor,
+  AttireEditor,
+  ThingsToDoEditor,
 } from "@/components/features";
 import type {
   EventPageConfigV1,
@@ -32,6 +38,11 @@ import type {
   SpeakersSection,
   SponsorsSection,
   MapSection,
+  StorySection,
+  TravelStaySection,
+  WeddingPartySection,
+  AttireSection,
+  ThingsToDoSection,
 } from "@/schemas/event-page";
 
 type PageConfigResponse = {
@@ -96,6 +107,14 @@ export default function PageEditorPage() {
 
   const handleTemplateChange = useCallback((newTemplateId: string) => {
     setTemplateId(newTemplateId);
+    setHasChanges(true);
+  }, []);
+
+  const handleVariantChange = useCallback((newVariantId: string) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      return { ...prev, variantId: newVariantId };
+    });
     setHasChanges(true);
   }, []);
 
@@ -223,6 +242,77 @@ export default function PageEditorPage() {
     []
   );
 
+  // Wedding-specific section update callbacks
+  const updateStoryData = useCallback(
+    (index: number, data: StorySection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as StorySection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateTravelStayData = useCallback(
+    (index: number, data: TravelStaySection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as TravelStaySection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateWeddingPartyData = useCallback(
+    (index: number, data: WeddingPartySection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as WeddingPartySection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateAttireData = useCallback(
+    (index: number, data: AttireSection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as AttireSection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateThingsToDoData = useCallback(
+    (index: number, data: ThingsToDoSection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as ThingsToDoSection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
   const addSection = useCallback(
     (type: Section["type"]) => {
       setConfig((prev) => {
@@ -304,6 +394,58 @@ export default function PageEditorPage() {
                 longitude: 0,
                 zoom: 15,
                 showDirectionsLink: true,
+              },
+            };
+            break;
+          // Wedding-specific sections
+          case "story":
+            newSection = {
+              type: "story",
+              enabled: true,
+              data: {
+                heading: "Our Story",
+                content: "",
+                layout: "full",
+              },
+            };
+            break;
+          case "travelStay":
+            newSection = {
+              type: "travelStay",
+              enabled: true,
+              data: {
+                heading: "Travel & Accommodations",
+                hotels: [],
+              },
+            };
+            break;
+          case "weddingParty":
+            newSection = {
+              type: "weddingParty",
+              enabled: true,
+              data: {
+                heading: "The Wedding Party",
+                members: [],
+              },
+            };
+            break;
+          case "attire":
+            newSection = {
+              type: "attire",
+              enabled: true,
+              data: {
+                heading: "Dress Code",
+                dressCode: "",
+              },
+            };
+            break;
+          case "thingsToDo":
+            newSection = {
+              type: "thingsToDo",
+              enabled: true,
+              data: {
+                heading: "Things To Do",
+                items: [],
               },
             };
             break;
@@ -536,6 +678,26 @@ export default function PageEditorPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Wedding Variant Selection - Only show for wedding templates */}
+      {templateId === "wedding_v1" && config && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Wedding Style</CardTitle>
+            <CardDescription>
+              Choose a design variant that matches your celebration style
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WeddingVariantPicker
+              value={config.variantId || "classic"}
+              onChange={handleVariantChange}
+              disabled={saving}
+              size="normal"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Theme Section */}
       <Card>
@@ -783,6 +945,38 @@ export default function PageEditorPage() {
                 onChange={(data) => updateMapData(index, data)}
               />
             )}
+            {/* Wedding-specific section editors */}
+            {section.type === "story" && section.enabled && (
+              <StoryEditor
+                data={section.data}
+                onChange={(data) => updateStoryData(index, data)}
+              />
+            )}
+            {section.type === "travelStay" && section.enabled && (
+              <TravelStayEditor
+                data={section.data}
+                onChange={(data) => updateTravelStayData(index, data)}
+              />
+            )}
+            {section.type === "weddingParty" && section.enabled && (
+              <WeddingPartyEditor
+                data={section.data}
+                assets={pageData?.assets || []}
+                onChange={(data) => updateWeddingPartyData(index, data)}
+              />
+            )}
+            {section.type === "attire" && section.enabled && (
+              <AttireEditor
+                data={section.data}
+                onChange={(data) => updateAttireData(index, data)}
+              />
+            )}
+            {section.type === "thingsToDo" && section.enabled && (
+              <ThingsToDoEditor
+                data={section.data}
+                onChange={(data) => updateThingsToDoData(index, data)}
+              />
+            )}
             {!section.enabled && (
               <p className="text-sm text-muted-foreground">
                 This section is disabled. Enable it to edit.
@@ -882,7 +1076,62 @@ export default function PageEditorPage() {
                 + Map
               </Button>
             )}
-            {config.sections.length === 8 && (
+            {/* Wedding-specific sections - only show for wedding template */}
+            {templateId === "wedding_v1" && (
+              <>
+                {!config.sections.some((s) => s.type === "story") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSection("story")}
+                  >
+                    + Our Story
+                  </Button>
+                )}
+                {!config.sections.some((s) => s.type === "travelStay") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSection("travelStay")}
+                  >
+                    + Travel & Stay
+                  </Button>
+                )}
+                {!config.sections.some((s) => s.type === "weddingParty") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSection("weddingParty")}
+                  >
+                    + Wedding Party
+                  </Button>
+                )}
+                {!config.sections.some((s) => s.type === "attire") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSection("attire")}
+                  >
+                    + Dress Code
+                  </Button>
+                )}
+                {!config.sections.some((s) => s.type === "thingsToDo") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSection("thingsToDo")}
+                  >
+                    + Things To Do
+                  </Button>
+                )}
+              </>
+            )}
+            {config.sections.length >= 12 && (
               <p className="text-sm text-muted-foreground">
                 All section types have been added.
               </p>

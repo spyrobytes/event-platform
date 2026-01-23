@@ -8,3 +8,10 @@ export { MapEditor } from "./MapEditor";
 export { VersionHistory } from "./VersionHistory";
 export { PreviewShareCard } from "./PreviewShareCard";
 export { MediaUploadCard } from "./MediaUploadCard";
+
+// Wedding-specific section editors
+export { StoryEditor } from "./StoryEditor";
+export { TravelStayEditor } from "./TravelStayEditor";
+export { WeddingPartyEditor } from "./WeddingPartyEditor";
+export { AttireEditor } from "./AttireEditor";
+export { ThingsToDoEditor } from "./ThingsToDoEditor";

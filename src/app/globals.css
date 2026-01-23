@@ -14,6 +14,7 @@
 
   --foreground: 240 245 255; /* near-white */
   --muted: 170 185 210;      /* soft text */
+  --muted-foreground: 140 155 180; /* text on muted backgrounds */
   --border: 40 60 95;        /* subtle lines */
 
   /* Accent: vivid but not neon */
@@ -52,6 +53,7 @@
 
   --foreground: 18 24 38;
   --muted: 80 95 120;
+  --muted-foreground: 100 115 140;
   --border: 210 220 235;
 
   --accent: 0 168 198;
@@ -79,6 +81,7 @@
   --color-surface-3: rgb(var(--surface-3));
   --color-foreground: rgb(var(--foreground));
   --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
   --color-border: rgb(var(--border));
   --color-accent: rgb(var(--accent));
   --color-accent-foreground: rgb(var(--accent-foreground));

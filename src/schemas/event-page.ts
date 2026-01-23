@@ -221,6 +221,101 @@ export const mapSectionSchema = z.object({
   data: mapSectionDataSchema,
 });
 
+// =============================================================================
+// WEDDING-SPECIFIC SECTIONS
+// =============================================================================
+
+// Story Section - Couple's journey
+export const storySectionDataSchema = z.object({
+  heading: z.string().max(60, "Heading must be 60 characters or less").default("Our Story"),
+  content: z.string().min(50, "Story must be at least 50 characters").max(1500, "Story must be 1500 characters or less"),
+  layout: z.enum(["full", "split"]).default("full"),
+});
+
+export const storySectionSchema = z.object({
+  type: z.literal("story"),
+  enabled: z.boolean(),
+  data: storySectionDataSchema,
+});
+
+// Travel & Stay Section - Accommodation info
+export const hotelItemSchema = z.object({
+  name: z.string().min(1, "Hotel name is required").max(100, "Name must be 100 characters or less"),
+  address: z.string().max(200, "Address must be 200 characters or less"),
+  bookingUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  blockCode: z.string().max(30, "Block code must be 30 characters or less").optional(),
+  deadline: z.string().max(100, "Deadline must be 100 characters or less").optional(),
+});
+
+export const travelStaySectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("Travel & Accommodations"),
+  hotels: z.array(hotelItemSchema).max(5, "Maximum 5 hotels allowed"),
+  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
+});
+
+export const travelStaySectionSchema = z.object({
+  type: z.literal("travelStay"),
+  enabled: z.boolean(),
+  data: travelStaySectionDataSchema,
+});
+
+// Wedding Party Section - Bridal party
+export const partyMemberSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  role: z.string().min(1, "Role is required").max(50, "Role must be 50 characters or less"),
+  bio: z.string().max(300, "Bio must be 300 characters or less").optional(),
+  imageAssetId: z.string().cuid().optional(),
+});
+
+export const weddingPartySectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("The Wedding Party"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  members: z.array(partyMemberSchema).max(16, "Maximum 16 party members allowed"),
+});
+
+export const weddingPartySectionSchema = z.object({
+  type: z.literal("weddingParty"),
+  enabled: z.boolean(),
+  data: weddingPartySectionDataSchema,
+});
+
+// Attire Section - Dress code guidance
+export const attireSectionDataSchema = z.object({
+  heading: z.string().max(60, "Heading must be 60 characters or less").default("Dress Code"),
+  dressCode: z.string().min(1, "Dress code is required").max(50, "Dress code must be 50 characters or less"),
+  notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
+  colors: z.array(z.string().max(30)).max(6, "Maximum 6 suggested colors").optional(),
+});
+
+export const attireSectionSchema = z.object({
+  type: z.literal("attire"),
+  enabled: z.boolean(),
+  data: attireSectionDataSchema,
+});
+
+// Things To Do Section - Local attractions
+export const activityCategorySchema = z.enum(["food", "attraction", "activity", "shopping", "nature"]);
+
+export const activityItemSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  category: activityCategorySchema.optional(),
+  address: z.string().max(200, "Address must be 200 characters or less").optional(),
+  website: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+});
+
+export const thingsToDoSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").default("Things To Do"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  items: z.array(activityItemSchema).max(12, "Maximum 12 activities allowed"),
+});
+
+export const thingsToDoSectionSchema = z.object({
+  type: z.literal("thingsToDo"),
+  enabled: z.boolean(),
+  data: thingsToDoSectionDataSchema,
+});
+
 // Union of all sections
 export const sectionSchema = z.discriminatedUnion("type", [
   detailsSectionSchema,
@@ -231,6 +326,12 @@ export const sectionSchema = z.discriminatedUnion("type", [
   speakersSectionSchema,
   sponsorsSectionSchema,
   mapSectionSchema,
+  // Wedding-specific sections
+  storySectionSchema,
+  travelStaySectionSchema,
+  weddingPartySectionSchema,
+  attireSectionSchema,
+  thingsToDoSectionSchema,
 ]);
 
 export type Section = z.infer<typeof sectionSchema>;
@@ -246,6 +347,16 @@ export type SponsorsSection = z.infer<typeof sponsorsSectionSchema>;
 export type SponsorItem = z.infer<typeof sponsorItemSchema>;
 export type SponsorTier = z.infer<typeof sponsorTierSchema>;
 export type MapSection = z.infer<typeof mapSectionSchema>;
+// Wedding-specific section types
+export type StorySection = z.infer<typeof storySectionSchema>;
+export type TravelStaySection = z.infer<typeof travelStaySectionSchema>;
+export type HotelItem = z.infer<typeof hotelItemSchema>;
+export type WeddingPartySection = z.infer<typeof weddingPartySectionSchema>;
+export type PartyMember = z.infer<typeof partyMemberSchema>;
+export type AttireSection = z.infer<typeof attireSectionSchema>;
+export type ThingsToDoSection = z.infer<typeof thingsToDoSectionSchema>;
+export type ActivityItem = z.infer<typeof activityItemSchema>;
+export type ActivityCategory = z.infer<typeof activityCategorySchema>;
 
 // =============================================================================
 // FULL PAGE CONFIG
@@ -253,6 +364,7 @@ export type MapSection = z.infer<typeof mapSectionSchema>;
 
 export const eventPageConfigV1Schema = z.object({
   schemaVersion: z.literal(1),
+  variantId: z.string().max(50).optional(), // Wedding variant ID (e.g., "classic", "modern_minimal")
   theme: themeSchema,
   hero: heroSchema,
   sections: z.array(sectionSchema).max(12, "Maximum 12 sections allowed"),

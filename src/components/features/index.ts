@@ -9,4 +9,21 @@ export {
   getTemplateInfo,
   getDefaultTemplateId,
 } from "./TemplateSelector";
-export { ScheduleEditor, FAQEditor, GalleryEditor, RSVPEditor, SpeakersEditor, SponsorsEditor, MapEditor, VersionHistory, PreviewShareCard, MediaUploadCard } from "./PageEditor";
+export { WeddingVariantPicker, getVariantInfo } from "./WeddingVariantPicker";
+export {
+  ScheduleEditor,
+  FAQEditor,
+  GalleryEditor,
+  RSVPEditor,
+  SpeakersEditor,
+  SponsorsEditor,
+  MapEditor,
+  VersionHistory,
+  PreviewShareCard,
+  MediaUploadCard,
+  StoryEditor,
+  TravelStayEditor,
+  WeddingPartyEditor,
+  AttireEditor,
+  ThingsToDoEditor,
+} from "./PageEditor";
