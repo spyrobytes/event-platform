@@ -230,6 +230,7 @@ export const storySectionDataSchema = z.object({
   heading: z.string().max(60, "Heading must be 60 characters or less").default("Our Story"),
   content: z.string().min(50, "Story must be at least 50 characters").max(1500, "Story must be 1500 characters or less"),
   layout: z.enum(["full", "split"]).default("full"),
+  imageAssetId: z.string().cuid().optional(),
 });
 
 export const storySectionSchema = z.object({

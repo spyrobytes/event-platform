@@ -147,6 +147,7 @@ export function WeddingTemplate({ config, assets, eventId }: WeddingTemplateProp
           <StorySection
             key={key}
             data={section.data}
+            assets={assets}
             primaryColor={primaryColor}
           />
         );
