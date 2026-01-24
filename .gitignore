@@ -112,7 +112,6 @@ REPORT.md
 .claude/
 *.draft.md
 *.internal.md
-TODO.md
 NOTES.md
 /src/generated/prisma
 
