@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { handleAnchorClick } from "./smooth-scroll";
 
 type ButtonLinkProps = {
   href: string;
@@ -29,6 +32,7 @@ export function ButtonLink({
     <Link
       href={href}
       aria-label={ariaLabel}
+      onClick={(e) => handleAnchorClick(e, href)}
       className={cn(base, variants[variant], className)}
     >
       {children}
