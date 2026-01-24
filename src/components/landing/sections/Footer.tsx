@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
+import { handleAnchorClick } from "../ui/smooth-scroll";
 
 const navigation = {
   product: [
@@ -57,6 +60,18 @@ const socialLinks = [
   },
 ];
 
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      onClick={(e) => handleAnchorClick(e, href)}
+      className="text-sm text-white/70 transition hover:text-white"
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -94,12 +109,7 @@ export function Footer() {
               <ul className="mt-4 space-y-3">
                 {navigation.product.map((item) => (
                   <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-white/70 transition hover:text-white"
-                    >
-                      {item.name}
-                    </Link>
+                    <FooterLink href={item.href}>{item.name}</FooterLink>
                   </li>
                 ))}
               </ul>
@@ -112,12 +122,7 @@ export function Footer() {
               <ul className="mt-4 space-y-3">
                 {navigation.company.map((item) => (
                   <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-white/70 transition hover:text-white"
-                    >
-                      {item.name}
-                    </Link>
+                    <FooterLink href={item.href}>{item.name}</FooterLink>
                   </li>
                 ))}
               </ul>
@@ -130,12 +135,7 @@ export function Footer() {
               <ul className="mt-4 space-y-3">
                 {navigation.resources.map((item) => (
                   <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-white/70 transition hover:text-white"
-                    >
-                      {item.name}
-                    </Link>
+                    <FooterLink href={item.href}>{item.name}</FooterLink>
                   </li>
                 ))}
               </ul>
@@ -148,12 +148,7 @@ export function Footer() {
               <ul className="mt-4 space-y-3">
                 {navigation.legal.map((item) => (
                   <li key={item.name}>
-                    <Link
-                      href={item.href}
-                      className="text-sm text-white/70 transition hover:text-white"
-                    >
-                      {item.name}
-                    </Link>
+                    <FooterLink href={item.href}>{item.name}</FooterLink>
                   </li>
                 ))}
               </ul>

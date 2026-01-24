@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useScrollThreshold } from "@/hooks";
 import { Logo } from "@/components/brand/Logo";
+import { handleAnchorClick } from "../ui/smooth-scroll";
 import styles from "./GlassHeader.module.css";
 
 type NavLink = { label: string; href: string };
@@ -65,6 +66,13 @@ export function GlassHeader({
   const textClass = scrolled ? "text-black" : "text-white";
   const mutedTextClass = scrolled ? "text-black/85" : "text-white/85";
 
+  const handleNavLinkClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      handleAnchorClick(e, href, () => setOpen(false));
+    },
+    []
+  );
+
   return (
     <>
       <div className="fixed inset-x-0 top-4 z-50">
@@ -98,6 +106,7 @@ export function GlassHeader({
                   <Link
                     key={l.href}
                     href={l.href}
+                    onClick={(e) => handleNavLinkClick(e, l.href)}
                     className={[
                       "rounded-xl px-3 py-2 text-sm transition",
                       mutedTextClass,
@@ -182,7 +191,7 @@ export function GlassHeader({
                     key={l.href}
                     href={l.href}
                     className="rounded-2xl px-4 py-3 text-sm font-medium text-black hover:bg-black/5"
-                    onClick={() => setOpen(false)}
+                    onClick={(e) => handleNavLinkClick(e, l.href)}
                   >
                     {l.label}
                   </Link>

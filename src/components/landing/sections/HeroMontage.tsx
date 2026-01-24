@@ -3,6 +3,10 @@ import styles from "./HeroMontage.module.css";
 import { ButtonLink } from "../ui/ButtonLink";
 import { Container } from "../ui/Container";
 
+// Base64 blur placeholder (dark gray matching the overlay)
+const BLUR_PLACEHOLDER =
+  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMCwsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAYH/8QAIhAAAQMEAgIDAAAAAAAAAAAAAQIDBAAFBhEHIRIxQVFh/8QAFQEBAQAAAAAAAAAAAAAAAAAABQb/xAAbEQACAgMBAAAAAAAAAAAAAAABAgADBBEhMf/aAAwDAQACEQMRAD8Aw7F8dv8AjLUnJ7zl0a6W+JKWy1DbCk7cW2tSQr5BHXtJ9VnGRuqt7S2AEoSAAANACiiirSABJMrWz//Z";
+
 const montage = [
   { src: "/landing/hero/01.jpg", alt: "Conference audience" },
   { src: "/landing/hero/02.jpg", alt: "Networking event" },
@@ -34,6 +38,8 @@ export function HeroMontage() {
               alt={img.alt}
               fill
               priority={i === 0}
+              placeholder="blur"
+              blurDataURL={BLUR_PLACEHOLDER}
               className="object-cover"
               sizes="100vw"
             />

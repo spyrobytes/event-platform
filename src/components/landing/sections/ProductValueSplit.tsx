@@ -2,6 +2,10 @@ import Image from "next/image";
 import { Section } from "../ui/Section";
 import { ReactNode } from "react";
 
+// Light gray blur placeholder for dashboard mock
+const BLUR_PLACEHOLDER =
+  "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjRmNGY1Ii8+PC9zdmc+";
+
 type Feature = {
   icon: ReactNode;
   text: string;
@@ -59,6 +63,8 @@ export function ProductValueSplit() {
             src="/landing/mock/dashboard-2b.svg"
             alt="Event platform dashboard mock"
             fill
+            placeholder="blur"
+            blurDataURL={BLUR_PLACEHOLDER}
             className="object-contain p-1"
             sizes="(min-width: 1024px) 50vw, 100vw"
           />
