@@ -1,0 +1,101 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="100" height="100" fill="#fffafb"/>
+  
+  <!-- Header -->
+  <rect width="100" height="12" fill="#fff"/>
+  <rect y="11.5" width="100" height="0.5" fill="#f1e4e8"/>
+  <text x="5" y="7.5" fill="#8d6e63" font-family="serif" font-weight="bold" font-size="3.5">Sarah &amp; James</text>
+  <text x="5" y="10" fill="#c5a059" font-family="sans-serif" font-size="1.8" letter-spacing="0.1">WEDDING DASHBOARD • JUNE 12, 2026</text>
+  
+  <!-- Countdown Ring (Top Right) -->
+  <circle cx="90" cy="6" r="4" fill="none" stroke="#f1e4e8" stroke-width="0.8"/>
+  <circle cx="90" cy="6" r="4" fill="none" stroke="#c5a059" stroke-width="0.8" stroke-dasharray="18 25"/>
+  <text x="90" y="6.5" text-anchor="middle" fill="#8d6e63" font-family="sans-serif" font-weight="bold" font-size="2">184</text>
+  <text x="90" y="8.2" text-anchor="middle" fill="#8d6e63" font-family="sans-serif" font-size="1">DAYS LEFT</text>
+
+  <!-- Sidebar -->
+  <rect x="0" y="12" width="18" height="88" fill="#fff"/>
+  <rect x="17.5" y="12" width="0.5" height="88" fill="#f1e4e8"/>
+  
+  <g font-family="sans-serif" font-size="2.2" fill="#8d6e63">
+    <rect x="2" y="16" width="14" height="6" rx="1" fill="#fdf2f8"/>
+    <text x="4" y="20" font-weight="bold" fill="#be185d">Overview</text>
+    
+    <text x="4" y="28">Guest List</text>
+    <text x="4" y="34">Budget</text>
+    <text x="4" y="40">Vendors</text>
+    <text x="4" y="46">Seating</text>
+    <text x="4" y="52">Registry</text>
+  </g>
+
+  <!-- KPI Cards -->
+  <!-- RSVPs -->
+  <rect x="21" y="15" width="24" height="18" rx="2" fill="white" stroke="#f1e4e8" stroke-width="0.3"/>
+  <text x="23" y="19" fill="#9f7d71" font-family="sans-serif" font-size="2">Guests Confirmed</text>
+  <text x="23" y="26" fill="#8d6e63" font-family="serif" font-size="5" font-weight="bold">142/200</text>
+  <rect x="23" y="29" width="20" height="1.5" rx="0.7" fill="#f1e4e8"/>
+  <rect x="23" y="29" width="14" height="1.5" rx="0.7" fill="#c5a059"/>
+
+  <!-- Budget -->
+  <rect x="47" y="15" width="24" height="18" rx="2" fill="white" stroke="#f1e4e8" stroke-width="0.3"/>
+  <text x="49" y="19" fill="#9f7d71" font-family="sans-serif" font-size="2">Budget Spent</text>
+  <text x="49" y="26" fill="#8d6e63" font-family="serif" font-size="5" font-weight="bold">$24.5k</text>
+  <text x="49" y="30" fill="#059669" font-family="sans-serif" font-size="1.8">Under budget (4%)</text>
+
+  <!-- Tasks -->
+  <rect x="73" y="15" width="24" height="18" rx="2" fill="white" stroke="#f1e4e8" stroke-width="0.3"/>
+  <text x="75" y="19" fill="#9f7d71" font-family="sans-serif" font-size="2">Tasks Pending</text>
+  <text x="75" y="26" fill="#8d6e63" font-family="serif" font-size="5" font-weight="bold">12</text>
+  <text x="75" y="30" fill="#be185d" font-family="sans-serif" font-size="1.8">3 due this week</text>
+
+  <!-- Bottom Left: RSVP Breakdown (Visual Chart) -->
+  <rect x="21" y="36" width="36" height="60" rx="2" fill="white" stroke="#f1e4e8" stroke-width="0.3"/>
+  <text x="24" y="42" fill="#8d6e63" font-family="serif" font-size="3" font-weight="bold">Guest Status</text>
+  
+  <circle cx="39" cy="62" r="12" fill="none" stroke="#f1e4e8" stroke-width="4"/>
+  <circle cx="39" cy="62" r="12" fill="none" stroke="#c5a059" stroke-width="4" stroke-dasharray="50 100" stroke-dashoffset="0"/>
+  <circle cx="39" cy="62" r="12" fill="none" stroke="#8d6e63" stroke-width="4" stroke-dasharray="15 100" stroke-dashoffset="-50"/>
+  
+  <g font-family="sans-serif" font-size="2">
+    <rect x="24" y="80" width="3" height="3" fill="#c5a059"/>
+    <text x="29" y="82.5" fill="#4b5563">Attending (71%)</text>
+    
+    <rect x="24" y="85" width="3" height="3" fill="#8d6e63"/>
+    <text x="29" y="87.5" fill="#4b5563">Declined (12%)</text>
+    
+    <rect x="24" y="90" width="3" height="3" fill="#f1e4e8"/>
+    <text x="29" y="92.5" fill="#4b5563">No Response (17%)</text>
+  </g>
+
+  <!-- Bottom Right: Vendor Checklist -->
+  <rect x="59" y="36" width="38" height="60" rx="2" fill="white" stroke="#f1e4e8" stroke-width="0.3"/>
+  <text x="62" y="42" fill="#8d6e63" font-family="serif" font-size="3" font-weight="bold">Vendor Status</text>
+  
+  <g transform="translate(62, 48)">
+    <!-- Vendor 1 -->
+    <circle cx="2" cy="2" r="1.5" fill="#059669"/>
+    <text x="6" y="3" font-family="sans-serif" font-size="2.2" fill="#1f2937">Venue: Lakeside Manor</text>
+    <text x="6" y="6" font-family="sans-serif" font-size="1.8" fill="#9f7d71">Deposit Paid</text>
+    
+    <!-- Vendor 2 -->
+    <circle cx="2" cy="12" r="1.5" fill="#059669"/>
+    <text x="6" y="13" font-family="sans-serif" font-size="2.2" fill="#1f2937">Catering: Bloom Eats</text>
+    <text x="6" y="16" font-family="sans-serif" font-size="1.8" fill="#9f7d71">Menu Finalized</text>
+
+    <!-- Vendor 3 -->
+    <circle cx="2" cy="22" r="1.5" fill="#fbbf24"/>
+    <text x="6" y="23" font-family="sans-serif" font-size="2.2" fill="#1f2937">Florist: Wild Rose</text>
+    <text x="6" y="26" font-family="sans-serif" font-size="1.8" fill="#9f7d71">Contract Review</text>
+
+    <!-- Vendor 4 -->
+    <circle cx="2" cy="32" r="1.5" fill="#f1e4e8"/>
+    <text x="6" y="33" font-family="sans-serif" font-size="2.2" fill="#9ca3af">Photographer</text>
+    <text x="6" y="36" font-family="sans-serif" font-size="1.8" fill="#9f7d71">Searching...</text>
+  </g>
+  
+  <!-- "Add Guest" Floating Action Button -->
+  <circle cx="92" cy="92" r="4" fill="#be185d"/>
+  <line x1="90" y1="92" x2="94" y2="92" stroke="white" stroke-width="0.8"/>
+  <line x1="92" y1="90" x2="92" y2="94" stroke="white" stroke-width="0.8"/>
+</svg>

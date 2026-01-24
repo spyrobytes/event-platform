@@ -1,0 +1,219 @@
+/* TechCredibility.module.css */
+
+/* Flow diagram container */
+.flowDiagram {
+  position: relative;
+  padding: 1.5rem;
+}
+
+/* Flow nodes */
+.flowNode {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.5s ease-out;
+}
+
+.flowNodeVisible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.flowNodeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+}
+
+.flowNodeContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.flowNodeTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+}
+
+.flowNodeLabel {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 0.125rem;
+}
+
+/* Connector lines */
+.connector {
+  position: relative;
+  height: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.connectorLine {
+  position: absolute;
+  left: 2.125rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.connectorLineInner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateY(-100%);
+}
+
+.connectorLineAnimated .connectorLineInner {
+  opacity: 1;
+  animation: flowDown 1.5s ease-in-out infinite;
+}
+
+@keyframes flowDown {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(200%);
+  }
+}
+
+/* Dots flowing animation alternative */
+.flowDots {
+  position: absolute;
+  left: 2.125rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  overflow: hidden;
+}
+
+.flowDot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  left: -1px;
+  opacity: 0;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+}
+
+.flowDotAnimated {
+  animation: dotFlow 2s ease-in-out infinite;
+}
+
+.flowDot:nth-child(2) {
+  animation-delay: 0.66s;
+}
+
+.flowDot:nth-child(3) {
+  animation-delay: 1.33s;
+}
+
+@keyframes dotFlow {
+  0% {
+    top: -4px;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: calc(100% + 4px);
+    opacity: 0;
+  }
+}
+
+/* Node glow effect when active */
+.flowNodeGlow {
+  box-shadow: 0 0 20px var(--glow-color, rgba(255, 255, 255, 0.1));
+}
+
+/* Pulse animation for icons */
+.iconPulse {
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Status indicator pulse */
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+.statusPulse {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .flowNode {
+    transition: opacity 0.3s ease;
+    transform: none;
+  }
+
+  .flowNodeVisible {
+    transform: none;
+  }
+
+  .connectorLineInner {
+    animation: none;
+    opacity: 0.4;
+    transform: none;
+  }
+
+  .flowDotAnimated {
+    animation: none;
+    opacity: 0.6;
+    top: 50%;
+  }
+
+  .iconPulse {
+    animation: none;
+  }
+
+  .statusPulse {
+    animation: none;
+    opacity: 0;
+  }
+}

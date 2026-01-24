@@ -1,0 +1,106 @@
+/* MissionStatement.module.css */
+
+/* Decorative background pattern */
+.bgPattern {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.02) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Badge animation */
+.badge {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.5s ease-out;
+}
+
+.badgeVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Quote animation */
+.quote {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease-out;
+  transition-delay: 0.15s;
+}
+
+.quoteVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Supporting text animation */
+.supporting {
+  opacity: 0;
+  transform: translateY(15px);
+  transition: all 0.6s ease-out;
+  transition-delay: 0.3s;
+}
+
+.supportingVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Values section animation */
+.values {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+  transition-delay: 0.5s;
+}
+
+.valuesVisible {
+  opacity: 1;
+}
+
+/* Individual value pills */
+.valuePill {
+  display: inline-flex;
+  padding: 0.5rem 1rem;
+  background: white;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+  transition: all 0.4s ease-out;
+}
+
+.valuePillVisible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .badge,
+  .quote,
+  .supporting,
+  .values,
+  .valuePill {
+    transition: opacity 0.3s ease;
+    transform: none;
+  }
+
+  .badgeVisible,
+  .quoteVisible,
+  .supportingVisible,
+  .valuesVisible,
+  .valuePillVisible {
+    transform: none;
+  }
+}

@@ -1,0 +1,115 @@
+/* FinalCTA.module.css */
+
+/* Background glow orb */
+.glowOrb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.15) 0%,
+    rgba(59, 130, 246, 0.1) 30%,
+    transparent 70%
+  );
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* Content animations */
+.content {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease-out;
+}
+
+.contentVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Trust card animations */
+.trustCard {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+  transition: all 0.6s ease-out;
+  transition-delay: 0.2s;
+}
+
+.trustCardVisible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Trust point animations */
+.trustPoint {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.4s ease-out;
+}
+
+.trustPointVisible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Social proof animation */
+.socialProof {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.5s ease-out;
+  transition-delay: 0.8s;
+}
+
+.socialProofVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Pulse animation for status dot */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .content,
+  .trustCard,
+  .trustPoint,
+  .socialProof {
+    transition: opacity 0.3s ease;
+    transform: none;
+  }
+
+  .contentVisible,
+  .trustCardVisible,
+  .trustPointVisible,
+  .socialProofVisible {
+    transform: none;
+  }
+
+  .pulse {
+    animation: none;
+    opacity: 0;
+  }
+
+  .glowOrb {
+    opacity: 0.5;
+  }
+}

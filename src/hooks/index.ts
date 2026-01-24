@@ -26,3 +26,6 @@ export {
   useIntersectionObserver,
   type SectionVisibility,
 } from "./use-section-visibility";
+
+// Scroll threshold detection
+export { useScrollThreshold } from "./use-scroll-threshold";

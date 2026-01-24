@@ -1,0 +1,67 @@
+/* src/components/landing/sections/HeroMontage.module.css */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+/* Staggered fade loop */
+@keyframes heroFade {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  25% { opacity: 1; }
+  33% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Optional: subtle cinematic motion (very light) */
+@keyframes heroDrift {
+  0% { transform: scale(1) translate3d(0, 0, 0); }
+  100% { transform: scale(1.03) translate3d(0, -1%, 0); }
+}
+
+/* Only animate when motion is allowed */
+@media (prefers-reduced-motion: no-preference) {
+  .animate {
+    animation:
+      heroFade 16s infinite,
+      heroDrift 16s linear infinite;
+  }
+}
+
+/* Reduced motion: show only the first image (no animation) */
+@media (prefers-reduced-motion: reduce) {
+  .firstVisible {
+    opacity: 1;
+  }
+}
+
+/* Subtle pulse for the status dot - isolated to avoid layout thrashing */
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+.statusDot {
+  contain: layout style;
+}
+
+.statusPulse {
+  animation: statusPulse 2s ease-in-out infinite;
+  contain: layout style;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusPulse {
+    animation: none;
+    opacity: 0;
+  }
+}

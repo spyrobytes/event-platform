@@ -1,0 +1,93 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+  <!-- Background -->
+  <rect width="100" height="100" fill="#f0f2f5" />
+  
+  <!-- Sidebar -->
+  <rect width="16" height="100" fill="#1a202c" />
+  <g fill="#a0aec0">
+    <rect x="3" y="8" width="10" height="2" rx="0.5" fill="#4299e1" /> <!-- Logo/Active -->
+    <rect x="3" y="15" width="8" height="1.5" rx="0.3" opacity="0.6" />
+    <rect x="3" y="20" width="8" height="1.5" rx="0.3" opacity="0.6" />
+    <rect x="3" y="25" width="8" height="1.5" rx="0.3" opacity="0.6" />
+    <rect x="3" y="90" width="8" height="1.5" rx="0.3" opacity="0.4" />
+  </g>
+
+  <!-- Header -->
+  <rect x="16" y="0" width="84" height="12" fill="#ffffff" />
+  <text x="20" y="8" font-size="3.5" font-weight="bold" fill="#2d3748">Event Overview</text>
+  <circle cx="92" cy="6" r="2.5" fill="#cbd5e0" /> <!-- Profile Pic -->
+  <rect x="70" y="4" width="15" height="4" rx="2" fill="#edf2f7" /> <!-- Search bar -->
+
+  <!-- Stats Cards -->
+  <!-- Total Events -->
+  <rect x="20" y="16" width="24" height="14" rx="2" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.2" />
+  <text x="22" y="21" font-size="2" fill="#718096">Total Events</text>
+  <text x="22" y="27" font-size="4.5" font-weight="bold" fill="#2d3748">128</text>
+  <path d="M40 22 L42 20 L44 22" stroke="#48bb78" fill="none" stroke-width="0.5" /> <!-- Trend icon -->
+
+  <!-- Total Attendees -->
+  <rect x="46" y="16" width="24" height="14" rx="2" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.2" />
+  <text x="48" y="21" font-size="2" fill="#718096">Attendees</text>
+  <text x="48" y="27" font-size="4.5" font-weight="bold" fill="#2d3748">4.2k</text>
+  
+  <!-- Revenue -->
+  <rect x="72" y="16" width="24" height="14" rx="2" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.2" />
+  <text x="74" y="21" font-size="2" fill="#718096">Revenue</text>
+  <text x="74" y="27" font-size="4.5" font-weight="bold" fill="#2d3748">$12k</text>
+
+  <!-- Attendance Chart Area -->
+  <rect x="20" y="34" width="76" height="30" rx="2" fill="#ffffff" stroke="#e2e8f0" stroke-width="0.2" />
+  <text x="23" y="39" font-size="2.5" font-weight="bold" fill="#4a5568">Attendance Growth</text>
+  
+  <!-- Simple Bar Chart -->
+  <rect x="25" y="58" width="4" height="2" fill="#ebf8ff" />
+  <rect x="32" y="54" width="4" height="6" fill="#bee3f8" />
+  <rect x="39" y="50" width="4" height="10" fill="#90cdf4" />
+  <rect x="46" y="48" width="4" height="12" fill="#63b3ed" />
+  <rect x="53" y="52" width="4" height="8" fill="#4299e1" />
+  <rect x="60" y="44" width="4" height="16" fill="#3182ce" />
+  <rect x="67" y="46" width="4" height="14" fill="#2b6cb0" />
+  <rect x="74" y="42" width="4" height="18" fill="#2c5282" />
+  <rect x="81" y="45" width="4" height="15" fill="#2a4365" />
+  
+  <!-- Chart Baseline -->
+  <line x1="23" y1="60" x2="93" y2="60" stroke="#e2e8f0" stroke-width="0.3" />
+
+  <!-- Upcoming Events List -->
+  <text x="20" y="70" font-size="3" font-weight="bold" fill="#2d3748">Upcoming Events</text>
+  
+  <!-- List Items -->
+  <g transform="translate(20, 73)">
+    <!-- Event 1 -->
+    <rect width="76" height="7" rx="1" fill="#ffffff" />
+    <circle cx="3" cy="3.5" r="1.5" fill="#63b3ed" />
+    <text x="7" y="4.5" font-size="2.5" fill="#2d3748">Tech Summit 2024</text>
+    <text x="45" y="4.5" font-size="2" fill="#718096">Oct 12</text>
+    <rect x="65" y="2" width="8" height="3" rx="1.5" fill="#c6f6d5" />
+    <text x="69" y="4.2" font-size="1.5" text-anchor="middle" fill="#22543d">Confirmed</text>
+    <line x1="0" y1="7.5" x2="76" y2="7.5" stroke="#edf2f7" stroke-width="0.2" />
+    
+    <!-- Event 2 -->
+    <g transform="translate(0, 8)">
+      <circle cx="3" cy="3.5" r="1.5" fill="#f6ad55" />
+      <text x="7" y="4.5" font-size="2.5" fill="#2d3748">Design Workshop</text>
+      <text x="45" y="4.5" font-size="2" fill="#718096">Oct 15</text>
+      <rect x="65" y="2" width="8" height="3" rx="1.5" fill="#feebc8" />
+      <text x="69" y="4.2" font-size="1.5" text-anchor="middle" fill="#744210">Pending</text>
+      <line x1="0" y1="7.5" x2="76" y2="7.5" stroke="#edf2f7" stroke-width="0.2" />
+    </g>
+
+    <!-- Event 3 -->
+    <g transform="translate(0, 16)">
+      <circle cx="3" cy="3.5" r="1.5" fill="#fc8181" />
+      <text x="7" y="4.5" font-size="2.5" fill="#2d3748">Annual Gala</text>
+      <text x="45" y="4.5" font-size="2" fill="#718096">Oct 20</text>
+      <rect x="65" y="2" width="8" height="3" rx="1.5" fill="#c6f6d5" />
+      <text x="69" y="4.2" font-size="1.5" text-anchor="middle" fill="#22543d">Confirmed</text>
+    </g>
+  </g>
+
+  <!-- Add Button -->
+  <circle cx="92" cy="92" r="4" fill="#3182ce" />
+  <path d="M92 90 L92 94 M90 92 L94 92" stroke="white" stroke-width="0.8" />
+</svg>

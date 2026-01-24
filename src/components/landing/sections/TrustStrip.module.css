@@ -1,0 +1,37 @@
+/* TrustStrip.module.css */
+
+.trustPoint {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease-out;
+}
+
+.trustPointVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.iconBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .trustPoint {
+    transition: opacity 0.3s ease;
+    transform: none;
+  }
+
+  .trustPointVisible {
+    transform: none;
+  }
+}

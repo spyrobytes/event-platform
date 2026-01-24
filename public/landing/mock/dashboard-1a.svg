@@ -1,0 +1,315 @@
+<svg viewBox="0 0 100 100"
+     xmlns="http://www.w3.org/2000/svg"
+     role="img"
+     aria-labelledby="title desc">
+
+  <title id="title">Event management dashboard</title>
+  <desc id="desc">
+    Compact wireframe-style UI showing an event management dashboard with sidebar,
+    metrics, calendar, upcoming events, and capacity stats.
+  </desc>
+
+  <!-- App background -->
+  <rect x="0" y="0" width="100" height="100" rx="3" ry="3" fill="#f3f4f6"/>
+
+  <!-- Main panel -->
+  <rect x="1.5" y="1.5" width="97" height="97" rx="2.5" ry="2.5"
+        fill="white" stroke="#d1d5db" stroke-width="0.5"/>
+
+  <!-- Header -->
+  <rect x="1.5" y="1.5" width="97" height="11" rx="2.5" ry="2.5" fill="#111827"/>
+
+  <text x="4" y="8.7" fill="white" font-size="3.5"
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        font-weight="600">
+    Event Management
+  </text>
+  <text x="4" y="11" fill="#9ca3af" font-size="2.2"
+        font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    Dashboard
+  </text>
+
+  <!-- Header right icons -->
+  <circle cx="84" cy="7" r="1.5" fill="none" stroke="#9ca3af" stroke-width="0.5"/>
+  <circle cx="89" cy="7" r="1.5" fill="none" stroke="#9ca3af" stroke-width="0.5"/>
+  <circle cx="94" cy="7" r="2.2" fill="#4b5563"/>
+  <text x="94" y="7.7" text-anchor="middle" fill="white" font-size="2.5"
+        font-family="system-ui, sans-serif">
+    A
+  </text>
+
+  <!-- Sidebar -->
+  <rect x="1.5" y="12.5" width="18" height="86"
+        fill="#f9fafb" stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <text x="4" y="18" fill="#6b7280" font-size="2.2"
+        font-family="system-ui, sans-serif" font-weight="600">
+    MENU
+  </text>
+
+  <!-- Active item -->
+  <rect x="2.5" y="20" width="16" height="6" rx="1.5" fill="#e5edff"/>
+  <text x="4" y="24" fill="#2563eb" font-size="2.4"
+        font-family="system-ui, sans-serif" font-weight="600">
+    Dashboard
+  </text>
+
+  <!-- Other items -->
+  <text x="4" y="30" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Events
+  </text>
+  <text x="4" y="35" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Attendees
+  </text>
+  <text x="4" y="40" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Venues
+  </text>
+  <text x="4" y="45" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Tickets
+  </text>
+  <text x="4" y="50" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Reports
+  </text>
+  <text x="4" y="55" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Settings
+  </text>
+
+  <!-- Sidebar footer button -->
+  <rect x="3" y="80" width="14" height="7" rx="1.5" fill="#111827"/>
+  <text x="10" y="84.5" text-anchor="middle" fill="white" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    New
+  </text>
+
+  <!-- Main content background -->
+  <rect x="19.5" y="12.5" width="79" height="86"
+        fill="#f9fafb" stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <!-- Top metrics row -->
+
+  <!-- Card 1: Upcoming events -->
+  <rect x="21" y="15" width="24" height="14" rx="1.5"
+        fill="white" stroke="#e5e7eb" stroke-width="0.4"/>
+  <text x="23" y="19" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Upcoming
+  </text>
+  <text x="23" y="24.5" fill="#111827" font-size="5"
+        font-family="system-ui, sans-serif" font-weight="700">
+    12
+  </text>
+  <text x="23" y="28" fill="#10b981" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    +3 this week
+  </text>
+
+  <!-- Card 2: Attendees -->
+  <rect x="47" y="15" width="24" height="14" rx="1.5"
+        fill="white" stroke="#e5e7eb" stroke-width="0.4"/>
+  <text x="49" y="19" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Attendees
+  </text>
+  <text x="49" y="24.5" fill="#111827" font-size="5"
+        font-family="system-ui, sans-serif" font-weight="700">
+    326
+  </text>
+  <text x="49" y="28" fill="#2563eb" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    +18%
+  </text>
+  <polyline points="64,26 66,23 68,24.5 70,21 72,22.5"
+            fill="none" stroke="#93c5fd" stroke-width="0.6"/>
+
+  <!-- Card 3: Revenue -->
+  <rect x="73" y="15" width="24" height="14" rx="1.5"
+        fill="white" stroke="#e5e7eb" stroke-width="0.4"/>
+  <text x="75" y="19" fill="#6b7280" font-size="2.4"
+        font-family="system-ui, sans-serif">
+    Revenue
+  </text>
+  <text x="75" y="24.5" fill="#111827" font-size="4.2"
+        font-family="system-ui, sans-serif" font-weight="700">
+    $8.4k
+  </text>
+  <text x="75" y="28" fill="#10b981" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    ▲ 5.2%
+  </text>
+
+  <!-- Bottom content -->
+
+  <!-- Left: Calendar -->
+  <rect x="21" y="32" width="46" height="46" rx="1.5"
+        fill="white" stroke="#e5e7eb" stroke-width="0.4"/>
+
+  <text x="23" y="37" fill="#111827" font-size="2.8"
+        font-family="system-ui, sans-serif" font-weight="600">
+    Calendar
+  </text>
+  <text x="65" y="37" text-anchor="end" fill="#6b7280" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    May 2026
+  </text>
+
+  <!-- Calendar weekday header (M–F simplified) -->
+  <text x="25" y="41" fill="#9ca3af" font-size="2"
+        font-family="system-ui, sans-serif">
+    M
+  </text>
+  <text x="33" y="41" fill="#9ca3af" font-size="2"
+        font-family="system-ui, sans-serif">
+    T
+  </text>
+  <text x="41" y="41" fill="#9ca3af" font-size="2"
+        font-family="system-ui, sans-serif">
+    W
+  </text>
+  <text x="49" y="41" fill="#9ca3af" font-size="2"
+        font-family="system-ui, sans-serif">
+    T
+  </text>
+  <text x="57" y="41" fill="#9ca3af" font-size="2"
+        font-family="system-ui, sans-serif">
+    F
+  </text>
+
+  <!-- Calendar grid (5 columns x 4 rows) -->
+  <!-- Row 1 -->
+  <rect x="23" y="43" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="32" y="43" width="8" height="7" rx="0.8"
+        fill="#eff6ff" stroke="#2563eb" stroke-width="0.4"/>
+  <rect x="41" y="43" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="50" y="43" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="59" y="43" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <!-- Row 2 -->
+  <rect x="23" y="51" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="32" y="51" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="41" y="51" width="8" height="7" rx="0.8"
+        fill="#ecfdf5" stroke="#6ee7b7" stroke-width="0.4"/>
+  <rect x="50" y="51" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="59" y="51" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <!-- Row 3 -->
+  <rect x="23" y="59" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="32" y="59" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="41" y="59" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="50" y="59" width="8" height="7" rx="0.8"
+        fill="#fef3c7" stroke="#fbbf24" stroke-width="0.4"/>
+  <rect x="59" y="59" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <!-- Row 4 -->
+  <rect x="23" y="67" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="32" y="67" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="41" y="67" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="50" y="67" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <rect x="59" y="67" width="8" height="7" rx="0.8"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <!-- Calendar legend -->
+  <rect x="23" y="77" width="3" height="3" rx="0.5"
+        fill="#eff6ff" stroke="#2563eb" stroke-width="0.3"/>
+  <text x="27.5" y="79.5" fill="#6b7280" font-size="2"
+        font-family="system-ui, sans-serif">
+    Conference
+  </text>
+
+  <rect x="23" y="82" width="3" height="3" rx="0.5"
+        fill="#ecfdf5" stroke="#6ee7b7" stroke-width="0.3"/>
+  <text x="27.5" y="84.5" fill="#6b7280" font-size="2"
+        font-family="system-ui, sans-serif">
+    Webinar
+  </text>
+
+  <rect x="23" y="87" width="3" height="3" rx="0.5"
+        fill="#fef3c7" stroke="#fbbf24" stroke-width="0.3"/>
+  <text x="27.5" y="89.5" fill="#6b7280" font-size="2"
+        font-family="system-ui, sans-serif">
+    Workshop
+  </text>
+
+  <!-- Right: Upcoming events -->
+  <rect x="69" y="32" width="29" height="23" rx="1.5"
+        fill="white" stroke="#e5e7eb" stroke-width="0.4"/>
+
+  <text x="71" y="37" fill="#111827" font-size="2.8"
+        font-family="system-ui, sans-serif" font-weight="600">
+    Upcoming events
+  </text>
+
+  <!-- Event row 1 -->
+  <rect x="70" y="39" width="27" height="7" rx="1"
+        fill="#f9fafb" stroke="#e5e7eb" stroke-width="0.3"/>
+  <circle cx="73" cy="42.5" r="1.3" fill="#2563eb"/>
+  <text x="76" y="42.2" fill="#111827" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    Tech Summit
+  </text>
+  <text x="76" y="44.7" fill="#6b7280" font-size="1.9"
+        font-family="system-ui, sans-serif">
+    Thu · 10:00 · 120/200
+  </text>
+
+  <!-- Event row 2 -->
+  <rect x="70" y="47" width="27" height="7" rx="1"
+        fill="white" stroke="#e5e7eb" stroke-width="0.3"/>
+  <circle cx="73" cy="50.5" r="1.3" fill="#f97316"/>
+  <text x="76" y="50.2" fill="#111827" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    Marketing Day
+  </text>
+  <text x="76" y="52.7" fill="#6b7280" font-size="1.9"
+        font-family="system-ui, sans-serif">
+    Fri · 14:00 · 80/150
+  </text>
+
+  <!-- Right: Capacity stats -->
+  <rect x="69" y="57" width="29" height="24" rx="1.5"
+        fill="white" stroke="#e5e7eb" stroke-width="0.4"/>
+
+  <text x="71" y="62" fill="#111827" font-size="2.8"
+        font-family="system-ui, sans-serif" font-weight="600">
+    Capacity
+  </text>
+  <text x="71" y="65" fill="#6b7280" font-size="2"
+        font-family="system-ui, sans-serif">
+    Utilization this week
+  </text>
+
+  <!-- Simple bar chart -->
+  <line x1="71" y1="75" x2="95" y2="75"
+        stroke="#e5e7eb" stroke-width="0.3"/>
+
+  <rect x="72" y="70" width="3" height="5" rx="0.8" fill="#dbeafe"/>
+  <rect x="77" y="67" width="3" height="8" rx="0.8" fill="#93c5fd"/>
+  <rect x="82" y="65" width="3" height="10" rx="0.8" fill="#60a5fa"/>
+  <rect x="87" y="68" width="3" height="7" rx="0.8" fill="#bfdbfe"/>
+
+  <text x="95" y="63" text-anchor="end" fill="#10b981" font-size="2.2"
+        font-family="system-ui, sans-serif">
+    82%
+  </text>
+</svg>
