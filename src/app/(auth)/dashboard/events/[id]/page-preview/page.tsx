@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { getTemplate } from "@/components/templates";
+import { getTemplate, type TemporalData } from "@/components/templates";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -32,6 +32,7 @@ export default function PagePreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [eventSlug, setEventSlug] = useState<string | null>(null);
+  const [temporal, setTemporal] = useState<TemporalData | null>(null);
 
   useEffect(() => {
     async function fetchPageConfig() {
@@ -66,6 +67,13 @@ export default function PagePreviewPage() {
 
         setPageData(configData.data);
         setEventSlug(eventData.data.slug);
+
+        // Extract temporal data from event
+        setTemporal({
+          startAt: eventData.data.startAt ?? null,
+          endAt: eventData.data.endAt ?? null,
+          timezone: eventData.data.timezone ?? "UTC",
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load preview");
       } finally {
@@ -242,7 +250,12 @@ export default function PagePreviewPage() {
 
       {/* Preview frame */}
       <div className="overflow-hidden rounded-lg border shadow-lg">
-        <Template config={pageData.config} assets={templateAssets} />
+        <Template
+          config={pageData.config}
+          assets={templateAssets}
+          eventId={params.id}
+          temporal={temporal ?? undefined}
+        />
       </div>
     </div>
   );

@@ -9,12 +9,26 @@ import { ConferenceTemplateV1 } from "./ConferenceTemplateV1";
 import { PartyTemplateV1 } from "./PartyTemplateV1";
 
 /**
+ * Temporal data for time-aware page rendering
+ */
+export type TemporalData = {
+  /** Event start date/time (ISO string) */
+  startAt: string | null;
+  /** Event end date/time (ISO string) */
+  endAt: string | null;
+  /** Event timezone (IANA timezone string) */
+  timezone: string;
+};
+
+/**
  * Props that all template components must accept
  */
 export type TemplateProps = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
   eventId?: string;
+  /** Temporal data for time-aware rendering */
+  temporal?: TemporalData;
 };
 
 /**

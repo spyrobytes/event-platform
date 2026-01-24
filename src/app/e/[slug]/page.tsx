@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
-import { TEMPLATES } from "@/components/templates";
+import { TEMPLATES, type TemporalData } from "@/components/templates";
 import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -69,6 +69,7 @@ async function getEventBySlug(slug: string) {
       description: true,
       startAt: true,
       endAt: true,
+      timezone: true,
       venueName: true,
       city: true,
       pageConfig: true,
@@ -194,8 +195,15 @@ export default async function PublicEventPage({ params }: PageProps) {
     createdAt: new Date(),
   })) as unknown as MediaAsset[];
 
+  // Build temporal data for time-aware rendering
+  const temporal: TemporalData = {
+    startAt: event.startAt?.toISOString() ?? null,
+    endAt: event.endAt?.toISOString() ?? null,
+    timezone: event.timezone,
+  };
+
   // Use direct component reference from TEMPLATES to satisfy static component rules
   const Template = TEMPLATES[resolvedTemplateId];
 
-  return <Template config={config} assets={assets} eventId={event.id} />;
+  return <Template config={config} assets={assets} eventId={event.id} temporal={temporal} />;
 }

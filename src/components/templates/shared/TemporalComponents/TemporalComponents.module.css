@@ -1,0 +1,296 @@
+/**
+ * Temporal Components Styles
+ *
+ * Styles for time-aware UI elements that adapt
+ * based on event phase.
+ */
+
+/* ==========================================================================
+   Countdown Display
+   ========================================================================== */
+
+.countdown {
+  --temporal-accent: hsl(var(--primary));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: hsl(var(--background) / 0.9);
+  border-radius: 2rem;
+  backdrop-filter: blur(8px);
+}
+
+.countdownText {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--temporal-accent);
+}
+
+/* Compact variant */
+.countdownCompact {
+  --temporal-accent: hsl(var(--primary));
+
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--temporal-accent);
+}
+
+/* Hero variant */
+.countdownHero {
+  --temporal-accent: hsl(var(--primary));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.countdownLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: hsl(var(--foreground) / 0.7);
+}
+
+.countdownValue {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.countdownNumber {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 3rem;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--temporal-accent);
+}
+
+.countdownUnit {
+  font-size: 1rem;
+  font-weight: 400;
+  color: hsl(var(--foreground) / 0.6);
+}
+
+.countdownSub {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ==========================================================================
+   Live Indicator
+   ========================================================================== */
+
+.liveIndicator {
+  --temporal-accent: #ef4444; /* Red for live */
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--temporal-accent);
+  color: white;
+  border-radius: 2rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.liveDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: white;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+.liveText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ==========================================================================
+   Post-Event Message
+   ========================================================================== */
+
+.postEvent {
+  --temporal-accent: hsl(var(--primary));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.postEventMessage {
+  margin: 0;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: hsl(var(--foreground));
+}
+
+.postEventSubtitle {
+  margin: 0;
+  font-size: 1rem;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ==========================================================================
+   Temporal Badge
+   ========================================================================== */
+
+.temporalBadge {
+  --temporal-accent: hsl(var(--primary));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 1rem;
+  white-space: nowrap;
+}
+
+.badgeLive {
+  background: #ef4444;
+  color: white;
+}
+
+.badgeToday {
+  background: var(--temporal-accent);
+  color: white;
+}
+
+.badgeImminent {
+  background: hsl(var(--primary) / 0.15);
+  color: var(--temporal-accent);
+}
+
+.badgeUpcoming {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.badgeEnded {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  opacity: 0.8;
+}
+
+.liveDotSmall {
+  width: 0.375rem;
+  height: 0.375rem;
+  background: currentColor;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   RSVP Urgency
+   ========================================================================== */
+
+.rsvpUrgency {
+  --temporal-accent: #f59e0b; /* Amber for urgency */
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--temporal-accent);
+  color: white;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.urgencyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: white;
+  color: var(--temporal-accent);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.urgencyText {
+  /* inherits styles */
+}
+
+/* ==========================================================================
+   Hero Overlay
+   ========================================================================== */
+
+.heroOverlay {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--background) / 0.95),
+    hsl(var(--background))
+  );
+  text-align: center;
+}
+
+.heroOverlay:empty {
+  display: none;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (min-width: 768px) {
+  .countdownNumber {
+    font-size: 4rem;
+  }
+
+  .postEventMessage {
+    font-size: 2rem;
+  }
+}
+
+/* ==========================================================================
+   Reduced Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .liveIndicator,
+  .liveDot,
+  .liveDotSmall {
+    animation: none;
+  }
+}

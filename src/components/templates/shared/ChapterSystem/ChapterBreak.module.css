@@ -1,0 +1,256 @@
+/**
+ * ChapterBreak Styles
+ *
+ * Visual separation between content chapters.
+ * Designed to create breathing room and narrative structure.
+ */
+
+.chapterBreak {
+  --chapter-accent: hsl(var(--primary));
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(1rem);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+
+.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Decorative elements */
+.decorTop,
+.decorBottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 200px;
+  height: 20px;
+  color: var(--chapter-accent);
+  opacity: 0.4;
+}
+
+.decorTop {
+  margin-bottom: 1.5rem;
+}
+
+.decorBottom {
+  margin-top: 1.5rem;
+}
+
+/* Lines */
+.line {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--chapter-accent),
+    transparent
+  );
+}
+
+.dramaticLine {
+  width: 120px;
+  height: 2px;
+  background: var(--chapter-accent);
+  border-radius: 1px;
+}
+
+/* Flourish SVG */
+.flourish {
+  width: 80px;
+  height: 20px;
+  color: var(--chapter-accent);
+}
+
+/* Content */
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Chapter number */
+.number {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+.totalChapters {
+  opacity: 0.5;
+}
+
+/* Chapter title */
+.title {
+  margin: 0;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: hsl(var(--foreground));
+}
+
+/* Chapter subtitle */
+.subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ==========================================================================
+   Style Variants
+   ========================================================================== */
+
+/* Minimal style - subtle and understated */
+.minimal {
+  padding: 3rem 1rem;
+}
+
+.minimal .title {
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.minimal .subtitle {
+  display: none;
+}
+
+.minimal .decorTop,
+.minimal .decorBottom {
+  opacity: 0.3;
+}
+
+/* Decorative style - elegant with flourishes */
+.decorative {
+  padding: 5rem 1rem;
+}
+
+.decorative .title {
+  font-size: 1.5rem;
+}
+
+.decorative .flourish {
+  width: 100px;
+}
+
+/* Dramatic style - bold and prominent */
+.dramatic {
+  padding: 6rem 1rem;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    hsl(var(--muted) / 0.3),
+    transparent
+  );
+}
+
+.dramatic .title {
+  font-size: 1.75rem;
+  font-weight: 500;
+}
+
+.dramatic .decorTop,
+.dramatic .decorBottom {
+  opacity: 0.6;
+}
+
+/* ==========================================================================
+   Chapter Label (compact variant)
+   ========================================================================== */
+
+.chapterLabel {
+  --chapter-accent: hsl(var(--primary));
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  margin-bottom: 1rem;
+}
+
+.labelText {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--chapter-accent);
+}
+
+.chapterLabel::before,
+.chapterLabel::after {
+  content: "";
+  width: 20px;
+  height: 1px;
+  background: var(--chapter-accent);
+  opacity: 0.4;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (min-width: 768px) {
+  .chapterBreak {
+    padding: 5rem 2rem;
+  }
+
+  .minimal {
+    padding: 4rem 2rem;
+  }
+
+  .decorative {
+    padding: 6rem 2rem;
+  }
+
+  .dramatic {
+    padding: 8rem 2rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .decorative .title {
+    font-size: 1.75rem;
+  }
+
+  .dramatic .title {
+    font-size: 2rem;
+  }
+
+  .flourish {
+    width: 120px;
+  }
+
+  .decorative .flourish {
+    width: 140px;
+  }
+}
+
+/* ==========================================================================
+   Reduced Motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .chapterBreak {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
