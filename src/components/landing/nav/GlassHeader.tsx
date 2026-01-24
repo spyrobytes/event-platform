@@ -108,11 +108,11 @@ export function GlassHeader({
                     href={l.href}
                     onClick={(e) => handleNavLinkClick(e, l.href)}
                     className={[
-                      "rounded-xl px-3 py-2 text-sm transition",
+                      "rounded-xl px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2",
                       mutedTextClass,
                       scrolled
-                        ? "hover:bg-black/5 hover:text-black"
-                        : "hover:bg-white/12 hover:text-white",
+                        ? "hover:bg-black/5 hover:text-black focus:ring-black"
+                        : "hover:bg-white/12 hover:text-white focus:ring-white focus:ring-offset-transparent",
                     ].join(" ")}
                   >
                     {l.label}
@@ -124,10 +124,10 @@ export function GlassHeader({
                 <Link
                   href={cta.href}
                   className={[
-                    "hidden md:inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition",
+                    "hidden md:inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2",
                     scrolled
-                      ? "bg-black text-white hover:opacity-90"
-                      : "bg-white text-black hover:bg-white/90",
+                      ? "bg-black text-white hover:opacity-90 focus:ring-black"
+                      : "bg-white text-black hover:bg-white/90 focus:ring-white focus:ring-offset-transparent",
                   ].join(" ")}
                 >
                   {cta.label}
@@ -136,10 +136,10 @@ export function GlassHeader({
                 <button
                   type="button"
                   className={[
-                    "md:hidden inline-flex items-center justify-center rounded-2xl px-3 py-2 text-sm font-semibold transition",
+                    "md:hidden inline-flex items-center justify-center rounded-2xl px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2",
                     scrolled
-                      ? "bg-black/5 text-black hover:bg-black/10"
-                      : "bg-white/10 text-white hover:bg-white/15",
+                      ? "bg-black/5 text-black hover:bg-black/10 focus:ring-black"
+                      : "bg-white/10 text-white hover:bg-white/15 focus:ring-white focus:ring-offset-transparent",
                   ].join(" ")}
                   aria-label="Open menu"
                   aria-expanded={open}
@@ -171,7 +171,7 @@ export function GlassHeader({
 
                 <button
                   type="button"
-                  className="rounded-2xl bg-black/5 px-3 py-2 text-sm font-semibold text-black hover:bg-black/10"
+                  className="rounded-2xl bg-black/5 px-3 py-2 text-sm font-semibold text-black hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
                   aria-label="Close menu"
                   onClick={() => setOpen(false)}
                 >
@@ -190,7 +190,7 @@ export function GlassHeader({
                   <Link
                     key={l.href}
                     href={l.href}
-                    className="rounded-2xl px-4 py-3 text-sm font-medium text-black hover:bg-black/5"
+                    className="rounded-2xl px-4 py-3 text-sm font-medium text-black hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
                     onClick={(e) => handleNavLinkClick(e, l.href)}
                   >
                     {l.label}
@@ -201,7 +201,7 @@ export function GlassHeader({
               <div className="mt-4">
                 <Link
                   href={cta.href}
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white hover:opacity-90"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
                   onClick={() => setOpen(false)}
                 >
                   {cta.label}
