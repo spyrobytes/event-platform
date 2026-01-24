@@ -6,6 +6,7 @@ import { useScrollThreshold } from "@/hooks";
 import { Logo } from "@/components/brand/Logo";
 import { handleAnchorClick } from "../ui/smooth-scroll";
 import styles from "./GlassHeader.module.css";
+import linkStyles from "../ui/link-styles.module.css";
 
 type NavLink = { label: string; href: string };
 
@@ -108,11 +109,12 @@ export function GlassHeader({
                     href={l.href}
                     onClick={(e) => handleNavLinkClick(e, l.href)}
                     className={[
-                      "rounded-xl px-3 py-2 text-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2",
+                      styles.navLink,
+                      "rounded-xl px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",
                       mutedTextClass,
                       scrolled
-                        ? "hover:bg-black/5 hover:text-black focus:ring-black"
-                        : "hover:bg-white/12 hover:text-white focus:ring-white focus:ring-offset-transparent",
+                        ? "hover:text-black focus:ring-black"
+                        : "hover:text-white focus:ring-white focus:ring-offset-transparent",
                     ].join(" ")}
                   >
                     {l.label}
@@ -124,10 +126,11 @@ export function GlassHeader({
                 <Link
                   href={cta.href}
                   className={[
-                    "hidden md:inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2",
+                    linkStyles.ctaButton,
+                    "hidden md:inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2",
                     scrolled
-                      ? "bg-black text-white hover:opacity-90 focus:ring-black"
-                      : "bg-white text-black hover:bg-white/90 focus:ring-white focus:ring-offset-transparent",
+                      ? "bg-black text-white focus:ring-black"
+                      : "bg-white text-black focus:ring-white focus:ring-offset-transparent",
                   ].join(" ")}
                 >
                   {cta.label}
@@ -190,7 +193,10 @@ export function GlassHeader({
                   <Link
                     key={l.href}
                     href={l.href}
-                    className="rounded-2xl px-4 py-3 text-sm font-medium text-black hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                    className={[
+                      styles.navLink,
+                      "rounded-2xl px-4 py-3 text-sm font-medium text-black hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2",
+                    ].join(" ")}
                     onClick={(e) => handleNavLinkClick(e, l.href)}
                   >
                     {l.label}
@@ -201,7 +207,7 @@ export function GlassHeader({
               <div className="mt-4">
                 <Link
                   href={cta.href}
-                  className="inline-flex w-full items-center justify-center rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                  className={`${linkStyles.ctaButton} inline-flex w-full items-center justify-center rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2`}
                   onClick={() => setOpen(false)}
                 >
                   {cta.label}

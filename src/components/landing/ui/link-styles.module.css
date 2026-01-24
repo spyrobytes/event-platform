@@ -1,0 +1,32 @@
+/* Animated underline link - expands from center on hover */
+.animatedLink {
+  position: relative;
+}
+
+.animatedLink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1.5px;
+  background-color: #22c55e;
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 300ms ease-in-out;
+}
+
+.animatedLink:hover::after {
+  transform: scaleX(1);
+}
+
+/* CTA button - lift with green glow on hover */
+.ctaButton {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, background-color 200ms ease-out, opacity 200ms ease-out;
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.35);
+}

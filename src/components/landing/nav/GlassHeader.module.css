@@ -6,11 +6,11 @@
   transition: background-color 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
 }
 
-/* On hero/top: lighter glass for dark background */
+/* On hero/top: dark glass for contrast on dynamic slides */
 .capsuleTop {
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: none;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* After scroll: denser glass for readability on light sections */
@@ -36,4 +36,27 @@
 .divider {
   height: 1px;
   background: rgba(0, 0, 0, 0.08);
+}
+
+/* Nav link with animated underline */
+.navLink {
+  position: relative;
+}
+
+.navLink::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 6px;
+  height: 2px;
+  background-color: #22c55e;
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 300ms ease-in-out;
+}
+
+.navLink:hover::after {
+  transform: scaleX(1);
 }

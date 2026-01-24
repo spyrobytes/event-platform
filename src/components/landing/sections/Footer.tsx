@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { handleAnchorClick } from "../ui/smooth-scroll";
+import linkStyles from "../ui/link-styles.module.css";
 
 const navigation = {
   product: [
@@ -65,7 +66,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
     <Link
       href={href}
       onClick={(e) => handleAnchorClick(e, href)}
-      className="text-sm text-white/70 transition hover:text-white"
+      className={`${linkStyles.animatedLink} text-sm text-white/70 transition-colors hover:text-white`}
     >
       {children}
     </Link>

@@ -16,7 +16,7 @@ const montage = [
 
 export function HeroMontage() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden -mt-20">
       <div className="absolute inset-0" aria-hidden="true">
         <div className="absolute inset-0 z-0 bg-zinc-950" />
 
