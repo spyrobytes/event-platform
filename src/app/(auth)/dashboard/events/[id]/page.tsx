@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalyticsSnapshot } from "@/components/features/Analytics";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -336,19 +337,9 @@ export default function EventDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Statistics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Invites Sent</h4>
-              <p className="mt-1 text-2xl font-bold">{event._count.invites}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">RSVPs</h4>
-              <p className="mt-1 text-2xl font-bold">{event._count.rsvps}</p>
-            </div>
+        <Card className="md:col-span-2">
+          <CardContent className="pt-6">
+            <AnalyticsSnapshot eventId={event.id} />
           </CardContent>
         </Card>
       </div>
