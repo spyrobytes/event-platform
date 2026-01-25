@@ -17,6 +17,12 @@ export function PublicNav() {
             >
               Discover Events
             </Link>
+            <Link
+              href="/docs"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Docs
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-2">

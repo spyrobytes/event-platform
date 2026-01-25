@@ -105,7 +105,8 @@ next-env.d.ts
 # These files are for internal development use only
 # =============================================================================
 artifacts/
-docs/
+/docs/
+!src/app/**/docs/
 scripts/
 # CLAUDE.md
 REPORT.md
