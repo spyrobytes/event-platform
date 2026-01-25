@@ -25,7 +25,7 @@ const DEFAULT_LINKS: NavLink[] = [
 ];
 
 export function GlassHeader({
-  brand = { label: "EventsFixer", href: "/" },
+  brand = { label: "EventFXr", href: "/" },
   links = DEFAULT_LINKS,
   cta = { label: "Get Started", href: "/login" },
   scrollThreshold = 32,
@@ -95,10 +95,10 @@ export function GlassHeader({
                 aria-label={brand.label}
               >
                 <span className="hidden sm:inline">
-                  <Logo variant="full" color={scrolled ? "dark" : "light"} />
+                  <Logo variant="full" />
                 </span>
                 <span className="sm:hidden">
-                  <Logo variant="mark" color={scrolled ? "dark" : "light"} />
+                  <Logo variant="mark" />
                 </span>
               </Link>
 
@@ -169,7 +169,7 @@ export function GlassHeader({
                   className="inline-flex items-center rounded-xl px-2 py-1"
                   onClick={() => setOpen(false)}
                 >
-                  <Logo variant="full" color="dark" />
+                  <Logo variant="full" />
                 </Link>
 
                 <button

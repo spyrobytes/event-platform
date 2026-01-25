@@ -81,7 +81,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-4">
-            <Logo variant="full" color="light" />
+            <Logo variant="full" />
             <p className="mt-4 text-sm text-white/60 max-w-xs">
               The modern platform for creating, managing, and growing unforgettable events.
             </p>
@@ -162,7 +162,7 @@ export function Footer() {
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-xs text-white/40">
-              &copy; {currentYear} EventsFixer. All rights reserved.
+              &copy; {currentYear} EventFXr. All rights reserved.
             </p>
 
             <div className="flex items-center gap-2 text-xs text-white/40">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/Logo";
 
 const FOOTER_LINKS = {
   discover: [
@@ -25,8 +26,8 @@ export function Footer() {
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div>
-            <Link href="/" className="text-lg font-semibold text-foreground">
-              EventsFixer
+            <Link href="/" className="inline-block">
+              <Logo variant="full" />
             </Link>
             <p className="mt-2 text-sm text-muted-foreground">
               Create, discover, and manage events with ease. The modern platform
@@ -91,7 +92,7 @@ export function Footer() {
 
         <div className="mt-8 border-t border-border pt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} EventsFixer. All rights reserved.
+            &copy; {currentYear} EventFXr. All rights reserved.
           </p>
         </div>
       </div>

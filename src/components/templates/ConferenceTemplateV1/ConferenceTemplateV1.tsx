@@ -169,7 +169,7 @@ export function ConferenceTemplateV1({ config, assets, eventId }: ConferenceTemp
 
           {/* Footer */}
           <footer className="border-t bg-muted/30 py-8 text-center text-sm text-muted-foreground">
-            <p>Powered by EventsFixer</p>
+            <p>Powered by EventFXr</p>
           </footer>
         </article>
 

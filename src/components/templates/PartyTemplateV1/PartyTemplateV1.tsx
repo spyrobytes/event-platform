@@ -174,7 +174,7 @@ export function PartyTemplateV1({ config, assets, eventId }: PartyTemplateV1Prop
               <span role="img" aria-label="heart">
                 ❤️
               </span>{" "}
-              using EventsFixer
+              using EventFXr
             </p>
           </footer>
         </article>

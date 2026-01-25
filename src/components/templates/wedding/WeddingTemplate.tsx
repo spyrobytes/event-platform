@@ -333,7 +333,7 @@ export function WeddingTemplate({ config, assets, eventId, temporal }: WeddingTe
                 color: styles.colors.textMuted,
               }}
             >
-              <p>Powered by EventsFixer</p>
+              <p>Powered by EventFXr</p>
             </footer>
           </article>
 

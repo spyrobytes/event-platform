@@ -172,7 +172,7 @@ export function WeddingTemplateV1({ config, assets, eventId }: WeddingTemplateV1
 
           {/* Footer */}
           <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-            <p>Powered by EventsFixer</p>
+            <p>Powered by EventFXr</p>
           </footer>
         </article>
 

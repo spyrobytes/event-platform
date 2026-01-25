@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import styles from "./Logo.module.css";
 
 type LogoProps = {
   /** Show full wordmark or just the mark */
   variant?: "full" | "mark";
-  /** Color scheme */
-  color?: "light" | "dark" | "auto";
   /** Additional classes */
   className?: string;
 };
@@ -13,16 +12,13 @@ type LogoProps = {
 /**
  * Brand logo component using the official eventfxr logo.
  */
-export function Logo({ variant = "full", color = "auto", className }: LogoProps) {
-  // Text color for wordmark
-  const textColorClass = color === "light" ? "text-white" : color === "dark" ? "text-black" : "";
-
+export function Logo({ variant = "full", className }: LogoProps) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       {/* Logo mark */}
       <Image
         src="/brand/logo-2a-optimized.svg"
-        alt="EventsFixer"
+        alt="EventFXr"
         width={32}
         height={32}
         className="h-8 w-8"
@@ -31,8 +27,9 @@ export function Logo({ variant = "full", color = "auto", className }: LogoProps)
 
       {/* Wordmark - shown when variant is "full" */}
       {variant === "full" && (
-        <span className={cn("text-sm font-semibold tracking-tight", textColorClass)}>
-          EventsFixer
+        <span className={cn("text-sm font-semibold tracking-tight", styles.wordmark)}>
+          <span className={styles.eventPart}>Event</span>
+          <span className={styles.fxrPart}>FXr</span>
         </span>
       )}
     </span>
@@ -42,6 +39,6 @@ export function Logo({ variant = "full", color = "auto", className }: LogoProps)
 /**
  * Compact logo for mobile header
  */
-export function LogoCompact({ color = "auto", className }: Omit<LogoProps, "variant">) {
-  return <Logo variant="mark" color={color} className={className} />;
+export function LogoCompact({ className }: Omit<LogoProps, "variant">) {
+  return <Logo variant="mark" className={className} />;
 }
