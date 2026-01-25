@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   DocSection,
   DocsNav,
+  DocsNavMobile,
   EditorMockup,
   FeatureBox,
   StepCard,
@@ -579,7 +580,7 @@ export default function DocsPage() {
       </div>
 
       {/* Mobile nav */}
-      <DocsNav />
+      <DocsNavMobile />
     </div>
   );
 }

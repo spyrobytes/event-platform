@@ -1,5 +1,5 @@
 export { DocSection } from "./DocSection";
-export { DocsNav } from "./DocsNav";
+export { DocsNav, DocsNavMobile } from "./DocsNav";
 export { EditorMockup } from "./EditorMockup";
 export { FeatureBox } from "./FeatureBox";
 export { StepCard } from "./StepCard";

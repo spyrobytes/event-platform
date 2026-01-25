@@ -28,7 +28,118 @@ const NAV_ITEMS: NavItem[] = [
   { id: "tips", label: "Tips & Limits" },
 ];
 
+function NavList({
+  activeId,
+  onNavigate,
+}: {
+  activeId: string;
+  onNavigate: (id: string) => void;
+}) {
+  const isActive = (id: string) => activeId === id;
+
+  const isParentActive = (item: NavItem) => {
+    if (isActive(item.id)) return true;
+    return item.children?.some((child) => isActive(child.id)) || false;
+  };
+
+  return (
+    <ul className="space-y-1">
+      {NAV_ITEMS.map((item) => (
+        <li key={item.id}>
+          <button
+            onClick={() => onNavigate(item.id)}
+            className={cn(
+              "w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+              isParentActive(item)
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            {item.label}
+          </button>
+          {item.children && (
+            <ul className="ml-4 mt-1 space-y-1 border-l pl-3">
+              {item.children.map((child) => (
+                <li key={child.id}>
+                  <button
+                    onClick={() => onNavigate(child.id)}
+                    className={cn(
+                      "w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                      isActive(child.id)
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {child.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Desktop sidebar navigation with scroll-spy
+ */
 export function DocsNav() {
+  const [activeId, setActiveId] = useState<string>("");
+
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+
+    const allIds = NAV_ITEMS.flatMap((item) => [
+      item.id,
+      ...(item.children?.map((c) => c.id) || []),
+    ]);
+
+    allIds.forEach((id) => {
+      const element = document.getElementById(id);
+      if (!element) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setActiveId(id);
+            }
+          });
+        },
+        { rootMargin: "-100px 0px -60% 0px", threshold: 0 }
+      );
+
+      observer.observe(element);
+      observers.push(observer);
+    });
+
+    return () => {
+      observers.forEach((observer) => observer.disconnect());
+    };
+  }, []);
+
+  const scrollToSection = useCallback((id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 96;
+      const top = element.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: "smooth" });
+    }
+  }, []);
+
+  return (
+    <nav className="sticky top-24">
+      <NavList activeId={activeId} onNavigate={scrollToSection} />
+    </nav>
+  );
+}
+
+/**
+ * Mobile floating button + bottom sheet navigation
+ */
+export function DocsNavMobile() {
   const [activeId, setActiveId] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
 
@@ -74,23 +185,21 @@ export function DocsNav() {
     }
   }, []);
 
-  const isActive = (id: string) => activeId === id;
-
-  const isParentActive = (item: NavItem) => {
-    if (isActive(item.id)) return true;
-    return item.children?.some((child) => isActive(child.id)) || false;
-  };
-
   return (
     <>
-      {/* Mobile toggle */}
+      {/* Floating toggle button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg lg:hidden"
         aria-label="Toggle navigation"
       >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -100,7 +209,7 @@ export function DocsNav() {
         </svg>
       </button>
 
-      {/* Mobile overlay */}
+      {/* Overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -108,55 +217,18 @@ export function DocsNav() {
         />
       )}
 
-      {/* Navigation */}
-      <nav
+      {/* Bottom sheet */}
+      <div
         className={cn(
-          "fixed z-40 transition-transform lg:sticky lg:top-24 lg:h-fit lg:translate-x-0",
-          // Mobile styles
-          "bottom-0 left-0 right-0 max-h-[60vh] overflow-y-auto rounded-t-2xl bg-background p-4 shadow-2xl lg:bottom-auto lg:left-auto lg:right-auto lg:max-h-none lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none",
-          isOpen ? "translate-y-0" : "translate-y-full lg:translate-y-0"
+          "fixed bottom-0 left-0 right-0 z-40 max-h-[60vh] overflow-y-auto rounded-t-2xl bg-background p-4 shadow-2xl transition-transform lg:hidden",
+          isOpen ? "translate-y-0" : "translate-y-full"
         )}
       >
-        <div className="mb-4 text-center font-semibold text-muted-foreground lg:hidden">
+        <div className="mb-4 text-center font-semibold text-muted-foreground">
           Jump to section
         </div>
-        <ul className="space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <li key={item.id}>
-              <button
-                onClick={() => scrollToSection(item.id)}
-                className={cn(
-                  "w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
-                  isParentActive(item)
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                {item.label}
-              </button>
-              {item.children && (
-                <ul className="ml-4 mt-1 space-y-1 border-l pl-3">
-                  {item.children.map((child) => (
-                    <li key={child.id}>
-                      <button
-                        onClick={() => scrollToSection(child.id)}
-                        className={cn(
-                          "w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                          isActive(child.id)
-                            ? "text-primary"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {child.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
+        <NavList activeId={activeId} onNavigate={scrollToSection} />
+      </div>
     </>
   );
 }
