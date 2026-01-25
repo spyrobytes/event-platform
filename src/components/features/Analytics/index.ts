@@ -5,3 +5,4 @@ export { DropoffIndicator } from "./DropoffIndicator";
 export { RSVPFunnel } from "./RSVPFunnel";
 export { MomentumIndicator } from "./MomentumIndicator";
 export { VelocityChart } from "./VelocityChart";
+export { PageViewTracker } from "./PageViewTracker";

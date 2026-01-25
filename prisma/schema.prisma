@@ -310,3 +310,21 @@ model EventPageVersion {
   @@index([eventId, createdAt(sort: Desc)])
   @@map("event_page_versions")
 }
+
+// =============================================================================
+// ANALYTICS TRACKING
+// =============================================================================
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @map("event_id")
+  type      String   // page_view, rsvp_form_started, rsvp_form_abandoned, section_viewed
+  sessionId String   @map("session_id") // Anonymous session identifier
+  data      Json?    // Flexible payload (source, field, sectionId, etc.)
+  timestamp DateTime @default(now())
+
+  @@index([eventId, type])
+  @@index([eventId, timestamp])
+  @@index([sessionId])
+  @@map("analytics_events")
+}

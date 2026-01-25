@@ -20,7 +20,12 @@ export type InviteStats = {
   opened: number;
 };
 
-export type FunnelStageName = "invited" | "opened" | "responded";
+export type FunnelStageName =
+  | "invited"
+  | "opened"
+  | "page_viewed"
+  | "form_started"
+  | "responded";
 
 export type FunnelStage = {
   name: FunnelStageName;
@@ -158,6 +163,8 @@ export function buildAnalyticsSnapshot(
 const FUNNEL_STAGE_LABELS: Record<FunnelStageName, string> = {
   invited: "Invited",
   opened: "Opened Invite",
+  page_viewed: "Viewed Page",
+  form_started: "Started RSVP",
   responded: "Responded",
 };
 
@@ -224,6 +231,80 @@ export function buildFunnelData(
   const dropoffs: FunnelDropoff[] = [
     calculateDropoff(totalInvited, totalOpened, "invited", "opened"),
     calculateDropoff(totalOpened, totalResponded, "opened", "responded"),
+  ];
+
+  const overallConversionRate = calculatePercentage(totalResponded);
+
+  return {
+    stages,
+    dropoffs,
+    totalInvited,
+    totalResponded,
+    overallConversionRate,
+  };
+}
+
+/**
+ * Build extended 5-stage funnel data including client-side tracking
+ *
+ * Funnel stages:
+ * 1. Invited - Total invites sent
+ * 2. Opened - Invites that were opened (clicked)
+ * 3. Page Viewed - Unique sessions that viewed the event page
+ * 4. Form Started - Unique sessions that started the RSVP form
+ * 5. Responded - RSVPs submitted (any response)
+ */
+export function buildExtendedFunnelData(
+  totalInvited: number,
+  totalOpened: number,
+  totalPageViewed: number,
+  totalFormStarted: number,
+  totalResponded: number
+): FunnelData {
+  // Calculate percentages relative to first stage
+  const calculatePercentage = (count: number): number => {
+    if (totalInvited === 0) return 0;
+    return Math.round((count / totalInvited) * 100);
+  };
+
+  const stages: FunnelStage[] = [
+    {
+      name: "invited",
+      label: FUNNEL_STAGE_LABELS.invited,
+      count: totalInvited,
+      percentage: 100,
+    },
+    {
+      name: "opened",
+      label: FUNNEL_STAGE_LABELS.opened,
+      count: totalOpened,
+      percentage: calculatePercentage(totalOpened),
+    },
+    {
+      name: "page_viewed",
+      label: FUNNEL_STAGE_LABELS.page_viewed,
+      count: totalPageViewed,
+      percentage: calculatePercentage(totalPageViewed),
+    },
+    {
+      name: "form_started",
+      label: FUNNEL_STAGE_LABELS.form_started,
+      count: totalFormStarted,
+      percentage: calculatePercentage(totalFormStarted),
+    },
+    {
+      name: "responded",
+      label: FUNNEL_STAGE_LABELS.responded,
+      count: totalResponded,
+      percentage: calculatePercentage(totalResponded),
+    },
+  ];
+
+  const dropoffs: FunnelDropoff[] = [
+    calculateDropoff(totalInvited, totalOpened, "invited", "opened"),
+    calculateDropoff(totalOpened, totalPageViewed, "opened", "page_viewed"),
+    calculateDropoff(totalPageViewed, totalFormStarted, "page_viewed", "form_started"),
+    calculateDropoff(totalFormStarted, totalResponded, "form_started", "responded"),
   ];
 
   const overallConversionRate = calculatePercentage(totalResponded);

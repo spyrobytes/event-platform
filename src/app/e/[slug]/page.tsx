@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData } from "@/components/templates";
 import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
+import { PageViewTracker } from "@/components/features/Analytics";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -205,5 +206,10 @@ export default async function PublicEventPage({ params }: PageProps) {
   // Use direct component reference from TEMPLATES to satisfy static component rules
   const Template = TEMPLATES[resolvedTemplateId];
 
-  return <Template config={config} assets={assets} eventId={event.id} temporal={temporal} />;
+  return (
+    <>
+      <PageViewTracker eventId={event.id} source="event_page" />
+      <Template config={config} assets={assets} eventId={event.id} temporal={temporal} />
+    </>
+  );
 }

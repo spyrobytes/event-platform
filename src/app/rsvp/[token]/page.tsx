@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { RSVPForm } from "@/components/features";
+import { PageViewTracker } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 
@@ -172,6 +173,7 @@ export default async function RSVPPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <PageViewTracker eventId={event.id} source="rsvp_page" />
       {/* Event Header */}
       {event.coverImageUrl && (
         <div className="relative h-64 w-full">

@@ -6,6 +6,7 @@ import {
   buildAnalyticsSnapshot,
   calculateDropoff,
   buildFunnelData,
+  buildExtendedFunnelData,
   determineTrend,
   calculateMomentum,
   buildDailyCounts,
@@ -434,5 +435,88 @@ describe("buildVelocityData", () => {
     // Check cumulative is calculated correctly
     const lastDay = velocity.daily[velocity.daily.length - 1];
     expect(lastDay.cumulative).toBe(1);
+  });
+});
+
+// =============================================================================
+// EXTENDED FUNNEL TESTS
+// =============================================================================
+
+describe("buildExtendedFunnelData", () => {
+  it("builds correct 5-stage funnel structure", () => {
+    const funnel = buildExtendedFunnelData(100, 80, 60, 40, 30);
+
+    expect(funnel.stages).toHaveLength(5);
+    expect(funnel.dropoffs).toHaveLength(4);
+  });
+
+  it("calculates correct stage percentages", () => {
+    const funnel = buildExtendedFunnelData(100, 80, 60, 40, 30);
+
+    expect(funnel.stages[0].name).toBe("invited");
+    expect(funnel.stages[0].percentage).toBe(100);
+
+    expect(funnel.stages[1].name).toBe("opened");
+    expect(funnel.stages[1].percentage).toBe(80);
+
+    expect(funnel.stages[2].name).toBe("page_viewed");
+    expect(funnel.stages[2].percentage).toBe(60);
+
+    expect(funnel.stages[3].name).toBe("form_started");
+    expect(funnel.stages[3].percentage).toBe(40);
+
+    expect(funnel.stages[4].name).toBe("responded");
+    expect(funnel.stages[4].percentage).toBe(30);
+  });
+
+  it("calculates correct dropoff rates between all stages", () => {
+    const funnel = buildExtendedFunnelData(100, 80, 60, 40, 30);
+
+    // Invited → Opened: 20% drop (100 → 80)
+    expect(funnel.dropoffs[0].from).toBe("invited");
+    expect(funnel.dropoffs[0].to).toBe("opened");
+    expect(funnel.dropoffs[0].rate).toBe(20);
+
+    // Opened → Page Viewed: 25% drop (80 → 60)
+    expect(funnel.dropoffs[1].from).toBe("opened");
+    expect(funnel.dropoffs[1].to).toBe("page_viewed");
+    expect(funnel.dropoffs[1].rate).toBe(25);
+
+    // Page Viewed → Form Started: 33% drop (60 → 40)
+    expect(funnel.dropoffs[2].from).toBe("page_viewed");
+    expect(funnel.dropoffs[2].to).toBe("form_started");
+    expect(funnel.dropoffs[2].rate).toBe(33);
+
+    // Form Started → Responded: 25% drop (40 → 30)
+    expect(funnel.dropoffs[3].from).toBe("form_started");
+    expect(funnel.dropoffs[3].to).toBe("responded");
+    expect(funnel.dropoffs[3].rate).toBe(25);
+  });
+
+  it("calculates overall conversion rate", () => {
+    const funnel = buildExtendedFunnelData(100, 80, 60, 40, 30);
+
+    expect(funnel.overallConversionRate).toBe(30);
+  });
+
+  it("handles zero invites gracefully", () => {
+    const funnel = buildExtendedFunnelData(0, 0, 0, 0, 0);
+
+    expect(funnel.stages[0].percentage).toBe(100); // First stage always 100%
+    expect(funnel.stages[1].percentage).toBe(0);
+    expect(funnel.stages[2].percentage).toBe(0);
+    expect(funnel.stages[3].percentage).toBe(0);
+    expect(funnel.stages[4].percentage).toBe(0);
+    expect(funnel.overallConversionRate).toBe(0);
+  });
+
+  it("has correct stage labels", () => {
+    const funnel = buildExtendedFunnelData(100, 80, 60, 40, 30);
+
+    expect(funnel.stages[0].label).toBe("Invited");
+    expect(funnel.stages[1].label).toBe("Opened Invite");
+    expect(funnel.stages[2].label).toBe("Viewed Page");
+    expect(funnel.stages[3].label).toBe("Started RSVP");
+    expect(funnel.stages[4].label).toBe("Responded");
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { submitRsvpSchema } from "@/schemas/rsvp";
+import {
+  trackFormStarted,
+  trackFormSubmitted,
+  trackFormAbandoned,
+} from "@/lib/tracking";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
@@ -43,6 +48,43 @@ export function RSVPForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Analytics tracking refs
+  const formStarted = useRef(false);
+  const formSubmitted = useRef(false);
+  const lastInteractedField = useRef<string | null>(null);
+
+  // Track form start on first interaction
+  const handleFormInteraction = useCallback(
+    (fieldName: string) => {
+      lastInteractedField.current = fieldName;
+      if (!formStarted.current && eventId) {
+        formStarted.current = true;
+        trackFormStarted(eventId);
+      }
+    },
+    [eventId]
+  );
+
+  // Track abandonment on page unload
+  useEffect(() => {
+    if (!eventId) return;
+
+    const handleBeforeUnload = () => {
+      if (formStarted.current && !formSubmitted.current) {
+        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Also track abandonment on unmount (SPA navigation)
+      if (formStarted.current && !formSubmitted.current) {
+        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined);
+      }
+    };
+  }, [eventId]);
 
   const {
     register,
@@ -88,6 +130,14 @@ export function RSVPForm({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to submit RSVP");
+      }
+
+      // Mark as submitted before updating state to prevent abandonment tracking
+      formSubmitted.current = true;
+
+      // Track successful submission
+      if (eventId && data.response) {
+        trackFormSubmitted(eventId, String(data.response));
       }
 
       setSuccess(true);
@@ -158,6 +208,7 @@ export function RSVPForm({
                 key={option.value}
                 type="button"
                 onClick={() => {
+                  handleFormInteraction("response");
                   setSelectedResponse(option.value);
                   setValue("response", option.value);
                 }}
@@ -184,6 +235,7 @@ export function RSVPForm({
             id="guestName"
             placeholder="Enter your full name"
             {...register("guestName")}
+            onFocus={() => handleFormInteraction("guestName")}
             aria-invalid={!!errors.guestName}
           />
           {errors.guestName && (
@@ -201,6 +253,7 @@ export function RSVPForm({
               min={1}
               max={plusOnesAllowed + 1}
               {...register("guestCount", { valueAsNumber: true })}
+              onFocus={() => handleFormInteraction("guestCount")}
             />
             <p className="text-xs text-muted-foreground">
               You can bring up to {plusOnesAllowed} additional guest{plusOnesAllowed > 1 ? "s" : ""}
@@ -220,6 +273,7 @@ export function RSVPForm({
               placeholder="Any food allergies or dietary requirements?"
               rows={2}
               {...register("dietaryRestrictions")}
+              onFocus={() => handleFormInteraction("dietaryRestrictions")}
             />
           </div>
         )}
@@ -232,6 +286,7 @@ export function RSVPForm({
             placeholder="Anything else you'd like us to know?"
             rows={3}
             {...register("notes")}
+            onFocus={() => handleFormInteraction("notes")}
           />
         </div>
 
