@@ -44,6 +44,30 @@ export type FunnelData = {
   overallConversionRate: number; // invited → responded (0-100)
 };
 
+// Velocity / Time Intelligence Types
+export type VelocityTrend = "accelerating" | "steady" | "slowing";
+
+export type DailyCount = {
+  date: string; // ISO date string (YYYY-MM-DD)
+  count: number; // RSVPs on this day
+  cumulative: number; // Running total
+};
+
+export type MomentumData = {
+  current7Days: number;
+  previous7Days: number;
+  trend: VelocityTrend;
+  percentChange: number; // positive = accelerating, negative = slowing
+};
+
+export type VelocityData = {
+  daily: DailyCount[];
+  momentum: MomentumData;
+  totalRsvps: number;
+  firstRsvpDate: string | null;
+  lastRsvpDate: string | null;
+};
+
 export type AnalyticsSnapshot = {
   totalYes: number;
   totalMaybe: number;
@@ -210,5 +234,170 @@ export function buildFunnelData(
     totalInvited,
     totalResponded,
     overallConversionRate,
+  };
+}
+
+// =============================================================================
+// VELOCITY / TIME INTELLIGENCE CALCULATIONS
+// =============================================================================
+
+/**
+ * Determine momentum trend based on percent change
+ */
+export function determineTrend(percentChange: number): VelocityTrend {
+  if (percentChange > 10) return "accelerating";
+  if (percentChange < -10) return "slowing";
+  return "steady";
+}
+
+/**
+ * Calculate momentum comparing current 7 days to previous 7 days
+ */
+export function calculateMomentum(
+  current7Days: number,
+  previous7Days: number
+): MomentumData {
+  let percentChange = 0;
+
+  if (previous7Days > 0) {
+    percentChange = Math.round(
+      ((current7Days - previous7Days) / previous7Days) * 100
+    );
+  } else if (current7Days > 0) {
+    // If no previous activity but current activity exists, that's accelerating
+    percentChange = 100;
+  }
+  // If both are 0, percentChange stays 0 (steady)
+
+  return {
+    current7Days,
+    previous7Days,
+    trend: determineTrend(percentChange),
+    percentChange,
+  };
+}
+
+/**
+ * Group RSVPs by date and calculate daily counts with cumulative totals
+ *
+ * @param rsvpDates - Array of RSVP dates (as Date objects or ISO strings)
+ * @param startDate - Start of the date range to include
+ * @param endDate - End of the date range to include
+ */
+export function buildDailyCounts(
+  rsvpDates: (Date | string)[],
+  startDate: Date,
+  endDate: Date
+): DailyCount[] {
+  // Convert all dates to YYYY-MM-DD strings for grouping
+  const dateCounts = new Map<string, number>();
+
+  for (const rsvpDate of rsvpDates) {
+    const date = rsvpDate instanceof Date ? rsvpDate : new Date(rsvpDate);
+    const dateStr = date.toISOString().split("T")[0];
+    dateCounts.set(dateStr, (dateCounts.get(dateStr) || 0) + 1);
+  }
+
+  // Generate all dates in range
+  const daily: DailyCount[] = [];
+  let cumulative = 0;
+  const current = new Date(startDate);
+  current.setUTCHours(0, 0, 0, 0);
+
+  const end = new Date(endDate);
+  end.setUTCHours(23, 59, 59, 999);
+
+  while (current <= end) {
+    const dateStr = current.toISOString().split("T")[0];
+    const count = dateCounts.get(dateStr) || 0;
+    cumulative += count;
+
+    daily.push({
+      date: dateStr,
+      count,
+      cumulative,
+    });
+
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return daily;
+}
+
+/**
+ * Build complete velocity data from RSVP dates
+ *
+ * @param rsvpDates - Array of RSVP submission dates
+ * @param referenceDate - The reference point for calculations (usually "now")
+ * @param lookbackDays - How many days to include in the chart (default 30)
+ */
+export function buildVelocityData(
+  rsvpDates: (Date | string)[],
+  referenceDate: Date = new Date(),
+  lookbackDays: number = 30
+): VelocityData {
+  if (rsvpDates.length === 0) {
+    return {
+      daily: [],
+      momentum: {
+        current7Days: 0,
+        previous7Days: 0,
+        trend: "steady",
+        percentChange: 0,
+      },
+      totalRsvps: 0,
+      firstRsvpDate: null,
+      lastRsvpDate: null,
+    };
+  }
+
+  // Sort dates chronologically
+  const sortedDates = rsvpDates
+    .map((d) => (d instanceof Date ? d : new Date(d)))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  const firstRsvpDate = sortedDates[0].toISOString().split("T")[0];
+  const lastRsvpDate = sortedDates[sortedDates.length - 1]
+    .toISOString()
+    .split("T")[0];
+
+  // Calculate date ranges
+  const endDate = new Date(referenceDate);
+  endDate.setUTCHours(23, 59, 59, 999);
+
+  const startDate = new Date(referenceDate);
+  startDate.setUTCDate(startDate.getUTCDate() - lookbackDays + 1);
+  startDate.setUTCHours(0, 0, 0, 0);
+
+  // Build daily counts for the lookback period
+  const daily = buildDailyCounts(sortedDates, startDate, endDate);
+
+  // Calculate momentum (last 7 days vs previous 7 days)
+  const sevenDaysAgo = new Date(referenceDate);
+  sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+
+  const fourteenDaysAgo = new Date(referenceDate);
+  fourteenDaysAgo.setUTCDate(fourteenDaysAgo.getUTCDate() - 14);
+
+  let current7Days = 0;
+  let previous7Days = 0;
+
+  for (const date of sortedDates) {
+    const d = date instanceof Date ? date : new Date(date);
+    if (d > sevenDaysAgo && d <= referenceDate) {
+      current7Days++;
+    } else if (d > fourteenDaysAgo && d <= sevenDaysAgo) {
+      previous7Days++;
+    }
+  }
+
+  const momentum = calculateMomentum(current7Days, previous7Days);
+
+  return {
+    daily,
+    momentum,
+    totalRsvps: rsvpDates.length,
+    firstRsvpDate,
+    lastRsvpDate,
   };
 }

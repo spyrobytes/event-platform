@@ -6,6 +6,10 @@ import {
   buildAnalyticsSnapshot,
   calculateDropoff,
   buildFunnelData,
+  determineTrend,
+  calculateMomentum,
+  buildDailyCounts,
+  buildVelocityData,
   type RSVPStats,
   type InviteStats,
 } from "@/lib/analytics";
@@ -267,5 +271,168 @@ describe("buildFunnelData", () => {
     expect(funnel.dropoffs[0].rate).toBe(0);
     expect(funnel.dropoffs[1].rate).toBe(0);
     expect(funnel.overallConversionRate).toBe(100);
+  });
+});
+
+// =============================================================================
+// VELOCITY / TIME INTELLIGENCE TESTS
+// =============================================================================
+
+describe("determineTrend", () => {
+  it("returns accelerating for positive change above 10%", () => {
+    expect(determineTrend(15)).toBe("accelerating");
+    expect(determineTrend(100)).toBe("accelerating");
+  });
+
+  it("returns slowing for negative change below -10%", () => {
+    expect(determineTrend(-15)).toBe("slowing");
+    expect(determineTrend(-50)).toBe("slowing");
+  });
+
+  it("returns steady for changes within threshold", () => {
+    expect(determineTrend(0)).toBe("steady");
+    expect(determineTrend(10)).toBe("steady");
+    expect(determineTrend(-10)).toBe("steady");
+    expect(determineTrend(5)).toBe("steady");
+  });
+});
+
+describe("calculateMomentum", () => {
+  it("calculates correct percent change", () => {
+    const momentum = calculateMomentum(20, 10);
+
+    expect(momentum.current7Days).toBe(20);
+    expect(momentum.previous7Days).toBe(10);
+    expect(momentum.percentChange).toBe(100); // Doubled
+    expect(momentum.trend).toBe("accelerating");
+  });
+
+  it("handles decrease in activity", () => {
+    const momentum = calculateMomentum(5, 10);
+
+    expect(momentum.percentChange).toBe(-50);
+    expect(momentum.trend).toBe("slowing");
+  });
+
+  it("handles zero previous activity with current activity", () => {
+    const momentum = calculateMomentum(10, 0);
+
+    expect(momentum.percentChange).toBe(100);
+    expect(momentum.trend).toBe("accelerating");
+  });
+
+  it("handles both zero", () => {
+    const momentum = calculateMomentum(0, 0);
+
+    expect(momentum.percentChange).toBe(0);
+    expect(momentum.trend).toBe("steady");
+  });
+
+  it("handles steady activity", () => {
+    const momentum = calculateMomentum(10, 10);
+
+    expect(momentum.percentChange).toBe(0);
+    expect(momentum.trend).toBe("steady");
+  });
+});
+
+describe("buildDailyCounts", () => {
+  it("builds daily counts for date range", () => {
+    const rsvpDates = [
+      new Date("2025-01-01"),
+      new Date("2025-01-01"),
+      new Date("2025-01-03"),
+    ];
+    const startDate = new Date("2025-01-01");
+    const endDate = new Date("2025-01-03");
+
+    const counts = buildDailyCounts(rsvpDates, startDate, endDate);
+
+    expect(counts).toHaveLength(3);
+    expect(counts[0]).toEqual({ date: "2025-01-01", count: 2, cumulative: 2 });
+    expect(counts[1]).toEqual({ date: "2025-01-02", count: 0, cumulative: 2 });
+    expect(counts[2]).toEqual({ date: "2025-01-03", count: 1, cumulative: 3 });
+  });
+
+  it("handles empty dates", () => {
+    const startDate = new Date("2025-01-01");
+    const endDate = new Date("2025-01-02");
+
+    const counts = buildDailyCounts([], startDate, endDate);
+
+    expect(counts).toHaveLength(2);
+    expect(counts[0].count).toBe(0);
+    expect(counts[1].count).toBe(0);
+  });
+
+  it("handles string dates", () => {
+    const rsvpDates = ["2025-01-01T10:00:00Z", "2025-01-01T15:00:00Z"];
+    const startDate = new Date("2025-01-01");
+    const endDate = new Date("2025-01-01");
+
+    const counts = buildDailyCounts(rsvpDates, startDate, endDate);
+
+    expect(counts).toHaveLength(1);
+    expect(counts[0].count).toBe(2);
+  });
+});
+
+describe("buildVelocityData", () => {
+  it("handles empty RSVP dates", () => {
+    const velocity = buildVelocityData([]);
+
+    expect(velocity.daily).toHaveLength(0);
+    expect(velocity.totalRsvps).toBe(0);
+    expect(velocity.firstRsvpDate).toBe(null);
+    expect(velocity.lastRsvpDate).toBe(null);
+    expect(velocity.momentum.trend).toBe("steady");
+  });
+
+  it("calculates velocity data correctly", () => {
+    const referenceDate = new Date("2025-01-15T12:00:00Z");
+    const rsvpDates = [
+      new Date("2025-01-10T10:00:00Z"),
+      new Date("2025-01-12T10:00:00Z"),
+      new Date("2025-01-14T10:00:00Z"),
+    ];
+
+    const velocity = buildVelocityData(rsvpDates, referenceDate, 7);
+
+    expect(velocity.totalRsvps).toBe(3);
+    expect(velocity.firstRsvpDate).toBe("2025-01-10");
+    expect(velocity.lastRsvpDate).toBe("2025-01-14");
+    expect(velocity.daily).toHaveLength(7);
+  });
+
+  it("calculates momentum correctly", () => {
+    const referenceDate = new Date("2025-01-20T12:00:00Z");
+    // 3 RSVPs in last 7 days (Jan 14-20)
+    // 1 RSVP in previous 7 days (Jan 7-13)
+    const rsvpDates = [
+      new Date("2025-01-10T10:00:00Z"), // Previous week
+      new Date("2025-01-15T10:00:00Z"), // Current week
+      new Date("2025-01-17T10:00:00Z"), // Current week
+      new Date("2025-01-19T10:00:00Z"), // Current week
+    ];
+
+    const velocity = buildVelocityData(rsvpDates, referenceDate, 30);
+
+    expect(velocity.momentum.current7Days).toBe(3);
+    expect(velocity.momentum.previous7Days).toBe(1);
+    expect(velocity.momentum.trend).toBe("accelerating");
+  });
+
+  it("includes all dates in lookback period", () => {
+    const referenceDate = new Date("2025-01-15T12:00:00Z");
+    const velocity = buildVelocityData(
+      [new Date("2025-01-01")],
+      referenceDate,
+      30
+    );
+
+    expect(velocity.daily).toHaveLength(30);
+    // Check cumulative is calculated correctly
+    const lastDay = velocity.daily[velocity.daily.length - 1];
+    expect(lastDay.cumulative).toBe(1);
   });
 });
