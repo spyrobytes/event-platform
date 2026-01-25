@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnalyticsSnapshot } from "@/components/features/Analytics";
+import { AnalyticsSnapshot, RSVPFunnel } from "@/components/features/Analytics";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -343,6 +343,13 @@ export default function EventDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* RSVP Funnel Section */}
+      <Card>
+        <CardContent className="pt-6">
+          <RSVPFunnel eventId={event.id} />
+        </CardContent>
+      </Card>
 
       <div className="flex justify-start">
         <Link href="/dashboard/events">

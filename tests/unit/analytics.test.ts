@@ -4,6 +4,8 @@ import {
   calculateOpenRate,
   calculateDaysUntilEvent,
   buildAnalyticsSnapshot,
+  calculateDropoff,
+  buildFunnelData,
   type RSVPStats,
   type InviteStats,
 } from "@/lib/analytics";
@@ -154,5 +156,116 @@ describe("buildAnalyticsSnapshot", () => {
     );
 
     expect(snapshot.daysUntilEvent).toBe(null);
+  });
+});
+
+// =============================================================================
+// FUNNEL TESTS
+// =============================================================================
+
+describe("calculateDropoff", () => {
+  it("calculates correct dropoff rate", () => {
+    const dropoff = calculateDropoff(100, 75, "invited", "opened");
+
+    expect(dropoff.from).toBe("invited");
+    expect(dropoff.to).toBe("opened");
+    expect(dropoff.lost).toBe(25);
+    expect(dropoff.rate).toBe(25);
+  });
+
+  it("returns 0 dropoff when counts are equal", () => {
+    const dropoff = calculateDropoff(100, 100, "invited", "opened");
+
+    expect(dropoff.lost).toBe(0);
+    expect(dropoff.rate).toBe(0);
+  });
+
+  it("handles zero from count", () => {
+    const dropoff = calculateDropoff(0, 0, "invited", "opened");
+
+    expect(dropoff.lost).toBe(0);
+    expect(dropoff.rate).toBe(0);
+  });
+
+  it("rounds dropoff rate to nearest integer", () => {
+    const dropoff = calculateDropoff(100, 67, "invited", "opened");
+
+    expect(dropoff.rate).toBe(33); // 33% lost
+  });
+
+  it("handles case where toCount is greater than fromCount", () => {
+    // This shouldn't happen in practice, but handle gracefully
+    const dropoff = calculateDropoff(50, 75, "opened", "responded");
+
+    expect(dropoff.lost).toBe(0); // Should not be negative
+    expect(dropoff.rate).toBe(0);
+  });
+});
+
+describe("buildFunnelData", () => {
+  it("builds correct funnel structure", () => {
+    const funnel = buildFunnelData(100, 80, 60);
+
+    expect(funnel.stages).toHaveLength(3);
+    expect(funnel.dropoffs).toHaveLength(2);
+  });
+
+  it("calculates correct stage percentages", () => {
+    const funnel = buildFunnelData(100, 80, 60);
+
+    expect(funnel.stages[0].name).toBe("invited");
+    expect(funnel.stages[0].percentage).toBe(100);
+
+    expect(funnel.stages[1].name).toBe("opened");
+    expect(funnel.stages[1].percentage).toBe(80);
+
+    expect(funnel.stages[2].name).toBe("responded");
+    expect(funnel.stages[2].percentage).toBe(60);
+  });
+
+  it("calculates correct dropoff rates", () => {
+    const funnel = buildFunnelData(100, 80, 60);
+
+    // Invited → Opened: 20% drop (100 → 80)
+    expect(funnel.dropoffs[0].from).toBe("invited");
+    expect(funnel.dropoffs[0].to).toBe("opened");
+    expect(funnel.dropoffs[0].lost).toBe(20);
+    expect(funnel.dropoffs[0].rate).toBe(20);
+
+    // Opened → Responded: 25% drop (80 → 60)
+    expect(funnel.dropoffs[1].from).toBe("opened");
+    expect(funnel.dropoffs[1].to).toBe("responded");
+    expect(funnel.dropoffs[1].lost).toBe(20);
+    expect(funnel.dropoffs[1].rate).toBe(25);
+  });
+
+  it("calculates overall conversion rate", () => {
+    const funnel = buildFunnelData(100, 80, 60);
+
+    expect(funnel.overallConversionRate).toBe(60);
+  });
+
+  it("handles zero invites gracefully", () => {
+    const funnel = buildFunnelData(0, 0, 0);
+
+    expect(funnel.stages[0].percentage).toBe(100); // First stage always 100%
+    expect(funnel.stages[1].percentage).toBe(0);
+    expect(funnel.stages[2].percentage).toBe(0);
+    expect(funnel.overallConversionRate).toBe(0);
+  });
+
+  it("includes total counts", () => {
+    const funnel = buildFunnelData(100, 80, 60);
+
+    expect(funnel.totalInvited).toBe(100);
+    expect(funnel.totalResponded).toBe(60);
+  });
+
+  it("handles 100% conversion", () => {
+    const funnel = buildFunnelData(50, 50, 50);
+
+    expect(funnel.dropoffs[0].rate).toBe(0);
+    expect(funnel.dropoffs[1].rate).toBe(0);
+    expect(funnel.overallConversionRate).toBe(100);
   });
 });
