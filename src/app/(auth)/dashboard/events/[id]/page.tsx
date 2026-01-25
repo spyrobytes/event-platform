@@ -41,10 +41,10 @@ type EventDetail = {
 };
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; className: string }> = {
-  DRAFT: { label: "Draft", className: "bg-muted text-muted-foreground" },
+  DRAFT: { label: "Draft", className: "bg-surface-3 text-foreground" },
   PUBLISHED: { label: "Published", className: "bg-success/20 text-success" },
   CANCELLED: { label: "Cancelled", className: "bg-destructive/20 text-destructive" },
-  COMPLETED: { label: "Completed", className: "bg-muted text-muted-foreground" },
+  COMPLETED: { label: "Completed", className: "bg-surface-3 text-foreground" },
 };
 
 export default function EventDetailPage() {

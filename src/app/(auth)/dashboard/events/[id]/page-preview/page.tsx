@@ -212,7 +212,7 @@ export default function PagePreviewPage() {
                 Published
               </span>
             ) : (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs font-medium text-foreground">
                 Draft
               </span>
             )}

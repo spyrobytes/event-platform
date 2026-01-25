@@ -152,7 +152,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                     className={`rounded-md px-4 py-2 text-sm ${
                       pageNum === page
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        : "bg-surface-3 text-foreground hover:bg-surface-2"
                     }`}
                   >
                     {pageNum}

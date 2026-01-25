@@ -31,12 +31,12 @@ type InviteTableProps = {
 };
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> = {
-  PENDING: { label: "Pending", className: "bg-muted text-muted-foreground" },
+  PENDING: { label: "Pending", className: "bg-surface-3 text-foreground" },
   SENT: { label: "Sent", className: "bg-blue-500/20 text-blue-600 dark:text-blue-400" },
   OPENED: { label: "Opened", className: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400" },
   RESPONDED: { label: "Responded", className: "bg-green-500/20 text-green-600 dark:text-green-400" },
   BOUNCED: { label: "Bounced", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
-  EXPIRED: { label: "Expired", className: "bg-muted text-muted-foreground" },
+  EXPIRED: { label: "Expired", className: "bg-surface-3 text-foreground" },
 };
 
 const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }> = {
