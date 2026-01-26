@@ -169,7 +169,7 @@ export default function VerifyEmailPendingPage() {
             Wrong email?{" "}
             <button
               onClick={handleSignOut}
-              className="text-primary hover:underline"
+              className="text-accent hover:underline"
             >
               Sign out
             </button>{" "}
