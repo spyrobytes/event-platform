@@ -20,7 +20,8 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace("/dashboard");
+      // Redirect authenticated users to verify-email (AuthGuard will handle further routing)
+      router.replace("/verify-email");
     }
   }, [authLoading, isAuthenticated, router]);
 
@@ -41,8 +42,20 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      await signUp(email, password);
-      router.push("/dashboard");
+      // signUp returns the Firebase user directly
+      const firebaseUser = await signUp(email, password);
+
+      // Get token from the returned user (not from hook state which may not be updated yet)
+      const token = await firebaseUser.getIdToken();
+
+      // Send verification email
+      await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Redirect to verification pending page
+      router.push("/verify-email");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");
       setIsLoading(false);

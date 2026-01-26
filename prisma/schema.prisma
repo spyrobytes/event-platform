@@ -19,8 +19,15 @@ model User {
   email       String   @unique
   name        String?
   avatarUrl   String?  @map("avatar_url")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Email verification
+  emailVerified         Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt       DateTime? @map("email_verified_at")
+  verificationTokenHash String?   @unique @map("verification_token_hash")
+  verificationExpiresAt DateTime? @map("verification_expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   organizations OrganizationMember[]
   events        Event[]
@@ -238,6 +245,7 @@ enum EmailTemplate {
   REMINDER
   UPDATE
   CANCELLATION
+  VERIFICATION
 }
 
 enum EmailStatus {

@@ -4,6 +4,7 @@ import { db } from "./db";
 import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
 import { ReminderEmail } from "@/emails/ReminderEmail";
+import { VerificationEmail } from "@/emails/VerificationEmail";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration (production)
@@ -156,6 +157,11 @@ type ReminderEmailPayload = {
   guestCount: number;
 };
 
+type VerificationEmailPayload = {
+  verificationUrl: string;
+  expiresInHours: number;
+};
+
 /**
  * Queue an invite email for sending
  */
@@ -234,6 +240,28 @@ export async function queueReminderEmail(
 }
 
 /**
+ * Queue a verification email for sending
+ */
+export async function queueVerificationEmail(
+  toEmail: string,
+  payload: VerificationEmailPayload
+): Promise<string> {
+  const subject = "Verify your email address for EventsFixer";
+
+  const emailRecord = await db.emailOutbox.create({
+    data: {
+      template: "VERIFICATION",
+      toEmail,
+      subject,
+      payload: payload as Prisma.InputJsonValue,
+      status: "QUEUED",
+    },
+  });
+
+  return emailRecord.id;
+}
+
+/**
  * Process and send a queued email
  */
 export async function processEmail(emailId: string): Promise<void> {
@@ -264,6 +292,9 @@ export async function processEmail(emailId: string): Promise<void> {
         break;
       case "REMINDER":
         html = await render(ReminderEmail(payload as unknown as ReminderEmailPayload));
+        break;
+      case "VERIFICATION":
+        html = await render(VerificationEmail(payload as unknown as VerificationEmailPayload));
         break;
       default:
         throw new Error(`Unknown template: ${email.template}`);
