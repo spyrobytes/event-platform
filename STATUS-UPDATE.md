@@ -1,22 +1,22 @@
 # Event Platform - Status Update
 
-**Date:** January 24, 2026
+**Date:** January 27, 2026
 **Status:** Production-Ready MVP (Enhanced)
 
 ---
 
 ## Executive Summary
 
-The Event Platform is a **production-ready MVP** for creating, discovering, and managing events with invitations, RSVPs, and transactional email. All core features are implemented, tested, and the codebase is ready for deployment. Recent updates include a **premium landing page redesign**, **enhanced gallery features**, **wedding template variants**, and **improved editor UX**.
+The Event Platform is a **production-ready MVP** for creating, discovering, and managing events with invitations, RSVPs, and transactional email. All core features are implemented, tested, and the codebase is ready for deployment. Recent updates include **invite management features** (RSVP deadlines, CSV export, auto reminders), a **premium landing page redesign**, **enhanced gallery features**, **wedding template variants**, and **improved editor UX**.
 
 | Metric | Status |
 |--------|--------|
 | Build | Passes |
 | TypeScript | Strict mode, 0 errors |
 | Tests | 97 passing (84% coverage) |
-| API Endpoints | 18 implemented |
+| API Endpoints | 19 implemented |
 | Components | 75+ React components |
-| Templates | 3 event page templates + 5 wedding variants |
+| Templates | 3 event page templates + 5 wedding variants + 4 invitation templates |
 
 ---
 
@@ -112,11 +112,30 @@ A complete landing page redesign featuring modern design patterns and premium ae
 - RSVP tracking (YES/NO/MAYBE + plus-ones)
 - Status tracking (sent, opened, responded)
 
+### Invite Management Features (New)
+
+**RSVP Deadline:**
+- Set deadline per event via EventForm
+- API enforcement returns 400 after deadline
+- Dashboard shows color-coded countdown (green > 7d, yellow 3-7d, red < 3d)
+- Guest-facing page displays "RSVP Period Closed" message
+
+**CSV Export:**
+- Export invite list via `/api/events/[id]/invites/export`
+- Filter options: all, attending, not_attending, pending, responded
+- Includes: Name, Email, Status, Response, Guest Count, Responded Date, Notes
+
+**Automatic Reminders:**
+- Configurable reminder interval (1-30 days)
+- Daily cron job at 10 AM sends follow-up emails to non-responders
+- Reminders stop when guest responds, event starts, or deadline passes
+- New email template: `NO_RESPONSE_REMINDER`
+
 ### Email Pipeline
 - Mailgun integration with webhook status updates
 - Database-backed email queue
-- Templates: Invite, Confirmation, Reminder
-- Automated processing via cron jobs
+- Templates: Invite, Confirmation, Reminder, Verification, NoResponseReminder
+- Automated processing via cron jobs (email queue, event reminders, no-response reminders)
 
 ### Security
 - HSTS, CSP, X-Frame-Options headers
@@ -143,20 +162,23 @@ User ← Event → Invite → RSVP
 
 **10 Models:** User, Organization, OrganizationMember, Event, PageTemplate, MediaAsset, EventPageVersion, Invite, RSVP, EmailOutbox
 
-**3 Migrations Applied** - schema is stable
+**New Event Fields:** `rsvpDeadline`, `reminderDays`, `reminderEnabled`
+
+**4 Migrations Applied** - schema is stable
 
 ---
 
-## API Endpoints (18 Total)
+## API Endpoints (19 Total)
 
 | Category | Endpoints |
 |----------|-----------|
 | Events | CRUD, publish, duplicate |
 | Page Config | Get/update, versions, rollback |
 | Media | Upload, list assets |
-| Invites | Create, lookup by token |
+| Invites | Create, lookup by token, CSV export |
 | RSVPs | Submit, list with stats |
 | Email | Stats, process queue |
+| Cron | Process emails, send reminders, send no-response reminders |
 | System | Health check, Mailgun webhook |
 
 ---
@@ -181,13 +203,13 @@ User ← Event → Invite → RSVP
 
 | Commit | Description |
 |--------|-------------|
+| c8ad88a | Invite management: RSVP deadline, CSV export, auto reminders |
+| e500c4c | Time-Based Reveal invitation template |
+| 9280f5b | Cinematic Scroll invitation template |
+| d6d6b31 | Layered Unfold invitation template and preview page |
+| 373b638 | Elegant wedding invitation system |
 | 988a7fa | Skip-to-content link and smooth scroll to CTAs |
 | faa04fa | Keyboard navigation focus styles |
-| ae9ae6d | Smooth scroll, blur placeholders, and SEO metadata |
-| f46235e | Premium landing page with glassmorphism and animations |
-| 2b6f295 | Enhanced gallery with display modes, auto-play, and annotations |
-| f9195a1 | Story section image selection and UX improvements |
-| 69a7b57 | Wedding template variants and wedding-specific section editors |
 
 ---
 
@@ -301,9 +323,10 @@ docs/              # 8+ documentation files
 
 The Event Platform MVP is **complete and production-ready**. Code quality is high with strict TypeScript, comprehensive testing, and secure patterns. Recent enhancements include:
 
+- **Invite Management Features** with RSVP deadlines, CSV export, and automatic follow-up reminders
+- **Elegant Invitation Templates** with 4 animated templates (Envelope Reveal, Layered Unfold, Cinematic Scroll, Time-Based Reveal)
 - **Premium Landing Page** with glassmorphism, scroll animations, interactive demo, and full accessibility support
 - **Enhanced Gallery** with display modes, auto-play, transitions, and per-image annotations
 - **Wedding Template Variants** with 5 distinct styles and wedding-specific sections
-- **Improved Editor UX** with floating action bar, better image selection feedback
 
 **Risk Level:** Low - stable MVP with no critical tech debt
