@@ -176,7 +176,7 @@ export default function InvitationPreviewPage() {
           return <TimeBasedReveal data={invitationData} showReplay={true} />;
         default:
           return (
-            <EnvelopeReveal showReplay={true}>
+            <EnvelopeReveal showClose={true}>
               <InvitationCard data={invitationData} rsvpButtonText="RSVP" showRsvpButton={true} />
             </EnvelopeReveal>
           );
@@ -184,7 +184,7 @@ export default function InvitationPreviewPage() {
     }
 
     return (
-      <EnvelopeReveal showReplay={true}>
+      <EnvelopeReveal showClose={true}>
         <InvitationCard data={invitationData} rsvpButtonText="RSVP" showRsvpButton={true} />
       </EnvelopeReveal>
     );

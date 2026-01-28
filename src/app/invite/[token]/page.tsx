@@ -240,7 +240,7 @@ export default async function InvitationPage({ params }: PageProps) {
           return (
             <EnvelopeReveal
               initialState={hasResponded ? "open" : undefined}
-              showReplay={!hasResponded}
+              showClose={!hasResponded}
             >
               <InvitationCard
                 data={invitationData}
@@ -260,7 +260,7 @@ export default async function InvitationPage({ params }: PageProps) {
     return (
       <EnvelopeReveal
         initialState={hasResponded ? "open" : undefined}
-        showReplay={!hasResponded}
+        showClose={!hasResponded}
       >
         <InvitationCard
           data={invitationData}

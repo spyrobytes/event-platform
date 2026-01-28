@@ -74,6 +74,8 @@ export type UseInvitationStateReturn = {
   open: () => void;
   /** Signal that the current animation has completed */
   complete: () => void;
+  /** Trigger the closing animation (semantic alias for replay) */
+  close: () => void;
   /** Trigger the closing animation (replay) */
   replay: () => void;
   /** Skip to the open state immediately */
@@ -108,9 +110,10 @@ export function useInvitationState(
   const open = useCallback(() => dispatch({ type: "CLICK" }), []);
   const complete = useCallback(() => dispatch({ type: "COMPLETE" }), []);
   const replay = useCallback(() => dispatch({ type: "REPLAY" }), []);
+  const close = useCallback(() => dispatch({ type: "REPLAY" }), []);
   const skip = useCallback(() => dispatch({ type: "SKIP" }), []);
 
   const isAnimating = state === "opening" || state === "closing";
 
-  return { state, isAnimating, open, complete, replay, skip };
+  return { state, isAnimating, open, complete, close, replay, skip };
 }

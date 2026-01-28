@@ -1,12 +1,107 @@
 /* =============================================================================
-   ENVELOPE REVEAL ANIMATION
+   ENVELOPE REVEAL ANIMATION — ENHANCED VERSION
+
    A premium invitation reveal experience mimicking physical envelope opening.
+   Features multi-tonal envelope design, decorative wax seal, and realistic
+   card extraction animation.
 
    Animation sequence:
-   1. idle: Envelope rests centered
-   2. opening: Flap rotates up, card begins sliding out
-   3. open: Card fully revealed, flap behind card
-   4. closing: Reverse sequence for replay
+   1. idle: Envelope rests centered with subtle breathing animation
+   2. opening: Flap rotates up revealing liner, card slides upward out of envelope
+   3. open: Card fully revealed above envelope, close button fades in
+   4. closing: Reverse sequence - card slides back in, flap closes
+   ============================================================================= */
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES (Component-scoped)
+   ============================================================================= */
+
+.root {
+  /* Envelope color palette (overridden by theme classes) */
+  --env-primary: #f5f0e8;
+  --env-secondary: #e8e2d6;
+  --env-shadow: #d4cdc0;
+  --env-liner: #e8dcd0;
+  --env-liner-pattern: rgba(139, 115, 85, 0.08);
+
+  /* Seal colors */
+  --env-seal: #c4a574;
+  --env-seal-dark: #a68a5b;
+  --env-seal-shine: #e8d5a8;
+
+  /* Animation timing */
+  --env-dur-fast: 200ms;
+  --env-dur-medium: 400ms;
+  --env-dur-slow: 600ms;
+  --env-dur-reveal: 800ms;
+
+  /* Easing functions */
+  --env-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --env-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --env-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =============================================================================
+   THEME VARIATIONS
+   ============================================================================= */
+
+.themeIvory {
+  --env-primary: #f8f5f0;
+  --env-secondary: #ebe6dc;
+  --env-shadow: #d9d3c7;
+  --env-liner: #f0e8dc;
+  --env-liner-pattern: rgba(139, 115, 85, 0.06);
+  --env-seal: #c9a96e;
+  --env-seal-dark: #a68a5b;
+  --env-seal-shine: #e8d5a8;
+}
+
+.themeBlush {
+  --env-primary: #faf5f3;
+  --env-secondary: #f0e5e1;
+  --env-shadow: #e0d0ca;
+  --env-liner: #f8e8e4;
+  --env-liner-pattern: rgba(180, 120, 120, 0.08);
+  --env-seal: #d4a5a5;
+  --env-seal-dark: #b88888;
+  --env-seal-shine: #f0d0d0;
+}
+
+.themeSage {
+  --env-primary: #f5f7f4;
+  --env-secondary: #e5ebe3;
+  --env-shadow: #cdd6c9;
+  --env-liner: #e8f0e4;
+  --env-liner-pattern: rgba(100, 130, 100, 0.08);
+  --env-seal: #8faa8f;
+  --env-seal-dark: #6b8a6b;
+  --env-seal-shine: #c0d4c0;
+}
+
+.themeChampagne {
+  --env-primary: #faf8f2;
+  --env-secondary: #f0ece0;
+  --env-shadow: #ddd6c4;
+  --env-liner: #f5efe0;
+  --env-liner-pattern: rgba(180, 160, 100, 0.08);
+  --env-seal: #d4b896;
+  --env-seal-dark: #b89a78;
+  --env-seal-shine: #f0dcc0;
+}
+
+.themeNavy {
+  --env-primary: #2a3448;
+  --env-secondary: #1e2535;
+  --env-shadow: #141a26;
+  --env-liner: #3a4560;
+  --env-liner-pattern: rgba(100, 140, 200, 0.12);
+  --env-seal: #c9a96e;
+  --env-seal-dark: #a68a5b;
+  --env-seal-shine: #e8d5a8;
+}
+
+/* =============================================================================
+   ROOT CONTAINER
    ============================================================================= */
 
 .root {
@@ -17,36 +112,72 @@
   justify-content: center;
   min-height: 100dvh;
   padding: 2rem;
-  perspective: 1200px;
+  perspective: 1400px;
+}
+
+/* Ambient background glow for depth */
+.ambientGlow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 248, 235, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.themeNavy .ambientGlow {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(100, 140, 200, 0.08) 0%,
+    transparent 70%
+  );
 }
 
 /* =============================================================================
-   ENVELOPE CONTAINER
+   ENVELOPE WRAPPER (Positioning context for card)
+   ============================================================================= */
+
+.envelopeWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* =============================================================================
+   ENVELOPE BUTTON
    ============================================================================= */
 
 .envelope {
   position: relative;
-  width: min(90vw, 380px);
-  aspect-ratio: 5 / 3;
+  width: min(90vw, 400px);
+  aspect-ratio: 16 / 10;
   cursor: pointer;
   border: none;
   background: transparent;
   transform-style: preserve-3d;
-  transition: transform var(--inv-dur-2) var(--inv-ease-out);
+  transition: transform var(--env-dur-medium) var(--env-ease-out);
 }
 
 .envelope:hover:not(:disabled) {
-  transform: scale(1.02);
+  transform: scale(1.02) translateY(-2px);
 }
 
 .envelope:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
 .envelope:focus-visible {
-  outline: 2px solid var(--inv-accent);
-  outline-offset: 6px;
-  border-radius: 4px;
+  outline: 2px solid var(--env-seal);
+  outline-offset: 8px;
+  border-radius: 8px;
 }
 
 .envelope:disabled {
@@ -54,9 +185,34 @@
 }
 
 /* =============================================================================
+   ENVELOPE SHADOW (Separate for animation control)
+   ============================================================================= */
+
+.envelopeShadow {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 16px 48px rgba(0, 0, 0, 0.08);
+  transition:
+    box-shadow var(--env-dur-medium) var(--env-ease-out),
+    transform var(--env-dur-medium) var(--env-ease-out);
+  pointer-events: none;
+}
+
+.envelope:hover:not(:disabled) .envelopeShadow {
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.15),
+    0 16px 48px rgba(0, 0, 0, 0.12),
+    0 24px 64px rgba(0, 0, 0, 0.08);
+}
+
+/* =============================================================================
    ENVELOPE LAYERS
-   Z-index stacking: back(1) < card(2) < flap(3) < front(4)
-   When open: back(1) < flap(2) < card(4) < front panel hidden
+   Z-index stacking: shadow(0) < back(1) < card(2) < front(3) < flap(4)
+   When open: shadow(0) < back(1) < flap(2) < front(hidden) < card(5)
    ============================================================================= */
 
 .back,
@@ -64,140 +220,352 @@
 .flap {
   position: absolute;
   inset: 0;
-  border-radius: 4px;
   backface-visibility: hidden;
 }
 
-/* Back panel - base of envelope */
+/* -----------------------------------------------------------------------------
+   BACK PANEL - Base of envelope, reveals inner liner
+   ----------------------------------------------------------------------------- */
+
 .back {
   z-index: 1;
-  background: var(--inv-envelope-color);
-  box-shadow: var(--inv-shadow-soft);
+  background: var(--env-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--env-shadow);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.03);
 }
 
-/* Decorative liner inside back */
-.back::before {
-  content: "";
+/* Inner liner with decorative pattern */
+.liner {
   position: absolute;
-  inset: 4px;
+  inset: 0;
+  border-radius: 5px;
   background: linear-gradient(
     135deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 70%
+    var(--env-liner) 0%,
+    var(--env-liner-pattern) 100%
   );
-  border-radius: 2px;
-  pointer-events: none;
+  overflow: hidden;
 }
 
-/* Front panel - lower portion covering card */
-.front {
-  z-index: 4;
-  background: var(--inv-envelope-color);
-  clip-path: polygon(0 40%, 50% 70%, 100% 40%, 100% 100%, 0 100%);
-  transition: opacity var(--inv-dur-3) var(--inv-ease-out);
-}
-
-/* Shadow on front panel for depth */
-.front::before {
+/* Liner decorative stripes */
+.liner::before {
   content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    var(--env-liner-pattern) 10px,
+    var(--env-liner-pattern) 11px
+  );
+  opacity: 0.5;
+}
+
+/* Liner shimmer effect */
+.liner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transform: skewX(-20deg);
+  animation: linerShimmer 8s ease-in-out infinite;
+}
+
+@keyframes linerShimmer {
+  0%,
+  100% {
+    left: -100%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    left: 150%;
+    opacity: 0;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   FRONT PANEL - Lower portion covering the card slot
+   ----------------------------------------------------------------------------- */
+
+.front {
+  z-index: 3;
+  background: linear-gradient(
+    180deg,
+    var(--env-secondary) 0%,
+    var(--env-primary) 30%,
+    var(--env-primary) 100%
+  );
+  clip-path: polygon(0 38%, 50% 65%, 100% 38%, 100% 100%, 0 100%);
+  border-radius: 0 0 6px 6px;
+  transition:
+    opacity var(--env-dur-slow) var(--env-ease-out),
+    transform var(--env-dur-slow) var(--env-ease-out);
+}
+
+/* Top edge shadow for depth */
+.frontEdge {
   position: absolute;
   top: 35%;
   left: 0;
   right: 0;
-  height: 20%;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.08),
-    transparent
-  );
+  height: 30%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.04), transparent 50%);
+  clip-path: polygon(0 0, 50% 45%, 100% 0, 100% 100%, 0 100%);
   pointer-events: none;
 }
 
-/* Flap - triangular top that opens */
-.flap {
-  z-index: 3;
-  background: var(--inv-envelope-color);
-  clip-path: polygon(0 0, 50% 40%, 100% 0);
-  transform-origin: top center;
-  transform: rotateX(0deg);
-  transition: transform var(--inv-dur-4) var(--inv-ease-ceremony);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Inner shadow on flap */
-.flap::after {
+/* Subtle paper texture on front */
+.front::before {
   content: "";
   position: absolute;
   inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Bottom edge highlight */
+.front::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
   background: linear-gradient(
-    to bottom,
-    transparent 50%,
-    rgba(0, 0, 0, 0.05) 100%
+    90deg,
+    transparent 10%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 90%
   );
+  border-radius: 0 0 6px 6px;
+}
+
+/* -----------------------------------------------------------------------------
+   FLAP - Triangular top that opens to reveal card
+   ----------------------------------------------------------------------------- */
+
+.flap {
+  z-index: 4;
+  background: linear-gradient(
+    180deg,
+    var(--env-primary) 0%,
+    var(--env-secondary) 100%
+  );
+  clip-path: polygon(0 0, 50% 42%, 100% 0);
+  transform-origin: top center;
+  transform: rotateX(0deg);
+  transition:
+    transform var(--env-dur-reveal) var(--env-ease-out),
+    z-index 0ms linear var(--env-dur-medium);
+  border-radius: 6px 6px 0 0;
+}
+
+/* Inner shadow on flap for depth */
+.flap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 20%, rgba(0, 0, 0, 0.03) 80%);
+  clip-path: inherit;
   pointer-events: none;
 }
 
+/* Flap edge highlight */
+.flap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 5%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 95%
+  );
+  border-radius: 6px 6px 0 0;
+}
+
+/* -----------------------------------------------------------------------------
+   WAX SEAL - Decorative seal on flap
+   ----------------------------------------------------------------------------- */
+
+.seal {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 30% 30%,
+    var(--env-seal-shine) 0%,
+    var(--env-seal) 40%,
+    var(--env-seal-dark) 100%
+  );
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--env-dur-medium) var(--env-ease-bounce);
+}
+
+.envelope:hover:not(:disabled) .seal {
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* Seal monogram/icon */
+.sealMonogram {
+  font-size: 1.5rem;
+  color: #dc2626;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+/* Seal texture overlay */
+.seal::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Seal edge detail */
+.seal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.1) 10deg,
+    transparent 20deg,
+    rgba(255, 255, 255, 0.1) 30deg,
+    transparent 40deg,
+    rgba(255, 255, 255, 0.1) 50deg,
+    transparent 60deg,
+    rgba(255, 255, 255, 0.1) 70deg,
+    transparent 80deg,
+    rgba(255, 255, 255, 0.1) 90deg,
+    transparent 100deg
+  );
+  opacity: 0.5;
+}
+
 /* =============================================================================
-   CARD
+   CARD CONTAINER - Slides out from envelope
    ============================================================================= */
 
 .cardContainer {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(85vw, 360px);
-  transform: translate(-50%, -50%) translateY(20px);
-  opacity: 0;
+  width: min(85vw, 380px);
+  transform: translate(-50%, -50%);
   z-index: 2;
   pointer-events: none;
   transition:
-    transform var(--inv-dur-4) var(--inv-ease-ceremony),
-    opacity var(--inv-dur-3) var(--inv-ease-out);
+    transform var(--env-dur-reveal) var(--env-ease-out),
+    opacity var(--env-dur-slow) var(--env-ease-out);
+}
+
+.cardInner {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity var(--env-dur-medium) var(--env-ease-out) var(--env-dur-fast),
+    transform var(--env-dur-medium) var(--env-ease-out) var(--env-dur-fast);
 }
 
 /* =============================================================================
-   OPENING STATE
+   STATE: OPENING / OPEN
    ============================================================================= */
 
+/* Flap rotates open, moves behind card */
 .isOpening .flap,
 .isOpen .flap {
   transform: rotateX(180deg);
   z-index: 2;
+  transition-delay: 0ms;
 }
 
+/* Front panel fades out and slides down slightly */
 .isOpening .front,
 .isOpen .front {
   opacity: 0;
+  transform: translateY(5%);
   pointer-events: none;
 }
 
+/* Card slides up out of envelope */
 .isOpening .cardContainer,
 .isOpen .cardContainer {
-  transform: translate(-50%, -50%) translateY(-40px);
-  opacity: 1;
+  transform: translate(-50%, -50%) translateY(-180px);
   z-index: 5;
   pointer-events: auto;
 }
 
+.isOpening .cardInner,
+.isOpen .cardInner {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Shadow softens when open */
+.isOpen .envelopeShadow {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
 /* =============================================================================
-   CLOSING STATE (reverse)
+   STATE: CLOSING (Reverse animation)
    ============================================================================= */
 
 .isClosing .flap {
   transform: rotateX(0deg);
-  z-index: 3;
+  z-index: 4;
+  transition-delay: var(--env-dur-medium);
 }
 
 .isClosing .front {
   opacity: 1;
+  transform: translateY(0);
   pointer-events: auto;
+  transition-delay: var(--env-dur-fast);
 }
 
 .isClosing .cardContainer {
-  transform: translate(-50%, -50%) translateY(20px);
-  opacity: 0;
+  transform: translate(-50%, -50%);
   pointer-events: none;
+}
+
+.isClosing .cardInner {
+  opacity: 0;
+  transform: scale(0.96);
+  transition-delay: 0ms;
 }
 
 /* =============================================================================
@@ -208,27 +576,15 @@
 .reducedMotion .envelope,
 .reducedMotion .flap,
 .reducedMotion .front,
-.reducedMotion .cardContainer {
+.reducedMotion .cardContainer,
+.reducedMotion .cardInner,
+.reducedMotion .envelopeShadow,
+.reducedMotion .closeButton {
   transition: none !important;
 }
 
-/* =============================================================================
-   REPLAY BUTTON CONTAINER
-   ============================================================================= */
-
-.replayContainer {
-  margin-top: 2rem;
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity var(--inv-dur-2) var(--inv-ease-out),
-    transform var(--inv-dur-2) var(--inv-ease-out);
-}
-
-.isOpen .replayContainer {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: var(--inv-dur-3);
+.reducedMotion .liner::after {
+  animation: none !important;
 }
 
 /* =============================================================================
@@ -237,18 +593,118 @@
 
 .hint {
   position: absolute;
-  bottom: -2rem;
+  bottom: -2.5rem;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.875rem;
-  color: var(--inv-text-secondary);
-  opacity: 0.7;
-  transition: opacity var(--inv-dur-2) var(--inv-ease-out);
+  font-weight: 500;
+  color: var(--inv-text-secondary, rgba(120, 110, 100, 0.8));
+  opacity: 0.8;
+  transition: opacity var(--env-dur-medium) var(--env-ease-out);
+  white-space: nowrap;
+}
+
+.hintIcon {
+  font-size: 1rem;
+  animation: hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
 }
 
 .isOpening .hint,
 .isOpen .hint {
   opacity: 0;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   CLOSE BUTTON
+   ============================================================================= */
+
+.closeButton {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--inv-text-secondary, rgba(100, 90, 80, 0.9));
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity var(--env-dur-medium) var(--env-ease-out),
+    transform var(--env-dur-medium) var(--env-ease-out),
+    background var(--env-dur-fast) var(--env-ease-out),
+    border-color var(--env-dur-fast) var(--env-ease-out);
+  backdrop-filter: blur(8px);
+}
+
+.closeButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.closeButton:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--env-seal);
+  outline-offset: 2px;
+}
+
+.closeButton:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.closeIcon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform var(--env-dur-fast) var(--env-ease-out);
+}
+
+.closeButton:hover:not(:disabled) .closeIcon {
+  transform: translateX(-2px);
+}
+
+/* Show close button when open */
+.isOpen .closeButton {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: var(--env-dur-slow);
+}
+
+/* Navy theme close button adjustment */
+.themeNavy .closeButton {
+  color: rgba(200, 210, 230, 0.9);
+  background: rgba(40, 50, 70, 0.8);
+  border-color: rgba(100, 120, 160, 0.3);
+}
+
+.themeNavy .closeButton:hover:not(:disabled) {
+  background: rgba(50, 60, 80, 0.95);
+  border-color: rgba(100, 120, 160, 0.5);
 }
 
 /* =============================================================================
@@ -257,20 +713,87 @@
 
 @media (hover: none) {
   .envelope:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: scale(0.98);
+  }
+
+  .envelope:active:not(:disabled) .seal {
+    transform: translate(-50%, -50%) scale(0.95);
   }
 }
 
 /* =============================================================================
-   ENSURE MINIMUM TOUCH TARGET
+   RESPONSIVE ADJUSTMENTS
    ============================================================================= */
 
-@media (max-width: 380px) {
+@media (max-width: 400px) {
   .envelope {
     width: 95vw;
   }
 
   .cardContainer {
-    width: 90vw;
+    width: 92vw;
+  }
+
+  .seal {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sealMonogram {
+    font-size: 1.25rem;
+  }
+
+  .hint {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Larger screens - bigger envelope */
+@media (min-width: 768px) {
+  .envelope {
+    width: min(80vw, 440px);
+  }
+
+  .cardContainer {
+    width: min(75vw, 420px);
+  }
+
+  .seal {
+    width: 60px;
+    height: 60px;
+  }
+
+  .sealMonogram {
+    font-size: 1.75rem;
+  }
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  .root {
+    min-height: auto;
+    padding: 0;
+  }
+
+  .envelope,
+  .closeButton,
+  .hint,
+  .ambientGlow {
+    display: none;
+  }
+
+  .cardContainer {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .cardInner {
+    opacity: 1;
+    transform: none;
   }
 }
