@@ -15,6 +15,7 @@ export { TypographyPicker } from "./TypographyPicker";
 export {
   EnvelopeReveal,
   LayeredUnfold,
+  CinematicScroll,
   getTemplateComponent,
   getDataDrivenTemplateComponent,
   getTemplateType,

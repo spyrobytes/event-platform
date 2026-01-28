@@ -7,6 +7,7 @@ import {
   InvitationCard,
   EnvelopeReveal,
   LayeredUnfold,
+  CinematicScroll,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -211,6 +212,14 @@ export default async function InvitationPage({ params }: PageProps) {
         case "LAYERED_UNFOLD":
           return (
             <LayeredUnfold
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              showReplay={!hasResponded}
+            />
+          );
+        case "CINEMATIC_SCROLL":
+          return (
+            <CinematicScroll
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
               showReplay={!hasResponded}

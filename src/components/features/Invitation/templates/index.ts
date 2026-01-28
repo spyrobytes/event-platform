@@ -1,8 +1,8 @@
 export { EnvelopeReveal } from "./EnvelopeReveal";
 export { LayeredUnfold } from "./LayeredUnfold";
+export { CinematicScroll } from "./CinematicScroll";
 
 // Future templates will be exported here:
-// export { CinematicScroll } from "./CinematicScroll";
 // export { TimeBasedReveal } from "./TimeBasedReveal";
 
 import type { ComponentType, ReactNode } from "react";
@@ -10,6 +10,7 @@ import type { InvitationState } from "@/hooks";
 import type { InvitationData } from "@/schemas/invitation";
 import { EnvelopeReveal } from "./EnvelopeReveal";
 import { LayeredUnfold } from "./LayeredUnfold";
+import { CinematicScroll } from "./CinematicScroll";
 
 /**
  * Common props shared by wrapper-style templates (children-based)
@@ -65,7 +66,7 @@ const templateRegistry: Record<
 > = {
   ENVELOPE_REVEAL: { component: EnvelopeReveal, type: "wrapper" },
   LAYERED_UNFOLD: { component: LayeredUnfold, type: "data-driven" },
-  CINEMATIC_SCROLL: { component: null, type: "data-driven" },
+  CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: null, type: "data-driven" },
 };
 
@@ -96,7 +97,7 @@ export const templateMetadata: Record<
   CINEMATIC_SCROLL: {
     name: "Cinematic Scroll",
     description: "Story-driven scroll experience",
-    available: false,
+    available: true,
     type: "data-driven",
   },
   TIME_BASED_REVEAL: {

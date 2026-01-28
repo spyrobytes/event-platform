@@ -40,7 +40,7 @@ type EventBasic = {
 const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: boolean }[] = [
   { value: "ENVELOPE_REVEAL", label: "Envelope Reveal", available: true },
   { value: "LAYERED_UNFOLD", label: "Layered Unfold", available: true },
-  { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll (Coming Soon)", available: false },
+  { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll", available: true },
   { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal (Coming Soon)", available: false },
 ];
 

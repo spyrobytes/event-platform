@@ -10,6 +10,7 @@ import {
   InvitationCard,
   EnvelopeReveal,
   LayeredUnfold,
+  CinematicScroll,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -168,6 +169,8 @@ export default function InvitationPreviewPage() {
       switch (templateId) {
         case "LAYERED_UNFOLD":
           return <LayeredUnfold data={invitationData} showReplay={true} />;
+        case "CINEMATIC_SCROLL":
+          return <CinematicScroll data={invitationData} showReplay={true} />;
         default:
           return (
             <EnvelopeReveal showReplay={true}>
