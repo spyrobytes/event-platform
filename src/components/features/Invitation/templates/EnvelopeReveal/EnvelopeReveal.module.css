@@ -644,9 +644,9 @@
   padding: 0.75rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--inv-text-secondary, rgba(100, 90, 80, 0.9));
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--inv-text-primary, #2C2C2C);
+  background: var(--inv-card-bg, rgba(255, 255, 255, 0.9));
+  border: 1px solid var(--inv-border, rgba(0, 0, 0, 0.08));
   border-radius: 9999px;
   cursor: pointer;
   opacity: 0;
@@ -657,11 +657,12 @@
     background var(--env-dur-fast) var(--env-ease-out),
     border-color var(--env-dur-fast) var(--env-ease-out);
   backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .closeButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(0, 0, 0, 0.12);
+  filter: brightness(1.05);
+  border-color: var(--inv-accent, rgba(0, 0, 0, 0.12));
 }
 
 .closeButton:active:not(:disabled) {
@@ -695,17 +696,6 @@
   transition-delay: var(--env-dur-slow);
 }
 
-/* Navy theme close button adjustment */
-.themeNavy .closeButton {
-  color: rgba(200, 210, 230, 0.9);
-  background: rgba(40, 50, 70, 0.8);
-  border-color: rgba(100, 120, 160, 0.3);
-}
-
-.themeNavy .closeButton:hover:not(:disabled) {
-  background: rgba(50, 60, 80, 0.95);
-  border-color: rgba(100, 120, 160, 0.5);
-}
 
 /* =============================================================================
    MOBILE TOUCH FEEDBACK
