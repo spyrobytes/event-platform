@@ -13,7 +13,7 @@ The Event Platform is a **production-ready MVP** for creating, discovering, and 
 |--------|--------|
 | Build | Passes |
 | TypeScript | Strict mode, 0 errors |
-| Tests | 97 passing (84% coverage) |
+| Tests | 146 passing |
 | API Endpoints | 19 implemented |
 | Components | 75+ React components |
 | Templates | 3 event page templates + 5 wedding variants + 4 invitation templates |
@@ -313,7 +313,7 @@ public/
 └── brand/         # Logo assets
 
 prisma/            # Schema + migrations
-tests/             # Unit (97) + E2E
+tests/             # Unit (146) + E2E
 docs/              # 8+ documentation files
 ```
 
