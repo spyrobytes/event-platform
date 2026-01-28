@@ -35,7 +35,7 @@ test.describe("Authentication", () => {
 
       // Verify form elements
       await expect(page.getByLabel("Email")).toBeVisible();
-      await expect(page.getByLabel("Password")).toBeVisible();
+      await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
       await expect(page.getByRole("button", { name: "Sign In" })).toBeVisible();
 
       // Verify signup link
@@ -48,7 +48,7 @@ test.describe("Authentication", () => {
 
       // Fill in invalid credentials
       await page.getByLabel("Email").fill("nonexistent@test.local");
-      await page.getByLabel("Password").fill("wrongpassword");
+      await page.getByLabel("Password", { exact: true }).fill("wrongpassword");
 
       // Submit the form
       await page.getByRole("button", { name: "Sign In" }).click();
@@ -68,7 +68,7 @@ test.describe("Authentication", () => {
 
       // Fill in valid credentials
       await page.getByLabel("Email").fill(testEmail);
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
 
       // Submit the form
       await page.getByRole("button", { name: "Sign In" }).click();
@@ -89,7 +89,7 @@ test.describe("Authentication", () => {
       // First, login
       await page.goto("/login");
       await page.getByLabel("Email").fill(testEmail);
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
       await page.getByRole("button", { name: "Sign In" }).click();
       await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
 
@@ -118,7 +118,7 @@ test.describe("Authentication", () => {
       await page.goto("/login");
 
       await page.getByLabel("Email").fill(testEmail);
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
 
       // Click and immediately check for loading state
       await page.getByRole("button", { name: "Sign In" }).click();
@@ -139,7 +139,7 @@ test.describe("Authentication", () => {
       const emailInput = page.getByLabel("Email");
       await expect(emailInput).toHaveAttribute("required");
 
-      const passwordInput = page.getByLabel("Password");
+      const passwordInput = page.getByLabel("Password", { exact: true });
       await expect(passwordInput).toHaveAttribute("required");
     });
   });
@@ -154,7 +154,7 @@ test.describe("Authentication", () => {
 
       // Verify form elements
       await expect(page.getByLabel("Email")).toBeVisible();
-      await expect(page.getByLabel("Password")).toBeVisible();
+      await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
       await expect(page.getByLabel("Confirm Password")).toBeVisible();
       await expect(page.getByRole("button", { name: "Create Account" })).toBeVisible();
 
@@ -167,7 +167,7 @@ test.describe("Authentication", () => {
       await page.goto("/signup");
 
       await page.getByLabel("Email").fill(generateTestEmail("mismatch"));
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
       await page.getByLabel("Confirm Password").fill("differentpassword");
 
       await page.getByRole("button", { name: "Create Account" }).click();
@@ -180,7 +180,7 @@ test.describe("Authentication", () => {
       await page.goto("/signup");
 
       await page.getByLabel("Email").fill(generateTestEmail("short"));
-      await page.getByLabel("Password").fill("12345");
+      await page.getByLabel("Password", { exact: true }).fill("12345");
       await page.getByLabel("Confirm Password").fill("12345");
 
       await page.getByRole("button", { name: "Create Account" }).click();
@@ -195,7 +195,7 @@ test.describe("Authentication", () => {
       await page.goto("/signup");
 
       await page.getByLabel("Email").fill(testEmail);
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
       await page.getByLabel("Confirm Password").fill(TEST_PASSWORD);
 
       await page.getByRole("button", { name: "Create Account" }).click();
@@ -216,7 +216,7 @@ test.describe("Authentication", () => {
       await page.goto("/signup");
 
       await page.getByLabel("Email").fill(testEmail);
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
       await page.getByLabel("Confirm Password").fill(TEST_PASSWORD);
 
       await page.getByRole("button", { name: "Create Account" }).click();
@@ -259,7 +259,7 @@ test.describe("Authentication", () => {
       // Login first
       await page.goto("/login");
       await page.getByLabel("Email").fill(testEmail);
-      await page.getByLabel("Password").fill(TEST_PASSWORD);
+      await page.getByLabel("Password", { exact: true }).fill(TEST_PASSWORD);
       await page.getByRole("button", { name: "Sign In" }).click();
 
       await expect(page).toHaveURL("/dashboard", { timeout: 10000 });
