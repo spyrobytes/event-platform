@@ -99,6 +99,11 @@ model Event {
   coverImageUrl String? @map("cover_image_url")
   maxAttendees  Int?    @map("max_attendees")
 
+  // RSVP settings
+  rsvpDeadline    DateTime? @map("rsvp_deadline")
+  reminderDays    Int?      @map("reminder_days")      // Days after invite to remind
+  reminderEnabled Boolean   @default(false) @map("reminder_enabled")
+
   // Custom page configuration
   templateId    String? @map("template_id")
   themePreset   String? @map("theme_preset")
@@ -247,6 +252,7 @@ enum EmailTemplate {
   UPDATE
   CANCELLATION
   VERIFICATION
+  NO_RESPONSE_REMINDER
 }
 
 enum EmailStatus {

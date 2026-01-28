@@ -4,8 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { InviteForm } from "./InviteForm";
 import { InviteTable } from "./InviteTable";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CreateInviteInput } from "@/schemas/invite";
+
+const EXPORT_FILTERS = [
+  { value: "all", label: "All Invites" },
+  { value: "attending", label: "Attending" },
+  { value: "not_attending", label: "Not Attending" },
+  { value: "pending", label: "Pending Response" },
+  { value: "responded", label: "All Responded" },
+] as const;
 
 type EmailStats = {
   total: number;
@@ -51,6 +60,8 @@ export function InviteManager({ eventId }: InviteManagerProps) {
   const [error, setError] = useState<string | null>(null);
   const [emailStats, setEmailStats] = useState<EmailStats | null>(null);
   const [sendEmails, setSendEmails] = useState(true);
+  const [exportFilter, setExportFilter] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchInvites = useCallback(async () => {
     try {
@@ -156,6 +167,45 @@ export function InviteManager({ eventId }: InviteManagerProps) {
       alert("Link copied to clipboard!");
     } else {
       alert("Link not available. The invite link was only shown when created.");
+    }
+  };
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `/api/events/${eventId}/invites/export?filter=${exportFilter}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to export invites");
+      }
+
+      // Get the filename from Content-Disposition header or use a default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `invites_${exportFilter}.csv`;
+
+      // Create blob and trigger download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export invites");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -290,8 +340,29 @@ export function InviteManager({ eventId }: InviteManagerProps) {
 
       {/* Invite List */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Invites</CardTitle>
+          <div className="flex items-center gap-2">
+            <select
+              value={exportFilter}
+              onChange={(e) => setExportFilter(e.target.value)}
+              className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            >
+              {EXPORT_FILTERS.map((filter) => (
+                <option key={filter.value} value={filter.value}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              disabled={isExporting || invites.length === 0}
+            >
+              {isExporting ? "Exporting..." : "Export CSV"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (

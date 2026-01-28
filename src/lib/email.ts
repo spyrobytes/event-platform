@@ -5,6 +5,7 @@ import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
 import { ReminderEmail } from "@/emails/ReminderEmail";
 import { VerificationEmail } from "@/emails/VerificationEmail";
+import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration (production)
@@ -162,6 +163,18 @@ type VerificationEmailPayload = {
   expiresInHours: number;
 };
 
+type NoResponseReminderEmailPayload = {
+  guestName?: string;
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventLocation?: string;
+  hostName: string;
+  rsvpUrl: string;
+  rsvpDeadline?: string;
+  reminderNumber: number;
+};
+
 /**
  * Queue an invite email for sending
  */
@@ -262,6 +275,30 @@ export async function queueVerificationEmail(
 }
 
 /**
+ * Queue a no-response reminder email for sending
+ */
+export async function queueNoResponseReminderEmail(
+  inviteId: string,
+  toEmail: string,
+  payload: NoResponseReminderEmailPayload
+): Promise<string> {
+  const subject = `Reminder: Please RSVP for ${payload.eventTitle}`;
+
+  const emailRecord = await db.emailOutbox.create({
+    data: {
+      inviteId,
+      template: "NO_RESPONSE_REMINDER",
+      toEmail,
+      subject,
+      payload: payload as Prisma.InputJsonValue,
+      status: "QUEUED",
+    },
+  });
+
+  return emailRecord.id;
+}
+
+/**
  * Process and send a queued email
  */
 export async function processEmail(emailId: string): Promise<void> {
@@ -295,6 +332,9 @@ export async function processEmail(emailId: string): Promise<void> {
         break;
       case "VERIFICATION":
         html = await render(VerificationEmail(payload as unknown as VerificationEmailPayload));
+        break;
+      case "NO_RESPONSE_REMINDER":
+        html = await render(NoResponseReminderEmail(payload as unknown as NoResponseReminderEmailPayload));
         break;
       default:
         throw new Error(`Unknown template: ${email.template}`);

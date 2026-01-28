@@ -3,6 +3,7 @@ export { EventList } from "./EventList";
 export { EventFilters } from "./EventFilters";
 export { InviteManager, InviteForm, InviteTable } from "./InviteManager";
 export { RSVPForm } from "./RSVPForm";
+export { RSVPDeadlineStatus, RSVPDeadlineInfo } from "./RSVPDeadline";
 export {
   InvitationShell,
   InvitationCard,

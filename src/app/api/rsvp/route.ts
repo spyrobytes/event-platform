@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
               title: true,
               status: true,
               maxAttendees: true,
+              rsvpDeadline: true,
               _count: {
                 select: {
                   rsvps: { where: { response: "YES" } },
@@ -58,6 +59,11 @@ export async function POST(request: NextRequest) {
       // Check if event is valid
       if (invite.event.status === "CANCELLED") {
         throw new ValidationError("This event has been cancelled");
+      }
+
+      // Check if RSVP deadline has passed
+      if (invite.event.rsvpDeadline && new Date(invite.event.rsvpDeadline) < new Date()) {
+        throw new ValidationError("The RSVP deadline for this event has passed");
       }
 
       // Validate guest count against plus ones allowed
@@ -184,6 +190,7 @@ export async function POST(request: NextRequest) {
           status: true,
           visibility: true,
           maxAttendees: true,
+          rsvpDeadline: true,
           _count: {
             select: {
               rsvps: { where: { response: "YES" } },
@@ -203,6 +210,11 @@ export async function POST(request: NextRequest) {
 
       if (event.status !== "PUBLISHED") {
         throw new ValidationError("This event is not accepting RSVPs");
+      }
+
+      // Check if RSVP deadline has passed
+      if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
+        throw new ValidationError("The RSVP deadline for this event has passed");
       }
 
       // Check capacity

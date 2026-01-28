@@ -74,6 +74,9 @@ export function EventForm({
       maxAttendees: defaultValues?.maxAttendees,
       coverImageUrl: defaultValues?.coverImageUrl ?? "",
       templateId: defaultValues?.templateId ?? getDefaultTemplateId(),
+      rsvpDeadline: defaultValues?.rsvpDeadline,
+      reminderDays: defaultValues?.reminderDays,
+      reminderEnabled: defaultValues?.reminderEnabled ?? false,
       ...defaultValues,
     },
   });
@@ -81,6 +84,7 @@ export function EventForm({
   const visibility = watch("visibility");
   const timezone = watch("timezone");
   const templateId = watch("templateId");
+  const reminderEnabled = watch("reminderEnabled");
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
@@ -321,6 +325,77 @@ export function EventForm({
             />
             {errors.maxAttendees && (
               <p className="text-sm text-destructive">{errors.maxAttendees.message}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>RSVP Settings</CardTitle>
+          <CardDescription>
+            Set a deadline for RSVPs and configure automatic reminders
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="rsvpDeadline">RSVP Deadline</Label>
+            <Input
+              id="rsvpDeadline"
+              type="datetime-local"
+              defaultValue={formatDateTimeLocal(defaultValues?.rsvpDeadline)}
+              {...register("rsvpDeadline")}
+              aria-invalid={!!errors.rsvpDeadline}
+            />
+            <p className="text-sm text-muted-foreground">
+              After this date, guests will not be able to RSVP
+            </p>
+            {errors.rsvpDeadline && (
+              <p className="text-sm text-destructive">{errors.rsvpDeadline.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="reminderEnabled" className="text-base">
+                  Automatic Reminders
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Send follow-up emails to guests who haven&apos;t responded
+                </p>
+              </div>
+              <input
+                id="reminderEnabled"
+                type="checkbox"
+                className="h-5 w-5 rounded border-border"
+                {...register("reminderEnabled")}
+              />
+            </div>
+
+            {reminderEnabled && (
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="reminderDays">Send reminder every</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="reminderDays"
+                    type="number"
+                    min={1}
+                    max={30}
+                    className="w-24"
+                    placeholder="7"
+                    {...register("reminderDays", { valueAsNumber: true })}
+                    aria-invalid={!!errors.reminderDays}
+                  />
+                  <span className="text-sm text-muted-foreground">days after invite is sent</span>
+                </div>
+                {errors.reminderDays && (
+                  <p className="text-sm text-destructive">{errors.reminderDays.message}</p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Reminders will stop when the guest responds or the event/deadline passes
+                </p>
+              </div>
             )}
           </div>
         </CardContent>

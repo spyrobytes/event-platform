@@ -33,6 +33,10 @@ export const createEventSchema = z.object({
   maxAttendees: z.number().int().positive().max(10000).optional(),
   coverImageUrl: z.string().url().optional(),
   templateId: z.enum(VALID_TEMPLATE_IDS).optional(),
+  // RSVP settings
+  rsvpDeadline: z.coerce.date().optional(),
+  reminderDays: z.number().int().min(1).max(30).optional(),
+  reminderEnabled: z.boolean().default(false),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -64,6 +68,10 @@ export const updateEventSchema = z.object({
   maxAttendees: z.number().int().positive().max(10000).nullable().optional(),
   coverImageUrl: z.string().url().nullable().optional(),
   templateId: z.enum(VALID_TEMPLATE_IDS).nullable().optional(),
+  // RSVP settings
+  rsvpDeadline: z.coerce.date().nullable().optional(),
+  reminderDays: z.number().int().min(1).max(30).nullable().optional(),
+  reminderEnabled: z.boolean().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

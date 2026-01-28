@@ -33,6 +33,7 @@ async function getInviteByToken(token: string) {
           country: true,
           coverImageUrl: true,
           status: true,
+          rsvpDeadline: true,
         },
       },
       rsvp: {
@@ -130,6 +131,36 @@ export default async function RSVPPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold">Invitation Expired</h1>
           <p className="text-muted-foreground">
             This invitation has expired and is no longer valid.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if RSVP deadline has passed
+  if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
+    return (
+      <div className="container mx-auto max-w-2xl px-4 py-16">
+        <div className="text-center space-y-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface-3">
+            <svg
+              className="h-8 w-8 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold">RSVP Period Closed</h1>
+          <p className="text-muted-foreground">
+            The RSVP deadline for this event has passed. If you have questions,
+            please contact the event organizer.
           </p>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsSnapshot, RSVPFunnel, VelocityChart } from "@/components/features/Analytics";
+import { RSVPDeadlineInfo } from "@/components/features";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -29,6 +30,9 @@ type EventDetail = {
   status: EventStatus;
   visibility: EventVisibility;
   maxAttendees?: number | null;
+  rsvpDeadline?: string | null;
+  reminderEnabled?: boolean;
+  reminderDays?: number | null;
   creator: {
     id: string;
     name?: string | null;
@@ -282,6 +286,29 @@ export default function EventDetailPage() {
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground">Capacity</h4>
                 <p className="mt-1">{event.maxAttendees} attendees max</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>RSVP Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RSVPDeadlineInfo deadline={event.rsvpDeadline} />
+            {event.reminderEnabled && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Auto Reminders</h4>
+                <p className="mt-1 text-sm">
+                  Enabled - every {event.reminderDays} day{event.reminderDays !== 1 ? "s" : ""} for non-responders
+                </p>
+              </div>
+            )}
+            {!event.reminderEnabled && (
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Auto Reminders</h4>
+                <p className="mt-1 text-sm text-muted-foreground">Disabled</p>
               </div>
             )}
           </CardContent>
