@@ -6,6 +6,9 @@ import {
   InvitationShell,
   InvitationCard,
   EnvelopeReveal,
+  LayeredUnfold,
+  templateMetadata,
+  type TemplateId,
 } from "@/components/features/Invitation";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -195,19 +198,48 @@ export default async function InvitationPage({ params }: PageProps) {
     MAYBE: "Maybe",
   };
 
-  return (
-    <InvitationShell
-      themeId={themeId}
-      typographyPair={typographyPair}
-      textDirection={textDirection}
-    >
-      <PageViewTracker eventId={event.id} source="invitation_page" />
+  // Get template configuration
+  const templateId = (invitationConfig?.template as TemplateId) || "ENVELOPE_REVEAL";
+  const templateMeta = templateMetadata[templateId];
+  const isDataDriven = templateMeta?.type === "data-driven";
 
-      {/*
-        TODO: When more templates are added, create an InvitationTemplateRenderer
-        client component that handles template selection dynamically.
-        For now, we only support EnvelopeReveal.
-      */}
+  // Render the appropriate template
+  const renderTemplate = () => {
+    if (isDataDriven) {
+      // Data-driven templates render their own content
+      switch (templateId) {
+        case "LAYERED_UNFOLD":
+          return (
+            <LayeredUnfold
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              showReplay={!hasResponded}
+            />
+          );
+        // Future data-driven templates will be added here
+        default:
+          // Fall back to EnvelopeReveal for unimplemented templates
+          return (
+            <EnvelopeReveal
+              initialState={hasResponded ? "open" : undefined}
+              showReplay={!hasResponded}
+            >
+              <InvitationCard
+                data={invitationData}
+                rsvpButtonText={
+                  hasResponded
+                    ? `Responded: ${responseLabels[invite.rsvp!.response]}`
+                    : "RSVP"
+                }
+                showRsvpButton={true}
+              />
+            </EnvelopeReveal>
+          );
+      }
+    }
+
+    // Wrapper-style templates (EnvelopeReveal and future wrapper templates)
+    return (
       <EnvelopeReveal
         initialState={hasResponded ? "open" : undefined}
         showReplay={!hasResponded}
@@ -222,6 +254,18 @@ export default async function InvitationPage({ params }: PageProps) {
           showRsvpButton={true}
         />
       </EnvelopeReveal>
+    );
+  };
+
+  return (
+    <InvitationShell
+      themeId={themeId}
+      typographyPair={typographyPair}
+      textDirection={textDirection}
+    >
+      <PageViewTracker eventId={event.id} source="invitation_page" />
+
+      {renderTemplate()}
 
       {/* Response status banner (when already responded) */}
       {hasResponded && (

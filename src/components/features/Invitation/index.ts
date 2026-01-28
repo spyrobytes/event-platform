@@ -14,10 +14,15 @@ export { TypographyPicker } from "./TypographyPicker";
 // Templates
 export {
   EnvelopeReveal,
+  LayeredUnfold,
   getTemplateComponent,
+  getDataDrivenTemplateComponent,
+  getTemplateType,
   isTemplateAvailable,
   getAvailableTemplates,
   templateMetadata,
   type TemplateId,
+  type TemplateType,
   type InvitationTemplateProps,
+  type DataDrivenTemplateProps,
 } from "./templates";

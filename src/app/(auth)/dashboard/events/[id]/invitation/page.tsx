@@ -37,11 +37,11 @@ type EventBasic = {
   title: string;
 };
 
-const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string }[] = [
-  { value: "ENVELOPE_REVEAL", label: "Envelope Reveal" },
-  { value: "LAYERED_UNFOLD", label: "Layered Unfold (Coming Soon)" },
-  { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll (Coming Soon)" },
-  { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal (Coming Soon)" },
+const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: boolean }[] = [
+  { value: "ENVELOPE_REVEAL", label: "Envelope Reveal", available: true },
+  { value: "LAYERED_UNFOLD", label: "Layered Unfold", available: true },
+  { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll (Coming Soon)", available: false },
+  { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal (Coming Soon)", available: false },
 ];
 
 const LOCALE_OPTIONS = [
@@ -330,7 +330,7 @@ export default function InvitationConfigPage() {
                   <option
                     key={opt.value}
                     value={opt.value}
-                    disabled={opt.value !== "ENVELOPE_REVEAL"}
+                    disabled={!opt.available}
                   >
                     {opt.label}
                   </option>

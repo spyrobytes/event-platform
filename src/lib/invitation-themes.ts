@@ -9,10 +9,14 @@
 // THEME DEFINITIONS
 // =============================================================================
 
+// Subtle noise pattern as inline SVG (no external files needed)
+const PAPER_TEXTURE_LIGHT = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`;
+const PAPER_TEXTURE_DARK = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E")`;
+
 export const themes = {
   ivory: {
     "--inv-paper-bg": "#FFFFF8",
-    "--inv-paper-texture": "url(/textures/linen.png)",
+    "--inv-paper-texture": PAPER_TEXTURE_LIGHT,
     "--inv-text-primary": "#2C2C2C",
     "--inv-text-secondary": "#6B6B6B",
     "--inv-accent": "#D4AF37",
@@ -22,7 +26,7 @@ export const themes = {
   },
   blush: {
     "--inv-paper-bg": "#FFF5F5",
-    "--inv-paper-texture": "url(/textures/cotton.png)",
+    "--inv-paper-texture": PAPER_TEXTURE_LIGHT,
     "--inv-text-primary": "#4A4A4A",
     "--inv-text-secondary": "#8A8A8A",
     "--inv-accent": "#D4A5A5",
@@ -32,7 +36,7 @@ export const themes = {
   },
   sage: {
     "--inv-paper-bg": "#F5F8F5",
-    "--inv-paper-texture": "url(/textures/pearl.png)",
+    "--inv-paper-texture": PAPER_TEXTURE_LIGHT,
     "--inv-text-primary": "#3A4A3A",
     "--inv-text-secondary": "#6A7A6A",
     "--inv-accent": "#8B9B8B",
@@ -42,7 +46,7 @@ export const themes = {
   },
   midnight: {
     "--inv-paper-bg": "#1A1A2E",
-    "--inv-paper-texture": "url(/textures/linen-dark.png)",
+    "--inv-paper-texture": PAPER_TEXTURE_DARK,
     "--inv-text-primary": "#EEEEF0",
     "--inv-text-secondary": "#B8B8C0",
     "--inv-accent": "#FFD700",
@@ -52,7 +56,7 @@ export const themes = {
   },
   champagne: {
     "--inv-paper-bg": "#F7F3E9",
-    "--inv-paper-texture": "url(/textures/kraft.png)",
+    "--inv-paper-texture": PAPER_TEXTURE_LIGHT,
     "--inv-text-primary": "#4A3F35",
     "--inv-text-secondary": "#7A6F65",
     "--inv-accent": "#C9A961",

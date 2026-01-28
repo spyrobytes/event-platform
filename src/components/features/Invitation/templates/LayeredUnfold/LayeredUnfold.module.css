@@ -1,0 +1,368 @@
+/* =============================================================================
+   LAYERED CARD UNFOLD ANIMATION
+   A modern, minimalist invitation reveal with stacked layers unfolding.
+
+   Animation sequence:
+   1. idle: Compact folded stack
+   2. unfolding: Layers unfold sequentially from top to bottom
+   3. open: All layers revealed, content visible
+   4. closing: Reverse sequence for replay
+   ============================================================================= */
+
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+}
+
+/* =============================================================================
+   STACK CONTAINER
+   ============================================================================= */
+
+.stack {
+  position: relative;
+  width: min(90vw, 400px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  perspective: 1000px;
+}
+
+/* =============================================================================
+   LAYER BASE STYLES
+   Each layer is a card that unfolds from the one above
+   ============================================================================= */
+
+.layer {
+  position: relative;
+  background: var(--inv-card-bg);
+  border: 1px solid var(--inv-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transform-origin: top center;
+  cursor: pointer;
+  transition:
+    transform var(--inv-dur-4) var(--inv-ease-ceremony),
+    box-shadow var(--inv-dur-3) var(--inv-ease-out),
+    margin-top var(--inv-dur-3) var(--inv-ease-out);
+}
+
+.layer:focus-visible {
+  outline: 2px solid var(--inv-accent);
+  outline-offset: 2px;
+}
+
+/* Folded state - layers overlap with slight offset */
+.layer.folded {
+  transform: rotateX(-90deg) translateY(-10px);
+  box-shadow: none;
+  margin-top: -60%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* First layer is always visible in folded state */
+.layer:first-child.folded {
+  transform: rotateX(0deg) translateY(0);
+  margin-top: 0;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Unfolded state */
+.layer.unfolded {
+  transform: rotateX(0deg) translateY(0);
+  box-shadow: var(--inv-shadow-soft);
+  margin-top: 1rem;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* First layer doesn't need top margin */
+.layer:first-child.unfolded {
+  margin-top: 0;
+}
+
+/* Hover effect on clickable layers */
+.layer:not(.unfolded):hover:not(:disabled) {
+  box-shadow: var(--inv-shadow-deep);
+}
+
+/* =============================================================================
+   LAYER CONTENT
+   ============================================================================= */
+
+.layerContent {
+  padding: 1.5rem 2rem;
+  text-align: center;
+}
+
+/* Names layer - largest text */
+.layerNames .layerContent {
+  padding: 2rem 2rem 1.5rem;
+}
+
+.coupleNames {
+  font-family: var(--inv-font-script);
+  font-size: clamp(2rem, 6vw, 3rem);
+  color: var(--inv-text-primary);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.eventTitle {
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-top: 0.75rem;
+}
+
+/* Date layer */
+.layerDate .layerContent {
+  padding: 1.5rem 2rem;
+}
+
+.dateHeading {
+  font-family: var(--inv-font-body);
+  font-size: 0.75rem;
+  color: var(--inv-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.5rem;
+}
+
+.dateValue {
+  font-family: var(--inv-font-heading);
+  font-size: 1.5rem;
+  color: var(--inv-text-primary);
+  margin: 0;
+}
+
+.timeValue {
+  font-family: var(--inv-font-body);
+  font-size: 1rem;
+  color: var(--inv-text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Venue layer */
+.layerVenue .layerContent {
+  padding: 1.5rem 2rem;
+}
+
+.venueHeading {
+  font-family: var(--inv-font-body);
+  font-size: 0.75rem;
+  color: var(--inv-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.5rem;
+}
+
+.venueName {
+  font-family: var(--inv-font-heading);
+  font-size: 1.25rem;
+  color: var(--inv-text-primary);
+  margin: 0;
+}
+
+.venueAddress {
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  margin-top: 0.25rem;
+  line-height: 1.5;
+}
+
+/* RSVP layer */
+.layerRsvp .layerContent {
+  padding: 2rem;
+}
+
+.rsvpText {
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  margin: 0 0 1rem;
+}
+
+.rsvpButton {
+  display: inline-block;
+  padding: 0.875rem 2rem;
+  background: var(--inv-accent);
+  color: var(--inv-card-bg);
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform var(--inv-dur-2) var(--inv-ease-out),
+    box-shadow var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.rsvpButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.rsvpButton:focus-visible {
+  outline: 2px solid var(--inv-accent);
+  outline-offset: 4px;
+}
+
+/* =============================================================================
+   GREETING (optional - shown on names layer)
+   ============================================================================= */
+
+.greeting {
+  font-family: var(--inv-font-body);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--inv-text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* =============================================================================
+   DECORATIVE ELEMENTS
+   ============================================================================= */
+
+.divider {
+  width: 3rem;
+  height: 2px;
+  background: var(--inv-accent);
+  margin: 1rem auto 0;
+}
+
+/* =============================================================================
+   HINT TEXT
+   ============================================================================= */
+
+.hint {
+  position: absolute;
+  top: calc(100% + 1.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  opacity: 0.7;
+  white-space: nowrap;
+  transition: opacity var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.hint.hidden {
+  opacity: 0;
+}
+
+/* =============================================================================
+   UNFOLD ALL BUTTON
+   ============================================================================= */
+
+.unfoldAllButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--inv-accent);
+  color: var(--inv-card-bg);
+  font-family: var(--inv-font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition:
+    opacity var(--inv-dur-2) var(--inv-ease-out),
+    transform var(--inv-dur-2) var(--inv-ease-out);
+  z-index: 10;
+}
+
+.unfoldAllButton.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.unfoldAllButton:hover {
+  filter: brightness(1.1);
+}
+
+.unfoldAllButton:focus-visible {
+  outline: 2px solid var(--inv-card-bg);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   REPLAY BUTTON CONTAINER
+   ============================================================================= */
+
+.replayContainer {
+  margin-top: 2rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity var(--inv-dur-2) var(--inv-ease-out),
+    transform var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.replayContainer.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+.reducedMotion .layer {
+  transition: none !important;
+}
+
+.reducedMotion .layer.folded {
+  transform: none;
+  margin-top: 1rem;
+  opacity: 1;
+}
+
+.reducedMotion .layer:first-child.folded {
+  margin-top: 0;
+}
+
+/* =============================================================================
+   MOBILE OPTIMIZATIONS
+   ============================================================================= */
+
+@media (max-width: 480px) {
+  .stack {
+    width: 95vw;
+  }
+
+  .layerContent {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .coupleNames {
+    font-size: clamp(1.75rem, 8vw, 2.5rem);
+  }
+}
+
+/* Touch feedback */
+@media (hover: none) {
+  .layer:active:not(.unfolded) {
+    transform: scale(0.98);
+  }
+}
