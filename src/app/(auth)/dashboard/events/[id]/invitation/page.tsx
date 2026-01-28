@@ -41,7 +41,7 @@ const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: b
   { value: "ENVELOPE_REVEAL", label: "Envelope Reveal", available: true },
   { value: "LAYERED_UNFOLD", label: "Layered Unfold", available: true },
   { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll", available: true },
-  { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal (Coming Soon)", available: false },
+  { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal", available: true },
 ];
 
 const LOCALE_OPTIONS = [

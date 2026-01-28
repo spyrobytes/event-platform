@@ -1,0 +1,437 @@
+/* =============================================================================
+   TIME-BASED REVEAL INVITATION
+   A dramatic auto-playing presentation where content reveals on a timeline.
+
+   Animation sequence:
+   1. Greeting fades in
+   2. Couple names reveal with flourish
+   3. "Invite you to celebrate" appears
+   4. Date animates in
+   5. Venue details reveal
+   6. Custom message (if present)
+   7. RSVP call-to-action
+   ============================================================================= */
+
+.root {
+  position: relative;
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--inv-paper-bg);
+  background-image: var(--inv-paper-texture);
+  overflow: hidden;
+}
+
+/* =============================================================================
+   PROGRESS BAR
+   ============================================================================= */
+
+.progressContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--inv-border);
+  z-index: 100;
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--inv-accent);
+  transition: width 50ms linear;
+}
+
+/* =============================================================================
+   STAGE - Main content area
+   ============================================================================= */
+
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  min-height: 100dvh;
+  text-align: center;
+}
+
+/* =============================================================================
+   SCENE BASE STYLES
+   Each scene is a content block that animates in
+   ============================================================================= */
+
+.scene {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity var(--inv-dur-4) var(--inv-ease-ceremony),
+    transform var(--inv-dur-4) var(--inv-ease-ceremony);
+  margin: 0.5rem 0;
+}
+
+.scene.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =============================================================================
+   GREETING SCENE
+   ============================================================================= */
+
+.greetingScene {
+  transition-delay: 0ms;
+}
+
+.greeting {
+  font-family: var(--inv-font-body);
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--inv-text-secondary);
+  margin: 0;
+}
+
+/* =============================================================================
+   NAMES SCENE
+   ============================================================================= */
+
+.namesScene {
+  transition-delay: 100ms;
+}
+
+.coupleNames {
+  font-family: var(--inv-font-script);
+  font-size: clamp(2.5rem, 10vw, 5rem);
+  color: var(--inv-text-primary);
+  line-height: 1.1;
+  margin: 0;
+  animation: none;
+}
+
+.namesScene.visible .coupleNames {
+  animation: nameReveal 1.5s var(--inv-ease-ceremony) forwards;
+}
+
+@keyframes nameReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+    letter-spacing: 0.1em;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    letter-spacing: normal;
+  }
+}
+
+/* =============================================================================
+   INVITE SCENE
+   ============================================================================= */
+
+.inviteScene {
+  transition-delay: 200ms;
+}
+
+.inviteText {
+  font-family: var(--inv-font-body);
+  font-size: 1rem;
+  color: var(--inv-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin: 0;
+}
+
+.divider {
+  width: 0;
+  height: 2px;
+  background: var(--inv-accent);
+  margin: 1.5rem auto;
+  transition: width var(--inv-dur-4) var(--inv-ease-ceremony);
+}
+
+.inviteScene.visible .divider {
+  width: 4rem;
+}
+
+/* =============================================================================
+   DATE SCENE
+   ============================================================================= */
+
+.dateScene {
+  transition-delay: 300ms;
+}
+
+.dateValue {
+  font-family: var(--inv-font-heading);
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  color: var(--inv-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.timeValue {
+  font-family: var(--inv-font-body);
+  font-size: 1.25rem;
+  color: var(--inv-text-secondary);
+  margin-top: 0.5rem;
+}
+
+/* =============================================================================
+   VENUE SCENE
+   ============================================================================= */
+
+.venueScene {
+  transition-delay: 400ms;
+  margin-top: 1.5rem;
+}
+
+.venueName {
+  font-family: var(--inv-font-heading);
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  color: var(--inv-text-primary);
+  margin: 0;
+}
+
+.venueAddress {
+  font-family: var(--inv-font-body);
+  font-size: 1rem;
+  color: var(--inv-text-secondary);
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
+.dressCode {
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--inv-text-secondary);
+  margin-top: 1rem;
+}
+
+/* =============================================================================
+   MESSAGE SCENE
+   ============================================================================= */
+
+.messageScene {
+  transition-delay: 500ms;
+  margin-top: 2rem;
+  max-width: 500px;
+}
+
+.customMessage {
+  font-family: var(--inv-font-body);
+  font-size: 1.125rem;
+  font-style: italic;
+  color: var(--inv-text-primary);
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* =============================================================================
+   RSVP SCENE
+   ============================================================================= */
+
+.rsvpScene {
+  transition-delay: 600ms;
+  margin-top: 2.5rem;
+}
+
+.rsvpButton {
+  display: inline-block;
+  padding: 1rem 3rem;
+  background: var(--inv-accent);
+  color: var(--inv-card-bg);
+  font-family: var(--inv-font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-decoration: none;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--inv-shadow-soft);
+  transform: scale(1);
+  transition:
+    transform var(--inv-dur-2) var(--inv-ease-out),
+    box-shadow var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.rsvpScene.visible .rsvpButton {
+  animation: rsvpPulse 2s var(--inv-ease-ceremony) 0.5s;
+}
+
+@keyframes rsvpPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.rsvpButton:hover {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: var(--inv-shadow-deep);
+}
+
+.rsvpButton:focus-visible {
+  outline: 2px solid var(--inv-accent);
+  outline-offset: 4px;
+}
+
+/* =============================================================================
+   PLAYBACK CONTROLS
+   ============================================================================= */
+
+.controls {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 100;
+}
+
+.controlButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--inv-card-bg);
+  border: 1px solid var(--inv-border);
+  box-shadow: var(--inv-shadow-soft);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform var(--inv-dur-2) var(--inv-ease-out),
+    box-shadow var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.controlButton:hover {
+  transform: scale(1.1);
+  box-shadow: var(--inv-shadow-deep);
+}
+
+.controlButton:focus-visible {
+  outline: 2px solid var(--inv-accent);
+  outline-offset: 2px;
+}
+
+.controlIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--inv-text-primary);
+}
+
+.skipButton {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--inv-border);
+  border-radius: 100px;
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  cursor: pointer;
+  transition:
+    color var(--inv-dur-2) var(--inv-ease-out),
+    border-color var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.skipButton:hover {
+  color: var(--inv-text-primary);
+  border-color: var(--inv-text-secondary);
+}
+
+.skipButton:focus-visible {
+  outline: 2px solid var(--inv-accent);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   REPLAY BUTTON CONTAINER
+   ============================================================================= */
+
+.replayContainer {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--inv-dur-3) var(--inv-ease-out);
+  z-index: 100;
+}
+
+.replayContainer.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+.reducedMotion .scene {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.reducedMotion .coupleNames {
+  animation: none;
+}
+
+.reducedMotion .divider {
+  width: 4rem;
+  transition: none;
+}
+
+.reducedMotion .rsvpButton {
+  animation: none;
+}
+
+.reducedMotion .progressContainer {
+  display: none;
+}
+
+/* =============================================================================
+   MOBILE OPTIMIZATIONS
+   ============================================================================= */
+
+@media (max-width: 640px) {
+  .stage {
+    padding: 3rem 1.5rem;
+  }
+
+  .controls {
+    bottom: 1.5rem;
+  }
+
+  .controlButton {
+    width: 44px;
+    height: 44px;
+  }
+
+  .rsvpButton {
+    padding: 0.875rem 2rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Ensure controls don't overlap content on short screens */
+@media (max-height: 600px) {
+  .stage {
+    padding-bottom: 6rem;
+  }
+}

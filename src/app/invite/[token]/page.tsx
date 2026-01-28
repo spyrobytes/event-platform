@@ -8,6 +8,7 @@ import {
   EnvelopeReveal,
   LayeredUnfold,
   CinematicScroll,
+  TimeBasedReveal,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -225,7 +226,15 @@ export default async function InvitationPage({ params }: PageProps) {
               showReplay={!hasResponded}
             />
           );
-        // Future data-driven templates will be added here
+        case "TIME_BASED_REVEAL":
+          return (
+            <TimeBasedReveal
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              autoPlay={!hasResponded}
+              showReplay={!hasResponded}
+            />
+          );
         default:
           // Fall back to EnvelopeReveal for unimplemented templates
           return (

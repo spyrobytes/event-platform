@@ -16,6 +16,7 @@ export {
   EnvelopeReveal,
   LayeredUnfold,
   CinematicScroll,
+  TimeBasedReveal,
   getTemplateComponent,
   getDataDrivenTemplateComponent,
   getTemplateType,

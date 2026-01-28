@@ -11,6 +11,7 @@ import {
   EnvelopeReveal,
   LayeredUnfold,
   CinematicScroll,
+  TimeBasedReveal,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -171,6 +172,8 @@ export default function InvitationPreviewPage() {
           return <LayeredUnfold data={invitationData} showReplay={true} />;
         case "CINEMATIC_SCROLL":
           return <CinematicScroll data={invitationData} showReplay={true} />;
+        case "TIME_BASED_REVEAL":
+          return <TimeBasedReveal data={invitationData} showReplay={true} />;
         default:
           return (
             <EnvelopeReveal showReplay={true}>
