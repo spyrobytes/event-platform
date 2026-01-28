@@ -113,12 +113,13 @@ model Event {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  creator      User          @relation(fields: [creatorId], references: [id])
-  invites      Invite[]
-  rsvps        RSVP[]
-  mediaAssets  MediaAsset[]
-  pageVersions EventPageVersion[]
+  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creator          User              @relation(fields: [creatorId], references: [id])
+  invites          Invite[]
+  rsvps            RSVP[]
+  mediaAssets      MediaAsset[]
+  pageVersions     EventPageVersion[]
+  invitationConfig InvitationConfig?
 
   @@index([city])
   @@index([startAt])
@@ -317,6 +318,49 @@ model EventPageVersion {
 
   @@index([eventId, createdAt(sort: Desc)])
   @@map("event_page_versions")
+}
+
+// =============================================================================
+// ELEGANT INVITATIONS
+// =============================================================================
+
+model InvitationConfig {
+  id      String @id @default(cuid())
+  eventId String @unique @map("event_id")
+
+  // Template and theme selection
+  template       InvitationTemplate @default(ENVELOPE_REVEAL)
+  themeId        String             @default("ivory") @map("theme_id")
+  typographyPair String             @default("classic") @map("typography_pair")
+
+  // Content overrides (optional, falls back to Event fields)
+  coupleDisplayName String? @map("couple_display_name") // Override event title for couple names
+  customMessage     String? @map("custom_message") // Personal message on invitation
+  dressCode         String? @map("dress_code") // e.g., "Black Tie", "Casual"
+  heroImageUrl      String? @map("hero_image_url") // Custom hero image for invitation
+
+  // Locale and direction
+  locale        String        @default("en-US")
+  textDirection TextDirection @default(LTR) @map("text_direction")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("invitation_configs")
+}
+
+enum InvitationTemplate {
+  ENVELOPE_REVEAL
+  LAYERED_UNFOLD
+  CINEMATIC_SCROLL
+  TIME_BASED_REVEAL
+}
+
+enum TextDirection {
+  LTR
+  RTL
 }
 
 // =============================================================================

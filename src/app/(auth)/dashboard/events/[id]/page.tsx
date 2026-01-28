@@ -231,6 +231,9 @@ export default function EventDetailPage() {
           <Link href={`/dashboard/events/${event.id}/page-preview`}>
             <Button variant="outline">Page</Button>
           </Link>
+          <Link href={`/dashboard/events/${event.id}/invitation`}>
+            <Button variant="outline">Invitation</Button>
+          </Link>
           <Link href={`/dashboard/events/${event.id}/invites`}>
             <Button variant="outline">Invites</Button>
           </Link>

@@ -29,3 +29,20 @@ export {
 
 // Scroll threshold detection
 export { useScrollThreshold } from "./use-scroll-threshold";
+
+// Invitation animation state
+export {
+  useInvitationState,
+  type InvitationState,
+  type InvitationEvent,
+  type UseInvitationStateReturn,
+} from "./use-invitation-state";
+
+// Reduced motion preference
+export {
+  useReducedMotion,
+  getReducedMotionPreference,
+} from "./use-reduced-motion";
+
+// Animation completion detection
+export { useAnimationComplete } from "./use-animation-complete";

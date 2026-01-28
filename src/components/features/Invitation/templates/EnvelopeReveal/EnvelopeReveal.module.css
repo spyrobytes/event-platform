@@ -1,0 +1,276 @@
+/* =============================================================================
+   ENVELOPE REVEAL ANIMATION
+   A premium invitation reveal experience mimicking physical envelope opening.
+
+   Animation sequence:
+   1. idle: Envelope rests centered
+   2. opening: Flap rotates up, card begins sliding out
+   3. open: Card fully revealed, flap behind card
+   4. closing: Reverse sequence for replay
+   ============================================================================= */
+
+.root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  perspective: 1200px;
+}
+
+/* =============================================================================
+   ENVELOPE CONTAINER
+   ============================================================================= */
+
+.envelope {
+  position: relative;
+  width: min(90vw, 380px);
+  aspect-ratio: 5 / 3;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transform-style: preserve-3d;
+  transition: transform var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.envelope:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+
+.envelope:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.envelope:focus-visible {
+  outline: 2px solid var(--inv-accent);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.envelope:disabled {
+  cursor: default;
+}
+
+/* =============================================================================
+   ENVELOPE LAYERS
+   Z-index stacking: back(1) < card(2) < flap(3) < front(4)
+   When open: back(1) < flap(2) < card(4) < front panel hidden
+   ============================================================================= */
+
+.back,
+.front,
+.flap {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  backface-visibility: hidden;
+}
+
+/* Back panel - base of envelope */
+.back {
+  z-index: 1;
+  background: var(--inv-envelope-color);
+  box-shadow: var(--inv-shadow-soft);
+}
+
+/* Decorative liner inside back */
+.back::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: linear-gradient(
+    135deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 70%
+  );
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Front panel - lower portion covering card */
+.front {
+  z-index: 4;
+  background: var(--inv-envelope-color);
+  clip-path: polygon(0 40%, 50% 70%, 100% 40%, 100% 100%, 0 100%);
+  transition: opacity var(--inv-dur-3) var(--inv-ease-out);
+}
+
+/* Shadow on front panel for depth */
+.front::before {
+  content: "";
+  position: absolute;
+  top: 35%;
+  left: 0;
+  right: 0;
+  height: 20%;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.08),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Flap - triangular top that opens */
+.flap {
+  z-index: 3;
+  background: var(--inv-envelope-color);
+  clip-path: polygon(0 0, 50% 40%, 100% 0);
+  transform-origin: top center;
+  transform: rotateX(0deg);
+  transition: transform var(--inv-dur-4) var(--inv-ease-ceremony);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Inner shadow on flap */
+.flap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  pointer-events: none;
+}
+
+/* =============================================================================
+   CARD
+   ============================================================================= */
+
+.cardContainer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(85vw, 360px);
+  transform: translate(-50%, -50%) translateY(20px);
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+  transition:
+    transform var(--inv-dur-4) var(--inv-ease-ceremony),
+    opacity var(--inv-dur-3) var(--inv-ease-out);
+}
+
+/* =============================================================================
+   OPENING STATE
+   ============================================================================= */
+
+.isOpening .flap,
+.isOpen .flap {
+  transform: rotateX(180deg);
+  z-index: 2;
+}
+
+.isOpening .front,
+.isOpen .front {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.isOpening .cardContainer,
+.isOpen .cardContainer {
+  transform: translate(-50%, -50%) translateY(-40px);
+  opacity: 1;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+/* =============================================================================
+   CLOSING STATE (reverse)
+   ============================================================================= */
+
+.isClosing .flap {
+  transform: rotateX(0deg);
+  z-index: 3;
+}
+
+.isClosing .front {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.isClosing .cardContainer {
+  transform: translate(-50%, -50%) translateY(20px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   Instant state changes without animation
+   ============================================================================= */
+
+.reducedMotion .envelope,
+.reducedMotion .flap,
+.reducedMotion .front,
+.reducedMotion .cardContainer {
+  transition: none !important;
+}
+
+/* =============================================================================
+   REPLAY BUTTON CONTAINER
+   ============================================================================= */
+
+.replayContainer {
+  margin-top: 2rem;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity var(--inv-dur-2) var(--inv-ease-out),
+    transform var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.isOpen .replayContainer {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: var(--inv-dur-3);
+}
+
+/* =============================================================================
+   HINT TEXT
+   ============================================================================= */
+
+.hint {
+  position: absolute;
+  bottom: -2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  opacity: 0.7;
+  transition: opacity var(--inv-dur-2) var(--inv-ease-out);
+}
+
+.isOpening .hint,
+.isOpen .hint {
+  opacity: 0;
+}
+
+/* =============================================================================
+   MOBILE TOUCH FEEDBACK
+   ============================================================================= */
+
+@media (hover: none) {
+  .envelope:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+}
+
+/* =============================================================================
+   ENSURE MINIMUM TOUCH TARGET
+   ============================================================================= */
+
+@media (max-width: 380px) {
+  .envelope {
+    width: 95vw;
+  }
+
+  .cardContainer {
+    width: 90vw;
+  }
+}

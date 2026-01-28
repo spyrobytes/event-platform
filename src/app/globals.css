@@ -134,6 +134,41 @@ body {
 }
 
 /* =============================================================================
+   INVITATION MOTION TOKENS
+   Used by elegant invitation templates (Envelope Reveal, etc.)
+   ============================================================================= */
+
+:root {
+  /* Duration tokens */
+  --inv-dur-1: 160ms;
+  --inv-dur-2: 240ms;
+  --inv-dur-3: 420ms;
+  --inv-dur-4: 700ms;
+
+  /* Easing tokens */
+  --inv-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --inv-ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --inv-ease-ceremony: cubic-bezier(0.2, 0.9, 0.2, 1);
+
+  /* Depth tokens */
+  --inv-shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --inv-shadow-deep: 0 18px 50px rgba(0, 0, 0, 0.18);
+
+  /* Paper texture opacity */
+  --inv-grain-opacity: 0.06;
+}
+
+/* Disable invitation animations for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --inv-dur-1: 0ms;
+    --inv-dur-2: 0ms;
+    --inv-dur-3: 0ms;
+    --inv-dur-4: 0ms;
+  }
+}
+
+/* =============================================================================
    ACCESSIBILITY
    ============================================================================= */
 

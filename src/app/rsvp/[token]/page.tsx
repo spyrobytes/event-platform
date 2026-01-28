@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { RSVPForm } from "@/components/features";
@@ -50,6 +50,17 @@ async function getInviteByToken(token: string) {
   return invite;
 }
 
+/**
+ * Check if event has elegant invitation configured
+ */
+async function hasInvitationConfig(eventId: string): Promise<boolean> {
+  const config = await db.invitationConfig.findUnique({
+    where: { eventId },
+    select: { id: true },
+  });
+  return config !== null;
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { token } = await params;
 
@@ -87,6 +98,12 @@ export default async function RSVPPage({ params }: PageProps) {
 
   if (!invite) {
     notFound();
+  }
+
+  // Redirect to elegant invitation experience if configured
+  const hasElegantInvite = await hasInvitationConfig(invite.eventId);
+  if (hasElegantInvite) {
+    redirect(`/invite/${token}`);
   }
 
   const event = invite.event;
