@@ -1,4 +1,5 @@
 export { EnvelopeReveal } from "./EnvelopeReveal";
+export { EnvelopeRevealV2, InvitationContent } from "./EnvelopeRevealV2";
 export { LayeredUnfold } from "./LayeredUnfold";
 export { CinematicScroll } from "./CinematicScroll";
 export { TimeBasedReveal } from "./TimeBasedReveal";
@@ -7,6 +8,7 @@ import type { ComponentType, ReactNode } from "react";
 import type { InvitationState } from "@/hooks";
 import type { InvitationData } from "@/schemas/invitation";
 import { EnvelopeReveal } from "./EnvelopeReveal";
+import { EnvelopeRevealV2 } from "./EnvelopeRevealV2";
 import { LayeredUnfold } from "./LayeredUnfold";
 import { CinematicScroll } from "./CinematicScroll";
 import { TimeBasedReveal } from "./TimeBasedReveal";
@@ -41,6 +43,7 @@ export type DataDrivenTemplateProps = {
  */
 export type TemplateId =
   | "ENVELOPE_REVEAL"
+  | "ENVELOPE_REVEAL_V2"
   | "LAYERED_UNFOLD"
   | "CINEMATIC_SCROLL"
   | "TIME_BASED_REVEAL";
@@ -64,6 +67,7 @@ const templateRegistry: Record<
   }
 > = {
   ENVELOPE_REVEAL: { component: EnvelopeReveal, type: "wrapper" },
+  ENVELOPE_REVEAL_V2: { component: EnvelopeRevealV2 as ComponentType<InvitationTemplateProps>, type: "wrapper" },
   LAYERED_UNFOLD: { component: LayeredUnfold, type: "data-driven" },
   CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
@@ -84,6 +88,12 @@ export const templateMetadata: Record<
   ENVELOPE_REVEAL: {
     name: "Envelope Reveal",
     description: "Classic envelope opening animation",
+    available: true,
+    type: "wrapper",
+  },
+  ENVELOPE_REVEAL_V2: {
+    name: "Envelope Reveal V2",
+    description: "Premium envelope with self-contained themes",
     available: true,
     type: "wrapper",
   },

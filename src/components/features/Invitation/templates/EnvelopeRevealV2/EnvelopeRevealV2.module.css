@@ -1,0 +1,808 @@
+/* =============================================================================
+   ENVELOPE REVEAL V2 — CSS MODULE
+
+   A premium wedding invitation reveal with pure CSS animations.
+   Features multi-tonal envelope design, wax seal, and smooth card extraction.
+
+   Follows project CSS guidelines:
+   - CSS Modules for animations and pseudo-elements
+   - Consumes theme tokens via CSS variables
+   - Supports reduced motion
+   ============================================================================= */
+
+/* =============================================================================
+   THEME DEFINITIONS
+   Each theme defines envelope colors, seal colors, and UI colors
+   ============================================================================= */
+
+.themeForest {
+  --bg-gradient: linear-gradient(145deg, #2d5040 0%, #254336 50%, #1a3328 100%);
+  --ambient-glow: rgba(100, 160, 120, 0.15);
+
+  --env-back: #f5edd1;
+  --env-flap: linear-gradient(180deg, #ecdeb8 0%, #e4d4a8 100%);
+  --env-flap-inner: #d4c49a;
+  --env-cover: linear-gradient(180deg, #e6cfa7 0%, #dcc59d 50%, #d4bc94 100%);
+  --env-liner: #f0e8d0;
+  --env-liner-pattern: rgba(120, 100, 60, 0.08);
+  --env-shadow: rgba(28, 28, 28, 0.4);
+  --env-border: rgba(180, 160, 120, 0.3);
+
+  --seal-color: #c2465d;
+  --seal-dark: #a03a4d;
+  --seal-shine: #d66b7d;
+
+  --card-bg: #fffef9;
+  --card-border: rgba(200, 180, 140, 0.3);
+  --text-primary: #3d3428;
+  --text-secondary: #6b5d4d;
+  --text-accent: #254336;
+
+  --btn-bg: rgba(255, 255, 255, 0.15);
+  --btn-hover: rgba(255, 255, 255, 0.25);
+  --btn-text: rgba(255, 255, 255, 0.9);
+}
+
+.themeBlush {
+  --bg-gradient: linear-gradient(145deg, #9a7a70 0%, #8b6b61 50%, #7a5a50 100%);
+  --ambient-glow: rgba(255, 200, 200, 0.12);
+
+  --env-back: #faf5f3;
+  --env-flap: linear-gradient(180deg, #f5e8e4 0%, #edddd8 100%);
+  --env-flap-inner: #e8d5d0;
+  --env-cover: linear-gradient(180deg, #f0e0dc 0%, #e8d4ce 50%, #e0c8c2 100%);
+  --env-liner: #faf0ee;
+  --env-liner-pattern: rgba(180, 120, 120, 0.06);
+  --env-shadow: rgba(60, 40, 40, 0.35);
+  --env-border: rgba(200, 160, 160, 0.3);
+
+  --seal-color: #d4a5a5;
+  --seal-dark: #b88888;
+  --seal-shine: #f0c8c8;
+
+  --card-bg: #fffbfa;
+  --card-border: rgba(200, 160, 160, 0.25);
+  --text-primary: #4a3535;
+  --text-secondary: #7a6565;
+  --text-accent: #9a6b6b;
+
+  --btn-bg: rgba(255, 255, 255, 0.15);
+  --btn-hover: rgba(255, 255, 255, 0.25);
+  --btn-text: rgba(255, 255, 255, 0.9);
+}
+
+.themeNavy {
+  --bg-gradient: linear-gradient(145deg, #243044 0%, #1a2332 50%, #111822 100%);
+  --ambient-glow: rgba(180, 160, 120, 0.1);
+
+  --env-back: #f8f6f0;
+  --env-flap: linear-gradient(180deg, #f0ece2 0%, #e8e2d6 100%);
+  --env-flap-inner: #ddd6c8;
+  --env-cover: linear-gradient(180deg, #e6dfd0 0%, #ddd4c4 50%, #d4cab8 100%);
+  --env-liner: #f5f0e8;
+  --env-liner-pattern: rgba(100, 80, 50, 0.06);
+  --env-shadow: rgba(10, 15, 25, 0.5);
+  --env-border: rgba(160, 150, 130, 0.25);
+
+  --seal-color: #c9a96e;
+  --seal-dark: #a68a5b;
+  --seal-shine: #e8d5a8;
+
+  --card-bg: #fdfcf8;
+  --card-border: rgba(180, 160, 120, 0.2);
+  --text-primary: #1a2332;
+  --text-secondary: #5a6578;
+  --text-accent: #8a7a5a;
+
+  --btn-bg: rgba(200, 180, 140, 0.15);
+  --btn-hover: rgba(200, 180, 140, 0.25);
+  --btn-text: rgba(240, 235, 220, 0.9);
+}
+
+.themeSage {
+  --bg-gradient: linear-gradient(145deg, #5a6a5a 0%, #4a5a4a 50%, #3a4a3a 100%);
+  --ambient-glow: rgba(150, 180, 150, 0.12);
+
+  --env-back: #f7f9f5;
+  --env-flap: linear-gradient(180deg, #e8efe6 0%, #dce6d8 100%);
+  --env-flap-inner: #d0dccb;
+  --env-cover: linear-gradient(180deg, #e2eadd 0%, #d6e0d0 50%, #ccd8c5 100%);
+  --env-liner: #f0f5ed;
+  --env-liner-pattern: rgba(80, 100, 80, 0.06);
+  --env-shadow: rgba(30, 40, 30, 0.35);
+  --env-border: rgba(140, 160, 140, 0.3);
+
+  --seal-color: #8a9a7a;
+  --seal-dark: #6a7a5a;
+  --seal-shine: #b0c0a0;
+
+  --card-bg: #fcfdfb;
+  --card-border: rgba(140, 160, 140, 0.2);
+  --text-primary: #3a4535;
+  --text-secondary: #5a6a55;
+  --text-accent: #6a7a5a;
+
+  --btn-bg: rgba(255, 255, 255, 0.15);
+  --btn-hover: rgba(255, 255, 255, 0.25);
+  --btn-text: rgba(255, 255, 255, 0.9);
+}
+
+.themeChampagne {
+  --bg-gradient: linear-gradient(145deg, #7a6a5a 0%, #6a5a4a 50%, #5a4a3a 100%);
+  --ambient-glow: rgba(220, 200, 160, 0.15);
+
+  --env-back: #faf8f2;
+  --env-flap: linear-gradient(180deg, #f5efe0 0%, #ebe4d2 100%);
+  --env-flap-inner: #ddd4c0;
+  --env-cover: linear-gradient(180deg, #efe6d4 0%, #e5dbc8 50%, #dcd0bc 100%);
+  --env-liner: #f8f4ea;
+  --env-liner-pattern: rgba(160, 140, 100, 0.08);
+  --env-shadow: rgba(50, 40, 30, 0.4);
+  --env-border: rgba(200, 180, 140, 0.35);
+
+  --seal-color: #c9a96e;
+  --seal-dark: #a68a5b;
+  --seal-shine: #e8d5a8;
+
+  --card-bg: #fdfcf7;
+  --card-border: rgba(200, 180, 140, 0.25);
+  --text-primary: #4a4035;
+  --text-secondary: #7a6a55;
+  --text-accent: #8a7a5a;
+
+  --btn-bg: rgba(255, 255, 255, 0.15);
+  --btn-hover: rgba(255, 255, 255, 0.25);
+  --btn-text: rgba(255, 255, 255, 0.9);
+}
+
+/* =============================================================================
+   ANIMATION TIMING VARIABLES
+   ============================================================================= */
+
+.container {
+  --dur-fast: 0.3s;
+  --dur-medium: 0.5s;
+  --dur-slow: 0.8s;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Layout tokens */
+  --env-width: min(90vw, 380px);
+  --env-height: calc(var(--env-width) * 0.65);
+  --card-width: calc(var(--env-width) * 0.85);
+}
+
+/* =============================================================================
+   CONTAINER
+   ============================================================================= */
+
+.container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  background: var(--bg-gradient);
+}
+
+/* Ambient glow */
+.container::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 500px;
+  height: 400px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, var(--ambient-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* =============================================================================
+   ENVELOPE WRAPPER
+   ============================================================================= */
+
+.envelopeWrapper {
+  position: relative;
+  background: var(--env-back);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out);
+  box-shadow:
+    0 2px 8px var(--env-shadow),
+    0 8px 24px var(--env-shadow),
+    0 16px 48px var(--env-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.envelopeWrapper:hover:not(.flap) {
+  transform: scale(1.02) translateY(-4px);
+}
+
+.envelopeWrapper:active:not(.flap) {
+  transform: scale(0.99);
+}
+
+.envelopeWrapper:focus-visible {
+  outline: 3px solid var(--seal-color);
+  outline-offset: 6px;
+}
+
+/* =============================================================================
+   ENVELOPE STRUCTURE
+   ============================================================================= */
+
+.envelope {
+  position: relative;
+  width: var(--env-width);
+  height: var(--env-height);
+  overflow: visible;
+}
+
+/* -----------------------------------------------------------------------------
+   Inner Liner
+   ----------------------------------------------------------------------------- */
+
+.envelopeLiner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 55%;
+  background: var(--env-liner);
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+}
+
+.envelopeLiner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    var(--env-liner-pattern) 8px,
+    var(--env-liner-pattern) 9px
+  );
+  opacity: 0.7;
+}
+
+.envelopeLiner::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  transform: skewX(-20deg);
+  animation: shimmer 6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { left: -150%; opacity: 0; }
+  20% { opacity: 0.6; }
+  50% { left: 150%; opacity: 0; }
+}
+
+/* -----------------------------------------------------------------------------
+   Flap (created with ::before on .envelope)
+   ----------------------------------------------------------------------------- */
+
+.envelope::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  border-top: calc(var(--env-height) * 0.52) solid var(--env-flap-inner);
+  border-right: calc(var(--env-width) / 2) solid transparent;
+  border-left: calc(var(--env-width) / 2) solid transparent;
+  transform-origin: top center;
+  transition:
+    transform var(--dur-medium) var(--ease-out) var(--dur-fast),
+    z-index 0ms linear calc(var(--dur-medium) / 2);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Flap front face overlay */
+.envelopeFlapFront {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  border-top: calc(var(--env-height) * 0.52) solid;
+  border-image: var(--env-flap) 1;
+  border-right: calc(var(--env-width) / 2) solid transparent;
+  border-left: calc(var(--env-width) / 2) solid transparent;
+  transform-origin: top center;
+  transition:
+    transform var(--dur-medium) var(--ease-out) var(--dur-fast),
+    opacity var(--dur-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.envelopeFlapFront::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--env-height) * -0.52);
+  left: calc(var(--env-width) * -0.5);
+  width: var(--env-width);
+  height: 3px;
+  background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.6) 50%, transparent 95%);
+  border-radius: 4px 4px 0 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Front Cover (created with ::after on .envelope)
+   ----------------------------------------------------------------------------- */
+
+.envelope::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 0;
+  height: 0;
+  border-top: calc(var(--env-height) * 0.52) solid transparent;
+  border-right: calc(var(--env-width) / 2) solid var(--env-back);
+  border-bottom: calc(var(--env-height) * 0.48) solid var(--env-back);
+  border-left: calc(var(--env-width) / 2) solid var(--env-back);
+  transition: opacity var(--dur-medium) var(--ease-out);
+}
+
+/* Cover gradient overlay */
+.envelopeCoverGradient {
+  position: absolute;
+  top: calc(var(--env-height) * 0.36);
+  left: 0;
+  z-index: 6;
+  width: 100%;
+  height: calc(var(--env-height) * 0.64);
+  background: var(--env-cover);
+  clip-path: polygon(0 25%, 50% 50%, 100% 25%, 100% 100%, 0 100%);
+  transition: opacity var(--dur-medium) var(--ease-out);
+  pointer-events: none;
+  border-radius: 0 0 4px 4px;
+}
+
+.envelopeCoverGradient::before {
+  content: "";
+  position: absolute;
+  top: 15%;
+  left: 0;
+  width: 100%;
+  height: 25%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.04), transparent);
+  clip-path: polygon(0 0, 50% 60%, 100% 0, 100% 100%, 0 100%);
+}
+
+.envelopeCoverGradient::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.5) 50%, transparent 90%);
+  border-radius: 0 0 4px 4px;
+}
+
+/* =============================================================================
+   WAX SEAL
+   ============================================================================= */
+
+.seal {
+  position: absolute;
+  top: calc(var(--env-height) * 0.35);
+  left: 50%;
+  z-index: 10;
+  width: 52px;
+  height: 52px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform var(--dur-medium) var(--ease-bounce);
+}
+
+.envelopeWrapper:hover:not(.flap) .seal {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.sealBody {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 30% 30%,
+    var(--seal-shine) 0%,
+    var(--seal-color) 50%,
+    var(--seal-dark) 100%
+  );
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sealBody::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sealBody::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 255, 255, 0.15) 5deg,
+    transparent 10deg,
+    rgba(255, 255, 255, 0.15) 15deg,
+    transparent 20deg,
+    rgba(255, 255, 255, 0.15) 25deg,
+    transparent 30deg
+  );
+  opacity: 0.6;
+}
+
+/* Heart icon (default seal content) */
+.sealIcon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  transform: rotate(45deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.sealIcon::before,
+.sealIcon::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+}
+
+.sealIcon::before {
+  top: -9px;
+  left: 0;
+}
+
+.sealIcon::after {
+  top: 0;
+  left: -9px;
+}
+
+/* =============================================================================
+   LETTER / CARD
+   ============================================================================= */
+
+.letter {
+  position: absolute;
+  left: 50%;
+  bottom: 10%;
+  z-index: 2;
+  width: var(--card-width);
+  transform: translateX(-50%);
+  background: var(--card-bg);
+  border-radius: 6px;
+  padding: 2rem 1.75rem;
+  text-align: center;
+  transition:
+    transform var(--dur-slow) var(--ease-out),
+    bottom var(--dur-slow) var(--ease-out);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--card-border);
+}
+
+.letter::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.letterContent {
+  position: relative;
+}
+
+/* =============================================================================
+   CARD TYPOGRAPHY (for InvitationContent component)
+   ============================================================================= */
+
+.letterPrelude {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.letterNames {
+  font-family: 'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  font-size: 1.65rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+
+.letterAmpersand {
+  display: block;
+  font-family: 'Cormorant Garamond', 'Palatino Linotype', serif;
+  font-size: 1.25rem;
+  font-style: italic;
+  color: var(--text-accent);
+  margin: 0.25rem 0;
+}
+
+.letterDetails {
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-top: 1rem;
+  line-height: 1.6;
+}
+
+.letterDate {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.letterFlourish {
+  display: block;
+  margin: 1rem auto 0;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--text-secondary), transparent);
+  opacity: 0.4;
+}
+
+/* =============================================================================
+   OPEN STATE (.flap)
+   ============================================================================= */
+
+.flap .envelope::before {
+  transform: rotateX(180deg);
+  z-index: 1;
+  transition-delay: 0s;
+}
+
+.flap .envelopeFlapFront {
+  transform: rotateX(180deg);
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+.flap .envelope::after,
+.flap .envelopeCoverGradient {
+  opacity: 0;
+  transition-delay: var(--dur-fast);
+}
+
+.flap .letter {
+  bottom: calc(100% - 20px);
+  transform: translateX(-50%) scale(1.08);
+  transition-delay: calc(var(--dur-fast) + 0.1s);
+  z-index: 15;
+}
+
+.flap .seal {
+  transform: translate(-50%, -50%) rotate(180deg) scale(0.8);
+  opacity: 0;
+  transition:
+    transform var(--dur-medium) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+/* =============================================================================
+   CLOSE BUTTON
+   ============================================================================= */
+
+.closeBtn {
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--btn-text);
+  background: var(--btn-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+  backdrop-filter: blur(8px);
+}
+
+.closeBtn:hover {
+  background: var(--btn-hover);
+}
+
+.closeBtn svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.closeBtn:hover svg {
+  transform: translateX(-2px);
+}
+
+.flap .closeBtn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: var(--dur-slow);
+}
+
+/* =============================================================================
+   HINT TEXT
+   ============================================================================= */
+
+.hint {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--btn-text);
+  opacity: 0.7;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.hintIcon {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.flap .hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 400px) {
+  .container {
+    --env-width: 95vw;
+  }
+
+  .letter {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .letterNames {
+    font-size: 1.4rem;
+  }
+
+  .seal {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sealIcon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .sealIcon::before,
+  .sealIcon::after {
+    width: 14px;
+    height: 14px;
+  }
+
+  .sealIcon::before { top: -7px; }
+  .sealIcon::after { left: -7px; }
+}
+
+@media (min-width: 500px) {
+  .container {
+    --env-width: 420px;
+  }
+
+  .letterNames {
+    font-size: 1.85rem;
+  }
+
+  .seal {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+.reducedMotion,
+.reducedMotion *,
+.reducedMotion *::before,
+.reducedMotion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  .container {
+    min-height: auto;
+    padding: 0;
+    background: white;
+  }
+
+  .container::before,
+  .envelope::before,
+  .envelope::after,
+  .envelopeLiner,
+  .envelopeFlapFront,
+  .envelopeCoverGradient,
+  .seal,
+  .hint,
+  .closeBtn {
+    display: none !important;
+  }
+
+  .envelopeWrapper {
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .letter {
+    position: static;
+    transform: none;
+    width: 100%;
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}

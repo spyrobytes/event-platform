@@ -14,6 +14,8 @@ export { TypographyPicker } from "./TypographyPicker";
 // Templates
 export {
   EnvelopeReveal,
+  EnvelopeRevealV2,
+  InvitationContent,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
