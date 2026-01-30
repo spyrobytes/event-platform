@@ -6,6 +6,7 @@ import { z } from "zod";
 
 export const INVITATION_TEMPLATES = [
   "ENVELOPE_REVEAL",
+  "ENVELOPE_REVEAL_V2",
   "LAYERED_UNFOLD",
   "CINEMATIC_SCROLL",
   "TIME_BASED_REVEAL",

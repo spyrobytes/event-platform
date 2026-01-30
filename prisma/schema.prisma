@@ -359,6 +359,7 @@ model InvitationConfig {
 
 enum InvitationTemplate {
   ENVELOPE_REVEAL
+  ENVELOPE_REVEAL_V2
   LAYERED_UNFOLD
   CINEMATIC_SCROLL
   TIME_BASED_REVEAL
