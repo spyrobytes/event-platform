@@ -1,0 +1,755 @@
+/* =============================================================================
+   SplitRevealCard.module.css
+
+   Premium wedding invitation with split-door reveal animation.
+
+   Responsibilities (CSS Modules):
+   - Keyframe animations (door flip, seal split, confetti)
+   - Pseudo-elements (decorative flourishes, patterns)
+   - Complex hover/transition states
+   - Theme-specific visual effects
+   ============================================================================= */
+
+/* =============================================================================
+   THEME VARIABLES
+   ============================================================================= */
+
+.wrapper {
+  /* Ivory & Gold Theme (default) */
+  --card-bg: #f7f4ef;
+  --card-bg-deep: #ebe6db;
+  --card-doors: #faf8f3;
+  --card-doors-shadow: rgba(139, 119, 89, 0.15);
+  --card-gold: #c9a961;
+  --card-gold-dark: #a68b3d;
+  --card-gold-light: #e8d5a3;
+  --card-text: #3d3428;
+  --card-text-light: #6b5d4a;
+  --card-accent: #8b7759;
+  --card-cream: #fffdf8;
+  --card-seal: linear-gradient(145deg, #d4b978 0%, #a68b3d 50%, #c9a961 100%);
+  --card-seal-shadow: rgba(166, 139, 61, 0.4);
+  --card-pattern-opacity: 0.04;
+  --card-shimmer: rgba(201, 169, 97, 0.12);
+
+  /* Animation timing */
+  --door-duration: 1s;
+  --door-timing: cubic-bezier(0.23, 1, 0.32, 1);
+  --seal-duration: 0.6s;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  background: var(--card-bg);
+}
+
+/* Blush & Rose Theme */
+.wrapper[data-theme="blush"] {
+  --card-bg: #fdf5f3;
+  --card-bg-deep: #f5e8e4;
+  --card-doors: #fefbfa;
+  --card-doors-shadow: rgba(183, 135, 135, 0.12);
+  --card-gold: #d4a5a5;
+  --card-gold-dark: #b78787;
+  --card-gold-light: #f0d5d5;
+  --card-text: #4a3535;
+  --card-text-light: #7a6060;
+  --card-accent: #b78787;
+  --card-cream: #fffcfb;
+  --card-seal: linear-gradient(145deg, #e8bfbf 0%, #b78787 50%, #d4a5a5 100%);
+  --card-seal-shadow: rgba(183, 135, 135, 0.4);
+}
+
+/* Navy & Silver Theme */
+.wrapper[data-theme="navy"] {
+  --card-bg: #1a2332;
+  --card-bg-deep: #141b27;
+  --card-doors: #232f42;
+  --card-doors-shadow: rgba(0, 0, 0, 0.3);
+  --card-gold: #c0c7d1;
+  --card-gold-dark: #8a939f;
+  --card-gold-light: #e8ebf0;
+  --card-text: #f0f2f5;
+  --card-text-light: #a8b2c1;
+  --card-accent: #7a8699;
+  --card-cream: #2a3848;
+  --card-seal: linear-gradient(145deg, #d4d9e1 0%, #8a939f 50%, #c0c7d1 100%);
+  --card-seal-shadow: rgba(138, 147, 159, 0.4);
+  --card-pattern-opacity: 0.06;
+}
+
+/* =============================================================================
+   MAIN CONTAINER
+   ============================================================================= */
+
+.container {
+  position: relative;
+  width: 380px;
+  height: 540px;
+  cursor: pointer;
+  perspective: 2000px;
+}
+
+/* Decorative frame */
+.frame {
+  position: absolute;
+  inset: -12px;
+  border: 1px solid var(--card-gold-light);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--card-gold-light);
+  border-radius: 2px;
+}
+
+/* =============================================================================
+   REVEALED CONTENT (Behind doors)
+   ============================================================================= */
+
+.content {
+  position: absolute;
+  inset: 0;
+  background: var(--card-cream);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+/* Corner flourishes */
+.content::before,
+.content::after {
+  content: "❧";
+  position: absolute;
+  font-size: 1.25rem;
+  color: var(--card-gold);
+  opacity: 0.5;
+}
+
+.content::before {
+  top: 0.75rem;
+  left: 0.75rem;
+  transform: rotate(-90deg);
+}
+
+.content::after {
+  bottom: 0.75rem;
+  right: 0.75rem;
+  transform: rotate(90deg);
+}
+
+.contentInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease 0.5s, transform 0.6s ease 0.5s;
+}
+
+.contentVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Photo */
+.photo {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--card-gold-light);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  margin-bottom: 0.75rem;
+}
+
+/* Typography */
+.greeting {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--card-text-light);
+  margin: 0 0 0.5rem;
+}
+
+.header {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--card-text-light);
+  margin: 0 0 0.25rem;
+}
+
+.names {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--card-text);
+  line-height: 1.2;
+  margin: 0 0 0.25rem;
+}
+
+.ampersand {
+  display: block;
+  font-size: 1.2rem;
+  color: var(--card-gold);
+  margin: 0.1rem 0;
+}
+
+.eventType {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.75rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--card-gold-dark);
+  margin: 0 0 0.75rem;
+}
+
+.divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--card-gold), transparent);
+  margin: 0 auto 0.75rem;
+}
+
+.date {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--card-text);
+  margin: 0 0 0.15rem;
+}
+
+.time {
+  font-family: "Josefin Sans", "Helvetica Neue", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--card-text-light);
+  letter-spacing: 0.1em;
+  margin: 0 0 0.5rem;
+}
+
+.venue {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--card-text-light);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.dressCode {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--card-text-light);
+  margin: 0.5rem 0 0;
+}
+
+.customMessage {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--card-text-light);
+  line-height: 1.5;
+  margin: 0.75rem 0 0;
+  max-width: 280px;
+}
+
+/* RSVP Button */
+.rsvpButton {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.55rem 1.5rem;
+  background: var(--card-gold);
+  color: white;
+  text-decoration: none;
+  border: none;
+  border-radius: 2px;
+  font-family: "Josefin Sans", "Helvetica Neue", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--card-seal-shadow);
+}
+
+.rsvpButton:hover {
+  background: var(--card-gold-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--card-seal-shadow);
+}
+
+.rsvpButton:focus-visible {
+  outline: 2px solid var(--card-gold);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   THE DOORS
+   ============================================================================= */
+
+.doorsContainer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+
+.door {
+  width: 50%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform var(--door-duration) var(--door-timing);
+}
+
+.doorLeft {
+  transform-origin: left center;
+}
+
+.doorRight {
+  transform-origin: right center;
+}
+
+/* Opened state */
+.opened .doorLeft {
+  transform: rotateY(-160deg);
+}
+
+.opened .doorRight {
+  transform: rotateY(160deg);
+}
+
+/* Door faces */
+.doorFront,
+.doorBack {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.doorFront {
+  background: var(--card-doors);
+  z-index: 2;
+  box-shadow: 0 4px 30px var(--card-doors-shadow);
+}
+
+.doorBack {
+  background: var(--card-bg-deep);
+  transform: rotateY(180deg);
+}
+
+/* Damask pattern on doors */
+.doorFront::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a961' fill-opacity='0.08'%3E%3Cpath d='M30 0c2.5 5 5 7.5 7.5 7.5S42.5 5 45 0h-7.5C35 2.5 32.5 5 30 5s-5-2.5-7.5-5H15c2.5 5 5 7.5 7.5 7.5S27.5 5 30 0zm0 60c2.5-5 5-7.5 7.5-7.5s5 2.5 7.5 7.5h-7.5c-2.5-2.5-5-5-7.5-5s-5 2.5-7.5 5H15c2.5-5 5-7.5 7.5-7.5s5 2.5 7.5 7.5zM0 30c5-2.5 7.5-5 7.5-7.5S5 17.5 0 15v7.5c2.5 2.5 5 5 5 7.5s-2.5 5-5 7.5V45c5-2.5 7.5-5 7.5-7.5S5 32.5 0 30zm60 0c-5-2.5-7.5-5-7.5-7.5s2.5-5 7.5-7.5v7.5c-2.5 2.5-5 5-5 7.5s2.5 5 5 7.5V45c-5-2.5-7.5-5-7.5-7.5s2.5-5 7.5-7.5z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: var(--card-pattern-opacity);
+}
+
+/* Inner border on doors */
+.doorFront::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  border: 1px solid var(--card-gold-light);
+  opacity: 0.4;
+}
+
+.doorLeft .doorFront::after {
+  left: 20px;
+  right: 0;
+  border-right: none;
+}
+
+.doorRight .doorFront::after {
+  right: 20px;
+  left: 0;
+  border-left: none;
+}
+
+/* Door shimmer effect */
+.doorShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    var(--card-shimmer) 45%,
+    var(--card-shimmer) 55%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  animation: doorShimmer 4s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.opened .doorShimmer {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes doorShimmer {
+  0%,
+  100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(200%);
+  }
+}
+
+/* =============================================================================
+   WAX SEAL
+   ============================================================================= */
+
+.sealContainer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.seal {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--card-seal);
+  box-shadow: 0 8px 25px var(--card-seal-shadow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Inner ring */
+.seal::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+/* Embossed highlight */
+.seal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 50%
+  );
+}
+
+.seal:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 35px var(--card-seal-shadow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sealHidden {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.sealMonogram {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 2rem;
+  font-weight: 500;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: -0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+/* Split seal halves */
+.sealLeft,
+.sealRight {
+  position: absolute;
+  width: 50px;
+  height: 100px;
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: hidden;
+  opacity: 0;
+  transition: transform var(--seal-duration) var(--door-timing),
+    opacity 0.3s ease;
+}
+
+.sealLeft {
+  left: 0;
+  transform-origin: left center;
+}
+
+.sealRight {
+  right: 0;
+  transform-origin: right center;
+}
+
+.sealHalf {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--card-seal);
+  box-shadow: 0 4px 15px var(--card-seal-shadow);
+  position: absolute;
+  top: 0;
+  transition: opacity 0.4s ease 0.6s;
+}
+
+.sealLeft .sealHalf {
+  left: 0;
+}
+
+.sealRight .sealHalf {
+  right: 0;
+}
+
+/* Split animation */
+.sealSplit {
+  opacity: 1;
+}
+
+.sealLeft.sealSplit {
+  transform: translateY(-50%) translateX(-80px) rotate(-20deg);
+}
+
+.sealRight.sealSplit {
+  transform: translateY(-50%) translateX(80px) rotate(20deg);
+}
+
+/* Fade out seal halves after animation */
+.sealSplit .sealHalf {
+  opacity: 0;
+}
+
+/* =============================================================================
+   CTA HINT
+   ============================================================================= */
+
+.ctaHint {
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Josefin Sans", "Helvetica Neue", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  color: var(--card-text-light);
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.ctaHint::before {
+  content: "↑";
+  display: block;
+  text-align: center;
+  margin-bottom: 0.25rem;
+  animation: hintBounce 2s ease-in-out infinite;
+}
+
+.ctaHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes hintBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* =============================================================================
+   REPLAY BUTTON CONTAINER
+   ============================================================================= */
+
+.replayContainer {
+  position: absolute;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease 0.8s;
+}
+
+.replayContainer.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* =============================================================================
+   CONFETTI
+   ============================================================================= */
+
+.confettiContainer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  animation: confettiFall 3s ease-out forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) translateX(var(--drift, 0)) rotate(720deg);
+  }
+}
+
+/* =============================================================================
+   REDUCED MOTION
+   ============================================================================= */
+
+.reducedMotion .door,
+.reducedMotion .seal,
+.reducedMotion .sealLeft,
+.reducedMotion .sealRight,
+.reducedMotion .contentInner,
+.reducedMotion .confetti,
+.reducedMotion .rsvpButton {
+  transition-duration: 0.001ms !important;
+  animation-duration: 0.001ms !important;
+}
+
+.reducedMotion .doorShimmer,
+.reducedMotion .ctaHint::before {
+  animation: none !important;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 480px) {
+  .wrapper {
+    padding: 1.5rem;
+  }
+
+  .container {
+    width: 320px;
+    height: 460px;
+  }
+
+  .content {
+    padding: 1rem 1.25rem;
+  }
+
+  .photo {
+    width: 75px;
+    height: 75px;
+    margin-bottom: 0.5rem;
+  }
+
+  .names {
+    font-size: 1.5rem;
+  }
+
+  .seal {
+    width: 80px;
+    height: 80px;
+  }
+
+  .sealMonogram {
+    font-size: 1.6rem;
+  }
+
+  .sealLeft,
+  .sealRight {
+    width: 40px;
+    height: 80px;
+  }
+
+  .sealHalf {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+@media (min-width: 500px) {
+  .container {
+    width: 400px;
+    height: 560px;
+  }
+
+  .names {
+    font-size: 2rem;
+  }
+
+  .seal {
+    width: 110px;
+    height: 110px;
+  }
+
+  .sealMonogram {
+    font-size: 2.2rem;
+  }
+
+  .sealLeft,
+  .sealRight {
+    width: 55px;
+    height: 110px;
+  }
+
+  .sealHalf {
+    width: 110px;
+    height: 110px;
+  }
+}

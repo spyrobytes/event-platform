@@ -3,6 +3,7 @@ export { EnvelopeRevealV2, InvitationContent } from "./EnvelopeRevealV2";
 export { LayeredUnfold } from "./LayeredUnfold";
 export { CinematicScroll } from "./CinematicScroll";
 export { TimeBasedReveal } from "./TimeBasedReveal";
+export { SplitRevealCard } from "./SplitRevealCard";
 
 import type { ComponentType, ReactNode } from "react";
 import type { InvitationState } from "@/hooks";
@@ -12,6 +13,7 @@ import { EnvelopeRevealV2 } from "./EnvelopeRevealV2";
 import { LayeredUnfold } from "./LayeredUnfold";
 import { CinematicScroll } from "./CinematicScroll";
 import { TimeBasedReveal } from "./TimeBasedReveal";
+import { SplitRevealCard } from "./SplitRevealCard";
 
 /**
  * Common props shared by wrapper-style templates (children-based)
@@ -44,6 +46,7 @@ export type DataDrivenTemplateProps = {
 export type TemplateId =
   | "ENVELOPE_REVEAL"
   | "ENVELOPE_REVEAL_V2"
+  | "SPLIT_REVEAL"
   | "LAYERED_UNFOLD"
   | "CINEMATIC_SCROLL"
   | "TIME_BASED_REVEAL";
@@ -68,6 +71,7 @@ const templateRegistry: Record<
 > = {
   ENVELOPE_REVEAL: { component: EnvelopeReveal, type: "wrapper" },
   ENVELOPE_REVEAL_V2: { component: EnvelopeRevealV2 as ComponentType<InvitationTemplateProps>, type: "wrapper" },
+  SPLIT_REVEAL: { component: SplitRevealCard, type: "data-driven" },
   LAYERED_UNFOLD: { component: LayeredUnfold, type: "data-driven" },
   CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
@@ -96,6 +100,12 @@ export const templateMetadata: Record<
     description: "Premium envelope with self-contained themes",
     available: true,
     type: "wrapper",
+  },
+  SPLIT_REVEAL: {
+    name: "Split Reveal",
+    description: "Dramatic split-door with wax seal",
+    available: true,
+    type: "data-driven",
   },
   LAYERED_UNFOLD: {
     name: "Layered Unfold",

@@ -340,10 +340,21 @@ model InvitationConfig {
   typographyPair String             @default("classic") @map("typography_pair")
 
   // Content overrides (optional, falls back to Event fields)
-  coupleDisplayName String? @map("couple_display_name") // Override event title for couple names
-  customMessage     String? @map("custom_message") // Personal message on invitation
-  dressCode         String? @map("dress_code") // e.g., "Black Tie", "Casual"
-  heroImageUrl      String? @map("hero_image_url") // Custom hero image for invitation
+  coupleDisplayName String? @map("couple_display_name") // Legacy: "Emma & James" format
+
+  // Structured couple names (preferred over coupleDisplayName)
+  person1Name String? @map("person1_name") // e.g., "Emma Rose Williams"
+  person2Name String? @map("person2_name") // e.g., "James Oliver Smith"
+
+  // Customizable invitation wording
+  headerText    String? @map("header_text") // e.g., "Together with their families"
+  eventTypeText String? @map("event_type_text") // e.g., "Request the pleasure of your company"
+  monogram      String? @map("monogram") // e.g., "E&J" (auto-generated if empty)
+
+  // Additional content
+  customMessage String? @map("custom_message") // Personal message on invitation
+  dressCode     String? @map("dress_code") // e.g., "Black Tie", "Casual"
+  heroImageUrl  String? @map("hero_image_url") // Custom hero image for invitation
 
   // Locale and direction
   locale        String        @default("en-US")
@@ -360,6 +371,7 @@ model InvitationConfig {
 enum InvitationTemplate {
   ENVELOPE_REVEAL
   ENVELOPE_REVEAL_V2
+  SPLIT_REVEAL
   LAYERED_UNFOLD
   CINEMATIC_SCROLL
   TIME_BASED_REVEAL

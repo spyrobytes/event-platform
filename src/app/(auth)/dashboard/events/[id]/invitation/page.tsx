@@ -25,6 +25,11 @@ type InvitationConfig = {
   themeId: ThemeId;
   typographyPair: TypographyPair;
   coupleDisplayName: string | null;
+  person1Name: string | null;
+  person2Name: string | null;
+  headerText: string | null;
+  eventTypeText: string | null;
+  monogram: string | null;
   customMessage: string | null;
   dressCode: string | null;
   heroImageUrl: string | null;
@@ -40,6 +45,7 @@ type EventBasic = {
 const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: boolean }[] = [
   { value: "ENVELOPE_REVEAL", label: "Envelope Reveal", available: true },
   { value: "ENVELOPE_REVEAL_V2", label: "Envelope Reveal V2", available: true },
+  { value: "SPLIT_REVEAL", label: "Split Reveal", available: true },
   { value: "LAYERED_UNFOLD", label: "Layered Unfold", available: true },
   { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll", available: true },
   { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal", available: true },
@@ -77,6 +83,11 @@ export default function InvitationConfigPage() {
   const [themeId, setThemeId] = useState<ThemeId>("ivory");
   const [typographyPair, setTypographyPair] = useState<TypographyPair>("classic");
   const [coupleDisplayName, setCoupleDisplayName] = useState("");
+  const [person1Name, setPerson1Name] = useState("");
+  const [person2Name, setPerson2Name] = useState("");
+  const [headerText, setHeaderText] = useState("");
+  const [eventTypeText, setEventTypeText] = useState("");
+  const [monogram, setMonogram] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [dressCode, setDressCode] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
@@ -127,6 +138,11 @@ export default function InvitationConfigPage() {
             setThemeId(configData.data.themeId);
             setTypographyPair(configData.data.typographyPair);
             setCoupleDisplayName(configData.data.coupleDisplayName || "");
+            setPerson1Name(configData.data.person1Name || "");
+            setPerson2Name(configData.data.person2Name || "");
+            setHeaderText(configData.data.headerText || "");
+            setEventTypeText(configData.data.eventTypeText || "");
+            setMonogram(configData.data.monogram || "");
             setCustomMessage(configData.data.customMessage || "");
             setDressCode(configData.data.dressCode || "");
             setHeroImageUrl(configData.data.heroImageUrl || "");
@@ -178,6 +194,11 @@ export default function InvitationConfigPage() {
           themeId,
           typographyPair,
           coupleDisplayName: coupleDisplayName || undefined,
+          person1Name: person1Name || undefined,
+          person2Name: person2Name || undefined,
+          headerText: headerText || undefined,
+          eventTypeText: eventTypeText || undefined,
+          monogram: monogram || undefined,
           customMessage: customMessage || undefined,
           dressCode: dressCode || undefined,
           heroImageUrl: heroImageUrl || undefined,
@@ -237,6 +258,11 @@ export default function InvitationConfigPage() {
       setThemeId("ivory");
       setTypographyPair("classic");
       setCoupleDisplayName("");
+      setPerson1Name("");
+      setPerson2Name("");
+      setHeaderText("");
+      setEventTypeText("");
+      setMonogram("");
       setCustomMessage("");
       setDressCode("");
       setHeroImageUrl("");
@@ -371,6 +397,112 @@ export default function InvitationConfigPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Invitation Wording - Shows for Split Reveal and similar templates */}
+        {(template === "SPLIT_REVEAL") && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Invitation Wording</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-3">
+                  <Label htmlFor="person1Name">
+                    First Person Name{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="person1Name"
+                    value={person1Name}
+                    onChange={(e) =>
+                      handleFieldChange(setPerson1Name)(e.target.value)
+                    }
+                    placeholder="Emma Rose Williams"
+                    maxLength={CONTENT_LIMITS.personName.max}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {person1Name.length}/{CONTENT_LIMITS.personName.max} characters
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="person2Name">
+                    Second Person Name{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="person2Name"
+                    value={person2Name}
+                    onChange={(e) =>
+                      handleFieldChange(setPerson2Name)(e.target.value)
+                    }
+                    placeholder="James Oliver Smith"
+                    maxLength={CONTENT_LIMITS.personName.max}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {person2Name.length}/{CONTENT_LIMITS.personName.max} characters
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="headerText">
+                    Header Text{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="headerText"
+                    value={headerText}
+                    onChange={(e) =>
+                      handleFieldChange(setHeaderText)(e.target.value)
+                    }
+                    placeholder="Together with their families"
+                    maxLength={CONTENT_LIMITS.headerText.max}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {headerText.length}/{CONTENT_LIMITS.headerText.max} characters.
+                    Appears above couple names.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="eventTypeText">
+                    Event Type Text{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="eventTypeText"
+                    value={eventTypeText}
+                    onChange={(e) =>
+                      handleFieldChange(setEventTypeText)(e.target.value)
+                    }
+                    placeholder="Request the pleasure of your company"
+                    maxLength={CONTENT_LIMITS.eventTypeText.max}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {eventTypeText.length}/{CONTENT_LIMITS.eventTypeText.max} characters.
+                    Appears below couple names.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="monogram">
+                    Monogram{" "}
+                    <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="monogram"
+                    value={monogram}
+                    onChange={(e) =>
+                      handleFieldChange(setMonogram)(e.target.value)
+                    }
+                    placeholder="E&J"
+                    maxLength={CONTENT_LIMITS.monogram.max}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {monogram.length}/{CONTENT_LIMITS.monogram.max} characters.
+                    Auto-generated from names if empty.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Theme Picker */}
         <Card className="lg:col-span-2">

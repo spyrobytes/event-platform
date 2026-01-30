@@ -7,6 +7,7 @@ import { z } from "zod";
 export const INVITATION_TEMPLATES = [
   "ENVELOPE_REVEAL",
   "ENVELOPE_REVEAL_V2",
+  "SPLIT_REVEAL",
   "LAYERED_UNFOLD",
   "CINEMATIC_SCROLL",
   "TIME_BASED_REVEAL",
@@ -34,6 +35,7 @@ export const TEXT_DIRECTIONS = ["LTR", "RTL"] as const;
  */
 export const CONTENT_LIMITS = {
   coupleDisplayName: { max: 60, recommended: 40 },
+  personName: { max: 50, recommended: 30 },
   eventTitle: { max: 40, recommended: 30 },
   venueName: { max: 50, recommended: 35 },
   address: { max: 100, maxLines: 3 },
@@ -41,6 +43,9 @@ export const CONTENT_LIMITS = {
   salutation: { max: 20 },
   dressCode: { max: 30, recommended: 20 },
   customMessage: { max: 200, recommended: 150, maxLines: 4 },
+  headerText: { max: 60, recommended: 40 },
+  eventTypeText: { max: 80, recommended: 60 },
+  monogram: { max: 10 },
 } as const;
 
 // =============================================================================
@@ -86,6 +91,13 @@ export const invitationConfigSchema = z.object({
     .string()
     .max(CONTENT_LIMITS.coupleDisplayName.max)
     .optional(),
+  // Structured couple names (preferred over coupleDisplayName for precise control)
+  person1Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
+  person2Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
+  // Customizable invitation wording
+  headerText: z.string().max(CONTENT_LIMITS.headerText.max).optional(),
+  eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
+  monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
   customMessage: z.string().max(CONTENT_LIMITS.customMessage.max).optional(),
   dressCode: z.string().max(CONTENT_LIMITS.dressCode.max).optional(),
   heroImageUrl: z.string().url().optional().or(z.literal("")),
@@ -124,6 +136,12 @@ export const invitationDataSchema = z.object({
   customMessage: z.string().max(CONTENT_LIMITS.customMessage.max).optional(),
   heroImageUrl: z.string().url().optional(),
   rsvpUrl: z.string(),
+  // Structured names and customizable wording (optional, templates use defaults)
+  person1Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
+  person2Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
+  headerText: z.string().max(CONTENT_LIMITS.headerText.max).optional(),
+  eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
+  monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
 });
 
 export type InvitationData = z.infer<typeof invitationDataSchema>;

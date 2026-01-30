@@ -10,6 +10,7 @@ import {
   InvitationCard,
   EnvelopeReveal,
   EnvelopeRevealV2,
+  SplitRevealCard,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
@@ -36,6 +37,11 @@ type InvitationConfigData = {
   typographyPair: string;
   textDirection: string;
   coupleDisplayName: string | null;
+  person1Name: string | null;
+  person2Name: string | null;
+  headerText: string | null;
+  eventTypeText: string | null;
+  monogram: string | null;
   customMessage: string | null;
   dressCode: string | null;
   heroImageUrl: string | null;
@@ -158,6 +164,12 @@ export default function InvitationPreviewPage() {
     customMessage: config.customMessage || undefined,
     heroImageUrl: config.heroImageUrl || event.coverImageUrl || undefined,
     rsvpUrl: "#preview",
+    // Structured names and customizable wording
+    person1Name: config.person1Name || undefined,
+    person2Name: config.person2Name || undefined,
+    headerText: config.headerText || undefined,
+    eventTypeText: config.eventTypeText || undefined,
+    monogram: config.monogram || undefined,
   };
 
   // Get template configuration
@@ -175,6 +187,8 @@ export default function InvitationPreviewPage() {
           return <CinematicScroll data={invitationData} showReplay={true} />;
         case "TIME_BASED_REVEAL":
           return <TimeBasedReveal data={invitationData} showReplay={true} />;
+        case "SPLIT_REVEAL":
+          return <SplitRevealCard data={invitationData} showReplay={true} />;
         default:
           return (
             <EnvelopeReveal showClose={true}>

@@ -7,6 +7,7 @@ import {
   InvitationCard,
   EnvelopeReveal,
   EnvelopeRevealV2,
+  SplitRevealCard,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
@@ -191,6 +192,12 @@ export default async function InvitationPage({ params }: PageProps) {
     customMessage: invitationConfig?.customMessage || undefined,
     heroImageUrl: invitationConfig?.heroImageUrl || event.coverImageUrl || undefined,
     rsvpUrl: `/invite/${token}/rsvp`,
+    // Structured names and customizable wording
+    person1Name: invitationConfig?.person1Name || undefined,
+    person2Name: invitationConfig?.person2Name || undefined,
+    headerText: invitationConfig?.headerText || undefined,
+    eventTypeText: invitationConfig?.eventTypeText || undefined,
+    monogram: invitationConfig?.monogram || undefined,
   };
 
   // Check if already responded
@@ -233,6 +240,14 @@ export default async function InvitationPage({ params }: PageProps) {
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
               autoPlay={!hasResponded}
+              showReplay={!hasResponded}
+            />
+          );
+        case "SPLIT_REVEAL":
+          return (
+            <SplitRevealCard
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
               showReplay={!hasResponded}
             />
           );

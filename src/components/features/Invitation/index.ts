@@ -16,6 +16,7 @@ export {
   EnvelopeReveal,
   EnvelopeRevealV2,
   InvitationContent,
+  SplitRevealCard,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
