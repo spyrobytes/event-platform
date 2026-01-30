@@ -1,6 +1,6 @@
 # Event Platform - Status Update
 
-**Date:** January 27, 2026
+**Date:** January 30, 2026
 **Status:** Production-Ready MVP (Enhanced)
 
 ---
@@ -16,7 +16,7 @@ The Event Platform is a **production-ready MVP** for creating, discovering, and 
 | Tests | 146 passing |
 | API Endpoints | 19 implemented |
 | Components | 75+ React components |
-| Templates | 3 event page templates + 5 wedding variants + 4 invitation templates |
+| Templates | 3 event page templates + 5 wedding variants + 6 invitation templates |
 
 ---
 
@@ -112,6 +112,29 @@ A complete landing page redesign featuring modern design patterns and premium ae
 - RSVP tracking (YES/NO/MAYBE + plus-ones)
 - Status tracking (sent, opened, responded)
 
+### Elegant Invitation Templates (6 Templates)
+
+**Template Options:**
+| Template | Description |
+|----------|-------------|
+| Envelope Reveal | Classic envelope with flip animation |
+| Envelope Reveal V2 | Multi-step reveal (back → front → open) with addressee name |
+| Split Reveal | Split-door animation with wax seal and confetti burst |
+| Layered Unfold | Layered card unfolding effect |
+| Cinematic Scroll | Full-screen cinematic scrolling reveal |
+| Time-Based Reveal | Timed sequential content reveal |
+
+**Structured Couple Names (New):**
+- Individual name fields: `person1Name`, `person2Name`
+- Customizable wording: `headerText`, `eventTypeText`
+- Custom monogram support (auto-generated if empty)
+- Dashboard UI with "Invitation Wording" card for Split Reveal template
+
+**Theme Support:**
+- 5 color themes: ivory, blush, sage, midnight, champagne
+- 3 typography pairs: classic, modern, traditional
+- RTL text direction support
+
 ### Invite Management Features (New)
 
 **RSVP Deadline:**
@@ -158,13 +181,17 @@ User ← Event → Invite → RSVP
     EventPageVersion
          ↓
     EmailOutbox
+         ↓
+    InvitationConfig
 ```
 
-**10 Models:** User, Organization, OrganizationMember, Event, PageTemplate, MediaAsset, EventPageVersion, Invite, RSVP, EmailOutbox
+**11 Models:** User, Organization, OrganizationMember, Event, PageTemplate, MediaAsset, EventPageVersion, Invite, RSVP, EmailOutbox, InvitationConfig
 
-**New Event Fields:** `rsvpDeadline`, `reminderDays`, `reminderEnabled`
+**InvitationConfig Fields:** template, themeId, typographyPair, coupleDisplayName, person1Name, person2Name, headerText, eventTypeText, monogram, customMessage, dressCode, heroImageUrl, locale, textDirection
 
-**4 Migrations Applied** - schema is stable
+**Event Fields:** `rsvpDeadline`, `reminderDays`, `reminderEnabled`
+
+**Migrations Applied** - schema is stable
 
 ---
 
@@ -203,13 +230,13 @@ User ← Event → Invite → RSVP
 
 | Commit | Description |
 |--------|-------------|
+| 60b530d | SplitRevealCard template with structured couple names support |
+| 14466d3 | EnvelopeRevealV2 multi-step reveal (back → front → open) |
+| 47813e3 | EnvelopeRevealV2 template variant |
 | c8ad88a | Invite management: RSVP deadline, CSV export, auto reminders |
 | e500c4c | Time-Based Reveal invitation template |
 | 9280f5b | Cinematic Scroll invitation template |
 | d6d6b31 | Layered Unfold invitation template and preview page |
-| 373b638 | Elegant wedding invitation system |
-| 988a7fa | Skip-to-content link and smooth scroll to CTAs |
-| faa04fa | Keyboard navigation focus styles |
 
 ---
 
@@ -298,9 +325,10 @@ src/components/landing/
 src/
 ├── app/           # Next.js routes (auth, public, API)
 ├── components/
-│   ├── landing/   # Premium landing page (new)
-│   ├── brand/     # Logo component (new)
-│   ├── features/  # PageEditor, GalleryEditor, etc.
+│   ├── landing/   # Premium landing page
+│   ├── brand/     # Logo component
+│   ├── features/  # PageEditor, GalleryEditor, Invitation templates
+│   │   └── Invitation/templates/  # 6 invitation templates
 │   ├── templates/ # WeddingTemplateV1, PartyTemplateV1, etc.
 │   └── ui/        # Primitives (Button, Input, etc.)
 ├── lib/           # Utilities (db, auth, email, tokens)
@@ -324,7 +352,7 @@ docs/              # 8+ documentation files
 The Event Platform MVP is **complete and production-ready**. Code quality is high with strict TypeScript, comprehensive testing, and secure patterns. Recent enhancements include:
 
 - **Invite Management Features** with RSVP deadlines, CSV export, and automatic follow-up reminders
-- **Elegant Invitation Templates** with 4 animated templates (Envelope Reveal, Layered Unfold, Cinematic Scroll, Time-Based Reveal)
+- **Elegant Invitation Templates** with 6 animated templates (Envelope Reveal, Envelope Reveal V2, Split Reveal, Layered Unfold, Cinematic Scroll, Time-Based Reveal) and structured couple names support
 - **Premium Landing Page** with glassmorphism, scroll animations, interactive demo, and full accessibility support
 - **Enhanced Gallery** with display modes, auto-play, transitions, and per-image annotations
 - **Wedding Template Variants** with 5 distinct styles and wedding-specific sections
