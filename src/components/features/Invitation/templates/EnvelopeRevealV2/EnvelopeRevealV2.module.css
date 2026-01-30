@@ -169,7 +169,7 @@
   /* Layout tokens */
   --env-width: min(90vw, 380px);
   --env-height: calc(var(--env-width) * 0.65);
-  --card-width: calc(var(--env-width) * 0.85);
+  --card-width: calc(var(--env-width) * 0.88);
 }
 
 /* =============================================================================
@@ -209,7 +209,7 @@
   background: var(--env-back);
   border-radius: 4px;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-out);
+  transition: transform var(--dur-medium) var(--ease-out);
   box-shadow:
     0 2px 8px var(--env-shadow),
     0 8px 24px var(--env-shadow),
@@ -223,6 +223,11 @@
 
 .envelopeWrapper:active:not(.flap) {
   transform: scale(0.99);
+}
+
+/* When opened, envelope stays in place - card comes to front */
+.envelopeWrapper.flap {
+  cursor: default;
 }
 
 .envelopeWrapper:focus-visible {
@@ -355,6 +360,7 @@
   border-bottom: calc(var(--env-height) * 0.48) solid var(--env-back);
   border-left: calc(var(--env-width) / 2) solid var(--env-back);
   transition: opacity var(--dur-medium) var(--ease-out);
+  pointer-events: none;
 }
 
 /* Cover gradient overlay */
@@ -498,17 +504,25 @@
 .letter {
   position: absolute;
   left: 50%;
-  bottom: 10%;
-  z-index: 2;
+  /* Position card inside envelope, peeking from top */
+  top: 20%;
+  z-index: 7;
   width: var(--card-width);
-  transform: translateX(-50%);
+  /* Start inside envelope, will slide up and center when opened */
+  transform: translateX(-50%) translateY(0);
   background: var(--card-bg);
   border-radius: 6px;
-  padding: 2rem 1.75rem;
+  /* Minimal padding - InvitationCard has its own */
+  padding: 0.5rem;
   text-align: center;
+  /* Teaser: show only top portion (names) initially */
+  max-height: 90px;
+  overflow: hidden;
   transition:
+    max-height var(--dur-slow) var(--ease-out),
     transform var(--dur-slow) var(--ease-out),
-    bottom var(--dur-slow) var(--ease-out);
+    top var(--dur-slow) var(--ease-out),
+    box-shadow var(--dur-medium) var(--ease-out);
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.08),
     0 4px 16px rgba(0, 0, 0, 0.06);
@@ -524,8 +538,62 @@
   pointer-events: none;
 }
 
+/* Fade mask at bottom of teaser to hint at more content */
+.letter::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--card-bg));
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--dur-medium) var(--ease-out);
+}
+
 .letterContent {
   position: relative;
+}
+
+/* =============================================================================
+   COMPACT STYLES FOR INVITATIONCARD
+   When InvitationCard is rendered inside EnvelopeRevealV2, apply tighter spacing
+   ============================================================================= */
+
+.letterContent :global(.invitation-card) {
+  /* Compact padding for envelope context */
+  padding: 1.5rem 1.25rem !important;
+  /* Remove shadow/background - letter provides these */
+  background: transparent !important;
+  box-shadow: none !important;
+  /* Reset max-width constraint */
+  max-width: none !important;
+}
+
+/* Scale down all text and spacing proportionally */
+.letterContent :global(.invitation-card) h1 {
+  font-size: 1.75rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.letterContent :global(.invitation-card) p {
+  margin-bottom: 0.5rem !important;
+}
+
+.letterContent :global(.invitation-card) > p {
+  font-size: 0.7rem !important;
+}
+
+.letterContent :global(.invitation-card) div {
+  margin-bottom: 0.5rem !important;
+}
+
+/* RSVP button - compact */
+.letterContent :global(.invitation-card) a[href] {
+  padding: 0.5rem 1.5rem !important;
+  font-size: 0.65rem !important;
+  margin-top: 0.25rem;
 }
 
 /* =============================================================================
@@ -605,10 +673,22 @@
 }
 
 .flap .letter {
-  bottom: calc(100% - 20px);
-  transform: translateX(-50%) scale(1.08);
-  transition-delay: calc(var(--dur-fast) + 0.1s);
-  z-index: 15;
+  /* Card expands to fit content, constrained to viewport */
+  max-height: calc(100dvh - 8rem);
+  overflow: visible;
+  /* Center vertically on envelope for full visibility */
+  transform: translateX(-50%) translateY(-50%);
+  top: 50%;
+  z-index: 20;
+  transition-delay: calc(var(--dur-medium) * 0.5);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.15),
+    0 16px 48px rgba(0, 0, 0, 0.1);
+}
+
+/* Hide the fade mask when open */
+.flap .letter::after {
+  opacity: 0;
 }
 
 .flap .seal {
@@ -668,6 +748,8 @@
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
   transition-delay: var(--dur-slow);
+  /* Ensure button is above the expanded card (z-index: 20) */
+  z-index: 30;
 }
 
 /* =============================================================================
@@ -712,10 +794,12 @@
 @media (max-width: 400px) {
   .container {
     --env-width: 95vw;
+    padding: 1rem;
   }
 
   .letter {
-    padding: 1.5rem 1.25rem;
+    padding: 0.25rem;
+    max-height: 80px;
   }
 
   .letterNames {
@@ -740,6 +824,19 @@
 
   .sealIcon::before { top: -7px; }
   .sealIcon::after { left: -7px; }
+
+  /* Even more compact InvitationCard on small screens */
+  .letterContent :global(.invitation-card) {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .letterContent :global(.invitation-card) h1 {
+    font-size: 1.35rem !important;
+  }
+
+  .letterContent :global(.invitation-card) > p {
+    font-size: 0.65rem !important;
+  }
 }
 
 @media (min-width: 500px) {
