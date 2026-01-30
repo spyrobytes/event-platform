@@ -9,6 +9,7 @@ import {
   InvitationShell,
   InvitationCard,
   EnvelopeReveal,
+  EnvelopeRevealV2,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
@@ -183,6 +184,16 @@ export default function InvitationPreviewPage() {
       }
     }
 
+    // Wrapper-style templates
+    if (templateId === "ENVELOPE_REVEAL_V2") {
+      return (
+        <EnvelopeRevealV2 showClose={true} addresseeName="Preview Guest">
+          <InvitationCard data={invitationData} rsvpButtonText="RSVP" showRsvpButton={true} />
+        </EnvelopeRevealV2>
+      );
+    }
+
+    // Default to EnvelopeReveal V1
     return (
       <EnvelopeReveal showClose={true}>
         <InvitationCard data={invitationData} rsvpButtonText="RSVP" showRsvpButton={true} />

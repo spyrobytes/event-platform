@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import styles from "./EnvelopeRevealV2.module.css";
 
 type EnvelopeTheme = "forest" | "blush" | "navy" | "sage" | "champagne";
+type EnvelopeState = "back" | "front" | "open";
 
 type EnvelopeRevealV2Props = {
   /** Content to display inside the invitation card */
@@ -25,6 +26,8 @@ type EnvelopeRevealV2Props = {
   sealContent?: React.ReactNode;
   /** Additional CSS classes */
   className?: string;
+  /** Name to display on the back of the envelope */
+  addresseeName?: string;
 };
 
 /**
@@ -48,15 +51,19 @@ export function EnvelopeRevealV2({
   theme = "forest",
   autoOpen = false,
   onStateChange,
-  ariaLabel = "Open wedding invitation",
+  ariaLabel,
   showClose = true,
   showHint = true,
   sealContent,
   className,
+  addresseeName,
 }: EnvelopeRevealV2Props) {
-  const [isOpen, setIsOpen] = useState(autoOpen);
+  const [state, setState] = useState<EnvelopeState>(autoOpen ? "open" : "back");
   const [reducedMotion, setReducedMotion] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Derive isOpen for backwards compatibility
+  const isOpen = state === "open";
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -73,40 +80,68 @@ export function EnvelopeRevealV2({
     onStateChange?.(isOpen);
   }, [isOpen, onStateChange]);
 
-  // Handle envelope click (open only)
+  // Handle envelope click based on current state
   const handleEnvelopeClick = useCallback(
     (e: React.MouseEvent) => {
-      // Don't open if clicking close button
+      // Don't act if clicking close button
       if ((e.target as HTMLElement).closest(`.${styles.closeBtn}`)) return;
-      if (!isOpen) {
-        setIsOpen(true);
+
+      if (state === "back") {
+        // Any click on back flips to front
+        setState("front");
+      } else if (state === "front") {
+        // Only seal click opens the envelope
+        if ((e.target as HTMLElement).closest(`.${styles.seal}`)) {
+          setState("open");
+        }
       }
+      // In "open" state, clicks are ignored (use close button)
     },
-    [isOpen]
+    [state]
   );
 
-  // Handle close button click
+  // Handle close button click - returns to back state
   const handleClose = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsOpen(false);
+    setState("back");
   }, []);
 
   // Handle keyboard interaction
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if ((e.key === "Enter" || e.key === " ") && !isOpen) {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setIsOpen(true);
+        if (state === "back") {
+          setState("front");
+        } else if (state === "front") {
+          setState("open");
+        }
       }
-      if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
+      if (e.key === "Escape" && state !== "back") {
+        setState("back");
       }
     },
-    [isOpen]
+    [state]
   );
+
+  // Dynamic aria-label based on state
+  const getAriaLabel = () => {
+    if (ariaLabel) return ariaLabel;
+    switch (state) {
+      case "back":
+        return "Flip envelope to see the front";
+      case "front":
+        return "Click the seal to open the invitation";
+      case "open":
+        return "Wedding invitation";
+    }
+  };
 
   // Theme class
   const themeClass = styles[`theme${theme.charAt(0).toUpperCase() + theme.slice(1)}`];
+
+  // Display name for addressee
+  const displayName = addresseeName || "Guest";
 
   return (
     <div
@@ -119,47 +154,60 @@ export function EnvelopeRevealV2({
     >
       <div
         ref={wrapperRef}
-        className={cn(styles.envelopeWrapper, isOpen && styles.flap)}
+        className={cn(
+          styles.envelopeWrapper,
+          state === "front" && styles.flipped,
+          state === "open" && styles.flap
+        )}
         onClick={handleEnvelopeClick}
         onKeyDown={handleKeyDown}
         tabIndex={0}
         role="button"
-        aria-label={ariaLabel}
+        aria-label={getAriaLabel()}
         aria-expanded={isOpen}
       >
-        <div className={styles.envelope}>
-          {/* Inner liner (visible when flap opens) */}
-          <div className={styles.envelopeLiner} aria-hidden="true" />
+        {/* 3D flip container */}
+        <div className={styles.envelopeInner}>
+          {/* BACK FACE - Addressee name */}
+          <div className={styles.envelopeBack} aria-hidden={state !== "back"}>
+            <span className={styles.addresseeName}>{displayName}</span>
+          </div>
 
-          {/* Flap front overlay */}
-          <div className={styles.envelopeFlapFront} aria-hidden="true" />
+          {/* FRONT FACE - The envelope */}
+          <div className={styles.envelope}>
+            {/* Inner liner (visible when flap opens) */}
+            <div className={styles.envelopeLiner} aria-hidden="true" />
 
-          {/* Front cover gradient */}
-          <div className={styles.envelopeCoverGradient} aria-hidden="true" />
+            {/* Flap front overlay */}
+            <div className={styles.envelopeFlapFront} aria-hidden="true" />
 
-          {/* The invitation card */}
-          <div
-            className={styles.letter}
-            role="region"
-            aria-label="Invitation details"
-            aria-hidden={!isOpen}
-          >
-            <div className={styles.letterContent}>{children}</div>
+            {/* Front cover gradient */}
+            <div className={styles.envelopeCoverGradient} aria-hidden="true" />
+
+            {/* The invitation card */}
+            <div
+              className={styles.letter}
+              role="region"
+              aria-label="Invitation details"
+              aria-hidden={!isOpen}
+            >
+              <div className={styles.letterContent}>{children}</div>
+            </div>
+          </div>
+
+          {/* Wax seal */}
+          <div className={styles.seal} aria-hidden="true">
+            <div className={styles.sealBody}>
+              {sealContent ?? <div className={styles.sealIcon} />}
+            </div>
           </div>
         </div>
 
-        {/* Wax seal */}
-        <div className={styles.seal} aria-hidden="true">
-          <div className={styles.sealBody}>
-            {sealContent ?? <div className={styles.sealIcon} />}
-          </div>
-        </div>
-
-        {/* Hint text */}
+        {/* Hint text - changes based on state */}
         {showHint && (
           <span className={styles.hint}>
             <span className={styles.hintIcon}>&#x2709;</span>
-            Tap to open
+            {state === "back" ? "Tap to flip" : "Tap the seal"}
           </span>
         )}
 

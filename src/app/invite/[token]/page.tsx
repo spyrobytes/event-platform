@@ -6,6 +6,7 @@ import {
   InvitationShell,
   InvitationCard,
   EnvelopeReveal,
+  EnvelopeRevealV2,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
@@ -256,7 +257,28 @@ export default async function InvitationPage({ params }: PageProps) {
       }
     }
 
-    // Wrapper-style templates (EnvelopeReveal and future wrapper templates)
+    // Wrapper-style templates
+    if (templateId === "ENVELOPE_REVEAL_V2") {
+      return (
+        <EnvelopeRevealV2
+          autoOpen={hasResponded}
+          showClose={!hasResponded}
+          addresseeName={invite.name || "Guest"}
+        >
+          <InvitationCard
+            data={invitationData}
+            rsvpButtonText={
+              hasResponded
+                ? `Responded: ${responseLabels[invite.rsvp!.response]}`
+                : "RSVP"
+            }
+            showRsvpButton={true}
+          />
+        </EnvelopeRevealV2>
+      );
+    }
+
+    // Default to EnvelopeReveal V1
     return (
       <EnvelopeReveal
         initialState={hasResponded ? "open" : undefined}
