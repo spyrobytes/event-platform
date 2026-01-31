@@ -1,0 +1,691 @@
+/* ============================================
+   FlipFlapReveal.module.css
+
+   Premium wedding invitation flip-flap animation
+   Book-style hinge flip with photo cover
+
+   Structure:
+   - Wrapper & Card base
+   - Card Content (inner, revealed)
+   - Card Flap (cover, flips open)
+   - Flap Front (photo + seal)
+   - Flap Back (interior text)
+   - Wax Seal
+   - Corner Flourishes
+   - Close Button
+   - Confetti
+   - Accessibility
+   - Responsive
+   ============================================ */
+
+/* ============================================
+   WRAPPER & CARD BASE
+   ============================================ */
+
+.wrapper {
+  position: relative;
+  perspective: 2000px;
+  margin: 2rem 0;
+
+  /* Animation timings */
+  --ffr-duration: 1.4s;
+  --ffr-seal-duration: 0.5s;
+  --ffr-tilt-duration: 0.8s;
+  --ffr-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card {
+  position: relative;
+  width: 340px;
+  height: 480px;
+  transform-style: preserve-3d;
+  transition: transform var(--ffr-tilt-duration) var(--ffr-ease);
+  cursor: pointer;
+  animation: cardEntrance 1s ease-out;
+}
+
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Card tilts when opened */
+.card.isOpen {
+  transform: rotateY(-8deg) rotateX(2deg);
+}
+
+/* ============================================
+   CARD CONTENT (Inner - revealed on flip)
+   ============================================ */
+
+.cardContent {
+  position: absolute;
+  inset: 0;
+  background: var(--ffr-card-bg);
+  border: 1px solid var(--ffr-card-border);
+  border-radius: 4px;
+  box-shadow:
+    0 4px 20px var(--ffr-card-shadow),
+    0 8px 40px var(--ffr-card-shadow-deep),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Decorative border inside */
+.cardContent::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 1px solid var(--ffr-flourish-color);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Inner content wrapper */
+.contentInner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.6s ease 0.6s, transform 0.6s ease 0.6s;
+}
+
+.card.isOpen .contentInner {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Header text */
+.invitationHeader {
+  font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ffr-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+/* Couple names */
+.coupleNames {
+  font-family: var(--inv-font-heading, 'Playfair Display', Georgia, serif);
+  font-size: 2.4rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ffr-text-primary);
+  line-height: 1.1;
+  margin: 0.5rem 0;
+}
+
+.ampersand {
+  display: block;
+  font-size: 1.8rem;
+  color: var(--ffr-text-accent);
+  margin: 0.15rem 0;
+}
+
+/* Decorative divider */
+.divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--ffr-flourish-accent), transparent);
+  margin: 0.5rem 0;
+}
+
+/* Event details */
+.eventDetails {
+  margin-top: 0.25rem;
+}
+
+.eventDate {
+  font-family: var(--inv-font-heading, 'Playfair Display', Georgia, serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--ffr-text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.eventTime {
+  font-family: var(--inv-font-body, 'Cormorant Garamond', Georgia, serif);
+  font-size: 1rem;
+  color: var(--ffr-text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.eventVenue {
+  font-family: var(--inv-font-body, 'Cormorant Garamond', Georgia, serif);
+  font-size: 0.95rem;
+  color: var(--ffr-text-secondary);
+  line-height: 1.5;
+}
+
+.eventVenue strong {
+  display: block;
+  font-weight: 600;
+  color: var(--ffr-text-primary);
+  margin-bottom: 0.15rem;
+}
+
+/* RSVP Button */
+.rsvpBtn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 2rem;
+  background: var(--ffr-btn-bg);
+  color: var(--ffr-btn-text);
+  border: none;
+  border-radius: 2rem;
+  font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--ffr-card-shadow);
+}
+
+.rsvpBtn:hover {
+  background: var(--ffr-btn-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--ffr-card-shadow-deep);
+}
+
+.rsvpBtn:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   CARD FLAP (Cover - flips open)
+   ============================================ */
+
+.cardFlap {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform var(--ffr-duration) var(--ffr-ease);
+  z-index: 10;
+}
+
+.card.isOpen .cardFlap {
+  transform: rotateY(-145deg);
+}
+
+/* ============================================
+   FLAP FRONT (Photo side)
+   ============================================ */
+
+.flapFront {
+  position: absolute;
+  inset: 0;
+  background: var(--ffr-flap-bg);
+  border: 1px solid var(--ffr-flap-border);
+  border-radius: 4px;
+  box-shadow:
+    0 4px 20px var(--ffr-card-shadow),
+    inset -80px 0 60px -40px var(--ffr-flap-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+/* Decorative border */
+.flapFront::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 1px solid var(--ffr-flourish-color);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Photo frame area */
+.photoFrame {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  right: 24px;
+  bottom: 100px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--ffr-photo-frame-bg);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.1),
+    0 2px 8px var(--ffr-card-shadow);
+}
+
+.couplePhoto {
+  display: block;
+}
+
+/* Vignette overlay on photo */
+.photoFrame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    var(--ffr-photo-vignette) 100%
+  );
+  pointer-events: none;
+}
+
+/* Names overlay on photo */
+.photoNamesOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem 1rem 1rem;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    transparent 100%
+  );
+  text-align: center;
+  z-index: 2;
+}
+
+.photoNames {
+  font-family: var(--inv-font-heading, 'Playfair Display', Georgia, serif);
+  font-size: 1.6rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ffr-text-on-photo);
+  text-shadow: 0 2px 8px var(--ffr-text-on-photo-shadow);
+  letter-spacing: 0.02em;
+}
+
+.amp {
+  margin: 0 0.3em;
+  font-style: normal;
+  opacity: 0.9;
+}
+
+/* ============================================
+   CORNER FLOURISHES
+   ============================================ */
+
+.cornerFlourish {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  color: var(--ffr-flourish-accent);
+  opacity: 0.5;
+  z-index: 5;
+}
+
+.cornerFlourish svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
+.topLeft {
+  top: 16px;
+  left: 16px;
+}
+
+.topRight {
+  top: 16px;
+  right: 16px;
+  transform: scaleX(-1);
+}
+
+.bottomLeft {
+  bottom: 90px;
+  left: 16px;
+  transform: scaleY(-1);
+}
+
+.bottomRight {
+  bottom: 90px;
+  right: 16px;
+  transform: scale(-1);
+}
+
+/* ============================================
+   WAX SEAL
+   ============================================ */
+
+.sealArea {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.seal {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  background: var(--ffr-seal-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4px 15px var(--ffr-card-shadow-deep),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--ffr-seal-border);
+  transition:
+    transform var(--ffr-seal-duration) ease,
+    opacity var(--ffr-seal-duration) ease;
+}
+
+/* Seal glow effect */
+.seal::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: var(--ffr-seal-glow);
+  filter: blur(12px);
+  opacity: 0;
+  animation: sealPulse 2s ease-in-out infinite;
+}
+
+@keyframes sealPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+/* Monogram on seal */
+.sealMonogram {
+  font-family: var(--inv-font-heading, 'Playfair Display', Georgia, serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ffr-seal-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.05em;
+}
+
+/* Seal breaks on open */
+.card.isOpen .seal {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+/* "Tap to open" hint */
+.tapHint {
+  margin-top: 8px;
+  font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ffr-text-muted);
+  white-space: nowrap;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+  animation: hintBounce 2s ease-in-out infinite;
+}
+
+@keyframes hintBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+.card.isOpen .tapHint {
+  opacity: 0;
+}
+
+/* ============================================
+   FLAP BACK (Interior - visible when open)
+   ============================================ */
+
+.flapBack {
+  position: absolute;
+  inset: 0;
+  background: var(--ffr-flap-back-bg);
+  border: 1px solid var(--ffr-flap-border);
+  border-radius: 4px;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Subtle pattern on back */
+.flapBack::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5 L35 15 L45 15 L37 22 L40 32 L30 26 L20 32 L23 22 L15 15 L25 15 Z' fill='%23000' fill-opacity='0.02'/%3E%3C/svg%3E");
+  background-size: 40px 40px;
+  opacity: 0.5;
+}
+
+/* Text on flap interior */
+.flapBackContent {
+  text-align: center;
+  color: var(--ffr-text-muted);
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.flapBackText {
+  font-family: var(--inv-font-heading, 'Playfair Display', Georgia, serif);
+  font-size: 1.4rem;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.flapBackDate {
+  font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   CLOSE BUTTON
+   ============================================ */
+
+.closeBtn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 32px;
+  height: 32px;
+  background: var(--ffr-card-bg);
+  border: 1px solid var(--ffr-card-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 2px 10px var(--ffr-card-shadow);
+}
+
+.closeBtn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--ffr-text-secondary);
+  transition: color 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: var(--ffr-btn-bg);
+}
+
+.closeBtn:hover svg {
+  color: var(--ffr-btn-text);
+}
+
+.card.isOpen .closeBtn {
+  opacity: 1;
+  transform: scale(1);
+  transition-delay: 0.8s;
+}
+
+/* ============================================
+   CONFETTI
+   ============================================ */
+
+.confettiContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: visible;
+}
+
+.confettiPiece {
+  position: absolute;
+  pointer-events: none;
+}
+
+.confettiCircle {
+  border-radius: 50%;
+}
+
+.confettiDiamond {
+  transform: rotate(45deg);
+}
+
+/* ============================================
+   REDUCED MOTION SUPPORT
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .cardFlap,
+  .seal,
+  .contentInner,
+  .closeBtn,
+  .tapHint {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .card.isOpen .cardFlap {
+    transform: rotateY(-145deg);
+  }
+
+  .card.isOpen .contentInner {
+    opacity: 1;
+    transform: none;
+  }
+
+  .card.isOpen .closeBtn {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .seal::before {
+    animation: none;
+  }
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 400px) {
+  .card {
+    width: 300px;
+    height: 420px;
+  }
+
+  .coupleNames {
+    font-size: 2rem;
+  }
+
+  .photoFrame {
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    bottom: 85px;
+  }
+
+  .photoNames {
+    font-size: 1.4rem;
+  }
+
+  .seal {
+    width: 60px;
+    height: 60px;
+  }
+
+  .sealMonogram {
+    font-size: 0.9rem;
+  }
+
+  .cardContent {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .cornerFlourish {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bottomLeft,
+  .bottomRight {
+    bottom: 75px;
+  }
+}
+
+/* ============================================
+   FOCUS STATES FOR ACCESSIBILITY
+   ============================================ */
+
+.card:focus {
+  outline: none;
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--ffr-text-accent);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.rsvpBtn:focus-visible,
+.closeBtn:focus-visible {
+  outline: 2px solid var(--ffr-text-accent);
+  outline-offset: 2px;
+}

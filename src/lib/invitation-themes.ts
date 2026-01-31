@@ -195,6 +195,212 @@ export function getGoldenCardThemeStyleString(themeId: ThemeId): string {
 }
 
 // =============================================================================
+// FLIP FLAP REVEAL THEME TOKENS
+// =============================================================================
+
+/**
+ * Theme tokens specific to the FlipFlapReveal template.
+ * Book-style flip card with photo cover and wax seal.
+ * Maps existing theme IDs to the template's visual style.
+ */
+export const flipFlapThemes = {
+  ivory: {
+    "--ffr-bg-page": "#f5f0e8",
+    "--ffr-bg-page-pattern": "rgba(139, 119, 101, 0.03)",
+    "--ffr-card-bg": "linear-gradient(145deg, #fdfbf7 0%, #f8f4ed 50%, #f3efe6 100%)",
+    "--ffr-card-border": "#d4c8b8",
+    "--ffr-card-shadow": "rgba(139, 119, 101, 0.15)",
+    "--ffr-card-shadow-deep": "rgba(80, 60, 40, 0.25)",
+    "--ffr-flap-bg": "linear-gradient(165deg, #f9f6f0 0%, #f0ebe2 40%, #e8e2d8 100%)",
+    "--ffr-flap-border": "#c9bba8",
+    "--ffr-flap-shadow": "rgba(139, 119, 101, 0.3)",
+    "--ffr-flap-back-bg": "linear-gradient(145deg, #f0ebe2 0%, #e8e2d8 100%)",
+    "--ffr-photo-border": "#c9bba8",
+    "--ffr-photo-frame-bg": "linear-gradient(145deg, #fdfbf7, #f3efe6)",
+    "--ffr-photo-vignette": "rgba(60, 45, 30, 0.4)",
+    "--ffr-seal-bg": "linear-gradient(145deg, #c4a574 0%, #a68856 50%, #8b7045 100%)",
+    "--ffr-seal-border": "#7d6340",
+    "--ffr-seal-text": "#f5f0e8",
+    "--ffr-seal-glow": "rgba(196, 165, 116, 0.5)",
+    "--ffr-text-primary": "#3d3229",
+    "--ffr-text-secondary": "#6b5d4d",
+    "--ffr-text-muted": "#8b7d6b",
+    "--ffr-text-accent": "#a68856",
+    "--ffr-text-on-photo": "rgba(255, 255, 255, 0.95)",
+    "--ffr-text-on-photo-shadow": "rgba(0, 0, 0, 0.6)",
+    "--ffr-flourish-color": "#c9bba8",
+    "--ffr-flourish-accent": "#a68856",
+    "--ffr-btn-bg": "linear-gradient(145deg, #a68856 0%, #8b7045 100%)",
+    "--ffr-btn-text": "#fff",
+    "--ffr-btn-hover": "linear-gradient(145deg, #b8975f 0%, #9a7d4f 100%)",
+    "--ffr-confetti-1": "#c4a574",
+    "--ffr-confetti-2": "#a68856",
+    "--ffr-confetti-3": "#d4c8b8",
+    "--ffr-confetti-4": "#e8dfd2",
+    "--ffr-confetti-5": "#8b7045",
+  },
+  blush: {
+    "--ffr-bg-page": "#faf5f5",
+    "--ffr-bg-page-pattern": "rgba(180, 130, 130, 0.04)",
+    "--ffr-card-bg": "linear-gradient(145deg, #fffafa 0%, #fdf5f5 50%, #f9eeee 100%)",
+    "--ffr-card-border": "#e8d0d0",
+    "--ffr-card-shadow": "rgba(180, 130, 130, 0.15)",
+    "--ffr-card-shadow-deep": "rgba(120, 80, 80, 0.2)",
+    "--ffr-flap-bg": "linear-gradient(165deg, #fdf8f8 0%, #f5ebeb 40%, #ede2e2 100%)",
+    "--ffr-flap-border": "#dcc4c4",
+    "--ffr-flap-shadow": "rgba(180, 130, 130, 0.25)",
+    "--ffr-flap-back-bg": "linear-gradient(145deg, #f5ebeb 0%, #ede2e2 100%)",
+    "--ffr-photo-border": "#dcc4c4",
+    "--ffr-photo-frame-bg": "linear-gradient(145deg, #fffafa, #f9eeee)",
+    "--ffr-photo-vignette": "rgba(80, 50, 50, 0.35)",
+    "--ffr-seal-bg": "linear-gradient(145deg, #d4a5a5 0%, #c48888 50%, #b06b6b 100%)",
+    "--ffr-seal-border": "#9a5858",
+    "--ffr-seal-text": "#fff",
+    "--ffr-seal-glow": "rgba(196, 136, 136, 0.5)",
+    "--ffr-text-primary": "#4a3636",
+    "--ffr-text-secondary": "#7a5e5e",
+    "--ffr-text-muted": "#a08888",
+    "--ffr-text-accent": "#b87070",
+    "--ffr-text-on-photo": "rgba(255, 255, 255, 0.95)",
+    "--ffr-text-on-photo-shadow": "rgba(0, 0, 0, 0.6)",
+    "--ffr-flourish-color": "#dcc4c4",
+    "--ffr-flourish-accent": "#c48888",
+    "--ffr-btn-bg": "linear-gradient(145deg, #c48888 0%, #b06b6b 100%)",
+    "--ffr-btn-text": "#fff",
+    "--ffr-btn-hover": "linear-gradient(145deg, #d49999 0%, #c07878 100%)",
+    "--ffr-confetti-1": "#d4a5a5",
+    "--ffr-confetti-2": "#c48888",
+    "--ffr-confetti-3": "#e8d0d0",
+    "--ffr-confetti-4": "#f5ebeb",
+    "--ffr-confetti-5": "#b06b6b",
+  },
+  sage: {
+    "--ffr-bg-page": "#f0f4f0",
+    "--ffr-bg-page-pattern": "rgba(100, 130, 100, 0.04)",
+    "--ffr-card-bg": "linear-gradient(145deg, #f8faf8 0%, #f2f6f2 50%, #eaf0ea 100%)",
+    "--ffr-card-border": "#c8d8c8",
+    "--ffr-card-shadow": "rgba(100, 130, 100, 0.15)",
+    "--ffr-card-shadow-deep": "rgba(60, 80, 60, 0.2)",
+    "--ffr-flap-bg": "linear-gradient(165deg, #f5f9f5 0%, #e8f0e8 40%, #dde8dd 100%)",
+    "--ffr-flap-border": "#b8ccb8",
+    "--ffr-flap-shadow": "rgba(100, 130, 100, 0.25)",
+    "--ffr-flap-back-bg": "linear-gradient(145deg, #e8f0e8 0%, #dde8dd 100%)",
+    "--ffr-photo-border": "#b8ccb8",
+    "--ffr-photo-frame-bg": "linear-gradient(145deg, #f8faf8, #eaf0ea)",
+    "--ffr-photo-vignette": "rgba(40, 60, 40, 0.35)",
+    "--ffr-seal-bg": "linear-gradient(145deg, #8faa8f 0%, #749874 50%, #5a805a 100%)",
+    "--ffr-seal-border": "#4a6a4a",
+    "--ffr-seal-text": "#fff",
+    "--ffr-seal-glow": "rgba(116, 152, 116, 0.5)",
+    "--ffr-text-primary": "#2e3e2e",
+    "--ffr-text-secondary": "#4a5f4a",
+    "--ffr-text-muted": "#6a846a",
+    "--ffr-text-accent": "#5a805a",
+    "--ffr-text-on-photo": "rgba(255, 255, 255, 0.95)",
+    "--ffr-text-on-photo-shadow": "rgba(0, 0, 0, 0.6)",
+    "--ffr-flourish-color": "#b8ccb8",
+    "--ffr-flourish-accent": "#749874",
+    "--ffr-btn-bg": "linear-gradient(145deg, #749874 0%, #5a805a 100%)",
+    "--ffr-btn-text": "#fff",
+    "--ffr-btn-hover": "linear-gradient(145deg, #84a884 0%, #6a906a 100%)",
+    "--ffr-confetti-1": "#8faa8f",
+    "--ffr-confetti-2": "#749874",
+    "--ffr-confetti-3": "#c8d8c8",
+    "--ffr-confetti-4": "#dde8dd",
+    "--ffr-confetti-5": "#5a805a",
+  },
+  midnight: {
+    "--ffr-bg-page": "#1a1f2e",
+    "--ffr-bg-page-pattern": "rgba(180, 190, 210, 0.03)",
+    "--ffr-card-bg": "linear-gradient(145deg, #252b3d 0%, #1e2433 50%, #181d2a 100%)",
+    "--ffr-card-border": "#3d4560",
+    "--ffr-card-shadow": "rgba(0, 0, 0, 0.3)",
+    "--ffr-card-shadow-deep": "rgba(0, 0, 0, 0.5)",
+    "--ffr-flap-bg": "linear-gradient(165deg, #2a3145 0%, #232840 40%, #1c2035 100%)",
+    "--ffr-flap-border": "#4a5575",
+    "--ffr-flap-shadow": "rgba(0, 0, 0, 0.4)",
+    "--ffr-flap-back-bg": "linear-gradient(145deg, #232840 0%, #1c2035 100%)",
+    "--ffr-photo-border": "#4a5575",
+    "--ffr-photo-frame-bg": "linear-gradient(145deg, #2a3145, #1c2035)",
+    "--ffr-photo-vignette": "rgba(10, 15, 30, 0.5)",
+    "--ffr-seal-bg": "linear-gradient(145deg, #d4b896 0%, #c4a57a 50%, #a8895f 100%)",
+    "--ffr-seal-border": "#8a7048",
+    "--ffr-seal-text": "#1a1f2e",
+    "--ffr-seal-glow": "rgba(212, 184, 150, 0.4)",
+    "--ffr-text-primary": "#e8eaf0",
+    "--ffr-text-secondary": "#b8bcc8",
+    "--ffr-text-muted": "#8890a0",
+    "--ffr-text-accent": "#d4b896",
+    "--ffr-text-on-photo": "rgba(255, 255, 255, 0.95)",
+    "--ffr-text-on-photo-shadow": "rgba(0, 0, 0, 0.7)",
+    "--ffr-flourish-color": "#4a5575",
+    "--ffr-flourish-accent": "#c4a57a",
+    "--ffr-btn-bg": "linear-gradient(145deg, #c4a57a 0%, #a8895f 100%)",
+    "--ffr-btn-text": "#1a1f2e",
+    "--ffr-btn-hover": "linear-gradient(145deg, #d4b88a 0%, #b8996a 100%)",
+    "--ffr-confetti-1": "#d4b896",
+    "--ffr-confetti-2": "#c4a57a",
+    "--ffr-confetti-3": "#8890a0",
+    "--ffr-confetti-4": "#5a6280",
+    "--ffr-confetti-5": "#a8895f",
+  },
+  champagne: {
+    "--ffr-bg-page": "#f7f3e9",
+    "--ffr-bg-page-pattern": "rgba(160, 130, 80, 0.04)",
+    "--ffr-card-bg": "linear-gradient(145deg, #faf6ed 0%, #f5f0e3 50%, #ebe5d5 100%)",
+    "--ffr-card-border": "#d8cfc0",
+    "--ffr-card-shadow": "rgba(160, 130, 80, 0.15)",
+    "--ffr-card-shadow-deep": "rgba(100, 80, 40, 0.25)",
+    "--ffr-flap-bg": "linear-gradient(165deg, #f7f3e9 0%, #ede6d8 40%, #e5ddc8 100%)",
+    "--ffr-flap-border": "#c9bfa8",
+    "--ffr-flap-shadow": "rgba(160, 130, 80, 0.3)",
+    "--ffr-flap-back-bg": "linear-gradient(145deg, #ede6d8 0%, #e5ddc8 100%)",
+    "--ffr-photo-border": "#c9bfa8",
+    "--ffr-photo-frame-bg": "linear-gradient(145deg, #faf6ed, #ebe5d5)",
+    "--ffr-photo-vignette": "rgba(60, 50, 30, 0.4)",
+    "--ffr-seal-bg": "linear-gradient(145deg, #c9a961 0%, #b89940 50%, #9a8030 100%)",
+    "--ffr-seal-border": "#8a7a30",
+    "--ffr-seal-text": "#faf6ed",
+    "--ffr-seal-glow": "rgba(201, 169, 97, 0.5)",
+    "--ffr-text-primary": "#3d3520",
+    "--ffr-text-secondary": "#6a5a40",
+    "--ffr-text-muted": "#8a7a60",
+    "--ffr-text-accent": "#9a8030",
+    "--ffr-text-on-photo": "rgba(255, 255, 255, 0.95)",
+    "--ffr-text-on-photo-shadow": "rgba(0, 0, 0, 0.6)",
+    "--ffr-flourish-color": "#c9bfa8",
+    "--ffr-flourish-accent": "#b89940",
+    "--ffr-btn-bg": "linear-gradient(145deg, #b89940 0%, #9a8030 100%)",
+    "--ffr-btn-text": "#fff",
+    "--ffr-btn-hover": "linear-gradient(145deg, #c9a950 0%, #aa9040 100%)",
+    "--ffr-confetti-1": "#c9a961",
+    "--ffr-confetti-2": "#e0c080",
+    "--ffr-confetti-3": "#d8cfc0",
+    "--ffr-confetti-4": "#fff8e0",
+    "--ffr-confetti-5": "#9a8030",
+  },
+} as const;
+
+export type FlipFlapThemeTokens = (typeof flipFlapThemes)[ThemeId];
+
+/**
+ * Get flip flap theme tokens for a theme ID.
+ */
+export function getFlipFlapThemeTokens(themeId: ThemeId): FlipFlapThemeTokens {
+  return flipFlapThemes[themeId] ?? flipFlapThemes.ivory;
+}
+
+/**
+ * Generates inline CSS string for flip flap theme tokens.
+ */
+export function getFlipFlapThemeStyleString(themeId: ThemeId): string {
+  const tokens = flipFlapThemes[themeId] ?? flipFlapThemes.ivory;
+  return Object.entries(tokens)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("; ");
+}
+
+// =============================================================================
 // TYPOGRAPHY PAIRS
 // =============================================================================
 

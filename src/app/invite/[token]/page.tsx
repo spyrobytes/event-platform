@@ -12,6 +12,7 @@ import {
   CinematicScroll,
   TimeBasedReveal,
   GoldenCardReveal,
+  FlipFlapReveal,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -258,6 +259,15 @@ export default async function InvitationPage({ params }: PageProps) {
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
               showReplay={!hasResponded}
+              showHint={!hasResponded}
+            />
+          );
+        case "FLIP_FLAP_REVEAL":
+          return (
+            <FlipFlapReveal
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              showCloseButton={!hasResponded}
               showHint={!hasResponded}
             />
           );

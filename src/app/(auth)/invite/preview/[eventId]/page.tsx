@@ -15,6 +15,7 @@ import {
   CinematicScroll,
   TimeBasedReveal,
   GoldenCardReveal,
+  FlipFlapReveal,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -192,6 +193,8 @@ export default function InvitationPreviewPage() {
           return <SplitRevealCard data={invitationData} showReplay={true} />;
         case "GOLDEN_CARD_REVEAL":
           return <GoldenCardReveal data={invitationData} showReplay={true} showHint={true} />;
+        case "FLIP_FLAP_REVEAL":
+          return <FlipFlapReveal data={invitationData} showCloseButton={true} showHint={true} />;
         default:
           return (
             <EnvelopeReveal showClose={true}>

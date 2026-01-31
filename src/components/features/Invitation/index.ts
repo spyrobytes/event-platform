@@ -21,6 +21,7 @@ export {
   CinematicScroll,
   TimeBasedReveal,
   GoldenCardReveal,
+  FlipFlapReveal,
   getTemplateComponent,
   getDataDrivenTemplateComponent,
   getTemplateType,

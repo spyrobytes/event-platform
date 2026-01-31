@@ -50,6 +50,7 @@ const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: b
   { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll", available: true },
   { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal", available: true },
   { value: "GOLDEN_CARD_REVEAL", label: "Golden Card Reveal", available: true },
+  { value: "FLIP_FLAP_REVEAL", label: "Flip Flap Reveal", available: true },
 ];
 
 const LOCALE_OPTIONS = [
@@ -400,7 +401,7 @@ export default function InvitationConfigPage() {
         </Card>
 
         {/* Invitation Wording - Shows for templates that support custom wording */}
-        {(template === "SPLIT_REVEAL" || template === "GOLDEN_CARD_REVEAL") && (
+        {(template === "SPLIT_REVEAL" || template === "GOLDEN_CARD_REVEAL" || template === "FLIP_FLAP_REVEAL") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Invitation Wording</CardTitle>

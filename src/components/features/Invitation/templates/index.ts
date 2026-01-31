@@ -5,6 +5,7 @@ export { CinematicScroll } from "./CinematicScroll";
 export { TimeBasedReveal } from "./TimeBasedReveal";
 export { SplitRevealCard } from "./SplitRevealCard";
 export { GoldenCardReveal } from "./GoldenCardReveal";
+export { FlipFlapReveal } from "./FlipFlapReveal";
 
 import type { ComponentType, ReactNode } from "react";
 import type { InvitationState } from "@/hooks";
@@ -16,6 +17,7 @@ import { CinematicScroll } from "./CinematicScroll";
 import { TimeBasedReveal } from "./TimeBasedReveal";
 import { SplitRevealCard } from "./SplitRevealCard";
 import { GoldenCardReveal } from "./GoldenCardReveal";
+import { FlipFlapReveal } from "./FlipFlapReveal";
 
 /**
  * Common props shared by wrapper-style templates (children-based)
@@ -52,7 +54,8 @@ export type TemplateId =
   | "LAYERED_UNFOLD"
   | "CINEMATIC_SCROLL"
   | "TIME_BASED_REVEAL"
-  | "GOLDEN_CARD_REVEAL";
+  | "GOLDEN_CARD_REVEAL"
+  | "FLIP_FLAP_REVEAL";
 
 /**
  * Template type classification
@@ -79,6 +82,7 @@ const templateRegistry: Record<
   CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
   GOLDEN_CARD_REVEAL: { component: GoldenCardReveal, type: "data-driven" },
+  FLIP_FLAP_REVEAL: { component: FlipFlapReveal, type: "data-driven" },
 };
 
 /**
@@ -132,6 +136,12 @@ export const templateMetadata: Record<
   GOLDEN_CARD_REVEAL: {
     name: "Golden Card Reveal",
     description: "Premium 3D flip with wax seal and confetti",
+    available: true,
+    type: "data-driven",
+  },
+  FLIP_FLAP_REVEAL: {
+    name: "Flip Flap Reveal",
+    description: "Book-style flip with photo cover and wax seal",
     available: true,
     type: "data-driven",
   },
