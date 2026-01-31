@@ -20,6 +20,7 @@ export {
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
+  GoldenCardReveal,
   getTemplateComponent,
   getDataDrivenTemplateComponent,
   getTemplateType,

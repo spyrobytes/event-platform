@@ -282,3 +282,45 @@ PR title format: `feat: Add event creation form`, `fix: Resolve RSVP issue`
 - Rate limiting via Upstash Redis (optional)
 - RSVP links use hashed tokens to prevent enumeration
 - Never commit secrets - use `.env.local` (gitignored)
+
+## Adding New Invitation Templates
+
+When adding a new invitation template, update **all** of the following:
+
+### 1. Schema Layer
+- [ ] `src/schemas/invitation.ts` — Add to `INVITATION_TEMPLATES` array
+- [ ] `prisma/schema.prisma` — Add to `InvitationTemplate` enum
+- [ ] Run `npx prisma migrate dev --name add_<template>_template` — **Critical: regenerating client is not enough**
+- [ ] Run `npm run db:generate` — Regenerate Prisma client
+
+### 2. Theme Layer (if template has custom styling)
+- [ ] `src/lib/invitation-themes.ts` — Add template-specific theme tokens
+
+### 3. Component Layer
+- [ ] Create `src/components/features/Invitation/templates/<TemplateName>/`
+  - `types.ts` — Props interface using `InvitationData`
+  - `<TemplateName>.tsx` — Main component
+  - `<TemplateName>.module.css` — CSS animations/styles
+  - `index.ts` — Barrel export
+- [ ] `src/components/features/Invitation/templates/index.ts`:
+  - Add export
+  - Add to `TemplateId` type
+  - Add to `templateRegistry`
+  - Add to `templateMetadata`
+- [ ] `src/components/features/Invitation/index.ts` — Add to barrel export
+
+### 4. Rendering Layer (update ALL pages that render templates)
+- [ ] `src/app/invite/[token]/page.tsx` — Add import + switch case
+- [ ] `src/app/(auth)/invite/preview/[eventId]/page.tsx` — Add import + switch case
+
+### 5. UI Layer
+- [ ] `src/app/(auth)/dashboard/events/[id]/invitation/page.tsx`:
+  - Add to `TEMPLATE_OPTIONS` array
+  - Add to wording fields condition if template supports custom wording
+
+### Common Mistakes
+| Mistake | Symptom |
+|---------|---------|
+| Forgot `prisma migrate dev` | API returns "invalid input value for enum" |
+| Forgot preview page | Template saves but preview shows wrong template |
+| Forgot `templateMetadata` | Template falls through to default in switch |

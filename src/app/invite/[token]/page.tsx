@@ -11,6 +11,7 @@ import {
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
+  GoldenCardReveal,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -249,6 +250,15 @@ export default async function InvitationPage({ params }: PageProps) {
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
               showReplay={!hasResponded}
+            />
+          );
+        case "GOLDEN_CARD_REVEAL":
+          return (
+            <GoldenCardReveal
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              showReplay={!hasResponded}
+              showHint={!hasResponded}
             />
           );
         default:

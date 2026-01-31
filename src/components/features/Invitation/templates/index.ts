@@ -4,6 +4,7 @@ export { LayeredUnfold } from "./LayeredUnfold";
 export { CinematicScroll } from "./CinematicScroll";
 export { TimeBasedReveal } from "./TimeBasedReveal";
 export { SplitRevealCard } from "./SplitRevealCard";
+export { GoldenCardReveal } from "./GoldenCardReveal";
 
 import type { ComponentType, ReactNode } from "react";
 import type { InvitationState } from "@/hooks";
@@ -14,6 +15,7 @@ import { LayeredUnfold } from "./LayeredUnfold";
 import { CinematicScroll } from "./CinematicScroll";
 import { TimeBasedReveal } from "./TimeBasedReveal";
 import { SplitRevealCard } from "./SplitRevealCard";
+import { GoldenCardReveal } from "./GoldenCardReveal";
 
 /**
  * Common props shared by wrapper-style templates (children-based)
@@ -49,7 +51,8 @@ export type TemplateId =
   | "SPLIT_REVEAL"
   | "LAYERED_UNFOLD"
   | "CINEMATIC_SCROLL"
-  | "TIME_BASED_REVEAL";
+  | "TIME_BASED_REVEAL"
+  | "GOLDEN_CARD_REVEAL";
 
 /**
  * Template type classification
@@ -75,6 +78,7 @@ const templateRegistry: Record<
   LAYERED_UNFOLD: { component: LayeredUnfold, type: "data-driven" },
   CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
+  GOLDEN_CARD_REVEAL: { component: GoldenCardReveal, type: "data-driven" },
 };
 
 /**
@@ -122,6 +126,12 @@ export const templateMetadata: Record<
   TIME_BASED_REVEAL: {
     name: "Time-Based Reveal",
     description: "Dramatic auto-playing presentation",
+    available: true,
+    type: "data-driven",
+  },
+  GOLDEN_CARD_REVEAL: {
+    name: "Golden Card Reveal",
+    description: "Premium 3D flip with wax seal and confetti",
     available: true,
     type: "data-driven",
   },
