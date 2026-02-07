@@ -13,6 +13,7 @@ export const INVITATION_TEMPLATES = [
   "TIME_BASED_REVEAL",
   "GOLDEN_CARD_REVEAL",
   "FLIP_FLAP_REVEAL",
+  "WEDDING_STORYBOOK",
 ] as const;
 
 export const THEME_IDS = [

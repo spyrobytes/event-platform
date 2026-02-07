@@ -51,6 +51,7 @@ const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: b
   { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal", available: true },
   { value: "GOLDEN_CARD_REVEAL", label: "Golden Card Reveal", available: true },
   { value: "FLIP_FLAP_REVEAL", label: "Flip Flap Reveal", available: true },
+  { value: "WEDDING_STORYBOOK", label: "Wedding Storybook (Premium)", available: true },
 ];
 
 const LOCALE_OPTIONS = [
@@ -176,6 +177,12 @@ export default function InvitationConfigPage() {
   // Save configuration
   const handleSave = async () => {
     if (saving) return;
+
+    // Validate required fields for WEDDING_STORYBOOK
+    if (template === "WEDDING_STORYBOOK" && !customMessage.trim()) {
+      setError("Our Story is required for the Wedding Storybook template");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -401,7 +408,7 @@ export default function InvitationConfigPage() {
         </Card>
 
         {/* Invitation Wording - Shows for templates that support custom wording */}
-        {(template === "SPLIT_REVEAL" || template === "GOLDEN_CARD_REVEAL" || template === "FLIP_FLAP_REVEAL") && (
+        {(template === "SPLIT_REVEAL" || template === "GOLDEN_CARD_REVEAL" || template === "FLIP_FLAP_REVEAL" || template === "WEDDING_STORYBOOK") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Invitation Wording</CardTitle>
@@ -532,15 +539,21 @@ export default function InvitationConfigPage() {
           </CardContent>
         </Card>
 
-        {/* Custom Message */}
+        {/* Custom Message / Our Story */}
         <Card>
           <CardHeader>
-            <CardTitle>Custom Message</CardTitle>
+            <CardTitle>
+              {template === "WEDDING_STORYBOOK" ? "Our Story" : "Custom Message"}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <Label htmlFor="customMessage">
-                Personal Note <span className="text-muted-foreground">(optional)</span>
+                {template === "WEDDING_STORYBOOK" ? (
+                  <>How You Met <span className="text-destructive">*</span></>
+                ) : (
+                  <>Personal Note <span className="text-muted-foreground">(optional)</span></>
+                )}
               </Label>
               <Textarea
                 id="customMessage"
@@ -548,12 +561,22 @@ export default function InvitationConfigPage() {
                 onChange={(e) =>
                   handleFieldChange(setCustomMessage)(e.target.value)
                 }
-                placeholder="We can't wait to celebrate with you..."
+                placeholder={
+                  template === "WEDDING_STORYBOOK"
+                    ? "Share your love story in 1-3 sentences. How did you meet? What makes your relationship special?"
+                    : "We can't wait to celebrate with you..."
+                }
                 maxLength={CONTENT_LIMITS.customMessage.max}
                 rows={4}
+                required={template === "WEDDING_STORYBOOK"}
               />
               <p className="text-xs text-muted-foreground">
                 {customMessage.length}/{CONTENT_LIMITS.customMessage.max} characters
+                {template === "WEDDING_STORYBOOK" && (
+                  <span className="text-destructive ml-1">
+                    {!customMessage.trim() && " — Required for Wedding Storybook"}
+                  </span>
+                )}
               </p>
             </div>
           </CardContent>

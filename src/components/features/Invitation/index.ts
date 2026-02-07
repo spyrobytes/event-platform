@@ -22,6 +22,7 @@ export {
   TimeBasedReveal,
   GoldenCardReveal,
   FlipFlapReveal,
+  WeddingStorybook,
   getTemplateComponent,
   getDataDrivenTemplateComponent,
   getTemplateType,

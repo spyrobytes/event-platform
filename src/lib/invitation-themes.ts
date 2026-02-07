@@ -565,6 +565,147 @@ export const typographyMetadata: Record<
 };
 
 // =============================================================================
+// WEDDING STORYBOOK THEME TOKENS
+// =============================================================================
+
+/**
+ * Theme tokens specific to the WeddingStorybook template.
+ * Multi-page book with 3D page flip animations.
+ * Maps existing theme IDs to the template's visual style.
+ */
+export const storybookThemes = {
+  ivory: {
+    "--sb-bg-primary": "#1a1814",
+    "--sb-bg-secondary": "#252119",
+    "--sb-bg-gradient": "linear-gradient(145deg, #1a1814 0%, #252119 50%, #1a1814 100%)",
+    "--sb-page-bg": "#faf8f5",
+    "--sb-page-bg-alt": "#f5f0e8",
+    "--sb-page-cream": "#f0ebe0",
+    "--sb-accent": "#c9a227",
+    "--sb-accent-light": "#d4af37",
+    "--sb-accent-dark": "#8b7355",
+    "--sb-accent-glow": "rgba(201, 162, 39, 0.3)",
+    "--sb-text-primary": "#2c1810",
+    "--sb-text-secondary": "#5c4a3d",
+    "--sb-text-muted": "#8b7d6b",
+    "--sb-text-accent": "#8b6914",
+    "--sb-border-ornate": "#d4af37",
+    "--sb-shadow-page": "0 25px 50px -12px rgba(0, 0, 0, 0.4)",
+    "--sb-shadow-soft": "0 4px 20px rgba(0, 0, 0, 0.1)",
+    "--sb-particle-1": "#d4af37",
+    "--sb-particle-2": "#f4d03f",
+    "--sb-particle-3": "#fff8e7",
+  },
+  blush: {
+    "--sb-bg-primary": "#2d2226",
+    "--sb-bg-secondary": "#3a2a30",
+    "--sb-bg-gradient": "linear-gradient(145deg, #2d2226 0%, #3a2a30 50%, #2d2226 100%)",
+    "--sb-page-bg": "#fdf8f8",
+    "--sb-page-bg-alt": "#faf0f0",
+    "--sb-page-cream": "#f5e8e8",
+    "--sb-accent": "#b76e79",
+    "--sb-accent-light": "#d4a5a5",
+    "--sb-accent-dark": "#8b5a5a",
+    "--sb-accent-glow": "rgba(183, 110, 121, 0.3)",
+    "--sb-text-primary": "#3d2428",
+    "--sb-text-secondary": "#6b4a50",
+    "--sb-text-muted": "#9a7a80",
+    "--sb-text-accent": "#9e6b73",
+    "--sb-border-ornate": "#d4a5a5",
+    "--sb-shadow-page": "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+    "--sb-shadow-soft": "0 4px 20px rgba(0, 0, 0, 0.08)",
+    "--sb-particle-1": "#d4a5a5",
+    "--sb-particle-2": "#e8bfbf",
+    "--sb-particle-3": "#fff0f0",
+  },
+  sage: {
+    "--sb-bg-primary": "#1e2420",
+    "--sb-bg-secondary": "#2a332c",
+    "--sb-bg-gradient": "linear-gradient(145deg, #1e2420 0%, #2a332c 50%, #1e2420 100%)",
+    "--sb-page-bg": "#f8faf6",
+    "--sb-page-bg-alt": "#f0f5eb",
+    "--sb-page-cream": "#e8f0e0",
+    "--sb-accent": "#7d9471",
+    "--sb-accent-light": "#9ab08f",
+    "--sb-accent-dark": "#5a6b52",
+    "--sb-accent-glow": "rgba(125, 148, 113, 0.3)",
+    "--sb-text-primary": "#2c332a",
+    "--sb-text-secondary": "#4a5a46",
+    "--sb-text-muted": "#6a7a66",
+    "--sb-text-accent": "#5d7054",
+    "--sb-border-ornate": "#9ab08f",
+    "--sb-shadow-page": "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+    "--sb-shadow-soft": "0 4px 20px rgba(0, 0, 0, 0.08)",
+    "--sb-particle-1": "#9ab08f",
+    "--sb-particle-2": "#b8ccb0",
+    "--sb-particle-3": "#e8f0e0",
+  },
+  midnight: {
+    "--sb-bg-primary": "#0d1117",
+    "--sb-bg-secondary": "#161b22",
+    "--sb-bg-gradient": "linear-gradient(145deg, #0d1117 0%, #161b22 50%, #0d1117 100%)",
+    "--sb-page-bg": "#f5f5f7",
+    "--sb-page-bg-alt": "#eaeaef",
+    "--sb-page-cream": "#e0e0e8",
+    "--sb-accent": "#8b95a5",
+    "--sb-accent-light": "#a8b2c2",
+    "--sb-accent-dark": "#5a6475",
+    "--sb-accent-glow": "rgba(139, 149, 165, 0.3)",
+    "--sb-text-primary": "#1a1d24",
+    "--sb-text-secondary": "#4a5060",
+    "--sb-text-muted": "#6a7080",
+    "--sb-text-accent": "#6a7590",
+    "--sb-border-ornate": "#a8b2c2",
+    "--sb-shadow-page": "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    "--sb-shadow-soft": "0 4px 20px rgba(0, 0, 0, 0.15)",
+    "--sb-particle-1": "#a8b2c2",
+    "--sb-particle-2": "#c8d0dc",
+    "--sb-particle-3": "#e8ecf4",
+  },
+  champagne: {
+    "--sb-bg-primary": "#1f1a14",
+    "--sb-bg-secondary": "#2a241c",
+    "--sb-bg-gradient": "linear-gradient(145deg, #1f1a14 0%, #2a241c 50%, #1f1a14 100%)",
+    "--sb-page-bg": "#faf6ed",
+    "--sb-page-bg-alt": "#f5f0e3",
+    "--sb-page-cream": "#ebe5d5",
+    "--sb-accent": "#c9a961",
+    "--sb-accent-light": "#e0c080",
+    "--sb-accent-dark": "#9a8030",
+    "--sb-accent-glow": "rgba(201, 169, 97, 0.3)",
+    "--sb-text-primary": "#3d3520",
+    "--sb-text-secondary": "#6a5a40",
+    "--sb-text-muted": "#8a7a60",
+    "--sb-text-accent": "#9a8030",
+    "--sb-border-ornate": "#c9a961",
+    "--sb-shadow-page": "0 25px 50px -12px rgba(0, 0, 0, 0.4)",
+    "--sb-shadow-soft": "0 4px 20px rgba(0, 0, 0, 0.1)",
+    "--sb-particle-1": "#c9a961",
+    "--sb-particle-2": "#e0c080",
+    "--sb-particle-3": "#fff8e0",
+  },
+} as const;
+
+export type StorybookThemeTokens = (typeof storybookThemes)[ThemeId];
+
+/**
+ * Get storybook theme tokens for a theme ID.
+ */
+export function getStorybookThemeTokens(themeId: ThemeId): StorybookThemeTokens {
+  return storybookThemes[themeId] ?? storybookThemes.ivory;
+}
+
+/**
+ * Generates inline CSS string for storybook theme tokens.
+ */
+export function getStorybookThemeStyleString(themeId: ThemeId): string {
+  const tokens = storybookThemes[themeId] ?? storybookThemes.ivory;
+  return Object.entries(tokens)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("; ");
+}
+
+// =============================================================================
 // VALIDATION
 // =============================================================================
 

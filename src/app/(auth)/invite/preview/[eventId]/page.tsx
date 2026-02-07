@@ -16,6 +16,7 @@ import {
   TimeBasedReveal,
   GoldenCardReveal,
   FlipFlapReveal,
+  WeddingStorybook,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -195,6 +196,14 @@ export default function InvitationPreviewPage() {
           return <GoldenCardReveal data={invitationData} showReplay={true} showHint={true} />;
         case "FLIP_FLAP_REVEAL":
           return <FlipFlapReveal data={invitationData} showCloseButton={true} showHint={true} />;
+        case "WEDDING_STORYBOOK":
+          return (
+            <WeddingStorybook
+              data={invitationData}
+              showHint={true}
+              theme={themeId as "ivory" | "blush" | "sage" | "midnight" | "champagne"}
+            />
+          );
         default:
           return (
             <EnvelopeReveal showClose={true}>

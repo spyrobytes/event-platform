@@ -6,6 +6,7 @@ export { TimeBasedReveal } from "./TimeBasedReveal";
 export { SplitRevealCard } from "./SplitRevealCard";
 export { GoldenCardReveal } from "./GoldenCardReveal";
 export { FlipFlapReveal } from "./FlipFlapReveal";
+export { WeddingStorybook } from "./WeddingStorybook";
 
 import type { ComponentType, ReactNode } from "react";
 import type { InvitationState } from "@/hooks";
@@ -18,6 +19,7 @@ import { TimeBasedReveal } from "./TimeBasedReveal";
 import { SplitRevealCard } from "./SplitRevealCard";
 import { GoldenCardReveal } from "./GoldenCardReveal";
 import { FlipFlapReveal } from "./FlipFlapReveal";
+import { WeddingStorybook } from "./WeddingStorybook";
 
 /**
  * Common props shared by wrapper-style templates (children-based)
@@ -55,7 +57,8 @@ export type TemplateId =
   | "CINEMATIC_SCROLL"
   | "TIME_BASED_REVEAL"
   | "GOLDEN_CARD_REVEAL"
-  | "FLIP_FLAP_REVEAL";
+  | "FLIP_FLAP_REVEAL"
+  | "WEDDING_STORYBOOK";
 
 /**
  * Template type classification
@@ -83,6 +86,7 @@ const templateRegistry: Record<
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
   GOLDEN_CARD_REVEAL: { component: GoldenCardReveal, type: "data-driven" },
   FLIP_FLAP_REVEAL: { component: FlipFlapReveal, type: "data-driven" },
+  WEDDING_STORYBOOK: { component: WeddingStorybook, type: "data-driven" },
 };
 
 /**
@@ -142,6 +146,12 @@ export const templateMetadata: Record<
   FLIP_FLAP_REVEAL: {
     name: "Flip Flap Reveal",
     description: "Book-style flip with photo cover and wax seal",
+    available: true,
+    type: "data-driven",
+  },
+  WEDDING_STORYBOOK: {
+    name: "Wedding Storybook",
+    description: "Premium multi-page book with 3D flip animations",
     available: true,
     type: "data-driven",
   },

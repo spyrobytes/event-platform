@@ -13,6 +13,7 @@ import {
   TimeBasedReveal,
   GoldenCardReveal,
   FlipFlapReveal,
+  WeddingStorybook,
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
@@ -269,6 +270,15 @@ export default async function InvitationPage({ params }: PageProps) {
               initialState={hasResponded ? "open" : undefined}
               showCloseButton={!hasResponded}
               showHint={!hasResponded}
+            />
+          );
+        case "WEDDING_STORYBOOK":
+          return (
+            <WeddingStorybook
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              showHint={!hasResponded}
+              theme={themeId as "ivory" | "blush" | "sage" | "midnight" | "champagne"}
             />
           );
         default:
