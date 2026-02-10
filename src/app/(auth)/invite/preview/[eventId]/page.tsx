@@ -242,7 +242,7 @@ export default function InvitationPreviewPage() {
         </Link>
       </div>
 
-      <div className="pt-12">{renderTemplate()}</div>
+      <div className="pt-16">{renderTemplate()}</div>
     </InvitationShell>
   );
 }

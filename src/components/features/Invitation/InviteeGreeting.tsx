@@ -45,7 +45,6 @@ export function InviteeGreeting({
         "font-[var(--inv-font-script)]",
         "text-2xl md:text-3xl",
         "text-[var(--inv-text-primary)]",
-        "mb-4",
         className
       )}
     >

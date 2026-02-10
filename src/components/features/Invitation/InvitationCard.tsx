@@ -69,7 +69,7 @@ export function InvitationCard({
         "bg-[var(--inv-card-bg)]",
         "rounded-lg",
         "shadow-[var(--inv-shadow-soft)]",
-        "p-8 md:p-12",
+        "p-6 md:p-8",
         "text-center",
         "max-w-md mx-auto",
         className
@@ -80,44 +80,72 @@ export function InvitationCard({
         <InviteeGreeting
           name={inviteeName}
           salutation={salutation}
-          className="mb-6"
+          className="mb-4"
         />
       )}
 
-      {/* Couple names */}
-      <h1
-        className={cn(
-          "font-[var(--inv-font-script)]",
-          "text-4xl md:text-5xl lg:text-6xl",
-          "text-[var(--inv-text-primary)]",
-          "mb-2",
-          "leading-tight"
-        )}
-      >
-        {truncateWithEllipsis(coupleNames, CONTENT_LIMITS.coupleDisplayName.max)}
-      </h1>
-
-      {/* Event title / "request the pleasure of your company" */}
-      <p
-        className={cn(
-          "font-[var(--inv-font-body)]",
-          "text-sm md:text-base",
-          "text-[var(--inv-text-secondary)]",
-          "uppercase tracking-widest",
-          "mb-8"
-        )}
-      >
-        {truncateWithEllipsis(eventTitle, CONTENT_LIMITS.eventTitle.max)}
-      </p>
+      {/* Couple names or monogram */}
+      {data.monogram ? (
+        <>
+          <p
+            className={cn(
+              "font-[var(--inv-font-script)]",
+              "text-5xl md:text-6xl",
+              "text-[var(--inv-accent)]",
+              "mb-4",
+              "leading-none"
+            )}
+            aria-hidden="true"
+          >
+            {data.monogram}
+          </p>
+          <h1
+            className={cn(
+              "font-[var(--inv-font-body)]",
+              "text-sm md:text-base",
+              "text-[var(--inv-text-secondary)]",
+              "uppercase tracking-widest",
+              "mb-6"
+            )}
+          >
+            {truncateWithEllipsis(eventTitle, CONTENT_LIMITS.eventTitle.max)}
+          </h1>
+        </>
+      ) : (
+        <>
+          <h1
+            className={cn(
+              "font-[var(--inv-font-script)]",
+              "text-4xl md:text-5xl lg:text-6xl",
+              "text-[var(--inv-text-primary)]",
+              "mb-2",
+              "leading-tight"
+            )}
+          >
+            {truncateWithEllipsis(coupleNames, CONTENT_LIMITS.coupleDisplayName.max)}
+          </h1>
+          <p
+            className={cn(
+              "font-[var(--inv-font-body)]",
+              "text-sm md:text-base",
+              "text-[var(--inv-text-secondary)]",
+              "uppercase tracking-widest",
+              "mb-6"
+            )}
+          >
+            {truncateWithEllipsis(eventTitle, CONTENT_LIMITS.eventTitle.max)}
+          </p>
+        </>
+      )}
 
       {/* Decorative divider */}
       <div
-        className="w-16 h-px bg-[var(--inv-accent)] mx-auto mb-8"
+        className="w-16 h-px bg-[var(--inv-accent)] mx-auto mb-6"
         aria-hidden="true"
       />
 
       {/* Date and time */}
-      <div className="mb-6">
+      <div className="mb-4">
         <p
           className={cn(
             "font-[var(--inv-font-heading)]",
@@ -141,7 +169,7 @@ export function InvitationCard({
 
       {/* Venue */}
       {venue.name && (
-        <div className="mb-6">
+        <div className="mb-4">
           <p
             className={cn(
               "font-[var(--inv-font-heading)]",
@@ -179,7 +207,7 @@ export function InvitationCard({
             "text-sm",
             "text-[var(--inv-text-secondary)]",
             "italic",
-            "mb-6"
+            "mb-4"
           )}
         >
           Attire: {truncateWithEllipsis(dressCode, CONTENT_LIMITS.dressCode.max)}
@@ -193,7 +221,7 @@ export function InvitationCard({
             "font-[var(--inv-font-body)]",
             "text-base",
             "text-[var(--inv-text-secondary)]",
-            "mb-8",
+            "mb-6",
             "max-w-sm mx-auto"
           )}
         >
