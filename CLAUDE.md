@@ -232,6 +232,66 @@ npx prisma migrate resolve --applied <migration_name>
 
 This ensures deployments fail fast if there's schema drift, preventing broken releases.
 
+## React Hooks Rules
+
+These rules are enforced as **errors** in ESLint and will fail CI.
+
+### Declare functions before useEffect that references them
+
+Always declare helper functions **above** any `useEffect` that calls them. Using a function before its `const` declaration triggers `react-hooks/immutability`.
+
+```tsx
+// WRONG — closeLightbox used before declaration
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => { closeLightbox(); };
+  document.addEventListener("keydown", handleKeyDown);
+  return () => document.removeEventListener("keydown", handleKeyDown);
+}, [lightboxIndex]);
+
+const closeLightbox = () => setLightboxIndex(null); // declared too late
+
+// RIGHT — declare first, then use in effect
+const closeLightbox = () => setLightboxIndex(null);
+
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => { closeLightbox(); };
+  document.addEventListener("keydown", handleKeyDown);
+  return () => document.removeEventListener("keydown", handleKeyDown);
+}, [lightboxIndex, closeLightbox]);
+```
+
+### No synchronous setState in useEffect body
+
+Calling `setState(value)` directly in an effect body triggers `react-hooks/set-state-in-effect`. Use a lazy `useState` initializer for the initial value and only use the effect for subscribing to changes.
+
+```tsx
+// WRONG — synchronous setState in effect
+const [reducedMotion, setReducedMotion] = useState(false);
+useEffect(() => {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  setReducedMotion(mq.matches); // error: setState in effect
+  const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+  mq.addEventListener("change", handler);
+  return () => mq.removeEventListener("change", handler);
+}, []);
+
+// RIGHT — lazy initializer + effect only subscribes
+const [reducedMotion, setReducedMotion] = useState(() => {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+});
+useEffect(() => {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
+  mq.addEventListener("change", handler);
+  return () => mq.removeEventListener("change", handler);
+}, []);
+```
+
+### Always run `npm run lint` before committing
+
+CI runs ESLint and **fails on errors**. Run `npm run lint` locally to catch issues early.
+
 ## Form Handling
 
 Use React Hook Form with Zod. Schemas in `src/schemas/` are shared between client validation and API validation.
