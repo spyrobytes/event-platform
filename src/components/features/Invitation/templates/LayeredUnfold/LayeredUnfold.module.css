@@ -1,12 +1,63 @@
 /* =============================================================================
-   LAYERED CARD UNFOLD ANIMATION
-   A modern, minimalist invitation reveal with stacked layers unfolding.
+   LAYERED ACCORDION UNFOLD
+   A paper-accordion invitation reveal with physically-grounded animation.
 
-   Animation sequence:
-   1. idle: Compact folded stack
-   2. unfolding: Layers unfold sequentially from top to bottom
-   3. open: All layers revealed, content visible
-   4. closing: Reverse sequence for replay
+   Metaphor: A folded paper invitation that unfolds panel by panel from
+   a shared crease, each section swinging down under its own weight.
+
+   Animation model (physical paper):
+   ─────────────────────────────────────────────────────────────────────
+   UNFOLD  Panel rotates from -180° (face-down) → 0° (flat).
+           Gravity accelerates the first half of the swing, paper
+           stiffness decelerates the second half. The panel overshoots
+           flat by ~5°, bounces back to -2°, micro-settles to +0.5°,
+           then rests. Shadow grows mid-swing, peaks at overshoot,
+           softens as it settles.
+
+   FOLD    Reverse of unfold but 30% faster (human force vs gravity).
+           Panel lifts from 0° → -180°. Brief deceleration as creased
+           paper resists at ~-160°, then snaps closed. Shadow shrinks
+           progressively.
+
+   IDLE    Panel 1 visible with subtle shadow pulse (breathing).
+           Panels 2-4 peek as thin slivers below (stacked-paper cue).
+
+   Key decisions:
+   - NO opacity on panels (paper rotates, it doesn't fade)
+   - backface-visibility: hidden hides face-down panels
+   - Separate easing for unfold (gravity-assisted) vs fold (human force)
+   - Multi-bounce settle with decreasing amplitude (damped spring)
+   - Content staggers in AFTER panel settles
+   - Closing → folded is seamless (-180° → -180°), then folded → peek
+     uses a gentle transition on the tiny sliver dimensions
+   ============================================================================= */
+
+/* =============================================================================
+   CUSTOM TIMING FUNCTIONS
+   Defined on .root so every descendant can read them.
+   ============================================================================= */
+
+.root {
+  /* Unfold: starts slow (inertia at crease), accelerates (gravity),
+     decelerates as paper stiffness resists past flat */
+  --ease-unfold: cubic-bezier(0.4, 0.0, 0.15, 1);
+
+  /* Fold: quick lift (human force), decelerates fighting gravity,
+     slight acceleration as crease snaps shut */
+  --ease-fold: cubic-bezier(0.5, 0.0, 0.75, 0.9);
+
+  /* Content reveal: gentle ease-out for text fading in */
+  --ease-content: cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* Durations */
+  --dur-unfold: 750ms;
+  --dur-fold: 520ms;
+  --dur-content-in: 380ms;
+  --dur-content-out: 120ms;
+}
+
+/* =============================================================================
+   ROOT & STACK
    ============================================================================= */
 
 .root {
@@ -19,36 +70,46 @@
   padding: 2rem;
 }
 
-/* =============================================================================
-   STACK CONTAINER
-   ============================================================================= */
-
 .stack {
   position: relative;
   width: min(90vw, 400px);
   display: flex;
   flex-direction: column;
   gap: 0;
-  perspective: 1000px;
+  perspective: 1200px;
 }
 
 /* =============================================================================
-   LAYER BASE STYLES
-   Each layer is a card that unfolds from the one above
+   PAPER TEXTURE
+   SVG fractalNoise grain — same technique as EnvelopeReveal / GoldenCardReveal.
+   ============================================================================= */
+
+.layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")
+    repeat;
+  opacity: 0.025;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
+}
+
+/* =============================================================================
+   LAYER BASE
    ============================================================================= */
 
 .layer {
   position: relative;
   background: var(--inv-card-bg);
   border: 1px solid var(--inv-border);
-  border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   transform-origin: top center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
   cursor: pointer;
-  transition:
-    transform var(--inv-dur-4) var(--inv-ease-ceremony),
-    box-shadow var(--inv-dur-3) var(--inv-ease-out),
-    margin-top var(--inv-dur-3) var(--inv-ease-out);
+  will-change: transform;
 }
 
 .layer:focus-visible {
@@ -56,54 +117,279 @@
   outline-offset: 2px;
 }
 
-/* Folded state - layers overlap with slight offset */
-.layer.folded {
-  transform: rotateX(-90deg) translateY(-10px);
-  box-shadow: none;
-  margin-top: -60%;
-  opacity: 0;
+/* Border-radius: rounded ends, flat at crease points */
+.layerNames { border-radius: 12px 12px 2px 2px; }
+.layerDate,
+.layerVenue { border-radius: 2px; }
+.layerRsvp  { border-radius: 2px 2px 12px 12px; }
+
+/* =============================================================================
+   CREASE LINES
+   Scored line at the fold point between panels.
+   ============================================================================= */
+
+.crease {
+  position: absolute;
+  top: -1px;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--inv-border) 15%,
+    color-mix(in srgb, var(--inv-text-secondary) 35%, transparent) 50%,
+    var(--inv-border) 85%,
+    transparent
+  );
+  z-index: 3;
   pointer-events: none;
 }
 
-/* First layer is always visible in folded state */
-.layer:first-child.folded {
-  transform: rotateX(0deg) translateY(0);
-  margin-top: 0;
-  opacity: 1;
-  pointer-events: auto;
+/* =============================================================================
+   IDLE PULSE
+   Subtle shadow breathing on the first panel when idle.
+   The card itself signals interactivity — no misleading arrows needed.
+   ============================================================================= */
+
+.idlePulse {
+  animation: idleBreathe 3s ease-in-out infinite;
 }
 
-/* Unfolded state */
-.layer.unfolded {
-  transform: rotateX(0deg) translateY(0);
-  box-shadow: var(--inv-shadow-soft);
-  margin-top: 1rem;
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* First layer doesn't need top margin */
-.layer:first-child.unfolded {
-  margin-top: 0;
-}
-
-/* Hover effect on clickable layers */
-.layer:not(.unfolded):hover:not(:disabled) {
-  box-shadow: var(--inv-shadow-deep);
+@keyframes idleBreathe {
+  0%, 100% {
+    box-shadow: var(--inv-shadow-soft, 0 4px 20px rgba(0, 0, 0, 0.08));
+  }
+  50% {
+    box-shadow:
+      0 6px 28px rgba(0, 0, 0, 0.12),
+      0 0 0 1px color-mix(in srgb, var(--inv-accent) 15%, transparent);
+  }
 }
 
 /* =============================================================================
-   LAYER CONTENT
+   FOLDED STATE
+   Panel at -180° (face-down behind the one above).
+   backface-visibility: hidden hides it — no opacity needed.
+
+   CRITICAL: This is the landing state after `closing` animation ends.
+   Both end at -180°, so closing → folded is a zero-delta transition.
+   ============================================================================= */
+
+.layer.folded {
+  transform: rotateX(-180deg);
+  pointer-events: none;
+  margin-top: 0;
+  box-shadow: none;
+}
+
+/* =============================================================================
+   PEEK STATE
+   Thin slivers of folded layers behind panel 1. "Stacked paper" cue.
+
+   Transition on max-height / opacity / margin so the slivers ease in
+   gently when returning from folded (after replay). The folded panel is
+   at -180° and has 0 max-height; peek brings it to 0° with a tiny
+   max-height. The transition makes this appear as a gentle slide-in
+   rather than a pop.
+   ============================================================================= */
+
+.layer.peek {
+  transform: rotateX(0deg);
+  pointer-events: none;
+  overflow: hidden;
+  box-shadow: none;
+  transition:
+    max-height 450ms var(--ease-content),
+    opacity 450ms var(--ease-content),
+    margin-top 450ms var(--ease-content);
+}
+
+.layer:nth-child(2).peek {
+  max-height: 6px;
+  margin-top: 3px;
+  opacity: 0.55;
+}
+
+.layer:nth-child(3).peek {
+  max-height: 4px;
+  margin-top: 2px;
+  opacity: 0.35;
+}
+
+.layer:nth-child(4).peek {
+  max-height: 3px;
+  margin-top: 1px;
+  opacity: 0.2;
+}
+
+.layer.peek .layerContent {
+  opacity: 0;
+}
+
+/* First panel overrides: always visible, never folded */
+.layer:first-child {
+  transform: rotateX(0deg) !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  backface-visibility: visible;
+}
+
+/* =============================================================================
+   UNFOLDED STATE — DAMPED SPRING SETTLE
+   Panel swings from -180° through flat, overshoots, bounces, settles.
+
+   Physics breakdown of keyframe percentages:
+     0%  → -180°   Face-down (start)
+    45%  → +5°     Overshoot past flat (gravity momentum carries it)
+    65%  → -2°     Counter-bounce (paper stiffness pulls back)
+    80%  → +0.5°   Micro-settle (damped oscillation)
+   100%  → 0°      Rest (flat)
+
+   The decreasing amplitude (5° → 2° → 0.5°) models a damped spring.
+   Shadow intensity tracks the panel's proximity to the surface.
+   ============================================================================= */
+
+.layer.unfolded {
+  animation: accordionSettle var(--dur-unfold) var(--ease-unfold) both;
+  margin-top: 0;
+  pointer-events: auto;
+  backface-visibility: visible;
+}
+
+.layer:first-child.unfolded {
+  animation: none;
+  box-shadow: var(--inv-shadow-soft);
+}
+
+@keyframes accordionSettle {
+  0% {
+    transform: rotateX(-180deg);
+    box-shadow: none;
+  }
+  /* Gravity-assisted swing through vertical → overshoot past flat */
+  45% {
+    transform: rotateX(5deg);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+  }
+  /* Paper stiffness pulls back — counter-bounce */
+  65% {
+    transform: rotateX(-2deg);
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.07);
+  }
+  /* Micro-settle: barely perceptible, sells the physicality */
+  80% {
+    transform: rotateX(0.5deg);
+    box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
+  }
+  /* Rest */
+  100% {
+    transform: rotateX(0deg);
+    box-shadow: var(--inv-shadow-soft);
+  }
+}
+
+/* =============================================================================
+   CLOSING STATE — REVERSE FOLD
+   Panel folds back from 0° → -180°.
+   Faster than unfold (human force vs gravity).
+
+   Physics:
+     0%  → 0°     Flat (start)
+    30%  → -80°   Quick lift — human force applied
+    70%  → -160°  Decelerating as crease resists
+   100%  → -180°  Snaps shut against the panel above
+
+   animation-fill-mode: forwards — panel STAYS at -180° when the
+   animation ends. JS then swaps to the `folded` class (also -180°)
+   for a zero-delta, seamless handoff.
+   ============================================================================= */
+
+.layer.closing {
+  animation: accordionFold var(--dur-fold) var(--ease-fold) forwards;
+  pointer-events: none;
+  backface-visibility: visible;
+}
+
+.layer:first-child.closing {
+  animation: none;
+}
+
+@keyframes accordionFold {
+  0% {
+    transform: rotateX(0deg);
+    box-shadow: var(--inv-shadow-soft);
+  }
+  /* Quick lift — human force applied */
+  30% {
+    transform: rotateX(-80deg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  /* Decelerating as crease resists */
+  70% {
+    transform: rotateX(-160deg);
+    box-shadow: none;
+  }
+  /* Final snap shut */
+  100% {
+    transform: rotateX(-180deg);
+    box-shadow: none;
+  }
+}
+
+/* =============================================================================
+   LAYER CONTENT — STAGGERED REVEAL
+   Text fades in + shifts up AFTER the panel has settled.
    ============================================================================= */
 
 .layerContent {
+  position: relative;
   padding: 1.5rem 2rem;
   text-align: center;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity var(--dur-content-in) var(--ease-content),
+    transform var(--dur-content-in) var(--ease-content);
 }
 
-/* Names layer - largest text */
+/* Content appears after panel lands (delay = 60% of unfold duration) */
+.layer.unfolded .layerContent {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: calc(var(--dur-unfold) * 0.6);
+}
+
+/* First panel content: always visible */
+.layer:first-child .layerContent {
+  opacity: 1;
+  transform: translateY(0);
+  transition: none;
+}
+
+/* Content hides immediately when closing (no lingering text mid-fold) */
+.layer.closing .layerContent {
+  opacity: 0;
+  transform: translateY(6px);
+  transition-delay: 0ms;
+  transition-duration: var(--dur-content-out);
+}
+
+/* =============================================================================
+   TYPOGRAPHY — NAMES LAYER
+   ============================================================================= */
+
 .layerNames .layerContent {
-  padding: 2rem 2rem 1.5rem;
+  padding: 2.25rem 2rem 1.75rem;
+}
+
+.greeting {
+  font-family: var(--inv-font-body);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--inv-text-secondary);
+  margin: 0 0 0.75rem;
 }
 
 .coupleNames {
@@ -123,17 +409,28 @@
   margin-top: 0.75rem;
 }
 
-/* Date layer */
+.divider {
+  width: 3rem;
+  height: 2px;
+  background: var(--inv-accent);
+  margin: 1rem auto 0;
+  border-radius: 1px;
+}
+
+/* =============================================================================
+   TYPOGRAPHY — DATE LAYER
+   ============================================================================= */
+
 .layerDate .layerContent {
   padding: 1.5rem 2rem;
 }
 
-.dateHeading {
+.sectionLabel {
   font-family: var(--inv-font-body);
   font-size: 0.75rem;
   color: var(--inv-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   margin: 0 0 0.5rem;
 }
 
@@ -142,6 +439,7 @@
   font-size: 1.5rem;
   color: var(--inv-text-primary);
   margin: 0;
+  line-height: 1.3;
 }
 
 .timeValue {
@@ -151,18 +449,12 @@
   margin-top: 0.25rem;
 }
 
-/* Venue layer */
+/* =============================================================================
+   TYPOGRAPHY — VENUE LAYER
+   ============================================================================= */
+
 .layerVenue .layerContent {
   padding: 1.5rem 2rem;
-}
-
-.venueHeading {
-  font-family: var(--inv-font-body);
-  font-size: 0.75rem;
-  color: var(--inv-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin: 0 0 0.5rem;
 }
 
 .venueName {
@@ -180,7 +472,18 @@
   line-height: 1.5;
 }
 
-/* RSVP layer */
+.dressCode {
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  color: var(--inv-text-secondary);
+  font-style: italic;
+  margin-top: 0.75rem;
+}
+
+/* =============================================================================
+   TYPOGRAPHY — RSVP LAYER
+   ============================================================================= */
+
 .layerRsvp .layerContent {
   padding: 2rem;
 }
@@ -189,26 +492,27 @@
   font-family: var(--inv-font-body);
   font-size: 0.875rem;
   color: var(--inv-text-secondary);
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
+  line-height: 1.6;
 }
 
 .rsvpButton {
   display: inline-block;
-  padding: 0.875rem 2rem;
+  padding: 0.875rem 2.5rem;
   background: var(--inv-accent);
   color: var(--inv-card-bg);
   font-family: var(--inv-font-body);
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-decoration: none;
   border-radius: 100px;
   border: none;
   cursor: pointer;
   transition:
-    transform var(--inv-dur-2) var(--inv-ease-out),
-    box-shadow var(--inv-dur-2) var(--inv-ease-out);
+    transform var(--inv-dur-2, 200ms) var(--inv-ease-out, ease-out),
+    box-shadow var(--inv-dur-2, 200ms) var(--inv-ease-out, ease-out);
 }
 
 .rsvpButton:hover {
@@ -222,88 +526,29 @@
 }
 
 /* =============================================================================
-   GREETING (optional - shown on names layer)
-   ============================================================================= */
-
-.greeting {
-  font-family: var(--inv-font-body);
-  font-size: 1rem;
-  font-style: italic;
-  color: var(--inv-text-secondary);
-  margin-bottom: 1rem;
-}
-
-/* =============================================================================
-   DECORATIVE ELEMENTS
-   ============================================================================= */
-
-.divider {
-  width: 3rem;
-  height: 2px;
-  background: var(--inv-accent);
-  margin: 1rem auto 0;
-}
-
-/* =============================================================================
-   HINT TEXT
+   HINT — "Tap the card"
+   Secondary affordance. The idle pulse on the card is the primary cue.
+   No directional arrows — just a quiet text label.
    ============================================================================= */
 
 .hint {
-  position: absolute;
-  top: calc(100% + 1.5rem);
-  left: 50%;
-  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
   font-family: var(--inv-font-body);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--inv-text-secondary);
-  opacity: 0.7;
-  white-space: nowrap;
-  transition: opacity var(--inv-dur-2) var(--inv-ease-out);
-}
-
-.hint.hidden {
   opacity: 0;
-}
-
-/* =============================================================================
-   UNFOLD ALL BUTTON
-   ============================================================================= */
-
-.unfoldAllButton {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--inv-accent);
-  color: var(--inv-card-bg);
-  font-family: var(--inv-font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: none;
-  border-radius: 100px;
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(-5px);
+  transform: translateY(6px);
   transition:
-    opacity var(--inv-dur-2) var(--inv-ease-out),
-    transform var(--inv-dur-2) var(--inv-ease-out);
-  z-index: 10;
+    opacity 400ms ease,
+    transform 400ms ease;
 }
 
-.unfoldAllButton.visible {
-  opacity: 1;
+.hint.visible {
+  opacity: 0.55;
   transform: translateY(0);
-}
-
-.unfoldAllButton:hover {
-  filter: brightness(1.1);
-}
-
-.unfoldAllButton:focus-visible {
-  outline: 2px solid var(--inv-card-bg);
-  outline-offset: 2px;
 }
 
 /* =============================================================================
@@ -315,8 +560,9 @@
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity var(--inv-dur-2) var(--inv-ease-out),
-    transform var(--inv-dur-2) var(--inv-ease-out);
+    opacity 400ms ease,
+    transform 400ms ease;
+  transition-delay: 300ms;
 }
 
 .replayContainer.visible {
@@ -329,40 +575,46 @@
    ============================================================================= */
 
 .reducedMotion .layer {
+  animation: none !important;
+  transition: none !important;
+  transform: rotateX(0deg) !important;
+  backface-visibility: visible !important;
+  opacity: 1 !important;
+  max-height: none !important;
+}
+
+.reducedMotion .layer .layerContent {
+  opacity: 1 !important;
+  transform: none !important;
   transition: none !important;
 }
 
 .reducedMotion .layer.folded {
-  transform: none;
-  margin-top: 1rem;
-  opacity: 1;
+  margin-top: 0.75rem;
 }
 
 .reducedMotion .layer:first-child.folded {
   margin-top: 0;
 }
 
+.reducedMotion .idlePulse {
+  animation: none !important;
+}
+
 /* =============================================================================
-   MOBILE OPTIMIZATIONS
+   MOBILE
    ============================================================================= */
 
 @media (max-width: 480px) {
-  .stack {
-    width: 95vw;
-  }
-
-  .layerContent {
-    padding: 1.25rem 1.5rem;
-  }
-
-  .coupleNames {
-    font-size: clamp(1.75rem, 8vw, 2.5rem);
-  }
+  .stack { width: 95vw; }
+  .layerContent { padding: 1.25rem 1.5rem; }
+  .layerNames .layerContent { padding: 1.75rem 1.5rem 1.5rem; }
+  .coupleNames { font-size: clamp(1.75rem, 8vw, 2.5rem); }
 }
 
 /* Touch feedback */
 @media (hover: none) {
-  .layer:active:not(.unfolded) {
+  .layer:active:not(.unfolded):not(.peek) {
     transform: scale(0.98);
   }
 }
