@@ -148,6 +148,19 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
     }
   }, [autoPlay, autoPlayInterval, displayMode, isPaused, goToNext, galleryItems.length, scrollCarouselToIndex]);
 
+  const openLightbox = (index: number) => setLightboxIndex(index);
+  const closeLightbox = () => setLightboxIndex(null);
+  const nextImage = () =>
+    setLightboxIndex((prev) =>
+      prev !== null ? (prev + 1) % galleryItems.length : null
+    );
+  const prevImage = () =>
+    setLightboxIndex((prev) =>
+      prev !== null
+        ? (prev - 1 + galleryItems.length) % galleryItems.length
+        : null
+    );
+
   // Keyboard navigation for lightbox
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -173,7 +186,7 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [lightboxIndex]);
+  }, [lightboxIndex, closeLightbox, prevImage, nextImage]);
 
   // Lightbox auto-play
   useEffect(() => {
@@ -186,24 +199,11 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
     }, autoPlayInterval * 1000);
 
     return () => clearInterval(timer);
-  }, [lightboxIndex, autoPlay, autoPlayInterval, isPaused, galleryItems.length]);
+  }, [lightboxIndex, autoPlay, autoPlayInterval, isPaused, galleryItems.length, nextImage]);
 
   if (galleryItems.length === 0) {
     return null;
   }
-
-  const openLightbox = (index: number) => setLightboxIndex(index);
-  const closeLightbox = () => setLightboxIndex(null);
-  const nextImage = () =>
-    setLightboxIndex((prev) =>
-      prev !== null ? (prev + 1) % galleryItems.length : null
-    );
-  const prevImage = () =>
-    setLightboxIndex((prev) =>
-      prev !== null
-        ? (prev - 1 + galleryItems.length) % galleryItems.length
-        : null
-    );
 
   const currentItem = lightboxIndex !== null ? galleryItems[lightboxIndex] : null;
   const currentSlideItem = galleryItems[currentSlide];

@@ -59,17 +59,18 @@ export function EnvelopeRevealV2({
   addresseeName,
 }: EnvelopeRevealV2Props) {
   const [state, setState] = useState<EnvelopeState>(autoOpen ? "open" : "back");
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Derive isOpen for backwards compatibility
   const isOpen = state === "open";
 
-  // Check for reduced motion preference
+  // Listen for reduced motion preference changes
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(mediaQuery.matches);
-
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
