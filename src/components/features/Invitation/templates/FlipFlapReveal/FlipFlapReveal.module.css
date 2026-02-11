@@ -602,9 +602,10 @@
     transition: none !important;
   }
 
-  .card.isOpen .cardFlap {
-    transform: rotateY(-145deg);
-  }
+  /* Note: .card.isOpen .cardFlap rotation is NOT overridden here
+     so that the responsive breakpoints (640px, 400px) can set
+     the appropriate angle per screen size. The default -145deg
+     is already set on .card.isOpen .cardFlap in the base styles. */
 
   .card.isOpen .contentInner {
     opacity: 1;
@@ -623,12 +624,45 @@
 
 /* ============================================
    RESPONSIVE ADJUSTMENTS
+
+   The flap swings left from transform-origin: left center.
+   At -145deg the right edge projects ~278px left of the card.
+   Total spread ≈ card-width + 278px ≈ 620px — wider than
+   most mobile viewports. We fix this progressively:
+
+   ≤ 640px → shift card right + soften tilt
+   ≤ 400px → also shrink card + reduce flap angle
    ============================================ */
 
+/* --- Medium mobile (phones in landscape, small tablets) --- */
+@media (max-width: 640px) {
+  /* Shift the card right when open so the left-swinging flap
+     stays partially visible instead of clipping off-screen.
+     Remove the rotateY tilt — it pushes content further left. */
+  .card.isOpen {
+    transform: translateX(min(120px, 15vw)) rotateX(2deg);
+  }
+
+  /* Slightly less dramatic open angle to reduce overhang */
+  .card.isOpen .cardFlap {
+    transform: rotateY(-135deg);
+  }
+}
+
+/* --- Small mobile (most phones in portrait) --- */
 @media (max-width: 400px) {
   .card {
     width: 300px;
     height: 420px;
+  }
+
+  /* Tighter shift + reduced rotation for narrow screens */
+  .card.isOpen {
+    transform: translateX(min(100px, 20vw)) rotateX(2deg);
+  }
+
+  .card.isOpen .cardFlap {
+    transform: rotateY(-125deg);
   }
 
   .coupleNames {
