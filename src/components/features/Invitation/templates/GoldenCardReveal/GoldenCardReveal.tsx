@@ -111,7 +111,7 @@ function formatEventDate(date: Date, locale: string = "en-US"): string {
  * GoldenCardReveal — Premium wedding invitation with 3D flip animation
  *
  * Features:
- * - Arc-swing card flip with wax seal break
+ * - Center-axis card flip with wax seal break
  * - Cursor-following tilt and glare effects
  * - Confetti burst on reveal
  * - Theme-aware styling via CSS variables
@@ -129,8 +129,12 @@ export function GoldenCardReveal({
 }: GoldenCardRevealProps) {
   // Refs
   const stageRef = useRef<HTMLDivElement>(null);
-  const cardRef = useRef<HTMLButtonElement>(null);
+  // [Fix #1] Changed from HTMLButtonElement to HTMLDivElement —
+  // card is now a <div role="button"> so nested <Link> is valid HTML
+  const cardRef = useRef<HTMLDivElement>(null);
   const confettiRef = useRef<HTMLDivElement>(null);
+  // [Fix #4] Track all pending timers so we can cancel on unmount
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // State
   const [cardState, setCardState] = useState<CardState>({
@@ -142,14 +146,43 @@ export function GoldenCardReveal({
   // Reduced motion preference (uses useSyncExternalStore for lint-safe implementation)
   const prefersReducedMotion = useReducedMotion();
 
-  // Check for touch device
-  const isTouchDevice = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  // [Fix #5] Detect touch device after mount to avoid SSR/client hydration mismatch.
+  // During SSR and initial client render this is false; useEffect updates it client-side.
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => {
+    setIsTouchDevice(
+      "ontouchstart" in window || navigator.maxTouchPoints > 0
+    );
   }, []);
 
   // Should enable tilt effect
   const shouldTilt = !disableTilt && !prefersReducedMotion && !isTouchDevice;
+
+  // [Fix #4] Clean up pending timers on unmount
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+    };
+  }, []);
+
+  /**
+   * Schedule a timeout and track it for cleanup.
+   * Returns the timer id.
+   */
+  const safeTimeout = useCallback(
+    (fn: () => void, delay: number): ReturnType<typeof setTimeout> => {
+      const id = setTimeout(() => {
+        // Remove from tracking after it fires
+        timersRef.current = timersRef.current.filter((t) => t !== id);
+        fn();
+      }, delay);
+      timersRef.current.push(id);
+      return id;
+    },
+    []
+  );
 
   // Notify parent of state changes
   useEffect(() => {
@@ -166,16 +199,26 @@ export function GoldenCardReveal({
   const coupleNames = useMemo(() => getCoupleNames(data), [data]);
   const monogram = useMemo(() => getMonogram(data), [data]);
   const headerText = data.headerText || "Together with their families";
-  const formattedDate = useMemo(
-    () => formatEventDate(data.eventDate, "en-US"),
-    [data.eventDate]
-  );
+
+  // [Fix #7] Defensively coerce eventDate — it may arrive as a string from JSON
+  const formattedDate = useMemo(() => {
+    const date =
+      data.eventDate instanceof Date
+        ? data.eventDate
+        : new Date(data.eventDate);
+    return formatEventDate(date, "en-US");
+  }, [data.eventDate]);
 
   /**
    * Create confetti burst animation
    */
   const createConfettiBurst = useCallback(() => {
-    if (disableConfetti || prefersReducedMotion || !confettiRef.current || !cardRef.current) {
+    if (
+      disableConfetti ||
+      prefersReducedMotion ||
+      !confettiRef.current ||
+      !cardRef.current
+    ) {
       return;
     }
 
@@ -217,7 +260,7 @@ export function GoldenCardReveal({
       const dx = Math.cos(angle) * velocity;
       const dy = Math.sin(angle) * velocity;
 
-      setTimeout(() => {
+      safeTimeout(() => {
         particle.animate(
           [
             {
@@ -241,10 +284,10 @@ export function GoldenCardReveal({
           }
         );
 
-        setTimeout(() => particle.remove(), duration);
+        safeTimeout(() => particle.remove(), duration);
       }, delay);
     }
-  }, [disableConfetti, prefersReducedMotion]);
+  }, [disableConfetti, prefersReducedMotion, safeTimeout]);
 
   /**
    * Handle card flip (open/close toggle)
@@ -262,32 +305,61 @@ export function GoldenCardReveal({
 
     if (!cardState.isFlipped) {
       // === OPENING ===
+
+      // [Fix #10] If user prefers reduced motion, skip staged
+      // timeouts and flip immediately without seal break animation
+      if (prefersReducedMotion) {
+        setCardState({ isFlipped: true, isAnimating: false, isBreaking: false });
+        return;
+      }
+
       setCardState({ isFlipped: false, isAnimating: true, isBreaking: true });
 
       // Trigger confetti after seal breaks
-      setTimeout(() => {
+      safeTimeout(() => {
         createConfettiBurst();
       }, 300);
 
       // Flip the card
-      setTimeout(() => {
+      safeTimeout(() => {
         setCardState({ isFlipped: true, isAnimating: true, isBreaking: true });
       }, 200);
 
       // Animation complete
-      setTimeout(() => {
+      safeTimeout(() => {
         setCardState({ isFlipped: true, isAnimating: false, isBreaking: true });
       }, 1600);
     } else {
       // === CLOSING ===
+
+      // [Fix #10] Immediate close for reduced motion
+      if (prefersReducedMotion) {
+        setCardState({
+          isFlipped: false,
+          isAnimating: false,
+          isBreaking: false,
+        });
+        return;
+      }
+
       setCardState({ isFlipped: false, isAnimating: true, isBreaking: true });
 
       // Reset seal break after flip completes
-      setTimeout(() => {
-        setCardState({ isFlipped: false, isAnimating: false, isBreaking: false });
+      safeTimeout(() => {
+        setCardState({
+          isFlipped: false,
+          isAnimating: false,
+          isBreaking: false,
+        });
       }, 1400);
     }
-  }, [cardState.isFlipped, cardState.isAnimating, createConfettiBurst]);
+  }, [
+    cardState.isFlipped,
+    cardState.isAnimating,
+    prefersReducedMotion,
+    createConfettiBurst,
+    safeTimeout,
+  ]);
 
   /**
    * Handle replay button click
@@ -295,20 +367,27 @@ export function GoldenCardReveal({
   const handleReplay = useCallback(() => {
     if (cardState.isAnimating) return;
 
+    // [Fix #10] Immediate reset for reduced motion
+    if (prefersReducedMotion) {
+      setCardState({ isFlipped: false, isAnimating: false, isBreaking: false });
+      return;
+    }
+
     // Close the card first
     setCardState({ isFlipped: false, isAnimating: true, isBreaking: true });
 
     // Reset seal break after flip completes
-    setTimeout(() => {
+    safeTimeout(() => {
       setCardState({ isFlipped: false, isAnimating: false, isBreaking: false });
     }, 1400);
-  }, [cardState.isAnimating]);
+  }, [cardState.isAnimating, prefersReducedMotion, safeTimeout]);
 
   /**
    * Handle keyboard navigation
+   * [Fix #1] Updated type from HTMLButtonElement to HTMLDivElement
    */
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLButtonElement>) => {
+    (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         handleCardClick();
@@ -322,7 +401,9 @@ export function GoldenCardReveal({
    */
   const handleMouseMove = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
-      if (!shouldTilt || cardState.isAnimating) return;
+      // [Fix #9] Disable tilt when card is flipped — it makes
+      // the invitation text hard to read and RSVP button a moving target
+      if (!shouldTilt || cardState.isAnimating || cardState.isFlipped) return;
 
       const stage = stageRef.current;
       const card = cardRef.current;
@@ -350,7 +431,10 @@ export function GoldenCardReveal({
 
       stage.style.setProperty("--glare-x", `${glareX}%`);
       stage.style.setProperty("--glare-y", `${glareY}%`);
-      stage.style.setProperty("--glare-opacity", String(TILT_CONFIG.glareOpacity));
+      stage.style.setProperty(
+        "--glare-opacity",
+        String(TILT_CONFIG.glareOpacity)
+      );
 
       // Dynamic seal shadow (only when not flipped)
       if (!cardState.isFlipped) {
@@ -384,13 +468,14 @@ export function GoldenCardReveal({
   // The component reads from CSS variables set by InvitationShell
   const themeTokens = useMemo(() => getGoldenCardThemeTokens("ivory"), []);
 
-  // Build inline style with theme tokens
+  // [Fix #6] Renamed from `styles` to `tokenVars` to avoid
+  // shadowing the CSS Module import
   const stageStyle = useMemo(() => {
-    const styles: Record<string, string> = {};
+    const tokenVars: Record<string, string> = {};
     Object.entries(themeTokens).forEach(([key, value]) => {
-      styles[key] = value;
+      tokenVars[key] = value;
     });
-    return styles as React.CSSProperties;
+    return tokenVars as React.CSSProperties;
   }, [themeTokens]);
 
   // Card state classes
@@ -401,17 +486,32 @@ export function GoldenCardReveal({
   );
 
   return (
-    <div className={cn("flex min-h-screen items-center justify-center p-4", className)}>
+    <div
+      className={cn(
+        "flex min-h-screen items-center justify-center p-4",
+        className
+      )}
+      /* Theme tokens live on the outer wrapper so that BOTH the
+         confetti container (sibling) and the stage inherit them.
+         Previously tokens were on .stage only — moving confetti
+         outside the stage meant it lost access to --gcr-confetti-* vars. */
+      style={stageStyle}
+    >
+      {/* [Fix #2] Confetti container moved OUTSIDE the stage so that
+          position: fixed works correctly. The stage's preserve-3d
+          would otherwise create a containing block and trap it. */}
+      <div
+        ref={confettiRef}
+        className={styles.confettiContainer}
+        aria-hidden="true"
+      />
+
       <div
         ref={stageRef}
         className={cn(styles.root, styles.stage)}
-        style={stageStyle}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Confetti container */}
-        <div ref={confettiRef} className={styles.confettiContainer} aria-hidden="true" />
-
         {/* Replay button */}
         {showReplay && cardState.isFlipped && !cardState.isAnimating && (
           <button
@@ -420,7 +520,12 @@ export function GoldenCardReveal({
             onClick={handleReplay}
             aria-label="Replay animation"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M1 4v6h6M23 20v-6h-6" />
               <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
             </svg>
@@ -428,10 +533,13 @@ export function GoldenCardReveal({
           </button>
         )}
 
-        {/* Main card */}
-        <button
+        {/* [Fix #1] Changed from <button> to <div role="button"> so that
+            the nested <Link> (RSVP button) is valid HTML. Interactive content
+            cannot be nested inside <button> per the HTML spec. */}
+        <div
           ref={cardRef}
-          type="button"
+          role="button"
+          tabIndex={0}
           className={cardClasses}
           onClick={handleCardClick}
           onKeyDown={handleKeyDown}
@@ -462,7 +570,9 @@ export function GoldenCardReveal({
                     <path d={FLOURISH_PATH} />
                   </svg>
                 </span>
-                <span className={cn(styles.cornerFlourish, styles.bottomRight)}>
+                <span
+                  className={cn(styles.cornerFlourish, styles.bottomRight)}
+                >
                   <svg viewBox="0 0 50 50">
                     <path d={FLOURISH_PATH} />
                   </svg>
@@ -474,9 +584,15 @@ export function GoldenCardReveal({
                   <span className={styles.seal}>
                     <span className={styles.sealMonogram}>{monogram}</span>
                   </span>
-                  <span className={cn(styles.sealHalf, styles.sealHalfLeft)} />
-                  <span className={cn(styles.sealHalf, styles.sealHalfRight)} />
-                  {showHint && <span className={styles.tapHint}>Tap to Open</span>}
+                  <span
+                    className={cn(styles.sealHalf, styles.sealHalfLeft)}
+                  />
+                  <span
+                    className={cn(styles.sealHalf, styles.sealHalfRight)}
+                  />
+                  {showHint && (
+                    <span className={styles.tapHint}>Tap to Open</span>
+                  )}
                 </span>
 
                 {/* Glare effect */}
@@ -486,7 +602,9 @@ export function GoldenCardReveal({
               {/* FRONT FACE (Revealed) */}
               <span className={cn(styles.cardFace, styles.cardFront)}>
                 <span className={styles.invitationContent}>
-                  <span className={styles.invitationHeader}>{headerText}</span>
+                  <span className={styles.invitationHeader}>
+                    {headerText}
+                  </span>
 
                   <h1 className={styles.coupleNames}>
                     {coupleNames.partner1}
@@ -513,7 +631,9 @@ export function GoldenCardReveal({
                     <p className={styles.eventDate}>{formattedDate}</p>
                     <p className={styles.eventTime}>{data.eventTime}</p>
                     <p className={styles.eventVenue}>
-                      <strong className={styles.venueName}>{data.venue.name}</strong>
+                      <strong className={styles.venueName}>
+                        {data.venue.name}
+                      </strong>
                       {data.venue.address}
                     </p>
                   </span>
@@ -534,7 +654,7 @@ export function GoldenCardReveal({
               </span>
             </span>
           </span>
-        </button>
+        </div>
       </div>
     </div>
   );
