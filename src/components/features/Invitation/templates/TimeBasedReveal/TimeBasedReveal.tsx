@@ -310,10 +310,23 @@ export function TimeBasedReveal({
           )}
           aria-hidden={!isSceneVisible("names")}
         >
+          {data.headerText && (
+            <p className={styles.headerText}>
+              {truncateWithEllipsis(data.headerText, CONTENT_LIMITS.headerText.max)}
+            </p>
+          )}
           <h1 className={styles.coupleNames}>
-            {truncateWithEllipsis(
-              data.coupleNames,
-              CONTENT_LIMITS.coupleDisplayName.max
+            {data.person1Name && data.person2Name ? (
+              <>
+                {truncateWithEllipsis(data.person1Name, CONTENT_LIMITS.personName.max)}
+                <span className={styles.ampersand}>&amp;</span>
+                {truncateWithEllipsis(data.person2Name, CONTENT_LIMITS.personName.max)}
+              </>
+            ) : (
+              truncateWithEllipsis(
+                data.coupleNames,
+                CONTENT_LIMITS.coupleDisplayName.max
+              )
             )}
           </h1>
         </div>
@@ -327,7 +340,11 @@ export function TimeBasedReveal({
           )}
           aria-hidden={!isSceneVisible("invite")}
         >
-          <p className={styles.inviteText}>Invite you to celebrate</p>
+          <p className={styles.inviteText}>
+            {data.eventTypeText
+              ? truncateWithEllipsis(data.eventTypeText, CONTENT_LIMITS.eventTypeText.max)
+              : "Invite you to celebrate"}
+          </p>
           <div className={styles.divider} aria-hidden="true" />
         </div>
 

@@ -17,6 +17,7 @@ import {
   type InvitationTemplate,
   type TextDirection,
 } from "@/schemas/invitation";
+import { templateSupportsField, type TemplateField } from "@/components/features/Invitation/templates";
 
 type TimelineEntry = {
   date: string;
@@ -225,8 +226,8 @@ export default function InvitationConfigPage() {
   const handleSave = async () => {
     if (saving) return;
 
-    // Validate required fields for WEDDING_STORYBOOK
-    if (template === "WEDDING_STORYBOOK") {
+    // Validate required fields for templates with storybook fields
+    if (templateSupportsField(template, "storybookFields")) {
       if (!couplePhotoUrl.trim()) {
         setError("Couple Photo URL is required for the Wedding Storybook template");
         return;
@@ -366,6 +367,8 @@ export default function InvitationConfigPage() {
     }
   };
 
+  const supports = (field: TemplateField) => templateSupportsField(template, field);
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -487,107 +490,117 @@ export default function InvitationConfigPage() {
           </CardContent>
         </Card>
 
-        {/* Invitation Wording - Shows for templates that support custom wording */}
-        {(template === "SPLIT_REVEAL" || template === "GOLDEN_CARD_REVEAL" || template === "FLIP_FLAP_REVEAL" || template === "WEDDING_STORYBOOK") && (
+        {/* Invitation Wording - Shows for templates that support structured name/monogram fields */}
+        {(supports("person1Name") || supports("monogram")) && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Invitation Wording</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-3">
-                  <Label htmlFor="person1Name">
-                    First Person Name{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="person1Name"
-                    value={person1Name}
-                    onChange={(e) =>
-                      handleFieldChange(setPerson1Name)(e.target.value)
-                    }
-                    placeholder="Emma Rose Williams"
-                    maxLength={CONTENT_LIMITS.personName.max}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {person1Name.length}/{CONTENT_LIMITS.personName.max} characters
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <Label htmlFor="person2Name">
-                    Second Person Name{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="person2Name"
-                    value={person2Name}
-                    onChange={(e) =>
-                      handleFieldChange(setPerson2Name)(e.target.value)
-                    }
-                    placeholder="James Oliver Smith"
-                    maxLength={CONTENT_LIMITS.personName.max}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {person2Name.length}/{CONTENT_LIMITS.personName.max} characters
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <Label htmlFor="headerText">
-                    Header Text{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="headerText"
-                    value={headerText}
-                    onChange={(e) =>
-                      handleFieldChange(setHeaderText)(e.target.value)
-                    }
-                    placeholder="Together with their families"
-                    maxLength={CONTENT_LIMITS.headerText.max}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {headerText.length}/{CONTENT_LIMITS.headerText.max} characters.
-                    Appears above couple names.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <Label htmlFor="eventTypeText">
-                    Event Type Text{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="eventTypeText"
-                    value={eventTypeText}
-                    onChange={(e) =>
-                      handleFieldChange(setEventTypeText)(e.target.value)
-                    }
-                    placeholder="Request the pleasure of your company"
-                    maxLength={CONTENT_LIMITS.eventTypeText.max}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {eventTypeText.length}/{CONTENT_LIMITS.eventTypeText.max} characters.
-                    Appears below couple names.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <Label htmlFor="monogram">
-                    Monogram{" "}
-                    <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="monogram"
-                    value={monogram}
-                    onChange={(e) =>
-                      handleFieldChange(setMonogram)(e.target.value)
-                    }
-                    placeholder="E&J"
-                    maxLength={CONTENT_LIMITS.monogram.max}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {monogram.length}/{CONTENT_LIMITS.monogram.max} characters.
-                    Auto-generated from names if empty.
-                  </p>
-                </div>
+                {supports("person1Name") && (
+                  <div className="space-y-3">
+                    <Label htmlFor="person1Name">
+                      First Person Name{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="person1Name"
+                      value={person1Name}
+                      onChange={(e) =>
+                        handleFieldChange(setPerson1Name)(e.target.value)
+                      }
+                      placeholder="Emma Rose Williams"
+                      maxLength={CONTENT_LIMITS.personName.max}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {person1Name.length}/{CONTENT_LIMITS.personName.max} characters
+                    </p>
+                  </div>
+                )}
+                {supports("person2Name") && (
+                  <div className="space-y-3">
+                    <Label htmlFor="person2Name">
+                      Second Person Name{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="person2Name"
+                      value={person2Name}
+                      onChange={(e) =>
+                        handleFieldChange(setPerson2Name)(e.target.value)
+                      }
+                      placeholder="James Oliver Smith"
+                      maxLength={CONTENT_LIMITS.personName.max}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {person2Name.length}/{CONTENT_LIMITS.personName.max} characters
+                    </p>
+                  </div>
+                )}
+                {supports("headerText") && (
+                  <div className="space-y-3">
+                    <Label htmlFor="headerText">
+                      Header Text{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="headerText"
+                      value={headerText}
+                      onChange={(e) =>
+                        handleFieldChange(setHeaderText)(e.target.value)
+                      }
+                      placeholder="Together with their families"
+                      maxLength={CONTENT_LIMITS.headerText.max}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {headerText.length}/{CONTENT_LIMITS.headerText.max} characters.
+                      Appears above couple names.
+                    </p>
+                  </div>
+                )}
+                {supports("eventTypeText") && (
+                  <div className="space-y-3">
+                    <Label htmlFor="eventTypeText">
+                      Event Type Text{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="eventTypeText"
+                      value={eventTypeText}
+                      onChange={(e) =>
+                        handleFieldChange(setEventTypeText)(e.target.value)
+                      }
+                      placeholder="Request the pleasure of your company"
+                      maxLength={CONTENT_LIMITS.eventTypeText.max}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {eventTypeText.length}/{CONTENT_LIMITS.eventTypeText.max} characters.
+                      Appears below couple names.
+                    </p>
+                  </div>
+                )}
+                {supports("monogram") && (
+                  <div className="space-y-3">
+                    <Label htmlFor="monogram">
+                      Monogram{" "}
+                      <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="monogram"
+                      value={monogram}
+                      onChange={(e) =>
+                        handleFieldChange(setMonogram)(e.target.value)
+                      }
+                      placeholder="E&J"
+                      maxLength={CONTENT_LIMITS.monogram.max}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {monogram.length}/{CONTENT_LIMITS.monogram.max} characters.
+                      Auto-generated from names if empty.
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -619,8 +632,8 @@ export default function InvitationConfigPage() {
           </CardContent>
         </Card>
 
-        {/* Custom Message (not shown for Wedding Storybook — uses dedicated Story section) */}
-        {template !== "WEDDING_STORYBOOK" && (
+        {/* Custom Message */}
+        {supports("customMessage") && (
           <Card>
             <CardHeader>
               <CardTitle>Custom Message</CardTitle>
@@ -649,7 +662,7 @@ export default function InvitationConfigPage() {
         )}
 
         {/* Wedding Storybook: Photos */}
-        {template === "WEDDING_STORYBOOK" && (
+        {supports("storybookFields") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Photos</CardTitle>
@@ -694,7 +707,7 @@ export default function InvitationConfigPage() {
         )}
 
         {/* Wedding Storybook: Reception Details */}
-        {template === "WEDDING_STORYBOOK" && (
+        {supports("storybookFields") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Reception Details</CardTitle>
@@ -746,7 +759,7 @@ export default function InvitationConfigPage() {
         )}
 
         {/* Wedding Storybook: Story Section */}
-        {template === "WEDDING_STORYBOOK" && (
+        {supports("storybookFields") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Our Story</CardTitle>
@@ -814,7 +827,7 @@ export default function InvitationConfigPage() {
         )}
 
         {/* Wedding Storybook: Timeline */}
-        {template === "WEDDING_STORYBOOK" && (
+        {supports("storybookFields") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Timeline Events</CardTitle>
@@ -900,7 +913,7 @@ export default function InvitationConfigPage() {
         )}
 
         {/* Wedding Storybook: Quotes */}
-        {template === "WEDDING_STORYBOOK" && (
+        {supports("storybookFields") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Quotes</CardTitle>
@@ -945,52 +958,56 @@ export default function InvitationConfigPage() {
         )}
 
         {/* Dress Code */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Dress Code</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Label htmlFor="dressCode">
-                Attire <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="dressCode"
-                value={dressCode}
-                onChange={(e) => handleFieldChange(setDressCode)(e.target.value)}
-                placeholder="Black Tie Optional"
-                maxLength={CONTENT_LIMITS.dressCode.max}
-              />
-              <p className="text-xs text-muted-foreground">
-                {dressCode.length}/{CONTENT_LIMITS.dressCode.max} characters
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {supports("dressCode") && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Dress Code</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Label htmlFor="dressCode">
+                  Attire <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="dressCode"
+                  value={dressCode}
+                  onChange={(e) => handleFieldChange(setDressCode)(e.target.value)}
+                  placeholder="Black Tie Optional"
+                  maxLength={CONTENT_LIMITS.dressCode.max}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {dressCode.length}/{CONTENT_LIMITS.dressCode.max} characters
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Hero Image */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Hero Image</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Label htmlFor="heroImageUrl">
-                Image URL <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="heroImageUrl"
-                type="url"
-                value={heroImageUrl}
-                onChange={(e) => handleFieldChange(setHeroImageUrl)(e.target.value)}
-                placeholder="https://example.com/your-photo.jpg"
-              />
-              <p className="text-xs text-muted-foreground">
-                A photo to display on the invitation card
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {supports("heroImageUrl") && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Hero Image</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Label htmlFor="heroImageUrl">
+                  Image URL <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="heroImageUrl"
+                  type="url"
+                  value={heroImageUrl}
+                  onChange={(e) => handleFieldChange(setHeroImageUrl)(e.target.value)}
+                  placeholder="https://example.com/your-photo.jpg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  A photo to display on the invitation card
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Locale & Direction */}
         <Card>

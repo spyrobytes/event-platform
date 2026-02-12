@@ -101,6 +101,16 @@
   transition-delay: 100ms;
 }
 
+.headerText {
+  font-family: var(--inv-font-body);
+  font-size: 0.875rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--inv-text-secondary);
+  margin: 0 0 0.75rem;
+}
+
 .coupleNames {
   font-family: var(--inv-font-script);
   font-size: clamp(2.5rem, 10vw, 5rem);
@@ -108,6 +118,13 @@
   line-height: 1.1;
   margin: 0;
   animation: none;
+}
+
+.ampersand {
+  display: block;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  color: var(--inv-accent);
+  margin: 0.2rem 0;
 }
 
 .namesScene.visible .coupleNames {

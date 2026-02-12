@@ -51,7 +51,14 @@ export function InvitationCard({
     dressCode,
     customMessage,
     rsvpUrl,
+    person1Name,
+    person2Name,
+    headerText,
+    eventTypeText,
   } = data;
+
+  // Subtitle below the names: eventTypeText if provided, otherwise eventTitle
+  const subtitle = eventTypeText || eventTitle;
 
   // Format date for display
   const formattedDate = new Intl.DateTimeFormat("en-US", {
@@ -84,8 +91,58 @@ export function InvitationCard({
         />
       )}
 
-      {/* Couple names or monogram */}
-      {data.monogram ? (
+      {/* Header text (e.g. "Together with their families") */}
+      {headerText && (
+        <p
+          className={cn(
+            "font-[var(--inv-font-body)]",
+            "text-sm md:text-base",
+            "text-[var(--inv-text-secondary)]",
+            "italic",
+            "mb-3"
+          )}
+        >
+          {truncateWithEllipsis(headerText, CONTENT_LIMITS.headerText.max)}
+        </p>
+      )}
+
+      {/* Couple names: structured names take priority, then monogram-only, then coupleNames */}
+      {person1Name && person2Name ? (
+        <>
+          <h1
+            className={cn(
+              "font-[var(--inv-font-script)]",
+              "text-4xl md:text-5xl lg:text-6xl",
+              "text-[var(--inv-text-primary)]",
+              "mb-2",
+              "leading-tight"
+            )}
+          >
+            {truncateWithEllipsis(person1Name, CONTENT_LIMITS.personName.max)}
+            <span
+              className={cn(
+                "block text-3xl md:text-4xl",
+                "text-[var(--inv-accent)]",
+                "my-1"
+              )}
+            >
+              &amp;
+            </span>
+            {truncateWithEllipsis(person2Name, CONTENT_LIMITS.personName.max)}
+          </h1>
+          <p
+            className={cn(
+              "font-[var(--inv-font-body)]",
+              "text-sm md:text-base",
+              "text-[var(--inv-text-secondary)]",
+              "uppercase tracking-widest",
+              "mb-6"
+            )}
+          >
+            {truncateWithEllipsis(subtitle, CONTENT_LIMITS.eventTypeText.max)}
+          </p>
+        </>
+      ) : data.monogram ? (
         <>
           <p
             className={cn(
@@ -108,7 +165,7 @@ export function InvitationCard({
               "mb-6"
             )}
           >
-            {truncateWithEllipsis(eventTitle, CONTENT_LIMITS.eventTitle.max)}
+            {truncateWithEllipsis(subtitle, CONTENT_LIMITS.eventTypeText.max)}
           </h1>
         </>
       ) : (
@@ -133,7 +190,7 @@ export function InvitationCard({
               "mb-6"
             )}
           >
-            {truncateWithEllipsis(eventTitle, CONTENT_LIMITS.eventTitle.max)}
+            {truncateWithEllipsis(subtitle, CONTENT_LIMITS.eventTypeText.max)}
           </p>
         </>
       )}

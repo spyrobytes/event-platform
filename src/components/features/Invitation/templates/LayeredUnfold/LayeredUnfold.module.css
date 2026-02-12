@@ -392,12 +392,29 @@
   margin: 0 0 0.75rem;
 }
 
+.headerText {
+  font-family: var(--inv-font-body);
+  font-size: 0.8125rem;
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--inv-text-secondary);
+  margin: 0 0 0.5rem;
+}
+
 .coupleNames {
   font-family: var(--inv-font-script);
   font-size: clamp(2rem, 6vw, 3rem);
   color: var(--inv-text-primary);
   line-height: 1.2;
   margin: 0;
+}
+
+.ampersand {
+  display: block;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  color: var(--inv-accent);
+  margin: 0.15rem 0;
 }
 
 .eventTitle {

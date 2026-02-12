@@ -158,6 +158,44 @@ export const templateMetadata: Record<
 };
 
 /**
+ * Fields that can be configured per template in the dashboard
+ */
+export type TemplateField =
+  | "coupleDisplayName"
+  | "person1Name"
+  | "person2Name"
+  | "headerText"
+  | "eventTypeText"
+  | "monogram"
+  | "customMessage"
+  | "dressCode"
+  | "heroImageUrl"
+  | "storybookFields";
+
+/**
+ * Per-template field support map — single source of truth for which
+ * dashboard controls are relevant to each template.
+ */
+export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>> = {
+  ENVELOPE_REVEAL:     new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode"]),
+  ENVELOPE_REVEAL_V2:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode"]),
+  SPLIT_REVEAL:        new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode"]),
+  LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
+  CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode"]),
+  TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
+  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "monogram", "heroImageUrl"]),
+  FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl"]),
+  WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "monogram", "dressCode", "storybookFields"]),
+};
+
+/**
+ * Check whether a template supports a given dashboard field.
+ */
+export function templateSupportsField(templateId: TemplateId | string, field: TemplateField): boolean {
+  return templateFieldSupport[templateId as TemplateId]?.has(field) ?? false;
+}
+
+/**
  * Get template component by ID.
  * Falls back to EnvelopeReveal if template not found or not implemented.
  */
