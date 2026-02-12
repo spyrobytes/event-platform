@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner } from "@/lib/authorization";
@@ -69,42 +70,43 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const body = await request.json();
     const data = invitationConfigSchema.parse(body);
 
+    // Build the shared field set
+    const configFields = {
+      template: data.template,
+      themeId: data.themeId,
+      typographyPair: data.typographyPair,
+      coupleDisplayName: data.coupleDisplayName || null,
+      person1Name: data.person1Name || null,
+      person2Name: data.person2Name || null,
+      headerText: data.headerText || null,
+      eventTypeText: data.eventTypeText || null,
+      monogram: data.monogram || null,
+      customMessage: data.customMessage || null,
+      dressCode: data.dressCode || null,
+      heroImageUrl: data.heroImageUrl || null,
+      // Wedding Storybook fields
+      couplePhotoUrl: data.couplePhotoUrl || null,
+      venuePhotoUrl: data.venuePhotoUrl || null,
+      receptionTime: data.receptionTime || null,
+      receptionVenue: data.receptionVenue || null,
+      receptionAddress: data.receptionAddress || null,
+      rsvpDeadline: data.rsvpDeadline || null,
+      storyHeading: data.storyHeading || null,
+      storyParagraphs: data.storyParagraphs || [],
+      timelineJson: data.timelineJson ?? Prisma.JsonNull,
+      person1Quote: data.person1Quote || null,
+      person1QuoteAttr: data.person1QuoteAttr || null,
+      person2Quote: data.person2Quote || null,
+      person2QuoteAttr: data.person2QuoteAttr || null,
+      locale: data.locale,
+      textDirection: data.textDirection,
+    };
+
     // Upsert the configuration
     const config = await db.invitationConfig.upsert({
       where: { eventId },
-      create: {
-        eventId,
-        template: data.template,
-        themeId: data.themeId,
-        typographyPair: data.typographyPair,
-        coupleDisplayName: data.coupleDisplayName || null,
-        person1Name: data.person1Name || null,
-        person2Name: data.person2Name || null,
-        headerText: data.headerText || null,
-        eventTypeText: data.eventTypeText || null,
-        monogram: data.monogram || null,
-        customMessage: data.customMessage || null,
-        dressCode: data.dressCode || null,
-        heroImageUrl: data.heroImageUrl || null,
-        locale: data.locale,
-        textDirection: data.textDirection,
-      },
-      update: {
-        template: data.template,
-        themeId: data.themeId,
-        typographyPair: data.typographyPair,
-        coupleDisplayName: data.coupleDisplayName || null,
-        person1Name: data.person1Name || null,
-        person2Name: data.person2Name || null,
-        headerText: data.headerText || null,
-        eventTypeText: data.eventTypeText || null,
-        monogram: data.monogram || null,
-        customMessage: data.customMessage || null,
-        dressCode: data.dressCode || null,
-        heroImageUrl: data.heroImageUrl || null,
-        locale: data.locale,
-        textDirection: data.textDirection,
-      },
+      create: { eventId, ...configFields },
+      update: configFields,
     });
 
     return successResponse(config);

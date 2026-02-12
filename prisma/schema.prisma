@@ -356,6 +356,21 @@ model InvitationConfig {
   dressCode     String? @map("dress_code") // e.g., "Black Tie", "Casual"
   heroImageUrl  String? @map("hero_image_url") // Custom hero image for invitation
 
+  // Wedding Storybook fields
+  couplePhotoUrl   String?  @map("couple_photo_url")
+  venuePhotoUrl    String?  @map("venue_photo_url")
+  receptionTime    String?  @map("reception_time")
+  receptionVenue   String?  @map("reception_venue")
+  receptionAddress String?  @map("reception_address")
+  rsvpDeadline     String?  @map("rsvp_deadline")
+  storyHeading     String?  @map("story_heading")
+  storyParagraphs  String[] @map("story_paragraphs")
+  timelineJson     Json?    @map("timeline_json")
+  person1Quote     String?  @map("person1_quote")
+  person1QuoteAttr String?  @map("person1_quote_attr")
+  person2Quote     String?  @map("person2_quote")
+  person2QuoteAttr String?  @map("person2_quote_attr")
+
   // Locale and direction
   locale        String        @default("en-US")
   textDirection TextDirection @default(LTR) @map("text_direction")

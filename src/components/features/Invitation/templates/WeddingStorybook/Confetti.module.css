@@ -1,0 +1,79 @@
+/* ═══════════════════════════════════════════════════
+   Confetti Burst — CSS-only particle celebration
+   ═══════════════════════════════════════════════════ */
+
+.confettiContainer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* Individual particle */
+.particle {
+  position: absolute;
+  width: var(--size, 6px);
+  height: var(--size, 6px);
+  border-radius: var(--radius, 1px);
+  background: var(--color);
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  will-change: transform, opacity;
+}
+
+.particleActive {
+  animation: confettiBurst var(--duration, 2.5s) var(--delay, 0s) cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes confettiBurst {
+  0% {
+    opacity: 1;
+    transform:
+      translate(-50%, -50%)
+      scale(0)
+      rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+    transform:
+      translate(-50%, -50%)
+      scale(1.2)
+      rotate(var(--spin-mid, 45deg));
+  }
+  20% {
+    opacity: 1;
+    transform:
+      translate(
+        calc(-50% + var(--dx) * 0.4),
+        calc(-50% + var(--dy) * 0.3)
+      )
+      scale(1)
+      rotate(var(--spin-mid, 90deg));
+  }
+  100% {
+    opacity: 0;
+    transform:
+      translate(
+        calc(-50% + var(--dx)),
+        calc(-50% + var(--dy) + 120px)
+      )
+      scale(0.3)
+      rotate(var(--spin-end, 360deg));
+  }
+}
+
+/* Shimmer variant for some particles */
+.shimmer {
+  box-shadow: 0 0 4px var(--color);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .particleActive {
+    animation: none;
+    opacity: 0;
+  }
+}

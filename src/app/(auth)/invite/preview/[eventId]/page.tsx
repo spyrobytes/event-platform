@@ -48,6 +48,19 @@ type InvitationConfigData = {
   customMessage: string | null;
   dressCode: string | null;
   heroImageUrl: string | null;
+  couplePhotoUrl: string | null;
+  venuePhotoUrl: string | null;
+  receptionTime: string | null;
+  receptionVenue: string | null;
+  receptionAddress: string | null;
+  rsvpDeadline: string | null;
+  storyHeading: string | null;
+  storyParagraphs: string[];
+  timelineJson: Array<{ date: string; label: string; description?: string }> | null;
+  person1Quote: string | null;
+  person1QuoteAttr: string | null;
+  person2Quote: string | null;
+  person2QuoteAttr: string | null;
 };
 
 export default function InvitationPreviewPage() {
@@ -173,6 +186,20 @@ export default function InvitationPreviewPage() {
     headerText: config.headerText || undefined,
     eventTypeText: config.eventTypeText || undefined,
     monogram: config.monogram || undefined,
+    // Wedding Storybook extended fields
+    couplePhotoUrl: config.couplePhotoUrl || undefined,
+    venuePhotoUrl: config.venuePhotoUrl || undefined,
+    receptionTime: config.receptionTime || undefined,
+    receptionVenue: config.receptionVenue || undefined,
+    receptionAddress: config.receptionAddress || undefined,
+    rsvpDeadline: config.rsvpDeadline || undefined,
+    storyHeading: config.storyHeading || undefined,
+    storyParagraphs: config.storyParagraphs?.length ? config.storyParagraphs : undefined,
+    timeline: config.timelineJson ?? undefined,
+    person1Quote: config.person1Quote || undefined,
+    person1QuoteAttr: config.person1QuoteAttr || undefined,
+    person2Quote: config.person2Quote || undefined,
+    person2QuoteAttr: config.person2QuoteAttr || undefined,
   };
 
   // Get template configuration
@@ -242,7 +269,7 @@ export default function InvitationPreviewPage() {
         </Link>
       </div>
 
-      <div className="pt-16">{renderTemplate()}</div>
+      <div className={isDataDriven ? undefined : "pt-16"}>{renderTemplate()}</div>
     </InvitationShell>
   );
 }

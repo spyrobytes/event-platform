@@ -86,7 +86,7 @@ const templateRegistry: Record<
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
   GOLDEN_CARD_REVEAL: { component: GoldenCardReveal, type: "data-driven" },
   FLIP_FLAP_REVEAL: { component: FlipFlapReveal, type: "data-driven" },
-  WEDDING_STORYBOOK: { component: WeddingStorybook, type: "data-driven" },
+  WEDDING_STORYBOOK: { component: WeddingStorybook as ComponentType<DataDrivenTemplateProps>, type: "data-driven" },
 };
 
 /**

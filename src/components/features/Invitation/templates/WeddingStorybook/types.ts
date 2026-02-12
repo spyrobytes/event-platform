@@ -1,99 +1,72 @@
 import type { InvitationData } from "@/schemas/invitation";
-import type { InvitationState } from "@/hooks";
 
-/**
- * Color theme variants for the Wedding Storybook.
- * Maps to the platform's standard theme IDs.
- */
-export type StorybookTheme = "ivory" | "blush" | "sage" | "midnight" | "champagne";
-
-/**
- * Event schedule item for the timeline display.
- */
-export type ScheduleItem = {
-  /** Time label (e.g. "4:00 PM") */
-  time: string;
-  /** Activity name (e.g. "Ceremony") */
-  activity: string;
-};
-
-/**
- * Venue information with optional photo and caption.
- */
-export type VenueDisplay = {
-  name: string;
-  address: string;
-  location: string;
-  photoUrl?: string;
-  photoAlt?: string;
-  caption?: string;
-};
-
-/**
- * Celebration details for the "What to Expect" page.
- */
-export type CelebrationDetails = {
-  ceremonyLocation?: string;
-  receptionLocation?: string;
-  attire?: string;
-};
-
-/**
- * "Our Story" page content.
- */
-export type OurStory = {
-  text: string;
-  photoUrl?: string;
-  photoAlt?: string;
-  quote?: string;
-  quoteAttribution?: string;
-};
-
-/**
- * Contact information for the final page.
- */
-export type ContactInfo = {
-  email?: string;
-  websiteUrl?: string;
-  websiteLabel?: string;
-};
-
-/**
- * Props for the WeddingStorybook component.
- */
+/** Props for the WeddingStorybook component */
 export type WeddingStorybookProps = {
-  /** Invitation data from schema */
   data: InvitationData;
-
-  /** Initial state of the invitation */
-  initialState?: InvitationState;
-
-  /** Callback when state changes */
-  onStateChange?: (state: InvitationState) => void;
-
-  /** Starting page index (0-based) — uncontrolled mode */
-  defaultPage?: number;
-
-  /** Controlled page index — component becomes controlled when set */
-  page?: number;
-
-  /** Callback when page changes */
-  onPageChange?: (page: number) => void;
-
-  /** Color theme — derived from InvitationShell if not specified */
-  theme?: StorybookTheme;
-
-  /** Disable particle burst effects */
-  disableParticles?: boolean;
-
-  /** Show turn page hint on cover */
+  theme?: "ivory" | "blush" | "sage" | "midnight" | "champagne";
+  initialState?: "open";
   showHint?: boolean;
-
-  /** Additional CSS class name */
   className?: string;
 };
 
-/**
- * Page navigation direction
- */
-export type FlipDirection = "forward" | "backward" | null;
+/** Internal types mapped from InvitationData for page components */
+export type StorybookData = {
+  person1: string;
+  person2: string;
+  date: string;
+  year: string;
+  ceremonyTime: string;
+  ceremonyVenue: string;
+  ceremonyAddress: string;
+  receptionTime: string;
+  receptionVenue: string;
+  receptionAddress: string;
+  dressCode?: string;
+  rsvpUrl?: string;
+  rsvpDeadline?: string;
+  monogram?: string;
+  couplePhotoUrl?: string;
+  venuePhotoUrl?: string;
+  story?: StoryContent;
+  timeline?: TimelineEvent[];
+  quote?: QuoteContent;
+  groomQuote?: QuoteContent;
+};
+
+export type StoryContent = {
+  heading: string;
+  paragraphs: string[];
+};
+
+export type TimelineEvent = {
+  date: string;
+  label: string;
+  description?: string;
+};
+
+export type QuoteContent = {
+  text: string;
+  attribution?: string;
+};
+
+export type PageSide = "left" | "right";
+
+export type PageVariant = "dark" | "light" | "accent";
+
+export type SpreadLabel =
+  | "cover"
+  | "story"
+  | "timeline"
+  | "details"
+  | "rsvp";
+
+export const SPREAD_LABELS: SpreadLabel[] = [
+  "cover",
+  "story",
+  "timeline",
+  "details",
+  "rsvp",
+];
+
+export const TOTAL_SPREADS = SPREAD_LABELS.length;
+export const TOTAL_PAGES = TOTAL_SPREADS * 2;

@@ -18,6 +18,12 @@ import {
   type TextDirection,
 } from "@/schemas/invitation";
 
+type TimelineEntry = {
+  date: string;
+  label: string;
+  description?: string;
+};
+
 type InvitationConfig = {
   id: string;
   eventId: string;
@@ -33,6 +39,19 @@ type InvitationConfig = {
   customMessage: string | null;
   dressCode: string | null;
   heroImageUrl: string | null;
+  couplePhotoUrl: string | null;
+  venuePhotoUrl: string | null;
+  receptionTime: string | null;
+  receptionVenue: string | null;
+  receptionAddress: string | null;
+  rsvpDeadline: string | null;
+  storyHeading: string | null;
+  storyParagraphs: string[];
+  timelineJson: TimelineEntry[] | null;
+  person1Quote: string | null;
+  person1QuoteAttr: string | null;
+  person2Quote: string | null;
+  person2QuoteAttr: string | null;
   locale: string;
   textDirection: TextDirection;
 };
@@ -96,6 +115,20 @@ export default function InvitationConfigPage() {
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [locale, setLocale] = useState("en-US");
   const [textDirection, setTextDirection] = useState<TextDirection>("LTR");
+  // Wedding Storybook fields
+  const [couplePhotoUrl, setCouplePhotoUrl] = useState("");
+  const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
+  const [receptionTime, setReceptionTime] = useState("");
+  const [receptionVenue, setReceptionVenue] = useState("");
+  const [receptionAddress, setReceptionAddress] = useState("");
+  const [rsvpDeadline, setRsvpDeadline] = useState("");
+  const [storyHeading, setStoryHeading] = useState("");
+  const [storyParagraphs, setStoryParagraphs] = useState<string[]>([""]);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([{ date: "", label: "", description: "" }]);
+  const [person1Quote, setPerson1Quote] = useState("");
+  const [person1QuoteAttr, setPerson1QuoteAttr] = useState("");
+  const [person2Quote, setPerson2Quote] = useState("");
+  const [person2QuoteAttr, setPerson2QuoteAttr] = useState("");
 
   // Track if form has been modified
   const [isDirty, setIsDirty] = useState(false);
@@ -151,6 +184,20 @@ export default function InvitationConfigPage() {
             setHeroImageUrl(configData.data.heroImageUrl || "");
             setLocale(configData.data.locale);
             setTextDirection(configData.data.textDirection);
+            // Wedding Storybook fields
+            setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
+            setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
+            setReceptionTime(configData.data.receptionTime || "");
+            setReceptionVenue(configData.data.receptionVenue || "");
+            setReceptionAddress(configData.data.receptionAddress || "");
+            setRsvpDeadline(configData.data.rsvpDeadline || "");
+            setStoryHeading(configData.data.storyHeading || "");
+            setStoryParagraphs(configData.data.storyParagraphs?.length ? configData.data.storyParagraphs : [""]);
+            setTimelineEntries(configData.data.timelineJson?.length ? configData.data.timelineJson : [{ date: "", label: "", description: "" }]);
+            setPerson1Quote(configData.data.person1Quote || "");
+            setPerson1QuoteAttr(configData.data.person1QuoteAttr || "");
+            setPerson2Quote(configData.data.person2Quote || "");
+            setPerson2QuoteAttr(configData.data.person2QuoteAttr || "");
           }
         }
       } catch (err) {
@@ -179,9 +226,15 @@ export default function InvitationConfigPage() {
     if (saving) return;
 
     // Validate required fields for WEDDING_STORYBOOK
-    if (template === "WEDDING_STORYBOOK" && !customMessage.trim()) {
-      setError("Our Story is required for the Wedding Storybook template");
-      return;
+    if (template === "WEDDING_STORYBOOK") {
+      if (!couplePhotoUrl.trim()) {
+        setError("Couple Photo URL is required for the Wedding Storybook template");
+        return;
+      }
+      if (!venuePhotoUrl.trim()) {
+        setError("Venue Photo URL is required for the Wedding Storybook template");
+        return;
+      }
     }
 
     setSaving(true);
@@ -211,6 +264,20 @@ export default function InvitationConfigPage() {
           customMessage: customMessage || undefined,
           dressCode: dressCode || undefined,
           heroImageUrl: heroImageUrl || undefined,
+          // Wedding Storybook fields
+          couplePhotoUrl: couplePhotoUrl || undefined,
+          venuePhotoUrl: venuePhotoUrl || undefined,
+          receptionTime: receptionTime || undefined,
+          receptionVenue: receptionVenue || undefined,
+          receptionAddress: receptionAddress || undefined,
+          rsvpDeadline: rsvpDeadline || undefined,
+          storyHeading: storyHeading || undefined,
+          storyParagraphs: storyParagraphs.filter((p) => p.trim()) || undefined,
+          timelineJson: timelineEntries.filter((e) => e.label.trim()) || undefined,
+          person1Quote: person1Quote || undefined,
+          person1QuoteAttr: person1QuoteAttr || undefined,
+          person2Quote: person2Quote || undefined,
+          person2QuoteAttr: person2QuoteAttr || undefined,
           locale,
           textDirection,
         }),
@@ -277,6 +344,19 @@ export default function InvitationConfigPage() {
       setHeroImageUrl("");
       setLocale("en-US");
       setTextDirection("LTR");
+      setCouplePhotoUrl("");
+      setVenuePhotoUrl("");
+      setReceptionTime("");
+      setReceptionVenue("");
+      setReceptionAddress("");
+      setRsvpDeadline("");
+      setStoryHeading("");
+      setStoryParagraphs([""]);
+      setTimelineEntries([{ date: "", label: "", description: "" }]);
+      setPerson1Quote("");
+      setPerson1QuoteAttr("");
+      setPerson2Quote("");
+      setPerson2QuoteAttr("");
       setIsDirty(false);
       setSuccessMessage("Elegant invitations disabled");
     } catch (err) {
@@ -581,6 +661,302 @@ export default function InvitationConfigPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Wedding Storybook: Photos */}
+        {template === "WEDDING_STORYBOOK" && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-3">
+                  <Label htmlFor="couplePhotoUrl">
+                    Couple Photo URL <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="couplePhotoUrl"
+                    type="url"
+                    value={couplePhotoUrl}
+                    onChange={(e) => handleFieldChange(setCouplePhotoUrl)(e.target.value)}
+                    placeholder="https://example.com/couple-photo.jpg"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Circular photo on the book cover
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="venuePhotoUrl">
+                    Venue Photo URL <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="venuePhotoUrl"
+                    type="url"
+                    value={venuePhotoUrl}
+                    onChange={(e) => handleFieldChange(setVenuePhotoUrl)(e.target.value)}
+                    placeholder="https://example.com/venue-photo.jpg"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Background photo on the details spread
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Wedding Storybook: Reception Details */}
+        {template === "WEDDING_STORYBOOK" && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Reception Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-3">
+                <div className="space-y-3">
+                  <Label htmlFor="receptionTime">Reception Time</Label>
+                  <Input
+                    id="receptionTime"
+                    value={receptionTime}
+                    onChange={(e) => handleFieldChange(setReceptionTime)(e.target.value)}
+                    placeholder="Six O'Clock in the Evening"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="receptionVenue">Reception Venue</Label>
+                  <Input
+                    id="receptionVenue"
+                    value={receptionVenue}
+                    onChange={(e) => handleFieldChange(setReceptionVenue)(e.target.value)}
+                    placeholder="The Glasshouse at Royal Botanic"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="receptionAddress">Reception Address</Label>
+                  <Input
+                    id="receptionAddress"
+                    value={receptionAddress}
+                    onChange={(e) => handleFieldChange(setReceptionAddress)(e.target.value)}
+                    placeholder="20A Inverleith Row, Edinburgh"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                <Label htmlFor="rsvpDeadline">RSVP Deadline</Label>
+                <Input
+                  id="rsvpDeadline"
+                  value={rsvpDeadline}
+                  onChange={(e) => handleFieldChange(setRsvpDeadline)(e.target.value)}
+                  placeholder="the First of May, 2026"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Displayed on the RSVP spread
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Wedding Storybook: Story Section */}
+        {template === "WEDDING_STORYBOOK" && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Our Story</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <Label htmlFor="storyHeading">Story Heading</Label>
+                  <Input
+                    id="storyHeading"
+                    value={storyHeading}
+                    onChange={(e) => handleFieldChange(setStoryHeading)(e.target.value)}
+                    placeholder="How We Met"
+                    maxLength={CONTENT_LIMITS.storyHeading.max}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {storyHeading.length}/{CONTENT_LIMITS.storyHeading.max} characters
+                  </p>
+                </div>
+                {storyParagraphs.map((p, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Paragraph {i + 1}</Label>
+                      {storyParagraphs.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            handleFieldChange(setStoryParagraphs)(
+                              storyParagraphs.filter((_, idx) => idx !== i)
+                            );
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <Textarea
+                      value={p}
+                      onChange={(e) => {
+                        const updated = [...storyParagraphs];
+                        updated[i] = e.target.value;
+                        handleFieldChange(setStoryParagraphs)(updated);
+                      }}
+                      placeholder="Share a part of your love story..."
+                      maxLength={CONTENT_LIMITS.storyParagraph.max}
+                      rows={3}
+                    />
+                  </div>
+                ))}
+                {storyParagraphs.length < 5 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFieldChange(setStoryParagraphs)([...storyParagraphs, ""])}
+                  >
+                    + Add Paragraph
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Wedding Storybook: Timeline */}
+        {template === "WEDDING_STORYBOOK" && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Timeline Events</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {timelineEntries.map((entry, i) => (
+                  <div key={i} className="grid gap-3 md:grid-cols-3 items-start border-b border-border pb-4 last:border-0">
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <Input
+                        value={entry.date}
+                        onChange={(e) => {
+                          const updated = [...timelineEntries];
+                          updated[i] = { ...updated[i], date: e.target.value };
+                          handleFieldChange(setTimelineEntries)(updated);
+                        }}
+                        placeholder="June 2021"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Label</Label>
+                      <Input
+                        value={entry.label}
+                        onChange={(e) => {
+                          const updated = [...timelineEntries];
+                          updated[i] = { ...updated[i], label: e.target.value };
+                          handleFieldChange(setTimelineEntries)(updated);
+                        }}
+                        placeholder="First Date"
+                        maxLength={CONTENT_LIMITS.timelineEventLabel.max}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Description</Label>
+                        {timelineEntries.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              handleFieldChange(setTimelineEntries)(
+                                timelineEntries.filter((_, idx) => idx !== i)
+                              );
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <Input
+                        value={entry.description || ""}
+                        onChange={(e) => {
+                          const updated = [...timelineEntries];
+                          updated[i] = { ...updated[i], description: e.target.value };
+                          handleFieldChange(setTimelineEntries)(updated);
+                        }}
+                        placeholder="A brief description..."
+                        maxLength={CONTENT_LIMITS.timelineEventDescription.max}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {timelineEntries.length < 6 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      handleFieldChange(setTimelineEntries)([
+                        ...timelineEntries,
+                        { date: "", label: "", description: "" },
+                      ])
+                    }
+                  >
+                    + Add Timeline Event
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Wedding Storybook: Quotes */}
+        {template === "WEDDING_STORYBOOK" && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Quotes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-3">
+                  <Label htmlFor="person1Quote">Person 1 Quote</Label>
+                  <Textarea
+                    id="person1Quote"
+                    value={person1Quote}
+                    onChange={(e) => handleFieldChange(setPerson1Quote)(e.target.value)}
+                    placeholder="A meaningful quote about your love..."
+                    maxLength={CONTENT_LIMITS.quote.max}
+                    rows={3}
+                  />
+                  <Input
+                    value={person1QuoteAttr}
+                    onChange={(e) => handleFieldChange(setPerson1QuoteAttr)(e.target.value)}
+                    placeholder="Attribution (e.g., Emma)"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label htmlFor="person2Quote">Person 2 Quote</Label>
+                  <Textarea
+                    id="person2Quote"
+                    value={person2Quote}
+                    onChange={(e) => handleFieldChange(setPerson2Quote)(e.target.value)}
+                    placeholder="A meaningful quote about your love..."
+                    maxLength={CONTENT_LIMITS.quote.max}
+                    rows={3}
+                  />
+                  <Input
+                    value={person2QuoteAttr}
+                    onChange={(e) => handleFieldChange(setPerson2QuoteAttr)(e.target.value)}
+                    placeholder="Attribution (e.g., James)"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Dress Code */}
         <Card>

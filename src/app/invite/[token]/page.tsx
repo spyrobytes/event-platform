@@ -201,6 +201,20 @@ export default async function InvitationPage({ params }: PageProps) {
     headerText: invitationConfig?.headerText || undefined,
     eventTypeText: invitationConfig?.eventTypeText || undefined,
     monogram: invitationConfig?.monogram || undefined,
+    // Wedding Storybook extended fields
+    couplePhotoUrl: invitationConfig?.couplePhotoUrl || undefined,
+    venuePhotoUrl: invitationConfig?.venuePhotoUrl || undefined,
+    receptionTime: invitationConfig?.receptionTime || undefined,
+    receptionVenue: invitationConfig?.receptionVenue || undefined,
+    receptionAddress: invitationConfig?.receptionAddress || undefined,
+    rsvpDeadline: invitationConfig?.rsvpDeadline || undefined,
+    storyHeading: invitationConfig?.storyHeading || undefined,
+    storyParagraphs: invitationConfig?.storyParagraphs?.length ? invitationConfig.storyParagraphs : undefined,
+    timeline: invitationConfig?.timelineJson as InvitationData["timeline"] ?? undefined,
+    person1Quote: invitationConfig?.person1Quote || undefined,
+    person1QuoteAttr: invitationConfig?.person1QuoteAttr || undefined,
+    person2Quote: invitationConfig?.person2Quote || undefined,
+    person2QuoteAttr: invitationConfig?.person2QuoteAttr || undefined,
   };
 
   // Check if already responded

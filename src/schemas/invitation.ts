@@ -49,6 +49,11 @@ export const CONTENT_LIMITS = {
   headerText: { max: 60, recommended: 40 },
   eventTypeText: { max: 80, recommended: 60 },
   monogram: { max: 10 },
+  storyHeading: { max: 60, recommended: 30 },
+  storyParagraph: { max: 500, recommended: 300 },
+  timelineEventLabel: { max: 50 },
+  timelineEventDescription: { max: 150 },
+  quote: { max: 250, recommended: 200 },
 } as const;
 
 // =============================================================================
@@ -104,6 +109,28 @@ export const invitationConfigSchema = z.object({
   customMessage: z.string().max(CONTENT_LIMITS.customMessage.max).optional(),
   dressCode: z.string().max(CONTENT_LIMITS.dressCode.max).optional(),
   heroImageUrl: z.string().url().optional().or(z.literal("")),
+  // Wedding Storybook fields
+  couplePhotoUrl: z.string().url().optional().or(z.literal("")),
+  venuePhotoUrl: z.string().url().optional().or(z.literal("")),
+  receptionTime: z.string().max(60).optional(),
+  receptionVenue: z.string().max(CONTENT_LIMITS.venueName.max).optional(),
+  receptionAddress: z.string().max(CONTENT_LIMITS.address.max).optional(),
+  rsvpDeadline: z.string().max(60).optional(),
+  storyHeading: z.string().max(CONTENT_LIMITS.storyHeading.max).optional(),
+  storyParagraphs: z.array(z.string().max(CONTENT_LIMITS.storyParagraph.max)).optional(),
+  timelineJson: z
+    .array(
+      z.object({
+        date: z.string(),
+        label: z.string().max(CONTENT_LIMITS.timelineEventLabel.max),
+        description: z.string().max(CONTENT_LIMITS.timelineEventDescription.max).optional(),
+      })
+    )
+    .optional(),
+  person1Quote: z.string().max(CONTENT_LIMITS.quote.max).optional(),
+  person1QuoteAttr: z.string().max(50).optional(),
+  person2Quote: z.string().max(CONTENT_LIMITS.quote.max).optional(),
+  person2QuoteAttr: z.string().max(50).optional(),
   locale: z.string().default("en-US"),
   textDirection: textDirectionSchema.default("LTR"),
 });
@@ -145,6 +172,28 @@ export const invitationDataSchema = z.object({
   headerText: z.string().max(CONTENT_LIMITS.headerText.max).optional(),
   eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
   monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
+  // Wedding Storybook extended fields
+  couplePhotoUrl: z.string().url().optional(),
+  venuePhotoUrl: z.string().url().optional(),
+  receptionTime: z.string().optional(),
+  receptionVenue: z.string().optional(),
+  receptionAddress: z.string().optional(),
+  rsvpDeadline: z.string().optional(),
+  storyHeading: z.string().optional(),
+  storyParagraphs: z.array(z.string()).optional(),
+  timeline: z
+    .array(
+      z.object({
+        date: z.string(),
+        label: z.string(),
+        description: z.string().optional(),
+      })
+    )
+    .optional(),
+  person1Quote: z.string().optional(),
+  person1QuoteAttr: z.string().optional(),
+  person2Quote: z.string().optional(),
+  person2QuoteAttr: z.string().optional(),
 });
 
 export type InvitationData = z.infer<typeof invitationDataSchema>;
