@@ -619,48 +619,34 @@ export default function InvitationConfigPage() {
           </CardContent>
         </Card>
 
-        {/* Custom Message / Our Story */}
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {template === "WEDDING_STORYBOOK" ? "Our Story" : "Custom Message"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Label htmlFor="customMessage">
-                {template === "WEDDING_STORYBOOK" ? (
-                  <>How You Met <span className="text-destructive">*</span></>
-                ) : (
-                  <>Personal Note <span className="text-muted-foreground">(optional)</span></>
-                )}
-              </Label>
-              <Textarea
-                id="customMessage"
-                value={customMessage}
-                onChange={(e) =>
-                  handleFieldChange(setCustomMessage)(e.target.value)
-                }
-                placeholder={
-                  template === "WEDDING_STORYBOOK"
-                    ? "Share your love story in 1-3 sentences. How did you meet? What makes your relationship special?"
-                    : "We can't wait to celebrate with you..."
-                }
-                maxLength={CONTENT_LIMITS.customMessage.max}
-                rows={4}
-                required={template === "WEDDING_STORYBOOK"}
-              />
-              <p className="text-xs text-muted-foreground">
-                {customMessage.length}/{CONTENT_LIMITS.customMessage.max} characters
-                {template === "WEDDING_STORYBOOK" && (
-                  <span className="text-destructive ml-1">
-                    {!customMessage.trim() && " — Required for Wedding Storybook"}
-                  </span>
-                )}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Custom Message (not shown for Wedding Storybook — uses dedicated Story section) */}
+        {template !== "WEDDING_STORYBOOK" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Custom Message</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Label htmlFor="customMessage">
+                  Personal Note <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Textarea
+                  id="customMessage"
+                  value={customMessage}
+                  onChange={(e) =>
+                    handleFieldChange(setCustomMessage)(e.target.value)
+                  }
+                  placeholder="We can't wait to celebrate with you..."
+                  maxLength={CONTENT_LIMITS.customMessage.max}
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {customMessage.length}/{CONTENT_LIMITS.customMessage.max} characters
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Wedding Storybook: Photos */}
         {template === "WEDDING_STORYBOOK" && (
