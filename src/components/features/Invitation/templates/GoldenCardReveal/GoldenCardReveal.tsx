@@ -199,6 +199,7 @@ export function GoldenCardReveal({
   const coupleNames = useMemo(() => getCoupleNames(data), [data]);
   const monogram = useMemo(() => getMonogram(data), [data]);
   const headerText = data.headerText || "Together with their families";
+  const eventTypeText = data.eventTypeText || "Invite you to celebrate their marriage";
 
   // [Fix #7] Defensively coerce eventDate — it may arrive as a string from JSON
   const formattedDate = useMemo(() => {
@@ -615,6 +616,10 @@ export function GoldenCardReveal({
                       </>
                     )}
                   </h1>
+
+                  <span className={styles.eventTypeText}>
+                    {eventTypeText}
+                  </span>
 
                   {data.heroImageUrl && (
                     <Image

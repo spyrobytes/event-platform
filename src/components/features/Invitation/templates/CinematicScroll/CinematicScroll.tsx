@@ -243,16 +243,6 @@ export function CinematicScroll({
               />
             </div>
           )}
-
-          {/* Scroll hint */}
-          {showHint && !isFullyRevealed && (
-            <div className={styles.scrollHint} aria-hidden="true">
-              <span className={styles.scrollHintText}>Scroll to discover</span>
-              <div className={styles.scrollIndicator}>
-                <div className={styles.scrollDot} />
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
@@ -355,6 +345,16 @@ export function CinematicScroll({
           </a>
         </div>
       </section>
+
+      {/* Scroll hint — at root level so position: fixed works (not trapped by hero's transform) */}
+      {showHint && revealedSections.size <= 1 && (
+        <div className={styles.scrollHint} aria-hidden="true">
+          <span className={styles.scrollHintText}>Scroll to discover</span>
+          <div className={styles.scrollIndicator}>
+            <div className={styles.scrollDot} />
+          </div>
+        </div>
+      )}
 
       {/* Replay button */}
       {showReplay && !reducedMotion && (

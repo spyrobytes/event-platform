@@ -758,8 +758,8 @@
 
 .flap .letter {
   /* Card expands to fit content, constrained to viewport with room for close button */
-  max-height: calc(100dvh - 10rem);
-  overflow: visible;
+  max-height: calc(100dvh - 16rem);
+  overflow-y: auto;
   /* Center vertically on envelope for full visibility */
   transform: translateX(-50%) translateY(-50%);
   top: 50%;

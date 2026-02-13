@@ -183,7 +183,7 @@ export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>
   LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
   CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode"]),
   TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
-  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "monogram", "heroImageUrl"]),
+  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl"]),
   FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl"]),
   WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "monogram", "dressCode", "storybookFields"]),
 };

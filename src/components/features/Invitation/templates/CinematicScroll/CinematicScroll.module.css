@@ -151,7 +151,7 @@
    ============================================================================= */
 
 .scrollHint {
-  position: absolute;
+  position: fixed;
   bottom: 3rem;
   left: 50%;
   transform: translateX(-50%);
@@ -160,6 +160,8 @@
   align-items: center;
   gap: 0.75rem;
   animation: fadeIn 1s var(--inv-ease-out) 1.5s both;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .scrollHintText {
