@@ -44,6 +44,7 @@ async function getEventBySlug(slug: string, hasGuestToken: boolean) {
       timezone: true,
       venueName: true,
       city: true,
+      status: true,
       visibility: true,
       pageConfig: true,
       templateId: true,
@@ -67,6 +68,11 @@ async function getEventBySlug(slug: string, hasGuestToken: boolean) {
 
   // Must be published
   if (!event.publishedAt) {
+    return null;
+  }
+
+  // Cancelled events are not accessible
+  if (event.status === "CANCELLED") {
     return null;
   }
 
@@ -94,8 +100,13 @@ async function resolveGuestAccess(
     where: {
       tokenHash,
       eventId,
-      // No status check — valid invite = access, regardless of RSVP status.
-      // Guests should be able to view details before deciding to attend.
+      // Allow any status except EXPIRED and BOUNCED — guests can view
+      // details before deciding to attend (PENDING/SENT/OPENED/RESPONDED).
+      status: { notIn: ["EXPIRED", "BOUNCED"] },
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: new Date() } },
+      ],
     },
     select: { id: true, name: true },
   });
@@ -167,7 +178,8 @@ export async function generateMetadata({
     // Prevent indexing when token is present to avoid token leakage in search results
     ...(tk && {
       robots: { index: false, follow: false },
-      other: { "Referrer-Policy": "no-referrer" },
+      // Browser spec requires name="referrer" (not "Referrer-Policy") for meta tag
+      other: { referrer: "no-referrer" },
     }),
   };
 }
