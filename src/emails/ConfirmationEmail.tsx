@@ -22,6 +22,7 @@ type ConfirmationEmailProps = {
   response: RsvpResponse;
   guestCount: number;
   hostName: string;
+  portalUrl?: string;
 };
 
 const RESPONSE_MESSAGES: Record<RsvpResponse, { title: string; message: string }> = {
@@ -48,6 +49,7 @@ export function ConfirmationEmail({
   response,
   guestCount,
   hostName,
+  portalUrl,
 }: ConfirmationEmailProps) {
   const { title, message } = RESPONSE_MESSAGES[response];
   const previewText = `Your RSVP for ${eventTitle} has been confirmed`;
@@ -99,6 +101,17 @@ export function ConfirmationEmail({
                 <strong>Hosted by:</strong> {hostName}
               </Text>
             </Section>
+
+            {portalUrl && (
+              <Section style={portalSection}>
+                <Link href={portalUrl} style={portalButton}>
+                  View Event Details
+                </Link>
+                <Text style={portalHint}>
+                  Access exclusive event information like gallery, schedule, and more.
+                </Text>
+              </Section>
+            )}
 
             {response === "YES" && (
               <Text style={reminderText}>
@@ -210,6 +223,28 @@ const eventDetail = {
   lineHeight: "20px",
   color: "#484848",
   margin: "4px 0",
+};
+
+const portalSection = {
+  textAlign: "center" as const,
+  margin: "24px 0",
+};
+
+const portalButton = {
+  display: "inline-block",
+  backgroundColor: "#7c3aed",
+  color: "#ffffff",
+  padding: "12px 24px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  fontWeight: "600",
+  textDecoration: "none",
+};
+
+const portalHint = {
+  fontSize: "12px",
+  color: "#6b7280",
+  margin: "8px 0 0 0",
 };
 
 const reminderText = {

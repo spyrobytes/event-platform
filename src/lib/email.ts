@@ -145,6 +145,7 @@ type ConfirmationEmailPayload = {
   response: "YES" | "NO" | "MAYBE";
   guestCount: number;
   hostName: string;
+  portalUrl?: string;
 };
 
 type ReminderEmailPayload = {

@@ -124,6 +124,10 @@ export async function POST(request: NextRequest) {
         data: { status: "RESPONDED" },
       });
 
+      // Build portal URL for emails and API response
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+      const portalUrl = `${baseUrl}/e/${invite.event.slug}?tk=${inviteToken}`;
+
       // Queue confirmation email
       if (data.guestEmail || invite.email) {
         const fullEvent = await db.event.findUnique({
@@ -155,6 +159,7 @@ export async function POST(request: NextRequest) {
               response: data.response,
               guestCount: data.guestCount || 1,
               hostName,
+              portalUrl,
             }
           );
 
@@ -164,10 +169,6 @@ export async function POST(request: NextRequest) {
           });
         }
       }
-
-      // Build portal URL so the client can redirect to the event page
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
-      const portalUrl = `${baseUrl}/e/${invite.event.slug}?tk=${inviteToken}`;
 
       return successResponse({
         rsvp,
