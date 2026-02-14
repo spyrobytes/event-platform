@@ -28,6 +28,8 @@ import {
   AttireEditor,
   ThingsToDoEditor,
 } from "@/components/features";
+import { getDefaultVisibility, getSectionLabel } from "@/lib/guest-access";
+import type { SectionVisibility } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
   Section,
@@ -852,7 +854,7 @@ export default function PageEditorPage() {
         <Card key={`${section.type}-${index}`}>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="capitalize">{section.type} Section</CardTitle>
+              <CardTitle>{getSectionLabel(section.type)} Section</CardTitle>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -863,6 +865,21 @@ export default function PageEditorPage() {
                   />
                   Enabled
                 </label>
+                <select
+                  value={section.visibility || ""}
+                  onChange={(e) =>
+                    updateSection(index, {
+                      visibility: (e.target.value || undefined) as SectionVisibility | undefined,
+                    })
+                  }
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  title="Who can see this section"
+                >
+                  <option value="">Default ({getDefaultVisibility(section.type)})</option>
+                  <option value="public">Public (everyone)</option>
+                  <option value="guests">Guests only</option>
+                  <option value="hidden">Hidden</option>
+                </select>
                 <Button
                   type="button"
                   variant="ghost"
