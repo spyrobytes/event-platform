@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
             select: {
               id: true,
               title: true,
+              slug: true,
               status: true,
               maxAttendees: true,
               rsvpDeadline: true,
@@ -164,12 +165,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Build portal URL so the client can redirect to the event page
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+      const portalUrl = `${baseUrl}/e/${invite.event.slug}?tk=${inviteToken}`;
+
       return successResponse({
         rsvp,
         event: {
           id: invite.event.id,
           title: invite.event.title,
+          slug: invite.event.slug,
         },
+        portalUrl,
         message:
           data.response === "YES"
             ? "You're going! We'll see you there."

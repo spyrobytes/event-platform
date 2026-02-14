@@ -46,6 +46,7 @@ export function InvitationRSVPForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   // Analytics tracking refs
   const formStarted = useRef(false);
@@ -120,6 +121,11 @@ export function InvitationRSVPForm({
         throw new Error(errorData.error || "Failed to submit RSVP");
       }
 
+      const responseData = await response.json().catch(() => ({}));
+      if (responseData?.data?.portalUrl) {
+        setPortalUrl(responseData.data.portalUrl);
+      }
+
       formSubmitted.current = true;
 
       if (eventId && data.response) {
@@ -174,6 +180,18 @@ export function InvitationRSVPForm({
         <p className="text-[var(--inv-text-secondary)]">
           {successMessage || "Your RSVP has been recorded. We'll send you a confirmation email shortly."}
         </p>
+        {portalUrl && (
+          <a
+            href={portalUrl}
+            className={cn(
+              "inline-block mt-2 px-6 py-2 rounded-full text-sm font-medium",
+              "bg-[var(--inv-accent)] text-[var(--inv-card-bg)]",
+              "hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+            )}
+          >
+            View Event Details
+          </a>
+        )}
       </div>
     );
   }

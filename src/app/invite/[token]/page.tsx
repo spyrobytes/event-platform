@@ -225,6 +225,10 @@ export default async function InvitationPage({ params }: PageProps) {
     MAYBE: "Maybe",
   };
 
+  // Build portal URL for event page access
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+  const portalUrl = event.slug ? `${baseUrl}/e/${event.slug}?tk=${token}` : null;
+
   // Get template configuration
   const templateId = (invitationConfig?.template as TemplateId) || "ENVELOPE_REVEAL";
   const templateMeta = templateMetadata[templateId];
@@ -378,6 +382,14 @@ export default async function InvitationPage({ params }: PageProps) {
               <span> ({invite.rsvp!.guestCount} guests)</span>
             )}
           </p>
+          {portalUrl && (
+            <a
+              href={portalUrl}
+              className="inline-block mt-2 text-sm text-[var(--inv-accent)] hover:underline"
+            >
+              View Event Details &rarr;
+            </a>
+          )}
         </div>
       )}
     </InvitationShell>

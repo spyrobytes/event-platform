@@ -6,6 +6,7 @@ import { TEMPLATES, type TemporalData } from "@/components/templates";
 import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
 import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
 import { PageViewTracker } from "@/components/features/Analytics";
+import { GuestBar } from "@/components/features/GuestBar";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -187,7 +188,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   }
 
   // Resolve guest access level
-  const { accessLevel } = await resolveGuestAccess(tk, event.id);
+  const { accessLevel, guestName } = await resolveGuestAccess(tk, event.id);
 
   // Resolve template ID with fallback
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
@@ -241,6 +242,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   return (
     <>
       <PageViewTracker eventId={event.id} source="event_page" />
+      {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} />}
       <Template config={filteredConfig} assets={assets} eventId={event.id} temporal={temporal} />
     </>
   );
