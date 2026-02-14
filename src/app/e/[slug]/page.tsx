@@ -1,19 +1,21 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
+import { hashToken } from "@/lib/tokens";
 import { TEMPLATES, type TemporalData } from "@/components/templates";
 import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
+import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 /**
- * ISR Configuration
- * - Pages are statically generated at build time
- * - Revalidated every 60 seconds as a fallback
- * - On-demand revalidation triggered when page config is updated
+ * Dynamic rendering — required because we read searchParams for guest token.
+ * Previously this used ISR (revalidate=60 + generateStaticParams), but the
+ * guest portal needs per-request token validation. At current scale this is
+ * fine; ISR can be restored via middleware path-splitting later.
  */
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 /**
  * Default template ID used when event has no template or template not found
@@ -22,46 +24,14 @@ const DEFAULT_TEMPLATE_ID = "wedding_v1";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ tk?: string }>;
 };
 
 /**
- * Generate static params for published events
- * This pre-generates pages at build time for all published events
- * Returns empty array if database is not available (e.g., CI builds)
+ * Fetch event data by slug.
+ * For PRIVATE events, returns the event only if a guest token is present.
  */
-export async function generateStaticParams() {
-  // Skip static generation if DATABASE_URL is not set (e.g., CI builds)
-  // Pages will be generated on-demand via ISR instead
-  if (!process.env.DATABASE_URL) {
-    return [];
-  }
-
-  try {
-    const publishedEvents = await db.event.findMany({
-      where: {
-        publishedAt: { not: null },
-      },
-      select: {
-        slug: true,
-      },
-      take: 1000, // Limit to prevent build time issues
-    });
-
-    return publishedEvents.map((event) => ({
-      slug: event.slug,
-    }));
-  } catch {
-    // If database connection fails, return empty array
-    // Pages will be generated on-demand via ISR
-    return [];
-  }
-}
-
-/**
- * Fetch event data by slug
- * Returns null if event not found or page not published
- */
-async function getEventBySlug(slug: string) {
+async function getEventBySlug(slug: string, hasGuestToken: boolean) {
   const event = await db.event.findUnique({
     where: { slug },
     select: {
@@ -73,6 +43,7 @@ async function getEventBySlug(slug: string) {
       timezone: true,
       venueName: true,
       city: true,
+      visibility: true,
       pageConfig: true,
       templateId: true,
       publishedAt: true,
@@ -93,8 +64,13 @@ async function getEventBySlug(slug: string) {
     return null;
   }
 
-  // Check if page is published
+  // Must be published
   if (!event.publishedAt) {
+    return null;
+  }
+
+  // PRIVATE events are only accessible with a guest token
+  if (event.visibility === "PRIVATE" && !hasGuestToken) {
     return null;
   }
 
@@ -102,13 +78,50 @@ async function getEventBySlug(slug: string) {
 }
 
 /**
- * Generate metadata for SEO
+ * Resolve guest access level by validating the invite token against the event.
+ */
+async function resolveGuestAccess(
+  tk: string | undefined,
+  eventId: string
+): Promise<{ accessLevel: AccessLevel; guestName: string | null; rsvpToken: string | null }> {
+  if (!tk) {
+    return { accessLevel: "public", guestName: null, rsvpToken: null };
+  }
+
+  const tokenHash = hashToken(tk);
+  const invite = await db.invite.findFirst({
+    where: {
+      tokenHash,
+      eventId,
+      // No status check — valid invite = access, regardless of RSVP status.
+      // Guests should be able to view details before deciding to attend.
+    },
+    select: { id: true, name: true },
+  });
+
+  if (invite) {
+    return {
+      accessLevel: "guest",
+      guestName: invite.name || "Guest",
+      rsvpToken: tk,
+    };
+  }
+
+  // Invalid token — silently fall back to public view
+  return { accessLevel: "public", guestName: null, rsvpToken: null };
+}
+
+/**
+ * Generate metadata for SEO.
+ * When a guest token is present, prevents indexing to avoid token leakage.
  */
 export async function generateMetadata({
   params,
+  searchParams,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const { tk } = await searchParams;
+  const event = await getEventBySlug(slug, !!tk);
 
   if (!event) {
     return {
@@ -123,6 +136,8 @@ export async function generateMetadata({
     ? event.mediaAssets.find((a: { id: string }) => a.id === heroAssetId)
     : null;
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
+
   return {
     title: event.title,
     description: event.description || `Join us for ${event.title}`,
@@ -130,6 +145,8 @@ export async function generateMetadata({
       title: event.title,
       description: event.description || `Join us for ${event.title}`,
       type: "website",
+      // Always use clean URL for social sharing — never include ?tk=
+      url: `${baseUrl}/e/${slug}`,
       ...(heroAsset?.publicUrl && {
         images: [
           {
@@ -146,20 +163,31 @@ export async function generateMetadata({
       title: event.title,
       description: event.description || `Join us for ${event.title}`,
     },
+    // Prevent indexing when token is present to avoid token leakage in search results
+    ...(tk && {
+      robots: { index: false, follow: false },
+      other: { "Referrer-Policy": "no-referrer" },
+    }),
   };
 }
 
 /**
- * Public event page
- * Renders the event using its configured template
+ * Public event page with guest portal support.
+ * Renders the event using its configured template, filtering sections
+ * based on the viewer's access level (public vs authenticated guest).
  */
-export default async function PublicEventPage({ params }: PageProps) {
+export default async function PublicEventPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const { tk } = await searchParams;
+
+  const event = await getEventBySlug(slug, !!tk);
 
   if (!event) {
     notFound();
   }
+
+  // Resolve guest access level
+  const { accessLevel } = await resolveGuestAccess(tk, event.id);
 
   // Resolve template ID with fallback
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
@@ -176,6 +204,10 @@ export default async function PublicEventPage({ params }: PageProps) {
   } else {
     config = createMinimalConfig(event.title);
   }
+
+  // Filter sections by visibility BEFORE passing to template
+  const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
+  const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
 
   // Cast media assets to the expected type
   const assets = event.mediaAssets.map((asset: {
@@ -209,7 +241,7 @@ export default async function PublicEventPage({ params }: PageProps) {
   return (
     <>
       <PageViewTracker eventId={event.id} source="event_page" />
-      <Template config={config} assets={assets} eventId={event.id} temporal={temporal} />
+      <Template config={filteredConfig} assets={assets} eventId={event.id} temporal={temporal} />
     </>
   );
 }

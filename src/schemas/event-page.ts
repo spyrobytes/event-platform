@@ -79,6 +79,13 @@ export const heroSchema = z.object({
 export type HeroConfig = z.infer<typeof heroSchema>;
 
 // =============================================================================
+// SECTION VISIBILITY (Guest Portal)
+// =============================================================================
+
+export const sectionVisibilitySchema = z.enum(["public", "guests", "hidden"]);
+export type SectionVisibility = z.infer<typeof sectionVisibilitySchema>;
+
+// =============================================================================
 // SECTION SCHEMAS
 // =============================================================================
 
@@ -91,6 +98,7 @@ export const detailsSectionDataSchema = z.object({
 export const detailsSectionSchema = z.object({
   type: z.literal("details"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: detailsSectionDataSchema,
 });
 
@@ -108,6 +116,7 @@ export const scheduleSectionDataSchema = z.object({
 export const scheduleSectionSchema = z.object({
   type: z.literal("schedule"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: scheduleSectionDataSchema,
 });
 
@@ -124,6 +133,7 @@ export const faqSectionDataSchema = z.object({
 export const faqSectionSchema = z.object({
   type: z.literal("faq"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: faqSectionDataSchema,
 });
 
@@ -156,6 +166,7 @@ export const gallerySectionDataSchema = z.object({
 export const gallerySectionSchema = z.object({
   type: z.literal("gallery"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: gallerySectionDataSchema,
 });
 
@@ -200,6 +211,7 @@ export const rsvpSectionDataSchema = z.object({
 export const rsvpSectionSchema = z.object({
   type: z.literal("rsvp"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: rsvpSectionDataSchema,
 });
 
@@ -226,6 +238,7 @@ export const speakersSectionDataSchema = z.object({
 export const speakersSectionSchema = z.object({
   type: z.literal("speakers"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: speakersSectionDataSchema,
 });
 
@@ -250,6 +263,7 @@ export const sponsorsSectionDataSchema = z.object({
 export const sponsorsSectionSchema = z.object({
   type: z.literal("sponsors"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: sponsorsSectionDataSchema,
 });
 
@@ -267,6 +281,7 @@ export const mapSectionDataSchema = z.object({
 export const mapSectionSchema = z.object({
   type: z.literal("map"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: mapSectionDataSchema,
 });
 
@@ -285,6 +300,7 @@ export const storySectionDataSchema = z.object({
 export const storySectionSchema = z.object({
   type: z.literal("story"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: storySectionDataSchema,
 });
 
@@ -306,6 +322,7 @@ export const travelStaySectionDataSchema = z.object({
 export const travelStaySectionSchema = z.object({
   type: z.literal("travelStay"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: travelStaySectionDataSchema,
 });
 
@@ -326,6 +343,7 @@ export const weddingPartySectionDataSchema = z.object({
 export const weddingPartySectionSchema = z.object({
   type: z.literal("weddingParty"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: weddingPartySectionDataSchema,
 });
 
@@ -340,6 +358,7 @@ export const attireSectionDataSchema = z.object({
 export const attireSectionSchema = z.object({
   type: z.literal("attire"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: attireSectionDataSchema,
 });
 
@@ -363,6 +382,7 @@ export const thingsToDoSectionDataSchema = z.object({
 export const thingsToDoSectionSchema = z.object({
   type: z.literal("thingsToDo"),
   enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
   data: thingsToDoSectionDataSchema,
 });
 
