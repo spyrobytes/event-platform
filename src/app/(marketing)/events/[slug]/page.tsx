@@ -56,9 +56,14 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
     ? event.description.slice(0, 160)
     : `Join us for ${event.title}${event.city ? ` in ${event.city}` : ""} on ${format(event.startAt, "MMMM d, yyyy")}`;
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
+
   return {
     title: event.title,
     description,
+    alternates: {
+      canonical: `${baseUrl}/events/${slug}`,
+    },
     openGraph: {
       title: event.title,
       description,
