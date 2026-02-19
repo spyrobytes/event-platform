@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
           guestName: data.guestName,
           guestEmail: data.guestEmail,
           guestCount: data.guestCount,
+          dietaryRestrictions: data.dietaryRestrictions,
           notes: data.notes,
         },
         update: {
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
           guestName: data.guestName,
           guestEmail: data.guestEmail,
           guestCount: data.guestCount,
+          dietaryRestrictions: data.dietaryRestrictions,
           notes: data.notes,
           updatedAt: new Date(),
         },
@@ -251,6 +253,7 @@ export async function POST(request: NextRequest) {
             response: data.response,
             guestName: data.guestName,
             guestCount: data.guestCount,
+            dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
             updatedAt: new Date(),
           },
@@ -271,6 +274,7 @@ export async function POST(request: NextRequest) {
             guestName: data.guestName,
             guestEmail: data.guestEmail,
             guestCount: data.guestCount,
+            dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
           },
           select: {

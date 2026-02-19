@@ -37,6 +37,7 @@ export const publicRsvpSchema = z.object({
     .max(200, "Name must be less than 200 characters"),
   guestEmail: z.string().email("Invalid email address"),
   guestCount: z.number().int().min(1).max(5).optional().default(1),
+  dietaryRestrictions: z.string().max(500, "Dietary restrictions must be less than 500 characters").optional(),
   notes: z.string().max(1000, "Notes must be less than 1000 characters").optional(),
 });
 
