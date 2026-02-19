@@ -72,15 +72,25 @@ export async function verifyAuth(request: NextRequest): Promise<User | null> {
     });
 
     if (user) {
-      // Update existing user
-      user = await db.user.update({
-        where: { id: user.id },
-        data: {
-          email: decoded.email ?? "",
-          name: decoded.name ?? null,
-          avatarUrl: decoded.picture ?? null,
-        },
-      });
+      // Only update if profile data actually changed
+      const newEmail = decoded.email ?? "";
+      const newName = decoded.name ?? null;
+      const newAvatarUrl = decoded.picture ?? null;
+
+      if (
+        user.email !== newEmail ||
+        user.name !== newName ||
+        user.avatarUrl !== newAvatarUrl
+      ) {
+        user = await db.user.update({
+          where: { id: user.id },
+          data: {
+            email: newEmail,
+            name: newName,
+            avatarUrl: newAvatarUrl,
+          },
+        });
+      }
     } else {
       // Not found by firebaseUid - check if email exists (e.g., emulator restart)
       const existingByEmail = decoded.email
