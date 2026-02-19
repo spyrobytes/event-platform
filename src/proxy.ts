@@ -30,10 +30,19 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
     rateLimitConfig = RATE_LIMITS.auth;
     rateLimitKey = "auth";
+  } else if (pathname.startsWith("/e/") && request.nextUrl.searchParams.has("tk")) {
+    // Rate limit token validation on event pages to prevent enumeration
+    rateLimitConfig = RATE_LIMITS.tokenValidation;
+    rateLimitKey = "token";
   }
 
-  // Only rate limit API routes and auth pages
-  if (!pathname.startsWith("/api") && !pathname.startsWith("/login") && !pathname.startsWith("/signup")) {
+  // Only rate limit API routes, auth pages, and token-bearing event pages
+  if (
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/signup") &&
+    rateLimitKey !== "token"
+  ) {
     return NextResponse.next();
   }
 

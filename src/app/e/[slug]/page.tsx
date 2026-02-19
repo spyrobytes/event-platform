@@ -128,6 +128,10 @@ async function resolveGuestAccess(
   }
 
   // Token was present but invalid/expired — fall back to public view
+  console.warn("[guest-access] invalid token", {
+    eventId,
+    tokenPrefix: tk.slice(0, 8),
+  });
   return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: true };
 }
 
