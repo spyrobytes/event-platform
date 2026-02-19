@@ -86,13 +86,20 @@ async function getEventBySlug(slug: string, hasGuestToken: boolean) {
 
 /**
  * Resolve guest access level by validating the invite token against the event.
+ * Returns `tokenInvalid: true` when a token was provided but didn't match a
+ * valid invite, so the UI can show a helpful message.
  */
 async function resolveGuestAccess(
   tk: string | undefined,
   eventId: string
-): Promise<{ accessLevel: AccessLevel; guestName: string | null; rsvpToken: string | null }> {
+): Promise<{
+  accessLevel: AccessLevel;
+  guestName: string | null;
+  rsvpToken: string | null;
+  tokenInvalid: boolean;
+}> {
   if (!tk) {
-    return { accessLevel: "public", guestName: null, rsvpToken: null };
+    return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: false };
   }
 
   const tokenHash = hashToken(tk);
@@ -116,11 +123,12 @@ async function resolveGuestAccess(
       accessLevel: "guest",
       guestName: invite.name || "Guest",
       rsvpToken: tk,
+      tokenInvalid: false,
     };
   }
 
-  // Invalid token — silently fall back to public view
-  return { accessLevel: "public", guestName: null, rsvpToken: null };
+  // Token was present but invalid/expired — fall back to public view
+  return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: true };
 }
 
 /**
@@ -200,7 +208,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   }
 
   // Resolve guest access level
-  const { accessLevel, guestName } = await resolveGuestAccess(tk, event.id);
+  const { accessLevel, guestName, tokenInvalid } = await resolveGuestAccess(tk, event.id);
 
   // Resolve template ID with fallback
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
@@ -254,8 +262,30 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   return (
     <>
       <PageViewTracker eventId={event.id} source="event_page" />
+      {tokenInvalid && <InvalidTokenBanner />}
       {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} />}
       <Template config={filteredConfig} assets={assets} eventId={event.id} temporal={temporal} />
     </>
+  );
+}
+
+/**
+ * Subtle, dismissible banner shown when the guest token in the URL is
+ * invalid or expired. Renders as a server component (no JS needed for
+ * the message itself — the dismiss button is handled by the client wrapper).
+ */
+function InvalidTokenBanner() {
+  return (
+    <div className="w-full bg-warning/10 border-b border-warning/20 px-4 py-2 text-center text-sm text-warning">
+      This guest link is invalid or has expired. You&apos;re viewing the public
+      version of this page.{" "}
+      <a
+        href="mailto:support@eventsfixer.com"
+        className="underline hover:text-warning/80"
+      >
+        Contact the organizer
+      </a>{" "}
+      if you need a new link.
+    </div>
   );
 }

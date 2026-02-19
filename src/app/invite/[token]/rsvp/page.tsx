@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { buildPortalUrl } from "@/lib/guest-access";
 import { InvitationShell, InvitationRSVPForm } from "@/components/features/Invitation";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -125,8 +126,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
   };
 
   // Build portal URL for event page access
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
-  const portalUrl = event.slug ? `${baseUrl}/e/${event.slug}?tk=${token}` : null;
+  const portalUrl = event.slug ? buildPortalUrl(event.slug, token) : null;
 
   return (
     <InvitationShell

@@ -6,6 +6,7 @@ import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
 import { queueConfirmationEmail, processEmail } from "@/lib/email";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import { buildPortalUrl } from "@/lib/guest-access";
 
 /**
  * POST /api/rsvp
@@ -125,8 +126,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Build portal URL for emails and API response
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
-      const portalUrl = `${baseUrl}/e/${invite.event.slug}?tk=${inviteToken}`;
+      const portalUrl = buildPortalUrl(invite.event.slug, inviteToken as string);
 
       // Queue confirmation email
       if (data.guestEmail || invite.email) {
