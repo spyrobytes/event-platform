@@ -97,6 +97,15 @@ export const RATE_LIMITS = {
 
   // Webhook endpoints: 1000 requests per minute
   webhooks: { limit: 1000, windowSeconds: 60 },
+
+  // Token validation on event pages: 15 requests per minute per IP
+  tokenValidation: { limit: 15, windowSeconds: 60 },
+
+  // Analytics tracking: 30 requests per minute per IP
+  analytics: { limit: 30, windowSeconds: 60 },
+
+  // Invite lookup: 15 requests per minute per IP
+  inviteLookup: { limit: 15, windowSeconds: 60 },
 } as const;
 
 /**

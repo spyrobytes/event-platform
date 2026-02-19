@@ -6,6 +6,7 @@ import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
 import { queueConfirmationEmail, processEmail } from "@/lib/email";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import { buildPortalUrl } from "@/lib/guest-access";
 
 /**
  * POST /api/rsvp
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
             select: {
               id: true,
               title: true,
+              slug: true,
               status: true,
               maxAttendees: true,
               rsvpDeadline: true,
@@ -98,6 +100,7 @@ export async function POST(request: NextRequest) {
           guestName: data.guestName,
           guestEmail: data.guestEmail,
           guestCount: data.guestCount,
+          dietaryRestrictions: data.dietaryRestrictions,
           notes: data.notes,
         },
         update: {
@@ -105,6 +108,7 @@ export async function POST(request: NextRequest) {
           guestName: data.guestName,
           guestEmail: data.guestEmail,
           guestCount: data.guestCount,
+          dietaryRestrictions: data.dietaryRestrictions,
           notes: data.notes,
           updatedAt: new Date(),
         },
@@ -122,6 +126,9 @@ export async function POST(request: NextRequest) {
         where: { id: invite.id },
         data: { status: "RESPONDED" },
       });
+
+      // Build portal URL for emails and API response
+      const portalUrl = buildPortalUrl(invite.event.slug, inviteToken as string);
 
       // Queue confirmation email
       if (data.guestEmail || invite.email) {
@@ -154,6 +161,7 @@ export async function POST(request: NextRequest) {
               response: data.response,
               guestCount: data.guestCount || 1,
               hostName,
+              portalUrl,
             }
           );
 
@@ -169,7 +177,9 @@ export async function POST(request: NextRequest) {
         event: {
           id: invite.event.id,
           title: invite.event.title,
+          slug: invite.event.slug,
         },
+        portalUrl,
         message:
           data.response === "YES"
             ? "You're going! We'll see you there."
@@ -243,6 +253,7 @@ export async function POST(request: NextRequest) {
             response: data.response,
             guestName: data.guestName,
             guestCount: data.guestCount,
+            dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
             updatedAt: new Date(),
           },
@@ -263,6 +274,7 @@ export async function POST(request: NextRequest) {
             guestName: data.guestName,
             guestEmail: data.guestEmail,
             guestCount: data.guestCount,
+            dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
           },
           select: {

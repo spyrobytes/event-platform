@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { verifyEventOwnership, canModifyPageConfig } from "@/lib/authorization";
@@ -14,6 +15,10 @@ import {
 import { revalidateEventPage } from "@/lib/revalidation";
 import { eventPageConfigV1Schema } from "@/schemas/event-page";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
+
+const pageConfigActionSchema = z.object({
+  action: z.enum(["publish", "unpublish"]),
+});
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -176,7 +181,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const body = await request.json();
-    const { action } = body;
+    const { action } = pageConfigActionSchema.parse(body);
 
     if (action === "publish") {
       // Verify config is valid before publishing
@@ -242,11 +247,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
 
       return successResponse({ published: false });
-    } else {
-      return errorResponse(
-        "Invalid action. Must be 'publish' or 'unpublish'",
-        400
-      );
     }
   } catch (error) {
     return handleApiError(error);

@@ -28,6 +28,8 @@ import {
   AttireEditor,
   ThingsToDoEditor,
 } from "@/components/features";
+import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
+import type { SectionVisibility } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
   Section,
@@ -72,6 +74,7 @@ export default function PageEditorPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isPreviewingVersion, setIsPreviewingVersion] = useState(false);
   const [savedConfig, setSavedConfig] = useState<EventPageConfigV1 | null>(null);
+  const [viewAs, setViewAs] = useState<"organizer" | "public" | "guest">("organizer");
 
   useEffect(() => {
     async function fetchPageConfig() {
@@ -638,6 +641,23 @@ export default function PageEditorPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* View As toggle */}
+          <div className="flex items-center rounded-lg border border-input bg-background p-0.5 text-xs">
+            {(["organizer", "public", "guest"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewAs(mode)}
+                className={`rounded-md px-3 py-1.5 font-medium capitalize transition-colors ${
+                  viewAs === mode
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {mode === "organizer" ? "All" : mode === "public" ? "Public" : "Guest"}
+              </button>
+            ))}
+          </div>
           <Link href={`/dashboard/events/${params.id}/page-preview`}>
             <Button variant="outline">Preview</Button>
           </Link>
@@ -646,6 +666,17 @@ export default function PageEditorPage() {
           </Button>
         </div>
       </div>
+
+      {/* View As info banner */}
+      {viewAs !== "organizer" && (
+        <div className="rounded-lg border border-info/50 bg-info/10 px-4 py-2 text-sm text-info">
+          Viewing as <strong>{viewAs === "public" ? "public visitor" : "invited guest"}</strong>
+          {" — "}
+          {viewAs === "public"
+            ? "sections marked \"guests only\" or \"hidden\" are dimmed."
+            : "only \"hidden\" sections are dimmed."}
+        </div>
+      )}
 
       {/* Version History */}
       <VersionHistory
@@ -848,11 +879,27 @@ export default function PageEditorPage() {
       />
 
       {/* Sections */}
-      {config.sections.map((section, index) => (
-        <Card key={`${section.type}-${index}`}>
+      {config.sections.map((section, index) => {
+        // Determine if this section would be hidden for the current viewAs level
+        const effectiveVis = getEffectiveVisibility(section);
+        const hiddenForView =
+          viewAs !== "organizer" &&
+          (!section.enabled ||
+            effectiveVis === "hidden" ||
+            (effectiveVis === "guests" && viewAs === "public"));
+
+        return (
+        <Card key={`${section.type}-${index}`} className={hiddenForView ? "opacity-40 pointer-events-none" : ""}>
+          {hiddenForView && (
+            <div className="px-6 pt-4 pb-0">
+              <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                Hidden for {viewAs === "public" ? "public visitors" : "guests"}
+              </span>
+            </div>
+          )}
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="capitalize">{section.type} Section</CardTitle>
+              <CardTitle>{getSectionLabel(section.type)} Section</CardTitle>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -863,6 +910,21 @@ export default function PageEditorPage() {
                   />
                   Enabled
                 </label>
+                <select
+                  value={section.visibility || ""}
+                  onChange={(e) =>
+                    updateSection(index, {
+                      visibility: (e.target.value || undefined) as SectionVisibility | undefined,
+                    })
+                  }
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  title="Who can see this section"
+                >
+                  <option value="">Default ({getDefaultVisibility(section.type)})</option>
+                  <option value="public">Public (everyone)</option>
+                  <option value="guests">Guests only</option>
+                  <option value="hidden">Hidden</option>
+                </select>
                 <Button
                   type="button"
                   variant="ghost"
@@ -989,7 +1051,8 @@ export default function PageEditorPage() {
             )}
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
 
       {/* Add Section */}
       <Card>

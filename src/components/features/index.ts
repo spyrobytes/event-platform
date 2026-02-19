@@ -1,3 +1,4 @@
+export { GuestBar } from "./GuestBar";
 export { EventCard } from "./EventCard";
 export { EventList } from "./EventList";
 export { EventFilters } from "./EventFilters";

@@ -39,6 +39,15 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
+      // Event pages may contain guest tokens in ?tk= query params.
+      // Use strict no-referrer to prevent token leakage to external sites.
+      {
+        source: "/e/:slug*",
+        headers: [
+          ...securityHeaders.filter((h) => h.key !== "Referrer-Policy"),
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
     ];
   },
 

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { buildPortalUrl } from "@/lib/guest-access";
 import { InvitationShell, InvitationRSVPForm } from "@/components/features/Invitation";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -26,6 +27,7 @@ async function getInviteForRSVP(token: string) {
         select: {
           id: true,
           title: true,
+          slug: true,
           status: true,
           timezone: true,
         },
@@ -123,6 +125,9 @@ export default async function InviteRSVPPage({ params }: PageProps) {
     MAYBE: "undecided",
   };
 
+  // Build portal URL for event page access
+  const portalUrl = event.slug ? buildPortalUrl(event.slug, token) : null;
+
   return (
     <InvitationShell
       themeId={themeId}
@@ -176,6 +181,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 response={invite.rsvp!.response}
                 guestCount={invite.rsvp!.guestCount}
                 responseLabels={responseLabels}
+                portalUrl={portalUrl}
               />
             ) : (
               <InvitationRSVPForm
@@ -211,10 +217,12 @@ function AlreadyRespondedView({
   response,
   guestCount,
   responseLabels,
+  portalUrl,
 }: {
   response: "YES" | "NO" | "MAYBE";
   guestCount: number;
   responseLabels: Record<string, string>;
+  portalUrl: string | null;
 }) {
   return (
     <div className="text-center space-y-4 py-4">
@@ -243,9 +251,18 @@ function AlreadyRespondedView({
         </strong>
         {guestCount > 1 && <span> with {guestCount} guests total</span>}.
       </p>
-      <p className="text-sm text-[var(--inv-text-secondary)]">
-        If you need to change your response, please contact the event organizer.
-      </p>
+      {portalUrl ? (
+        <a
+          href={portalUrl}
+          className="inline-block px-6 py-2 rounded-full text-sm font-medium bg-[var(--inv-accent)] text-[var(--inv-card-bg)] hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+        >
+          View Event Details
+        </a>
+      ) : (
+        <p className="text-sm text-[var(--inv-text-secondary)]">
+          If you need to change your response, please contact the event organizer.
+        </p>
+      )}
     </div>
   );
 }

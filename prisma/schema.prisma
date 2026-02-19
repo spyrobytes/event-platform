@@ -126,6 +126,7 @@ model Event {
   pageVersions     EventPageVersion[]
   invitationConfig InvitationConfig?
 
+  @@index([creatorId])
   @@index([city])
   @@index([startAt])
   @@index([status, visibility])
@@ -194,8 +195,9 @@ model RSVP {
   response   RSVPResponse
   guestName  String       @map("guest_name")
   guestEmail String?      @map("guest_email")
-  guestCount Int          @default(1) @map("guest_count")
-  notes      String?
+  guestCount          Int     @default(1) @map("guest_count")
+  notes               String?
+  dietaryRestrictions String? @map("dietary_restrictions")
 
   respondedAt DateTime @default(now()) @map("responded_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

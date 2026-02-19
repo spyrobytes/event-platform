@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth";
+import { requireEventOwner } from "@/lib/authorization";
 import { db } from "@/lib/db";
 import { generateCSV, formatDateForCSV } from "@/lib/csv";
+import { handleApiError } from "@/lib/api-response";
 import type { Prisma } from "@prisma/client";
 
 type RouteContext = {
@@ -38,18 +40,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // 3. Verify ownership
+    // 3. Verify ownership (supports org admin access)
+    await requireEventOwner(eventId, user.id);
+
+    // Get event title for filename
     const event = await db.event.findUnique({
       where: { id: eventId },
-      select: { id: true, title: true, creatorId: true },
+      select: { title: true },
     });
 
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    if (event.creatorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // 4. Build filter conditions
@@ -128,10 +129,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
       },
     });
   } catch (error) {
-    console.error("Export error:", error);
-    return NextResponse.json(
-      { error: "Failed to export invites" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

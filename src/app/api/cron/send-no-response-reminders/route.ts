@@ -5,13 +5,11 @@ import { queueNoResponseReminderEmail, processEmail } from "@/lib/email";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
 
-// Verify cron secret to prevent unauthorized access
-const CRON_SECRET = process.env.CRON_SECRET;
-
 /**
  * GET /api/cron/send-no-response-reminders
  *
  * Cron job to send reminder emails to guests who haven't responded.
+ * Authentication: Bearer token matching CRON_SECRET
  * Logic:
  * 1. Find events with reminderEnabled: true
  * 2. For each event, find invites where status is SENT or OPENED (no response yet)
@@ -21,14 +19,27 @@ const CRON_SECRET = process.env.CRON_SECRET;
  * 6. Stop reminders when event starts or deadline passes
  */
 export async function GET(request: NextRequest) {
+  // Verify cron authorization (fail-closed)
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    console.error("CRON_SECRET environment variable is not set");
+    return NextResponse.json(
+      { error: "Server configuration error" },
+      { status: 500 }
+    );
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    console.error("Cron authentication failed", {
+      timestamp: new Date().toISOString(),
+      hasAuthHeader: !!authHeader,
+    });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    // Verify cron secret if configured
-    if (CRON_SECRET) {
-      const authHeader = request.headers.get("authorization");
-      if (authHeader !== `Bearer ${CRON_SECRET}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    }
 
     const now = new Date();
     let totalQueued = 0;

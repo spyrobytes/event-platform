@@ -1,9 +1,16 @@
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
+import { requireEventOwner } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { getEmailStats, processEmail, resendEmail } from "@/lib/email";
-import { NotFoundError, ForbiddenError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
+
+const emailActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("resend"), emailId: z.string().min(1) }),
+  z.object({ action: z.literal("process") }),
+]);
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -22,19 +29,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { id: eventId } = await context.params;
 
-    // Verify event exists and user owns it
-    const event = await db.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, creatorId: true },
-    });
-
-    if (!event) {
-      throw new NotFoundError("Event not found");
-    }
-
-    if (event.creatorId !== user.id) {
-      throw new ForbiddenError("You don't have permission to view this event's emails");
-    }
+    await requireEventOwner(eventId, user.id);
 
     // Get email stats
     const stats = await getEmailStats(eventId);
@@ -83,29 +78,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id: eventId } = await context.params;
     const body = await request.json();
 
-    // Verify event exists and user owns it
-    const event = await db.event.findUnique({
-      where: { id: eventId },
-      select: { id: true, creatorId: true },
-    });
+    await requireEventOwner(eventId, user.id);
 
-    if (!event) {
-      throw new NotFoundError("Event not found");
-    }
+    // Validate and handle actions
+    const data = emailActionSchema.parse(body);
 
-    if (event.creatorId !== user.id) {
-      throw new ForbiddenError("You don't have permission to manage this event's emails");
-    }
-
-    // Handle different actions
-    const action = body.action as string;
-
-    if (action === "resend") {
-      // Resend a specific failed email
-      const emailId = body.emailId as string;
-      if (!emailId) {
-        return errorResponse("emailId is required for resend action", 400);
-      }
+    if (data.action === "resend") {
+      const { emailId } = data;
 
       // Verify the email belongs to this event
       const email = await db.emailOutbox.findUnique({
@@ -125,7 +104,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return successResponse({ message: "Email resent", emailId: newEmailId });
     }
 
-    if (action === "process") {
+    if (data.action === "process") {
       // Process queued emails for this event
       const queuedEmails = await db.emailOutbox.findMany({
         where: {
@@ -153,8 +132,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
         errors: errors.length > 0 ? errors : undefined,
       });
     }
-
-    return errorResponse("Invalid action. Use 'resend' or 'process'", 400);
   } catch (error) {
     return handleApiError(error);
   }

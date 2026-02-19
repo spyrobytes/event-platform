@@ -22,6 +22,8 @@ type ConfirmationEmailProps = {
   response: RsvpResponse;
   guestCount: number;
   hostName: string;
+  portalUrl?: string;
+  unsubscribeUrl?: string;
 };
 
 const RESPONSE_MESSAGES: Record<RsvpResponse, { title: string; message: string }> = {
@@ -48,6 +50,8 @@ export function ConfirmationEmail({
   response,
   guestCount,
   hostName,
+  portalUrl,
+  unsubscribeUrl,
 }: ConfirmationEmailProps) {
   const { title, message } = RESPONSE_MESSAGES[response];
   const previewText = `Your RSVP for ${eventTitle} has been confirmed`;
@@ -100,6 +104,17 @@ export function ConfirmationEmail({
               </Text>
             </Section>
 
+            {portalUrl && (
+              <Section style={portalSection}>
+                <Link href={portalUrl} style={portalButton}>
+                  View Event Details
+                </Link>
+                <Text style={portalHint}>
+                  Access exclusive event information like gallery, schedule, and more.
+                </Text>
+              </Section>
+            )}
+
             {response === "YES" && (
               <Text style={reminderText}>
                 We&apos;ll send you a reminder closer to the event date.
@@ -119,6 +134,14 @@ export function ConfirmationEmail({
             <Text style={footerText}>
               If you need to change your response, please contact the event organizer.
             </Text>
+            {unsubscribeUrl && (
+              <Text style={footerText}>
+                <Link href={unsubscribeUrl} style={link}>
+                  Unsubscribe
+                </Link>{" "}
+                from future emails about this event.
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>
@@ -210,6 +233,28 @@ const eventDetail = {
   lineHeight: "20px",
   color: "#484848",
   margin: "4px 0",
+};
+
+const portalSection = {
+  textAlign: "center" as const,
+  margin: "24px 0",
+};
+
+const portalButton = {
+  display: "inline-block",
+  backgroundColor: "#7c3aed",
+  color: "#ffffff",
+  padding: "12px 24px",
+  borderRadius: "6px",
+  fontSize: "14px",
+  fontWeight: "600",
+  textDecoration: "none",
+};
+
+const portalHint = {
+  fontSize: "12px",
+  color: "#6b7280",
+  margin: "8px 0 0 0",
 };
 
 const reminderText = {

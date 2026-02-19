@@ -79,9 +79,14 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
+
   return {
     title: `Events in ${displayName}`,
     description: `Discover amazing events happening in ${displayName}. Find concerts, meetups, conferences, and more local events.`,
+    alternates: {
+      canonical: `${baseUrl}/cities/${citySlug}`,
+    },
     openGraph: {
       title: `Events in ${displayName} | EventsFixer`,
       description: `Discover amazing events happening in ${displayName}. Find concerts, meetups, conferences, and more local events.`,

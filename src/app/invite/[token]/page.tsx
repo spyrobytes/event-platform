@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { buildPortalUrl } from "@/lib/guest-access";
 import {
   InvitationShell,
   InvitationCard,
@@ -225,6 +226,9 @@ export default async function InvitationPage({ params }: PageProps) {
     MAYBE: "Maybe",
   };
 
+  // Build portal URL for event page access
+  const portalUrl = event.slug ? buildPortalUrl(event.slug, token) : null;
+
   // Get template configuration
   const templateId = (invitationConfig?.template as TemplateId) || "ENVELOPE_REVEAL";
   const templateMeta = templateMetadata[templateId];
@@ -378,6 +382,14 @@ export default async function InvitationPage({ params }: PageProps) {
               <span> ({invite.rsvp!.guestCount} guests)</span>
             )}
           </p>
+          {portalUrl && (
+            <a
+              href={portalUrl}
+              className="inline-block mt-2 text-sm text-[var(--inv-accent)] hover:underline"
+            >
+              View Event Details &rarr;
+            </a>
+          )}
         </div>
       )}
     </InvitationShell>

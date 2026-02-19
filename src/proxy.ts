@@ -24,16 +24,31 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/api/rsvp")) {
     rateLimitConfig = RATE_LIMITS.rsvp;
     rateLimitKey = "rsvp";
+  } else if (pathname.startsWith("/api/analytics/track")) {
+    rateLimitConfig = RATE_LIMITS.analytics;
+    rateLimitKey = "analytics";
+  } else if (pathname.startsWith("/api/invites/lookup")) {
+    rateLimitConfig = RATE_LIMITS.inviteLookup;
+    rateLimitKey = "inviteLookup";
   } else if (pathname.includes("/invites")) {
     rateLimitConfig = RATE_LIMITS.invites;
     rateLimitKey = "invites";
   } else if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
     rateLimitConfig = RATE_LIMITS.auth;
     rateLimitKey = "auth";
+  } else if (pathname.startsWith("/e/") && request.nextUrl.searchParams.has("tk")) {
+    // Rate limit token validation on event pages to prevent enumeration
+    rateLimitConfig = RATE_LIMITS.tokenValidation;
+    rateLimitKey = "token";
   }
 
-  // Only rate limit API routes and auth pages
-  if (!pathname.startsWith("/api") && !pathname.startsWith("/login") && !pathname.startsWith("/signup")) {
+  // Only rate limit API routes, auth pages, and token-bearing event pages
+  if (
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/login") &&
+    !pathname.startsWith("/signup") &&
+    rateLimitKey !== "token"
+  ) {
     return NextResponse.next();
   }
 
