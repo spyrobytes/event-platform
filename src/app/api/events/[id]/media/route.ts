@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { verifyAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canUploadMedia } from "@/lib/authorization";
@@ -10,6 +11,10 @@ import {
   ensureBucket,
 } from "@/lib/supabase-storage";
 import { successResponse, errorResponse } from "@/lib/api-response";
+
+const deleteAssetSchema = z.object({
+  assetId: z.string().min(1),
+});
 
 // Rate limit: max uploads per event
 const MAX_ASSETS_PER_EVENT = 20;
@@ -201,13 +206,9 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return errorResponse("Event not found or access denied", 404);
     }
 
-    // 3. Parse body
+    // 3. Parse and validate body
     const body = await request.json();
-    const { assetId } = body;
-
-    if (!assetId) {
-      return errorResponse("assetId is required", 400);
-    }
+    const { assetId } = deleteAssetSchema.parse(body);
 
     // 4. Find and verify asset belongs to this event
     const asset = await db.mediaAsset.findFirst({
