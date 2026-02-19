@@ -22,6 +22,7 @@ type NoResponseReminderEmailProps = {
   rsvpUrl: string;
   rsvpDeadline?: string;
   reminderNumber: number;
+  unsubscribeUrl?: string;
 };
 
 export function NoResponseReminderEmail({
@@ -34,6 +35,7 @@ export function NoResponseReminderEmail({
   rsvpUrl,
   rsvpDeadline,
   reminderNumber,
+  unsubscribeUrl,
 }: NoResponseReminderEmailProps) {
   const previewText = `Reminder: Please RSVP for ${eventTitle}`;
 
@@ -110,6 +112,14 @@ export function NoResponseReminderEmail({
               If you&apos;ve already responded or didn&apos;t expect this email,
               you can safely ignore it.
             </Text>
+            {unsubscribeUrl && (
+              <Text style={footerText}>
+                <Link href={unsubscribeUrl} style={link}>
+                  Unsubscribe
+                </Link>{" "}
+                from future reminders about this event.
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

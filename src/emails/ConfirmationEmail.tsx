@@ -23,6 +23,7 @@ type ConfirmationEmailProps = {
   guestCount: number;
   hostName: string;
   portalUrl?: string;
+  unsubscribeUrl?: string;
 };
 
 const RESPONSE_MESSAGES: Record<RsvpResponse, { title: string; message: string }> = {
@@ -50,6 +51,7 @@ export function ConfirmationEmail({
   guestCount,
   hostName,
   portalUrl,
+  unsubscribeUrl,
 }: ConfirmationEmailProps) {
   const { title, message } = RESPONSE_MESSAGES[response];
   const previewText = `Your RSVP for ${eventTitle} has been confirmed`;
@@ -132,6 +134,14 @@ export function ConfirmationEmail({
             <Text style={footerText}>
               If you need to change your response, please contact the event organizer.
             </Text>
+            {unsubscribeUrl && (
+              <Text style={footerText}>
+                <Link href={unsubscribeUrl} style={link}>
+                  Unsubscribe
+                </Link>{" "}
+                from future emails about this event.
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

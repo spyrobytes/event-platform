@@ -21,6 +21,7 @@ type InviteEmailProps = {
   eventDescription?: string;
   hostName: string;
   rsvpUrl: string;
+  unsubscribeUrl?: string;
 };
 
 export function InviteEmail({
@@ -32,6 +33,7 @@ export function InviteEmail({
   eventDescription,
   hostName,
   rsvpUrl,
+  unsubscribeUrl,
 }: InviteEmailProps) {
   const previewText = `You're invited to ${eventTitle}`;
 
@@ -96,6 +98,14 @@ export function InviteEmail({
             <Text style={footerText}>
               If you didn&apos;t expect this email, you can safely ignore it.
             </Text>
+            {unsubscribeUrl && (
+              <Text style={footerText}>
+                <Link href={unsubscribeUrl} style={link}>
+                  Unsubscribe
+                </Link>{" "}
+                from future emails about this event.
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>

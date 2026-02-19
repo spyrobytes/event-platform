@@ -21,6 +21,7 @@ type ReminderEmailProps = {
   hostName: string;
   eventUrl: string;
   guestCount: number;
+  unsubscribeUrl?: string;
 };
 
 export function ReminderEmail({
@@ -32,6 +33,7 @@ export function ReminderEmail({
   hostName,
   eventUrl,
   guestCount,
+  unsubscribeUrl,
 }: ReminderEmailProps) {
   const previewText = `Reminder: ${eventTitle} is tomorrow!`;
 
@@ -112,6 +114,14 @@ export function ReminderEmail({
             <Text style={footerText}>
               If you can no longer attend, please contact the event organizer.
             </Text>
+            {unsubscribeUrl && (
+              <Text style={footerText}>
+                <Link href={unsubscribeUrl} style={link}>
+                  Unsubscribe
+                </Link>{" "}
+                from future emails about this event.
+              </Text>
+            )}
           </Section>
         </Container>
       </Body>
