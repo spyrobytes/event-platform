@@ -24,6 +24,12 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/api/rsvp")) {
     rateLimitConfig = RATE_LIMITS.rsvp;
     rateLimitKey = "rsvp";
+  } else if (pathname.startsWith("/api/analytics/track")) {
+    rateLimitConfig = RATE_LIMITS.analytics;
+    rateLimitKey = "analytics";
+  } else if (pathname.startsWith("/api/invites/lookup")) {
+    rateLimitConfig = RATE_LIMITS.inviteLookup;
+    rateLimitKey = "inviteLookup";
   } else if (pathname.includes("/invites")) {
     rateLimitConfig = RATE_LIMITS.invites;
     rateLimitKey = "invites";
