@@ -47,8 +47,9 @@ import {
   ThingsToDoSection,
 } from "../wedding/sections";
 
-// V2 tokens
-import { getV2CSSVariables, v2TokensToInline, WEDDING_V2_PALETTE } from "./tokens";
+// V2 tokens + footer
+import { getV2CSSVariables, v2TokensToInline, V2 } from "./tokens";
+import { WeddingV2Footer } from "./WeddingV2Footer";
 
 type WeddingTemplateV2Props = {
   config: EventPageConfigV1;
@@ -69,7 +70,7 @@ function getSectionLabel(type: string): string {
     sponsors: "Sponsors",
     map: "Location",
     story: "Our Story",
-    travelStay: "Travel & Stay",
+    travelStay: "Travel",
     weddingParty: "Wedding Party",
     attire: "Attire",
     thingsToDo: "Things to Do",
@@ -78,16 +79,38 @@ function getSectionLabel(type: string): string {
   return labels[type] || type;
 }
 
+/** Map section type to anchor ID */
+function getSectionId(type: string): string {
+  const ids: Record<string, string> = {
+    story: "story",
+    gallery: "gallery",
+    weddingParty: "party",
+    details: "details",
+    registry: "registry",
+    travelStay: "travel",
+    rsvp: "rsvp",
+    faq: "faq",
+    schedule: "schedule",
+    attire: "attire",
+    thingsToDo: "things",
+    speakers: "speakers",
+    sponsors: "sponsors",
+    map: "map",
+  };
+  return ids[type] || type;
+}
+
 /**
- * Wedding Template V2 — Cinematic
+ * Wedding Template V2 — Cinematic (POC Parity)
  *
  * Features:
  * - Cinematic full-viewport hero with floating countdown/schedule cards
  * - Scroll-drawn SVG timeline story section
- * - Asymmetric masonry gallery
- * - Mountain-range dividers between sections
- * - Fixed topbar with monogram and scroll progress
- * - Footer skyline SVG
+ * - 12-column asymmetric gallery with lightbox
+ * - Stroke-only mountain-range dividers between sections
+ * - Fixed topbar with monogram, nav, RSVP, frosted glass on scroll
+ * - Gradient scroll progress bar
+ * - Full footer with monogram, nav, credits
  */
 export function WeddingTemplateV2({ config, assets, eventId, temporal }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig } = config;
@@ -108,6 +131,19 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
     : null;
+
+  // Build nav sections from enabled sections
+  const navSections = useMemo(() => {
+    return sections
+      .filter((s) => s.enabled)
+      .map((s) => ({
+        id: getSectionId(s.type),
+        label: getSectionLabel(s.type),
+      }));
+  }, [sections]);
+
+  // Date text for topbar/footer
+  const dateText = hero.subtitle || "";
 
   // Assign chapters
   const chapteredSections = useMemo(
@@ -172,10 +208,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
       <Fragment key={key}>
         {chapterBreakElement}
         {chrome.mountainDividers && arrayIndex > 0 && (
-          <MountainDivider
-            flip={arrayIndex % 2 === 1}
-            color={`${primaryColor}15`}
-          />
+          <MountainDivider flip={arrayIndex % 2 === 1} />
         )}
         {sectionElement}
       </Fragment>
@@ -190,12 +223,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
 
       case "story":
         return wrapWithChrome(wrapWithAnimation(
-          section.data.layout === "timeline" ? (
-            <TimelineStory data={section.data} assets={assets} primaryColor={primaryColor} />
-          ) : (
-            // Import v1 StorySection for non-timeline layouts
-            <TimelineStory data={section.data} assets={assets} primaryColor={primaryColor} />
-          )
+          <TimelineStory data={section.data} assets={assets} primaryColor={primaryColor} />
         ));
 
       case "gallery":
@@ -277,11 +305,16 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
           enableStagger={true}
         >
           <article
-            className="wedding-template-v2 min-h-screen"
+            className="wedding-template-v2"
             style={{
               ...v2TokensToInline(cssVars),
-              backgroundColor: WEDDING_V2_PALETTE.ivory,
-              color: WEDDING_V2_PALETTE.text,
+              backgroundColor: V2.ivory,
+              color: V2.charcoal,
+              fontFamily: V2.sans,
+              fontSize: "var(--body)",
+              lineHeight: 1.7,
+              minHeight: "100vh",
+              overflowX: "hidden",
             }}
             data-template="wedding-v2"
           >
@@ -290,6 +323,8 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
               <Topbar
                 monogram={hero.monogram}
                 coupleNames={hero.coupleNames}
+                dateText={dateText}
+                sections={navSections}
                 accentColor={primaryColor}
               />
             )}
@@ -318,19 +353,51 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
             )}
 
             {/* Footer */}
-            <footer
-              className="border-t py-8 text-center text-sm"
-              style={{
-                borderColor: WEDDING_V2_PALETTE.border,
-                color: WEDDING_V2_PALETTE.textMuted,
-              }}
-            >
-              <p>Powered by EventFXr</p>
-            </footer>
+            <WeddingV2Footer
+              monogram={hero.monogram}
+              coupleNames={hero.coupleNames}
+              dateText={dateText}
+              sections={navSections}
+            />
           </article>
 
           {/* Floating Section Navigation */}
           <SectionNav accentColor={primaryColor} />
+
+          {/* Global typography styles for V2 */}
+          <style>{`
+            .wedding-template-v2 h1,
+            .wedding-template-v2 h2,
+            .wedding-template-v2 h3 {
+              font-family: var(--serif);
+              font-weight: 400;
+              line-height: 1.15;
+            }
+            .wedding-template-v2 h1 {
+              font-size: var(--h1);
+              letter-spacing: -.02em;
+              color: var(--night);
+            }
+            .wedding-template-v2 h2 {
+              font-size: var(--h2);
+              letter-spacing: -.015em;
+              color: var(--night);
+            }
+            .wedding-template-v2 h3 {
+              font-size: var(--h3);
+              letter-spacing: -.01em;
+              color: var(--charcoal);
+            }
+            .wedding-template-v2 img {
+              display: block;
+              max-width: 100%;
+              height: auto;
+            }
+            .wedding-template-v2 a {
+              color: inherit;
+              text-decoration: none;
+            }
+          `}</style>
         </AnimationProvider>
       </SectionNavProvider>
     </TemporalProvider>

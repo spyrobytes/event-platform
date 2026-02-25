@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./ScrollProgress.module.css";
 
 type ScrollProgressProps = {
@@ -8,47 +8,41 @@ type ScrollProgressProps = {
 };
 
 /**
- * Thin accent-colored progress bar at the very top of the viewport.
- * Width tracks scroll position (0-100%).
- * Uses scroll event for simplicity; no layout thrash since we only write to a CSS variable.
+ * Scroll Progress — POC-parity
+ *
+ * 2px gradient bar (sage-l → sage → gold-l) at the top of viewport.
+ * Uses direct DOM manipulation for performance (no re-renders).
  */
-export function ScrollProgress({ accentColor }: ScrollProgressProps) {
-  const [progress, setProgress] = useState(0);
+export function ScrollProgress(_props: ScrollProgressProps) {
+  const barRef = useRef<HTMLDivElement>(null);
 
-  // Use a passive scroll listener via a ref callback on mount
-  // to avoid the React hooks lint issues with useEffect + setState
-  const containerRef = (node: HTMLDivElement | null) => {
-    if (!node) return;
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
 
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      if (docHeight > 0) {
-        setProgress(Math.min((scrollTop / docHeight) * 100, 100));
-      }
+    const update = () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = h > 0 ? `${(window.scrollY / h) * 100}%` : "0%";
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    // Clean up on unmount (React will call the ref with null)
-    return () => window.removeEventListener("scroll", handleScroll);
-  };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   return (
     <div
-      ref={containerRef}
       className={styles.track}
       role="progressbar"
-      aria-valuenow={Math.round(progress)}
+      aria-label="Page scroll progress"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-label="Page scroll progress"
     >
       <div
+        ref={barRef}
         className={styles.bar}
         style={{
-          width: `${progress}%`,
-          backgroundColor: accentColor,
+          background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--sage, #7a8c72), var(--gold-l, #ddc07a))",
         }}
       />
     </div>

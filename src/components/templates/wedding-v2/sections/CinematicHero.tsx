@@ -1,198 +1,243 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { useRef, useEffect, useCallback } from "react";
 import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
 import styles from "./CinematicHero.module.css";
 
+type ScheduleCard = { day: string; info: string };
+
 type CinematicHeroProps = {
   config: HeroConfig;
   heroAsset?: MediaAsset | null;
   primaryColor: string;
+  scheduleCards?: ScheduleCard[];
 };
 
 /**
- * Cinematic Hero - V2 wedding hero section
+ * Cinematic Hero — POC-parity rewrite
  *
- * Full-viewport hero with floating countdown card, schedule cards,
- * and decorative SVG kicker line. When `style` is "cinematic",
- * applies the premium visual treatment.
+ * Bottom-aligned content, complex ivory gradient overlay,
+ * word-by-word staggered title, eyebrow with decorative lines,
+ * CTA buttons, and two glass float-cards (countdown + schedule).
  */
-export function CinematicHero({ config, heroAsset, primaryColor }: CinematicHeroProps) {
+export function CinematicHero({
+  config,
+  heroAsset,
+  primaryColor: _primaryColor,
+  scheduleCards: scheduleCardsProp,
+}: CinematicHeroProps) {
   const {
     title,
     subtitle,
-    align = "center",
-    overlay = "soft",
     style: heroStyle = "standard",
     showCountdown = false,
     showScheduleCards = false,
     coupleNames,
-    monogram,
   } = config;
 
   const temporal = useTemporal();
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const isCinematic = heroStyle === "cinematic";
 
-  const overlayClasses = {
-    none: "",
-    soft: "bg-black/30",
-    strong: "bg-black/60",
-  };
+  // Subtle parallax on hero image
+  const handleParallax = useCallback(() => {
+    const img = imgRef.current;
+    if (!img) return;
+    const hero = img.closest("section");
+    if (!hero) return;
+    const rect = hero.getBoundingClientRect();
+    if (rect.bottom < 0) return;
+    const progress = Math.max(0, -rect.top / (rect.height * 0.5));
+    img.style.transform = `translateY(${progress * 40}px) scale(${1 + progress * 0.02})`;
+  }, []);
 
-  const alignClasses = {
-    left: "text-left items-start",
-    center: "text-center items-center",
-  };
+  useEffect(() => {
+    if (!isCinematic) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) return;
+    window.addEventListener("scroll", handleParallax, { passive: true });
+    return () => window.removeEventListener("scroll", handleParallax);
+  }, [isCinematic, handleParallax]);
 
-  // Use temporal context for countdown
+  // Countdown data
   const countdown = (() => {
     if (!showCountdown || !temporal?.shouldShowCountdown || !temporal.timeRemaining) return null;
     const { days, hours, minutes } = temporal.timeRemaining;
     return { days, hours, minutes };
   })();
 
+  // Split couple names into words for staggered animation
+  const nameWords = coupleNames
+    ? coupleNames.split(/(\s*&\s*)/).filter(Boolean)
+    : [];
+
+  // Date text for eyebrow — use subtitle as date text
+  const dateText = subtitle || "";
+
   return (
-    <section
-      aria-label="Event hero"
-      className={cn(
-        "relative flex items-center justify-center overflow-hidden",
-        isCinematic ? "min-h-screen" : "min-h-[60vh] md:min-h-[70vh]",
-        styles.hero
-      )}
-    >
-      {/* Background Image */}
+    <section className={styles.hero} aria-label="Event hero" id="top">
+      {/* Background image with gradient overlay */}
       {heroAsset?.publicUrl ? (
-        <img
-          src={heroAsset.publicUrl}
-          alt={heroAsset.alt || title}
-          className={cn(
-            "absolute inset-0 h-full w-full object-cover",
-            isCinematic && styles.parallaxBg
-          )}
-        />
+        <div className={styles.heroMedia} aria-hidden="true">
+          <img
+            ref={imgRef}
+            src={heroAsset.publicUrl}
+            alt=""
+            loading="eager"
+          />
+        </div>
       ) : (
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor}20 0%, ${primaryColor}40 100%)`,
-          }}
-        />
+        <div className={styles.heroFallback} aria-hidden="true" />
       )}
 
-      {/* Overlay */}
-      {overlay !== "none" && (
-        <div className={cn("absolute inset-0", overlayClasses[overlay])} />
-      )}
-
-      {/* Cinematic vignette */}
-      {isCinematic && <div className={styles.vignette} />}
-
-      {/* Content */}
+      {/* Content — bottom-aligned via parent flex-end */}
       <div
-        className={cn(
-          "relative z-10 flex w-full max-w-4xl flex-col px-4 py-16",
-          alignClasses[align]
-        )}
+        className={styles.heroContent}
+        style={{ width: `min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))`, margin: "0 auto" }}
       >
-        {/* Monogram above title (cinematic) */}
-        {isCinematic && monogram && (
-          <div
-            className={styles.monogram}
-            style={{ color: `${primaryColor}` }}
-          >
-            {monogram}
-          </div>
-        )}
+        <div className={styles.heroText}>
+          {/* Eyebrow */}
+          {dateText && (
+            <div className={styles.eyebrow}>{dateText}</div>
+          )}
 
-        {/* Decorative line */}
-        {isCinematic && (
-          <div className={styles.kickerLine} aria-hidden="true">
-            <svg width="120" height="2" viewBox="0 0 120 2">
-              <line x1="0" y1="1" x2="120" y2="1" stroke="white" strokeOpacity="0.5" strokeWidth="1" />
-            </svg>
-          </div>
-        )}
-
-        {/* Couple names (cinematic) or title */}
-        {isCinematic && coupleNames ? (
-          <>
-            <h1
-              className="mb-2 text-5xl font-bold tracking-tight text-white drop-shadow-lg md:text-6xl lg:text-7xl"
-              style={{
-                fontFamily: "var(--wedding-font-heading, Georgia, serif)",
-                textShadow: "2px 2px 8px rgba(0,0,0,0.4)",
-              }}
-            >
-              {coupleNames}
+          {/* Title — word-by-word stagger for cinematic mode */}
+          {isCinematic && coupleNames ? (
+            <h1 className={styles.title}>
+              {nameWords.map((word, i) => {
+                const trimmed = word.trim();
+                const isAmpersand = trimmed === "&";
+                return (
+                  <span key={i} className={styles.word}>
+                    {isAmpersand ? (
+                      <>&amp; </>
+                    ) : (
+                      <em className={styles.wordEmphasis}>{trimmed} </em>
+                    )}
+                  </span>
+                );
+              })}
             </h1>
-            {title && (
-              <p className="mb-4 text-lg text-white/80 md:text-xl">
-                {title}
-              </p>
+          ) : (
+            <h1 className={styles.title}>
+              <span className={styles.word}>
+                <em className={styles.wordEmphasis}>{title}</em>
+              </span>
+            </h1>
+          )}
+
+          {/* Subtitle */}
+          {subtitle && (
+            <p className={styles.subtitle}>{subtitle}</p>
+          )}
+
+          {/* CTA buttons */}
+          {isCinematic && (
+            <div className={styles.cta}>
+              <a href="#rsvp" className={`${styles.btn} ${styles.btnPrimary}`}>
+                RSVP Now
+              </a>
+              <a href="#details" className={`${styles.btn} ${styles.btnOutline}`}>
+                View Details
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Float cards: countdown + schedule */}
+        {isCinematic && (countdown || showScheduleCards) && (
+          <div className={styles.heroCards}>
+            {/* Countdown card */}
+            {countdown && (
+              <CountdownCard countdown={countdown} />
             )}
-          </>
-        ) : (
-          <h1
-            className="mb-4 text-4xl font-bold tracking-tight text-white drop-shadow-lg md:text-5xl lg:text-6xl"
-            style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.3)" }}
-          >
-            {title}
-          </h1>
-        )}
 
-        {subtitle && (
-          <p
-            className="max-w-2xl text-lg text-white/90 drop-shadow md:text-xl"
-            style={{ textShadow: "1px 1px 2px rgba(0,0,0,0.3)" }}
-          >
-            {subtitle}
-          </p>
-        )}
-
-        {/* Floating Countdown Card */}
-        {isCinematic && countdown && (
-          <div className={cn("mt-8", styles.countdownCard)}>
-            <div
-              className="inline-flex gap-6 rounded-2xl border border-white/20 bg-white/10 px-8 py-4 backdrop-blur-md"
-            >
-              {[
-                { value: countdown.days, label: "Days" },
-                { value: countdown.hours, label: "Hours" },
-                { value: countdown.minutes, label: "Minutes" },
-              ].map(({ value, label }) => (
-                <div key={label} className="flex flex-col items-center">
-                  <span className="text-3xl font-bold text-white md:text-4xl">
-                    {value}
-                  </span>
-                  <span className="text-xs uppercase tracking-widest text-white/70">
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Floating Schedule Cards */}
-        {isCinematic && showScheduleCards && (
-          <div className={cn("mt-6 flex gap-4", styles.scheduleCards)}>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-center backdrop-blur-md">
-              <p className="text-xs uppercase tracking-widest text-white/70">Ceremony</p>
-              <p className="text-sm font-medium text-white">Details in schedule</p>
-            </div>
-            <div className="rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-center backdrop-blur-md">
-              <p className="text-xs uppercase tracking-widest text-white/70">Reception</p>
-              <p className="text-sm font-medium text-white">Details in schedule</p>
-            </div>
+            {/* Schedule card */}
+            {showScheduleCards && (
+              <ScheduleFloatCard scheduleCards={scheduleCardsProp} />
+            )}
           </div>
         )}
       </div>
-
-      {/* Decorative gradient at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
     </section>
+  );
+}
+
+/** Glass-morph countdown card with animated digits.
+ * Uses key-based re-mounting to trigger CSS flip animation on value change. */
+function CountdownCard({
+  countdown,
+}: {
+  countdown: { days: number; hours: number; minutes: number };
+}) {
+  const dStr = String(countdown.days);
+  const hStr = String(countdown.hours).padStart(2, "0");
+  const mStr = String(countdown.minutes).padStart(2, "0");
+
+  return (
+    <div className={styles.floatCard}>
+      <div className={styles.floatCardHead}>
+        <span className={styles.floatCardLabel}>Countdown</span>
+      </div>
+      <div className={styles.countdown}>
+        <div className={styles.countUnit}>
+          <div key={dStr} className={styles.countNum}>
+            {dStr}
+          </div>
+          <div className={styles.countLabel}>days</div>
+        </div>
+        <div className={styles.countUnit}>
+          <div key={hStr} className={styles.countNum}>
+            {hStr}
+          </div>
+          <div className={styles.countLabel}>hours</div>
+        </div>
+        <div className={styles.countUnit}>
+          <div key={mStr} className={styles.countNum}>
+            {mStr}
+          </div>
+          <div className={styles.countLabel}>min</div>
+        </div>
+      </div>
+      <div className={styles.floatCardFooter}>
+        <a href="#rsvp" className={`${styles.btn} ${styles.btnGhost}`}>
+          RSVP
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/** Schedule float card showing day/event rows */
+function ScheduleFloatCard({
+  scheduleCards,
+}: {
+  scheduleCards?: ScheduleCard[];
+}) {
+  const rows = scheduleCards && scheduleCards.length > 0
+    ? scheduleCards
+    : [
+        { day: "Sat", info: "Ceremony" },
+        { day: "Sat", info: "Reception" },
+      ];
+
+  return (
+    <div className={styles.floatCard}>
+      <div className={styles.floatCardHead}>
+        <span className={styles.floatCardLabel}>The Weekend</span>
+        <span className={styles.floatCardTag}>{rows.length} events</span>
+      </div>
+      <div className={styles.schedRows}>
+        {rows.map((row, i) => (
+          <div key={i} className={styles.schedRow}>
+            <span className={styles.schedDay}>{row.day}</span>
+            <span className={styles.schedInfo}>{row.info}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

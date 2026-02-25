@@ -1,121 +1,317 @@
+/* ===== TIMELINE STORY — POC parity with scroll-drawn SVG ===== */
+
+/* 2-column grid: timeline + sticky photo */
+.storyGrid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .storyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Section header */
+.sectionHeader {
+  margin-bottom: clamp(32px, 5vw, 56px);
+  text-align: center;
+}
+.kicker {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sage, #7a8c72);
+  margin-bottom: 12px;
+  position: relative;
+  display: inline-block;
+}
+.kicker::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    var(--sage-l, #a8b8a0),
+    var(--gold-l, #ddc07a)
+  );
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.8s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.kickerDrawn::after {
+  transform: scaleX(1);
+}
+.heading {
+  font-family: var(--serif);
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--night, #1e1b17);
+  margin-top: 0;
+}
+.intro {
+  max-width: 56ch;
+  color: var(--text-2, #786f65);
+  line-height: 1.75;
+  margin: 8px auto 0;
+  font-size: var(--body, 1rem);
+}
+
+/* Timeline container */
 .timeline {
   position: relative;
-  padding: 2rem 0;
+  max-width: 820px;
+  margin: 0 auto;
 }
 
-.line {
+/* SVG progress track */
+.track {
   position: absolute;
-  left: 50%;
   top: 0;
   bottom: 0;
-  width: 2px;
+  left: 50%;
   transform: translateX(-50%);
+  width: 48px;
+  pointer-events: none;
+  z-index: 1;
+}
+@media (max-width: 700px) {
+  .track {
+    left: 20px;
+    transform: none;
+  }
+}
+.trackSvg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 100%;
+  overflow: visible;
 }
 
-.milestone {
+/* Timeline item — 3-column grid */
+.tlItem {
+  display: grid;
+  grid-template-columns: 1fr 48px 1fr;
+  gap: 0;
+  align-items: start;
+  margin-bottom: 48px;
   position: relative;
-  display: flex;
-  width: 100%;
-  margin-bottom: 3rem;
 }
-
-.milestone:last-child {
+.tlItem:last-child {
   margin-bottom: 0;
 }
-
-.left {
-  justify-content: flex-start;
-  padding-right: calc(50% + 2rem);
+@media (max-width: 700px) {
+  .tlItem {
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+  }
 }
 
-.right {
-  justify-content: flex-end;
-  padding-left: calc(50% + 2rem);
+/* Date column */
+.dateCol {
+  grid-column: 1;
+  text-align: right;
+  padding-right: 8px;
+  padding-top: 2px;
+}
+@media (max-width: 700px) {
+  .dateCol {
+    display: none;
+  }
 }
 
-.dot {
-  position: absolute;
-  left: 50%;
-  top: 1.5rem;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9);
-  z-index: 2;
+.dateText {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sage, #7a8c72);
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.reached .dateText {
+  opacity: 1;
+  transform: translateX(0);
 }
 
+/* Dot column (invisible spacer — real dots are SVG) */
+.dotCol {
+  grid-column: 2;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+  visibility: hidden;
+  width: 48px;
+  height: 16px;
+}
+@media (max-width: 700px) {
+  .dotCol {
+    grid-column: 1;
+  }
+}
+
+/* Content column */
+.contentCol {
+  grid-column: 3;
+  padding-left: 8px;
+}
+@media (max-width: 700px) {
+  .contentCol {
+    grid-column: 2;
+    padding-left: 0;
+  }
+}
+
+/* Mobile date (shown above card on mobile) */
+.dateMobile {
+  display: none;
+  margin-bottom: 4px;
+}
+.dateMobile .dateText {
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.reached .dateMobile .dateText {
+  opacity: 1;
+}
+@media (max-width: 700px) {
+  .dateMobile {
+    display: block;
+  }
+}
+
+/* Timeline card */
 .card {
-  background: white;
-  border: 1px solid var(--wedding-border, #e8e0dc);
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e8e1d6);
+  border-radius: var(--r-lg, 24px);
+  padding: 24px;
+  box-shadow: var(--shadow, 0 2px 16px rgba(30, 27, 23, 0.05));
+  transition: transform 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color 0.6s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+  /* Start hidden for scroll reveal */
+  opacity: 0;
+  transform: translateY(16px);
 }
-
+.cardRevealed {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color 0.6s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg, 0 8px 40px rgba(30, 27, 23, 0.09));
 }
 
-.cardImage {
-  height: 160px;
-  overflow: hidden;
+.cardTitle {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--night, #1e1b17);
+  margin-bottom: 8px;
+}
+.cardDesc {
+  color: var(--text-2, #786f65);
+  line-height: 1.7;
+  font-size: var(--body, 1rem);
 }
 
-.cardContent {
-  padding: 1.25rem;
+/* Tags */
+.tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
 }
-
-.year {
-  display: inline-block;
-  font-family: var(--wedding-font-heading, Georgia, serif);
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-bottom: 0.25rem;
-}
-
-.milestoneTitle {
-  font-family: var(--wedding-font-heading, Georgia, serif);
-  font-size: 1.125rem;
+.tag {
+  font-size: 0.78rem;
   font-weight: 500;
-  margin-bottom: 0.5rem;
-  color: var(--wedding-text, #2d2d2d);
+  letter-spacing: 0.02em;
+  color: var(--sage-d, #5c6b55);
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(122, 140, 114, 0.08);
+  border: 1px solid rgba(122, 140, 114, 0.14);
+}
+.tagGold {
+  background: rgba(197, 165, 90, 0.1);
+  border-color: rgba(197, 165, 90, 0.2);
+  color: var(--gold-d, #9e7e3a);
 }
 
-.milestoneDesc {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: var(--wedding-text-muted, #6b6b6b);
+/* Sticky photo sidebar */
+.stickyPhoto {
+  position: sticky;
+  top: 100px;
+  border-radius: var(--r-lg, 24px);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg, 0 8px 40px rgba(30, 27, 23, 0.09));
+  border: 1px solid var(--border, #e8e1d6);
 }
-
-/* Mobile: single-column timeline */
-@media (max-width: 768px) {
-  .line {
-    left: 1rem;
-  }
-
-  .left,
-  .right {
-    padding-left: 3rem;
-    padding-right: 0;
-    justify-content: flex-start;
-  }
-
-  .dot {
-    left: 1rem;
+@media (max-width: 960px) {
+  .stickyPhoto {
+    position: relative;
+    top: 0;
+    max-width: 400px;
+    margin: 0 auto 32px;
   }
 }
+.stickyPhoto img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+.photoCaption {
+  padding: 16px 20px;
+  background: var(--surface, #ffffff);
+  border-top: 1px solid var(--border, #e8e1d6);
+}
+.photoCaptionText {
+  font-size: var(--sm, 0.85rem);
+  color: var(--text-3, #a69e93);
+  margin-top: 8px;
+  font-style: italic;
+}
 
+/* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
   .card {
+    opacity: 1;
+    transform: none;
     transition: none;
   }
-
   .card:hover {
     transform: none;
+  }
+  .dateText {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .dateMobile .dateText {
+    opacity: 1;
+    transition: none;
+  }
+  .kicker::after {
+    transform: scaleX(1);
   }
 }

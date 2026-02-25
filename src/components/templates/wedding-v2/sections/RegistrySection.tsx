@@ -1,10 +1,13 @@
-import { SectionWrapper, SectionTitle } from "../../shared";
+"use client";
+
 import type { MediaAsset } from "@prisma/client";
 
 type RegistryItem = {
   name: string;
   url?: string;
   logoAssetId?: string;
+  description?: string;
+  note?: string;
 };
 
 type RegistrySectionProps = {
@@ -18,9 +21,12 @@ type RegistrySectionProps = {
 };
 
 /**
- * Registry Section - Gift registry cards with logos/links
+ * Registry Section — POC-parity rewrite
+ *
+ * Cards with icon area, title, description, CTA button.
+ * Primary card uses gold gradient button. Notes with border-top separator.
  */
-export function RegistrySection({ data, assets, primaryColor }: RegistrySectionProps) {
+export function RegistrySection({ data, assets, primaryColor: _primaryColor }: RegistrySectionProps) {
   const { heading = "Gift Registry", description, items } = data;
 
   const getAssetUrl = (assetId?: string): string | null => {
@@ -30,93 +36,192 @@ export function RegistrySection({ data, assets, primaryColor }: RegistrySectionP
   };
 
   return (
-    <SectionWrapper ariaLabel="Gift registry">
-      <div className="mx-auto max-w-3xl">
-        <SectionTitle>
-          <span style={{ color: primaryColor }}>{heading}</span>
-        </SectionTitle>
-
-        {description && (
-          <p className="mb-8 text-center text-muted-foreground">
-            {description}
+    <section
+      style={{ padding: "var(--section-y, 96px) 0" }}
+      aria-label="Gift registry"
+      id="registry"
+    >
+      <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
+        {/* Section header */}
+        <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
+          <p style={{
+            fontFamily: "var(--sans)",
+            fontSize: "var(--sm, 0.85rem)",
+            fontWeight: 500,
+            letterSpacing: ".18em",
+            textTransform: "uppercase" as const,
+            color: "var(--sage, #7a8c72)",
+            marginBottom: 12,
+          }}>
+            Gift Registry
           </p>
-        )}
+          <h2 style={{
+            fontFamily: "var(--serif)",
+            fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
+            fontWeight: 400,
+            lineHeight: 1.15,
+            color: "var(--night, #1e1b17)",
+          }}>
+            {heading}
+          </h2>
+          {description && (
+            <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
+              {description}
+            </p>
+          )}
+        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Registry grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "var(--gap, 20px)",
+        }}>
           {items.map((item, index) => {
             const logoUrl = getAssetUrl(item.logoAssetId);
             const hasLink = item.url && item.url.length > 0;
+            const isPrimary = index === 0;
 
-            const content = (
+            return (
               <div
-                className="flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 text-center shadow-sm transition-shadow hover:shadow-md"
-                style={{ borderColor: `${primaryColor}15` }}
+                key={index}
+                style={{
+                  background: "var(--surface, #ffffff)",
+                  border: "1px solid var(--border, #e8e1d6)",
+                  borderRadius: "var(--r-lg, 24px)",
+                  padding: "clamp(24px, 3vw, 32px)",
+                  boxShadow: "var(--shadow)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: 20,
+                  transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-3px)";
+                  e.currentTarget.style.boxShadow = "var(--shadow-lg)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "";
+                  e.currentTarget.style.boxShadow = "var(--shadow)";
+                }}
               >
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={item.name}
-                    className="h-12 w-auto object-contain"
-                  />
-                ) : (
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${primaryColor}12` }}
-                  >
-                    <svg
-                      className="h-6 w-6"
-                      style={{ color: primaryColor }}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-                      />
-                    </svg>
+                <div>
+                  {/* Icon */}
+                  <div style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    background: "rgba(122, 140, 114, 0.08)",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "var(--sage, #7a8c72)",
+                    marginBottom: 4,
+                  }}>
+                    {logoUrl ? (
+                      <img src={logoUrl} alt={item.name} style={{ width: 24, height: 24, objectFit: "contain" }} />
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={24} height={24}>
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      </svg>
+                    )}
                   </div>
-                )}
-                <p className="font-semibold">{item.name}</p>
-                {hasLink && (
-                  <span
-                    className="text-xs font-medium uppercase tracking-wider"
-                    style={{ color: primaryColor }}
-                  >
-                    View Registry &rarr;
-                  </span>
-                )}
+
+                  <h3 style={{
+                    fontFamily: "var(--serif)",
+                    fontSize: "1.2rem",
+                    fontWeight: 400,
+                    lineHeight: 1.15,
+                    color: "var(--night, #1e1b17)",
+                    marginBottom: 6,
+                  }}>
+                    {item.name}
+                  </h3>
+
+                  {(item as RegistryItem & { description?: string }).description && (
+                    <p style={{ color: "var(--text-2, #786f65)", fontSize: "var(--sm, 0.85rem)", lineHeight: 1.6 }}>
+                      {(item as RegistryItem & { description?: string }).description}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  {hasLink && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        fontFamily: "var(--sans)",
+                        fontSize: "var(--sm, 0.85rem)",
+                        fontWeight: 600,
+                        letterSpacing: ".02em",
+                        padding: "12px 26px",
+                        borderRadius: 999,
+                        textDecoration: "none",
+                        whiteSpace: "nowrap" as const,
+                        transition: "all var(--transition, 0.3s ease)",
+                        ...(isPrimary
+                          ? {
+                              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
+                              color: "#fff",
+                              border: "1px solid var(--gold, #c5a55a)",
+                            }
+                          : {
+                              background: "transparent",
+                              color: "var(--charcoal, #3d3830)",
+                              border: "1px solid var(--sand, #d4cabb)",
+                            }),
+                      }}
+                    >
+                      {isPrimary ? "Contribute" : "View Registry"}
+                    </a>
+                  )}
+
+                  {item.note && (
+                    <p style={{
+                      fontSize: ".82rem",
+                      color: "var(--stone, #a69e93)",
+                      fontStyle: "italic",
+                      paddingTop: 12,
+                      borderTop: "1px solid var(--border, #e8e1d6)",
+                      marginTop: hasLink ? 12 : 0,
+                    }}>
+                      {item.note}
+                    </p>
+                  )}
+                </div>
               </div>
             );
-
-            if (hasLink) {
-              return (
-                <a
-                  key={index}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  {content}
-                </a>
-              );
-            }
-
-            return <div key={index}>{content}</div>;
           })}
         </div>
 
         {items.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-muted p-12 text-center">
-            <p className="text-muted-foreground">
-              Registry information coming soon
-            </p>
+          <div style={{
+            border: "2px dashed var(--border, #e8e1d6)",
+            borderRadius: "var(--r-lg, 24px)",
+            padding: 48,
+            textAlign: "center",
+            color: "var(--text-3, #a69e93)",
+          }}>
+            Registry information coming soon
           </div>
         )}
       </div>
-    </SectionWrapper>
+
+      <style>{`
+        @media (max-width: 700px) {
+          #registry [style*="grid-template-columns: repeat(2"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </section>
   );
 }

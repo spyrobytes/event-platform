@@ -1,4 +1,6 @@
-import { SectionWrapper, SectionTitle } from "../../shared";
+"use client";
+
+import { useState } from "react";
 import type { Airport } from "@/schemas/event-page";
 
 type Hotel = {
@@ -7,6 +9,8 @@ type Hotel = {
   bookingUrl?: string;
   blockCode?: string;
   deadline?: string;
+  description?: string;
+  tags?: string[];
 };
 
 type TravelStayV2Props = {
@@ -21,11 +25,14 @@ type TravelStayV2Props = {
 };
 
 /**
- * Travel & Stay V2 - Airports, hotel cards with block codes, tips callout
+ * Travel & Stay V2 — POC-parity rewrite
+ *
+ * Top row: "Getting In" + "Dress Code" detail cards.
+ * Hotel cards with tags, copy-able codes, action buttons.
  */
-export function TravelStayV2({ data, primaryColor }: TravelStayV2Props) {
+export function TravelStayV2({ data, primaryColor: _primaryColor }: TravelStayV2Props) {
   const {
-    heading = "Travel & Accommodations",
+    heading = "Travel & Stay",
     hotels,
     notes,
     airports = [],
@@ -33,165 +40,398 @@ export function TravelStayV2({ data, primaryColor }: TravelStayV2Props) {
   } = data;
 
   return (
-    <SectionWrapper ariaLabel="Travel and accommodations">
-      <div className="mx-auto max-w-4xl">
-        <SectionTitle>
-          <span style={{ color: primaryColor }}>{heading}</span>
-        </SectionTitle>
-
-        {notes && (
-          <p className="mb-8 text-center text-muted-foreground">{notes}</p>
-        )}
-
-        {/* Airports */}
-        {airports.length > 0 && (
-          <div className="mb-10">
-            <h3
-              className="mb-4 text-center text-sm font-medium uppercase tracking-widest"
-              style={{ color: primaryColor }}
-            >
-              Nearest Airports
-            </h3>
-            <div className="flex flex-wrap justify-center gap-4">
-              {airports.map((airport, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 rounded-xl border bg-card px-5 py-3 shadow-sm"
-                >
-                  <svg
-                    className="h-5 w-5 shrink-0"
-                    style={{ color: primaryColor }}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                    />
-                  </svg>
-                  <div>
-                    <p className="font-semibold">
-                      <span style={{ color: primaryColor }}>{airport.code}</span>
-                      {" — "}
-                      {airport.name}
-                    </p>
-                    {airport.distance && (
-                      <p className="text-xs text-muted-foreground">
-                        {airport.distance}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Hotels */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {hotels.map((hotel, index) => (
-            <div
-              key={index}
-              className="rounded-2xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div
-                className="mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-                style={{ backgroundColor: `${primaryColor}15` }}
-              >
-                <svg
-                  className="h-6 w-6"
-                  style={{ color: primaryColor }}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"
-                  />
-                </svg>
-              </div>
-
-              <h3 className="mb-2 text-lg font-semibold">{hotel.name}</h3>
-              <p className="mb-3 text-sm text-muted-foreground">{hotel.address}</p>
-
-              {hotel.blockCode && (
-                <div className="mb-3 rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Group Code
-                  </p>
-                  <p
-                    className="font-mono text-lg font-semibold"
-                    style={{ color: primaryColor }}
-                  >
-                    {hotel.blockCode}
-                  </p>
-                </div>
-              )}
-
-              {hotel.deadline && (
-                <p className="mb-4 text-sm text-muted-foreground">
-                  <span className="font-medium">Note:</span> {hotel.deadline}
-                </p>
-              )}
-
-              {hotel.bookingUrl && (
-                <a
-                  href={hotel.bookingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  Book Now
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              )}
-            </div>
-          ))}
+    <section
+      style={{ padding: "var(--section-y, 96px) 0" }}
+      aria-label="Travel and accommodations"
+      id="travel"
+    >
+      <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
+        {/* Section header */}
+        <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
+          <p style={{
+            fontFamily: "var(--sans)",
+            fontSize: "var(--sm, 0.85rem)",
+            fontWeight: 500,
+            letterSpacing: ".18em",
+            textTransform: "uppercase" as const,
+            color: "var(--sage, #7a8c72)",
+            marginBottom: 12,
+          }}>
+            Travel & Stay
+          </p>
+          <h2 style={{
+            fontFamily: "var(--serif)",
+            fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
+            fontWeight: 400,
+            lineHeight: 1.15,
+            color: "var(--night, #1e1b17)",
+          }}>
+            {heading}
+          </h2>
+          {notes && (
+            <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
+              {notes}
+            </p>
+          )}
         </div>
 
-        {/* Tips Callout */}
-        {tips.length > 0 && (
-          <div
-            className="mt-8 rounded-2xl border-l-4 bg-card p-6"
-            style={{ borderColor: primaryColor }}
-          >
-            <h3
-              className="mb-3 text-sm font-medium uppercase tracking-widest"
-              style={{ color: primaryColor }}
-            >
-              Travel Tips
-            </h3>
-            <ul className="space-y-2">
-              {tips.map((tip, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span style={{ color: primaryColor }} aria-hidden="true">
-                    &bull;
-                  </span>
-                  {tip}
-                </li>
-              ))}
-            </ul>
+        {/* Top row: Getting In + optional info */}
+        {airports.length > 0 && (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "var(--gap, 20px)",
+            marginBottom: "var(--gap, 20px)",
+          }}>
+            <InfoCard
+              eyebrow="Getting In"
+              title={airports.length > 0 ? `${airports[0].code} Airport` : "Getting There"}
+              infoRows={airports.map((a) => ({
+                key: a.code,
+                value: `${a.name}${a.distance ? ` · ${a.distance}` : ""}`,
+              }))}
+            />
+            {tips.length > 0 && (
+              <InfoCard
+                eyebrow="Good to Know"
+                title="Travel Tips"
+                tags={tips}
+              />
+            )}
           </div>
+        )}
+
+        {/* Hotels sub-header */}
+        {hotels.length > 0 && (
+          <>
+            <div style={{ marginTop: airports.length > 0 ? 48 : 0, marginBottom: 24 }}>
+              <p style={{
+                fontFamily: "var(--sans)",
+                fontSize: "var(--sm, 0.85rem)",
+                fontWeight: 500,
+                letterSpacing: ".18em",
+                textTransform: "uppercase" as const,
+                color: "var(--sage, #7a8c72)",
+                marginBottom: 12,
+              }}>
+                Where to Stay
+              </p>
+              <h2 style={{
+                fontFamily: "var(--serif)",
+                fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
+                fontWeight: 400,
+                lineHeight: 1.15,
+                color: "var(--night, #1e1b17)",
+              }}>
+                Partner hotels with group rates
+              </h2>
+            </div>
+
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, 1fr)",
+              gap: "var(--gap, 20px)",
+            }}>
+              {hotels.map((hotel, i) => (
+                <HotelCard key={i} hotel={hotel} />
+              ))}
+            </div>
+          </>
         )}
 
         {/* Empty state */}
         {hotels.length === 0 && airports.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-muted p-12 text-center">
-            <p className="text-muted-foreground">
-              Accommodation details coming soon
-            </p>
+          <div style={{
+            border: "2px dashed var(--border, #e8e1d6)",
+            borderRadius: "var(--r-lg, 24px)",
+            padding: 48,
+            textAlign: "center",
+            color: "var(--text-3, #a69e93)",
+          }}>
+            Accommodation details coming soon
           </div>
         )}
       </div>
-    </SectionWrapper>
+
+      <style>{`
+        @media (max-width: 700px) {
+          #travel [style*="grid-template-columns: repeat(2"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </section>
+  );
+}
+
+/** Info card for "Getting In" / "Dress Code" */
+function InfoCard({
+  eyebrow,
+  title,
+  infoRows,
+  tags,
+}: {
+  eyebrow: string;
+  title: string;
+  infoRows?: { key: string; value: string }[];
+  tags?: string[];
+}) {
+  return (
+    <div style={{
+      background: "var(--surface, #ffffff)",
+      border: "1px solid var(--border, #e8e1d6)",
+      borderRadius: "var(--r-lg, 24px)",
+      padding: "clamp(24px, 3vw, 32px)",
+      boxShadow: "var(--shadow)",
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      {/* Accent stripe */}
+      <div style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--sage, #7a8c72))",
+        opacity: 0.7,
+      }} />
+
+      <div style={{
+        fontSize: ".75rem",
+        fontWeight: 600,
+        letterSpacing: ".1em",
+        textTransform: "uppercase" as const,
+        color: "var(--sage, #7a8c72)",
+        marginBottom: 6,
+      }}>
+        {eyebrow}
+      </div>
+
+      <h3 style={{
+        fontFamily: "var(--serif)",
+        fontSize: "1.3rem",
+        fontWeight: 400,
+        lineHeight: 1.15,
+        color: "var(--night, #1e1b17)",
+        marginBottom: 12,
+      }}>
+        {title}
+      </h3>
+
+      {infoRows && infoRows.length > 0 && (
+        <div style={{ display: "grid", gap: 8 }}>
+          {infoRows.map((row, i) => (
+            <div key={i} style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: 12,
+              padding: "10px 14px",
+              borderRadius: "var(--r, 16px)",
+              background: "var(--cream, #f0ebe3)",
+              border: "1px solid var(--linen, #e8e1d6)",
+            }}>
+              <span style={{ fontSize: "var(--sm, 0.85rem)", color: "var(--text-3, #a69e93)" }}>
+                {row.key}
+              </span>
+              <span style={{ fontSize: "var(--sm, 0.85rem)", fontWeight: 600, color: "var(--charcoal, #3d3830)", textAlign: "right" }}>
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tags && tags.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+          {tags.map((tag, i) => (
+            <span key={i} style={{
+              fontSize: ".78rem",
+              fontWeight: 500,
+              letterSpacing: ".02em",
+              color: "var(--sage-d, #5c6b55)",
+              padding: "5px 12px",
+              borderRadius: 999,
+              background: "rgba(122, 140, 114, 0.08)",
+              border: "1px solid rgba(122, 140, 114, 0.14)",
+            }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Hotel card with copyable block code */
+function HotelCard({ hotel }: { hotel: Hotel }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Silently fail
+    }
+  };
+
+  return (
+    <div style={{
+      background: "var(--surface, #ffffff)",
+      border: "1px solid var(--border, #e8e1d6)",
+      borderRadius: "var(--r-lg, 24px)",
+      overflow: "hidden",
+      boxShadow: "var(--shadow)",
+      transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-3px)";
+      e.currentTarget.style.boxShadow = "var(--shadow-lg)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "";
+      e.currentTarget.style.boxShadow = "var(--shadow)";
+    }}
+    >
+      <div style={{ padding: "clamp(20px, 2.5vw, 28px)" }}>
+        <h3 style={{
+          fontFamily: "var(--serif)",
+          fontSize: "1.15rem",
+          fontWeight: 500,
+          color: "var(--night, #1e1b17)",
+          marginBottom: 6,
+        }}>
+          {hotel.name}
+        </h3>
+
+        {(hotel.description || hotel.address) && (
+          <p style={{
+            fontSize: "var(--sm, 0.85rem)",
+            color: "var(--text-2, #786f65)",
+            lineHeight: 1.6,
+            marginBottom: 14,
+          }}>
+            {hotel.description || hotel.address}
+          </p>
+        )}
+
+        {/* Tags */}
+        {hotel.tags && hotel.tags.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+            {hotel.tags.map((tag, i) => (
+              <span key={i} style={{
+                fontSize: ".74rem",
+                fontWeight: 500,
+                color: "var(--sage-d, #5c6b55)",
+                padding: "5px 12px",
+                borderRadius: 999,
+                background: "rgba(122, 140, 114, 0.08)",
+                border: "1px solid rgba(122, 140, 114, 0.14)",
+              }}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Block code with copy */}
+        {hotel.blockCode && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 14px",
+            borderRadius: "var(--r, 16px)",
+            background: "var(--cream, #f0ebe3)",
+            border: "1px solid var(--linen, #e8e1d6)",
+          }}>
+            <span style={{
+              fontSize: ".78rem",
+              color: "var(--stone, #a69e93)",
+              letterSpacing: ".04em",
+              textTransform: "uppercase" as const,
+              fontWeight: 600,
+            }}>
+              Code
+            </span>
+            <span style={{
+              fontFamily: "'DM Sans', monospace",
+              fontWeight: 700,
+              fontSize: ".88rem",
+              color: "var(--charcoal, #3d3830)",
+              letterSpacing: ".06em",
+            }}>
+              {hotel.blockCode}
+            </span>
+            <button
+              onClick={() => handleCopy(hotel.blockCode!)}
+              style={{
+                marginLeft: "auto",
+                fontSize: ".78rem",
+                fontWeight: 600,
+                color: "var(--sage-d, #5c6b55)",
+                cursor: "pointer",
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: "none",
+                border: "none",
+                transition: "background var(--transition, 0.3s ease)",
+                fontFamily: "inherit",
+              }}
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        )}
+
+        {hotel.deadline && (
+          <p style={{
+            marginTop: 12,
+            fontSize: ".82rem",
+            color: "var(--stone, #a69e93)",
+            fontStyle: "italic",
+          }}>
+            {hotel.deadline}
+          </p>
+        )}
+      </div>
+
+      {/* Actions footer */}
+      {hotel.bookingUrl && (
+        <div style={{
+          padding: "14px clamp(20px, 2.5vw, 28px)",
+          borderTop: "1px solid var(--border, #e8e1d6)",
+          display: "flex",
+          gap: 8,
+        }}>
+          <a
+            href={hotel.bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              fontFamily: "var(--sans)",
+              fontSize: "var(--sm, 0.85rem)",
+              fontWeight: 600,
+              padding: "12px 26px",
+              borderRadius: 999,
+              background: "transparent",
+              color: "var(--charcoal, #3d3830)",
+              border: "1px solid var(--sand, #d4cabb)",
+              textDecoration: "none",
+              transition: "all var(--transition, 0.3s ease)",
+            }}
+          >
+            Book Now
+          </a>
+        </div>
+      )}
+    </div>
   );
 }

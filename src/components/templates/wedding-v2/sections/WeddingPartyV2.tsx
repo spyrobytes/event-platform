@@ -1,4 +1,5 @@
-import { SectionWrapper, SectionTitle } from "../../shared";
+"use client";
+
 import type { MediaAsset } from "@prisma/client";
 import type { PartySide } from "@/schemas/event-page";
 
@@ -21,17 +22,16 @@ type WeddingPartyV2Props = {
 };
 
 /**
- * Wedding Party V2 - Side-by-side columns with explicit side labels.
+ * Wedding Party V2 — POC-parity rewrite
  *
- * Uses the `side` field on each member for grouping (no keyword heuristics).
- * Falls back to ungrouped grid when no `side` is set.
+ * Card-based layout (not circular avatars):
+ * - Side dividers with italic serif labels
+ * - Person cards with photo section, name, role badge, bio
+ * - Hover effects: translateY + shadow
+ * - 3-column grid, responsive to 2 → 1
  */
-export function WeddingPartyV2({
-  data,
-  assets,
-  primaryColor,
-}: WeddingPartyV2Props) {
-  const { heading = "The Wedding Party", description, members } = data;
+export function WeddingPartyV2({ data, assets, primaryColor: _primaryColor }: WeddingPartyV2Props) {
+  const { heading = "Wedding Party", description, members } = data;
 
   const getAssetUrl = (assetId?: string): string | null => {
     if (!assetId) return null;
@@ -39,39 +39,99 @@ export function WeddingPartyV2({
     return asset?.publicUrl || null;
   };
 
-  // Group by explicit side field
   const bridesSide = members.filter((m) => m.side === "bride");
   const groomsSide = members.filter((m) => m.side === "groom");
   const others = members.filter((m) => !m.side || m.side === "other");
-
   const hasSides = bridesSide.length > 0 || groomsSide.length > 0;
 
-  const renderMember = (member: PartyMember, index: number) => {
+  const renderSideDivider = (label: string) => (
+    <div
+      style={{
+        marginBottom: 32,
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <div style={{ flex: 1, height: 1, background: "var(--linen, #e8e1d6)" }} />
+      <span
+        style={{
+          fontFamily: "var(--serif)",
+          fontSize: "1.1rem",
+          fontStyle: "italic",
+          color: "var(--stone, #a69e93)",
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </span>
+      <div style={{ flex: 1, height: 1, background: "var(--linen, #e8e1d6)" }} />
+    </div>
+  );
+
+  const renderCard = (member: PartyMember, index: number) => {
     const imageUrl = getAssetUrl(member.imageAssetId);
 
     return (
-      <div key={index} className="flex flex-col items-center text-center">
+      <article
+        key={index}
+        style={{
+          background: "var(--surface, #ffffff)",
+          border: "1px solid var(--border, #e8e1d6)",
+          borderRadius: "var(--r-lg, 24px)",
+          overflow: "hidden",
+          boxShadow: "var(--shadow)",
+          transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
+          cursor: "default",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-4px)";
+          e.currentTarget.style.boxShadow = "var(--shadow-lg)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "";
+          e.currentTarget.style.boxShadow = "var(--shadow)";
+        }}
+      >
         {/* Photo */}
-        <div
-          className="mb-4 h-36 w-36 overflow-hidden rounded-full border-4 shadow-md"
-          style={{ borderColor: `${primaryColor}25` }}
-        >
+        <div style={{ position: "relative", height: 260, overflow: "hidden" }}>
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={member.name}
-              className="h-full w-full object-cover"
+              loading="lazy"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center 20%",
+                transition: "transform .7s var(--ease-out-expo, ease)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.04)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "";
+              }}
             />
           ) : (
             <div
-              className="flex h-full w-full items-center justify-center"
-              style={{ backgroundColor: `${primaryColor}10` }}
+              style={{
+                width: "100%",
+                height: "100%",
+                background: "var(--cream, #f0ebe3)",
+                display: "grid",
+                placeItems: "center",
+              }}
             >
               <svg
-                className="h-12 w-12"
-                style={{ color: `${primaryColor}40` }}
-                fill="currentColor"
+                width="48" height="48"
                 viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--stone, #a69e93)"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
@@ -79,83 +139,160 @@ export function WeddingPartyV2({
           )}
         </div>
 
-        <h4 className="text-lg font-semibold">{member.name}</h4>
-        <p
-          className="text-sm font-medium"
-          style={{ color: primaryColor }}
-        >
-          {member.role}
-        </p>
-        {member.bio && (
-          <p className="mt-2 max-w-[200px] text-sm text-muted-foreground line-clamp-3">
-            {member.bio}
-          </p>
-        )}
-      </div>
+        {/* Body */}
+        <div style={{ padding: 20 }}>
+          <h3
+            style={{
+              fontFamily: "var(--serif)",
+              fontSize: "1.15rem",
+              fontWeight: 500,
+              color: "var(--night, #1e1b17)",
+              marginBottom: 4,
+            }}
+          >
+            {member.name}
+          </h3>
+          <div
+            style={{
+              fontSize: ".78rem",
+              fontWeight: 600,
+              letterSpacing: ".08em",
+              textTransform: "uppercase" as const,
+              color: "var(--sage, #7a8c72)",
+              marginBottom: 10,
+            }}
+          >
+            {member.role}
+          </div>
+          {member.bio && (
+            <p
+              style={{
+                fontSize: "var(--sm, 0.85rem)",
+                color: "var(--text-2, #786f65)",
+                lineHeight: 1.65,
+              }}
+            >
+              {member.bio}
+            </p>
+          )}
+        </div>
+      </article>
     );
   };
 
-  const renderGroup = (title: string, groupMembers: PartyMember[]) => (
-    <div>
-      <h3
-        className="mb-6 text-center text-lg font-medium tracking-wide"
-        style={{ color: primaryColor }}
-      >
-        {title}
-      </h3>
-      <div className="grid grid-cols-2 gap-8 md:grid-cols-3">
-        {groupMembers.map(renderMember)}
-      </div>
-    </div>
-  );
+  const gridStyle = {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, 1fr)",
+    gap: "var(--gap, 20px)",
+  } as const;
 
   return (
-    <SectionWrapper ariaLabel="Wedding party">
-      <div className="mx-auto max-w-5xl">
-        <SectionTitle>
-          <span style={{ color: primaryColor }}>{heading}</span>
-        </SectionTitle>
-
-        {description && (
-          <p className="mb-10 text-center text-muted-foreground">
-            {description}
+    <section
+      style={{ padding: "var(--section-y, 96px) 0" }}
+      aria-label="Wedding party"
+      id="party"
+    >
+      <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
+        {/* Section header */}
+        <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
+          <p
+            style={{
+              fontFamily: "var(--sans)",
+              fontSize: "var(--sm, 0.85rem)",
+              fontWeight: 500,
+              letterSpacing: ".18em",
+              textTransform: "uppercase" as const,
+              color: "var(--sage, #7a8c72)",
+              marginBottom: 12,
+            }}
+          >
+            Wedding Party
           </p>
+          <h2
+            style={{
+              fontFamily: "var(--serif)",
+              fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
+              fontWeight: 400,
+              lineHeight: 1.15,
+              color: "var(--night, #1e1b17)",
+            }}
+          >
+            {heading}
+          </h2>
+          {description && (
+            <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
+              {description}
+            </p>
+          )}
+        </div>
+
+        {/* Bride's side */}
+        {bridesSide.length > 0 && (
+          <>
+            {renderSideDivider("Bride's side")}
+            <div style={{ ...gridStyle, marginBottom: 48 }}>
+              {bridesSide.map(renderCard)}
+            </div>
+          </>
         )}
 
-        {hasSides ? (
-          <div className="grid gap-16 md:grid-cols-2">
-            {/* Side-by-side layout */}
-            {bridesSide.length > 0 && renderGroup("Bride's Side", bridesSide)}
-            {groomsSide.length > 0 && renderGroup("Groom's Side", groomsSide)}
-          </div>
-        ) : null}
+        {/* Groom's side */}
+        {groomsSide.length > 0 && (
+          <>
+            {renderSideDivider("Groom's side")}
+            <div style={gridStyle}>
+              {groomsSide.map(renderCard)}
+            </div>
+          </>
+        )}
 
-        {/* Others / ungrouped */}
-        {others.length > 0 && (
-          <div className={hasSides ? "mt-12" : ""}>
-            {hasSides && others.length > 0 && (
-              <h3
-                className="mb-6 text-center text-lg font-medium tracking-wide"
-                style={{ color: primaryColor }}
-              >
-                Special Roles
-              </h3>
-            )}
-            <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4">
-              {others.map(renderMember)}
+        {/* Ungrouped */}
+        {!hasSides && others.length > 0 && (
+          <div style={gridStyle}>
+            {others.map(renderCard)}
+          </div>
+        )}
+
+        {hasSides && others.length > 0 && (
+          <div style={{ marginTop: 48 }}>
+            {renderSideDivider("Special Roles")}
+            <div style={gridStyle}>
+              {others.map(renderCard)}
             </div>
           </div>
         )}
 
-        {/* Empty state */}
         {members.length === 0 && (
-          <div className="rounded-2xl border-2 border-dashed border-muted p-12 text-center">
-            <p className="text-muted-foreground">
-              Wedding party details coming soon
-            </p>
+          <div
+            style={{
+              border: "2px dashed var(--border, #e8e1d6)",
+              borderRadius: "var(--r-lg, 24px)",
+              padding: 48,
+              textAlign: "center",
+              color: "var(--text-3, #a69e93)",
+            }}
+          >
+            Wedding party details coming soon
           </div>
         )}
       </div>
-    </SectionWrapper>
+
+      {/* Responsive grid override */}
+      <style>{`
+        @media (max-width: 800px) {
+          #party [style*="grid-template-columns: repeat(3"] {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+        @media (max-width: 500px) {
+          #party [style*="grid-template-columns: repeat"] {
+            grid-template-columns: 1fr !important;
+            max-width: 380px;
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+        }
+      `}</style>
+    </section>
   );
 }
