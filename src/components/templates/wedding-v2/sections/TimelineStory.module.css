@@ -1,0 +1,121 @@
+.timeline {
+  position: relative;
+  padding: 2rem 0;
+}
+
+.line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-50%);
+}
+
+.milestone {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin-bottom: 3rem;
+}
+
+.milestone:last-child {
+  margin-bottom: 0;
+}
+
+.left {
+  justify-content: flex-start;
+  padding-right: calc(50% + 2rem);
+}
+
+.right {
+  justify-content: flex-end;
+  padding-left: calc(50% + 2rem);
+}
+
+.dot {
+  position: absolute;
+  left: 50%;
+  top: 1.5rem;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.9);
+  z-index: 2;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--wedding-border, #e8e0dc);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.cardImage {
+  height: 160px;
+  overflow: hidden;
+}
+
+.cardContent {
+  padding: 1.25rem;
+}
+
+.year {
+  display: inline-block;
+  font-family: var(--wedding-font-heading, Georgia, serif);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.milestoneTitle {
+  font-family: var(--wedding-font-heading, Georgia, serif);
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--wedding-text, #2d2d2d);
+}
+
+.milestoneDesc {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--wedding-text-muted, #6b6b6b);
+}
+
+/* Mobile: single-column timeline */
+@media (max-width: 768px) {
+  .line {
+    left: 1rem;
+  }
+
+  .left,
+  .right {
+    padding-left: 3rem;
+    padding-right: 0;
+    justify-content: flex-start;
+  }
+
+  .dot {
+    left: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+
+  .card:hover {
+    transform: none;
+  }
+}

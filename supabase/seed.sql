@@ -70,6 +70,73 @@ INSERT INTO page_templates (id, name, category, description, preview_url, defaul
     NOW()
   ),
   (
+    'wedding_v2',
+    'Wedding (Cinematic)',
+    'wedding',
+    'A premium cinematic wedding template with timeline story, masonry gallery, and mountain dividers.',
+    NULL,
+    '{
+      "schemaVersion": 1,
+      "theme": {
+        "preset": "romantic",
+        "primaryColor": "#7D8471",
+        "fontPair": "serif_sans"
+      },
+      "hero": {
+        "title": "We''re Getting Married",
+        "subtitle": "Join us to celebrate our love story",
+        "align": "center",
+        "overlay": "soft",
+        "style": "cinematic",
+        "showCountdown": true,
+        "showScheduleCards": true
+      },
+      "sections": [
+        {
+          "type": "details",
+          "enabled": true,
+          "data": {
+            "dateText": "Saturday, June 15th, 2026",
+            "locationText": "The Grand Ballroom"
+          }
+        },
+        {
+          "type": "story",
+          "enabled": true,
+          "data": {
+            "heading": "Our Story",
+            "content": "Every love story is beautiful, but ours is our favorite. From the moment we met, we knew something special was beginning.",
+            "layout": "timeline",
+            "milestones": [
+              {"year": "2020", "title": "First Met", "description": "A chance encounter that changed everything."},
+              {"year": "2022", "title": "The Proposal", "description": "A magical moment we''ll never forget."}
+            ]
+          }
+        },
+        {
+          "type": "schedule",
+          "enabled": true,
+          "data": {
+            "items": [
+              {"time": "3:00 PM", "title": "Ceremony", "description": "Join us as we exchange vows"},
+              {"time": "4:00 PM", "title": "Cocktail Hour", "description": "Drinks and hors d''oeuvres"},
+              {"time": "5:30 PM", "title": "Reception", "description": "Dinner, dancing, and celebration"}
+            ]
+          }
+        }
+      ],
+      "chrome": {
+        "topbar": true,
+        "scrollProgress": true,
+        "mountainDividers": true,
+        "footerSkyline": true
+      }
+    }',
+    1,
+    true,
+    NOW()
+  ),
+  (
     'conference_v1',
     'Modern Conference',
     'conference',

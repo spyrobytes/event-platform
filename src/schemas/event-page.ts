@@ -68,12 +68,20 @@ export type ThemeConfig = z.infer<typeof themeSchema>;
 export const heroAlignSchema = z.enum(["left", "center"]);
 export const heroOverlaySchema = z.enum(["none", "soft", "strong"]);
 
+export const heroStyleSchema = z.enum(["standard", "cinematic"]);
+
 export const heroSchema = z.object({
   title: z.string().min(1, "Title is required").max(80, "Title must be 80 characters or less"),
   subtitle: z.string().max(120, "Subtitle must be 120 characters or less").optional(),
   heroImageAssetId: z.string().cuid().optional(),
   align: heroAlignSchema,
   overlay: heroOverlaySchema,
+  // V2 cinematic hero fields
+  style: heroStyleSchema.optional(),
+  showCountdown: z.boolean().optional(),
+  showScheduleCards: z.boolean().optional(),
+  coupleNames: z.string().max(60, "Couple names must be 60 characters or less").optional(),
+  monogram: z.string().max(5, "Monogram must be 5 characters or less").optional(),
 });
 
 export type HeroConfig = z.infer<typeof heroSchema>;
@@ -290,11 +298,22 @@ export const mapSectionSchema = z.object({
 // =============================================================================
 
 // Story Section - Couple's journey
+export const milestoneSchema = z.object({
+  year: z.string().max(10, "Year must be 10 characters or less"),
+  title: z.string().max(60, "Title must be 60 characters or less"),
+  description: z.string().max(200, "Description must be 200 characters or less"),
+  imageAssetId: z.string().cuid().optional(),
+});
+
+export const storyLayoutSchema = z.enum(["full", "split", "timeline"]);
+
 export const storySectionDataSchema = z.object({
   heading: z.string().max(60, "Heading must be 60 characters or less").default("Our Story"),
   content: z.string().min(50, "Story must be at least 50 characters").max(1500, "Story must be 1500 characters or less"),
-  layout: z.enum(["full", "split"]).default("full"),
+  layout: storyLayoutSchema.default("full"),
   imageAssetId: z.string().cuid().optional(),
+  // V2 timeline milestones
+  milestones: z.array(milestoneSchema).max(8, "Maximum 8 milestones allowed").optional(),
 });
 
 export const storySectionSchema = z.object({
@@ -313,10 +332,19 @@ export const hotelItemSchema = z.object({
   deadline: z.string().max(100, "Deadline must be 100 characters or less").optional(),
 });
 
+export const airportSchema = z.object({
+  code: z.string().max(10, "Airport code must be 10 characters or less"),
+  name: z.string().max(100, "Airport name must be 100 characters or less"),
+  distance: z.string().max(50, "Distance must be 50 characters or less").optional(),
+});
+
 export const travelStaySectionDataSchema = z.object({
   heading: z.string().max(80, "Heading must be 80 characters or less").default("Travel & Accommodations"),
   hotels: z.array(hotelItemSchema).max(5, "Maximum 5 hotels allowed"),
   notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
+  // V2 airport and tips fields
+  airports: z.array(airportSchema).max(3, "Maximum 3 airports allowed").optional(),
+  tips: z.array(z.string().max(200, "Tip must be 200 characters or less")).max(5, "Maximum 5 tips allowed").optional(),
 });
 
 export const travelStaySectionSchema = z.object({
@@ -327,11 +355,15 @@ export const travelStaySectionSchema = z.object({
 });
 
 // Wedding Party Section - Bridal party
+export const partySideSchema = z.enum(["bride", "groom", "other"]);
+
 export const partyMemberSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
   role: z.string().min(1, "Role is required").max(50, "Role must be 50 characters or less"),
   bio: z.string().max(300, "Bio must be 300 characters or less").optional(),
   imageAssetId: z.string().cuid().optional(),
+  // V2 explicit side assignment
+  side: partySideSchema.optional(),
 });
 
 export const weddingPartySectionDataSchema = z.object({
@@ -386,6 +418,26 @@ export const thingsToDoSectionSchema = z.object({
   data: thingsToDoSectionDataSchema,
 });
 
+// Registry Section - Gift registry (V2)
+export const registryItemSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
+  url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  logoAssetId: z.string().cuid().optional(),
+});
+
+export const registrySectionDataSchema = z.object({
+  heading: z.string().max(60, "Heading must be 60 characters or less").default("Gift Registry"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  items: z.array(registryItemSchema).max(6, "Maximum 6 registry items allowed"),
+});
+
+export const registrySectionSchema = z.object({
+  type: z.literal("registry"),
+  enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
+  data: registrySectionDataSchema,
+});
+
 // Union of all sections
 export const sectionSchema = z.discriminatedUnion("type", [
   detailsSectionSchema,
@@ -402,6 +454,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   weddingPartySectionSchema,
   attireSectionSchema,
   thingsToDoSectionSchema,
+  registrySectionSchema,
 ]);
 
 export type Section = z.infer<typeof sectionSchema>;
@@ -430,10 +483,26 @@ export type AttireSection = z.infer<typeof attireSectionSchema>;
 export type ThingsToDoSection = z.infer<typeof thingsToDoSectionSchema>;
 export type ActivityItem = z.infer<typeof activityItemSchema>;
 export type ActivityCategory = z.infer<typeof activityCategorySchema>;
+// V2 types
+export type RegistrySection = z.infer<typeof registrySectionSchema>;
+export type RegistryItem = z.infer<typeof registryItemSchema>;
+export type Milestone = z.infer<typeof milestoneSchema>;
+export type Airport = z.infer<typeof airportSchema>;
+export type PartySide = z.infer<typeof partySideSchema>;
+export type ChromeConfig = z.infer<typeof chromeConfigSchema>;
+export type HeroStyle = z.infer<typeof heroStyleSchema>;
+export type StoryLayout = z.infer<typeof storyLayoutSchema>;
 
 // =============================================================================
 // FULL PAGE CONFIG
 // =============================================================================
+
+export const chromeConfigSchema = z.object({
+  topbar: z.boolean().optional(),
+  scrollProgress: z.boolean().optional(),
+  mountainDividers: z.boolean().optional(),
+  footerSkyline: z.boolean().optional(),
+});
 
 export const eventPageConfigV1Schema = z.object({
   schemaVersion: z.literal(1),
@@ -441,6 +510,8 @@ export const eventPageConfigV1Schema = z.object({
   theme: themeSchema,
   hero: heroSchema,
   sections: z.array(sectionSchema).max(12, "Maximum 12 sections allowed"),
+  // V2 chrome settings
+  chrome: chromeConfigSchema.optional(),
 });
 
 export type EventPageConfigV1 = z.infer<typeof eventPageConfigV1Schema>;

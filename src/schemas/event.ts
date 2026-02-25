@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Valid template IDs
  */
-export const VALID_TEMPLATE_IDS = ["wedding_v1", "conference_v1", "party_v1"] as const;
+export const VALID_TEMPLATE_IDS = ["wedding_v1", "wedding_v2", "conference_v1", "party_v1"] as const;
 export type TemplateId = (typeof VALID_TEMPLATE_IDS)[number];
 
 /**

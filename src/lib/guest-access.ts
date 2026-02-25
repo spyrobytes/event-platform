@@ -26,6 +26,7 @@ const DEFAULT_VISIBILITY: Record<string, SectionVisibility> = {
   attire: "guests",
   travelStay: "guests",
   thingsToDo: "guests",
+  registry: "guests",
 };
 
 /**
@@ -97,6 +98,7 @@ const SECTION_LABELS: Record<string, string> = {
   weddingParty: "Wedding Party",
   attire: "Attire",
   thingsToDo: "Things to Do",
+  registry: "Gift Registry",
 };
 
 /**

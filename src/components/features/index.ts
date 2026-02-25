@@ -41,4 +41,5 @@ export {
   WeddingPartyEditor,
   AttireEditor,
   ThingsToDoEditor,
+  RegistryEditor,
 } from "./PageEditor";

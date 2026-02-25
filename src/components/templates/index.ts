@@ -5,6 +5,7 @@ import type { MediaAsset } from "@prisma/client";
 // Template imports
 import { WeddingTemplateV1 } from "./WeddingTemplateV1";
 import { WeddingTemplate } from "./wedding";
+import { WeddingTemplateV2 } from "./wedding-v2";
 import { ConferenceTemplateV1 } from "./ConferenceTemplateV1";
 import { PartyTemplateV1 } from "./PartyTemplateV1";
 
@@ -50,6 +51,8 @@ export const TEMPLATES: Record<string, TemplateComponent> = {
   wedding_v1: WeddingTemplate,
   // Legacy wedding template (for backward compatibility if needed)
   wedding_v1_legacy: WeddingTemplateV1,
+  // Cinematic wedding template (V2)
+  wedding_v2: WeddingTemplateV2,
   conference_v1: ConferenceTemplateV1,
   party_v1: PartyTemplateV1,
 };
@@ -79,6 +82,7 @@ export function getAvailableTemplateIds(): string[] {
 // Re-export templates for direct import
 export { WeddingTemplateV1 } from "./WeddingTemplateV1";
 export { WeddingTemplate } from "./wedding";
+export { WeddingTemplateV2 } from "./wedding-v2";
 export { ConferenceTemplateV1 } from "./ConferenceTemplateV1";
 export { PartyTemplateV1 } from "./PartyTemplateV1";
 

@@ -1,0 +1,44 @@
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid;
+  transition: transform 0.3s ease;
+}
+
+.visible {
+  transform: translateY(0);
+}
+
+.hidden {
+  transform: translateY(-100%);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0 16px;
+}
+
+.monogram {
+  font-family: var(--wedding-font-heading, Georgia, serif);
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.names {
+  font-family: var(--wedding-font-body, system-ui, sans-serif);
+  font-size: 0.8125rem;
+  color: var(--wedding-text-muted, #6b6b6b);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

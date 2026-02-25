@@ -27,6 +27,7 @@ import {
   WeddingPartyEditor,
   AttireEditor,
   ThingsToDoEditor,
+  RegistryEditor,
 } from "@/components/features";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import type { SectionVisibility } from "@/schemas/event-page";
@@ -45,6 +46,8 @@ import type {
   WeddingPartySection,
   AttireSection,
   ThingsToDoSection,
+  RegistrySection,
+  ChromeConfig,
 } from "@/schemas/event-page";
 
 type PageConfigResponse = {
@@ -316,6 +319,28 @@ export default function PageEditorPage() {
     []
   );
 
+  const updateRegistryData = useCallback(
+    (index: number, data: RegistrySection["data"]) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        const newSections = [...prev.sections];
+        const section = newSections[index] as RegistrySection;
+        newSections[index] = { ...section, data };
+        return { ...prev, sections: newSections };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
+
+  const updateChrome = useCallback((updates: Partial<ChromeConfig>) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      return { ...prev, chrome: { ...prev.chrome, ...updates } };
+    });
+    setHasChanges(true);
+  }, []);
+
   const addSection = useCallback(
     (type: Section["type"]) => {
       setConfig((prev) => {
@@ -448,6 +473,16 @@ export default function PageEditorPage() {
               enabled: true,
               data: {
                 heading: "Things To Do",
+                items: [],
+              },
+            };
+            break;
+          case "registry":
+            newSection = {
+              type: "registry",
+              enabled: true,
+              data: {
+                heading: "Gift Registry",
                 items: [],
               },
             };
@@ -734,6 +769,41 @@ export default function PageEditorPage() {
         </Card>
       )}
 
+      {/* V2 Chrome Toggles - Only show for wedding_v2 */}
+      {templateId === "wedding_v2" && config && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cinematic Chrome</CardTitle>
+            <CardDescription>
+              Toggle the premium visual elements unique to the cinematic template
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { key: "topbar" as const, label: "Fixed Topbar", desc: "Shows monogram and couple names" },
+                { key: "scrollProgress" as const, label: "Scroll Progress Bar", desc: "Thin accent bar at the top" },
+                { key: "mountainDividers" as const, label: "Mountain Dividers", desc: "SVG mountain range between sections" },
+                { key: "footerSkyline" as const, label: "Footer Skyline", desc: "Mountain skyline above the footer" },
+              ].map(({ key, label, desc }) => (
+                <label key={key} className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50">
+                  <input
+                    type="checkbox"
+                    checked={config.chrome?.[key] ?? true}
+                    onChange={(e) => updateChrome({ [key]: e.target.checked })}
+                    className="mt-1 rounded"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Theme Section */}
       <Card>
         <CardHeader>
@@ -799,6 +869,68 @@ export default function PageEditorPage() {
               placeholder="Optional subtitle"
             />
           </div>
+          {/* V2 Cinematic Hero Fields */}
+          {templateId === "wedding_v2" && (
+            <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm font-medium">Cinematic Hero Options</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="coupleNames">Couple Names</Label>
+                  <Input
+                    id="coupleNames"
+                    value={config.hero.coupleNames || ""}
+                    onChange={(e) => updateHero({ coupleNames: e.target.value || undefined })}
+                    placeholder="e.g., Sarah & Michael"
+                    maxLength={60}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monogram">Monogram</Label>
+                  <Input
+                    id="monogram"
+                    value={config.hero.monogram || ""}
+                    onChange={(e) => updateHero({ monogram: e.target.value || undefined })}
+                    placeholder="e.g., S&M"
+                    maxLength={5}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Hero Style</Label>
+                  <select
+                    value={config.hero.style || "standard"}
+                    onChange={(e) => updateHero({ style: e.target.value as "standard" | "cinematic" })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="cinematic">Cinematic (Full Viewport)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={config.hero.showCountdown || false}
+                    onChange={(e) => updateHero({ showCountdown: e.target.checked })}
+                    className="rounded"
+                  />
+                  Show Countdown
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={config.hero.showScheduleCards || false}
+                    onChange={(e) => updateHero({ showScheduleCards: e.target.checked })}
+                    className="rounded"
+                  />
+                  Show Schedule Cards
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Hero Image Selection */}
           <div className="space-y-2">
             <Label>Hero Image</Label>
@@ -1044,6 +1176,13 @@ export default function PageEditorPage() {
                 onChange={(data) => updateThingsToDoData(index, data)}
               />
             )}
+            {section.type === "registry" && section.enabled && (
+              <RegistryEditor
+                data={section.data}
+                assets={pageData?.assets || []}
+                onChange={(data) => updateRegistryData(index, data)}
+              />
+            )}
             {!section.enabled && (
               <p className="text-sm text-muted-foreground">
                 This section is disabled. Enable it to edit.
@@ -1144,8 +1283,8 @@ export default function PageEditorPage() {
                 + Map
               </Button>
             )}
-            {/* Wedding-specific sections - only show for wedding template */}
-            {templateId === "wedding_v1" && (
+            {/* Wedding-specific sections - only show for wedding templates */}
+            {(templateId === "wedding_v1" || templateId === "wedding_v2") && (
               <>
                 {!config.sections.some((s) => s.type === "story") && (
                   <Button
@@ -1195,6 +1334,17 @@ export default function PageEditorPage() {
                     onClick={() => addSection("thingsToDo")}
                   >
                     + Things To Do
+                  </Button>
+                )}
+                {/* Registry - V2 only */}
+                {templateId === "wedding_v2" && !config.sections.some((s) => s.type === "registry") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSection("registry")}
+                  >
+                    + Gift Registry
                   </Button>
                 )}
               </>
