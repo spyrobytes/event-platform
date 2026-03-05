@@ -5,19 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { TravelStaySection, HotelItem } from "@/schemas/event-page";
+import type { TravelStaySection, HotelItem, Airport } from "@/schemas/event-page";
 
 type TravelStayEditorProps = {
   data: TravelStaySection["data"];
   onChange: (data: TravelStaySection["data"]) => void;
+  templateId?: string;
 };
 
 /**
  * Editor for Travel & Accommodations section
  * Allows adding hotels with booking info and room blocks
  */
-export function TravelStayEditor({ data, onChange }: TravelStayEditorProps) {
+export function TravelStayEditor({ data, onChange, templateId }: TravelStayEditorProps) {
   const hotels = data.hotels || [];
+  const isV2 = templateId === "wedding_v2";
+  const airports = data.airports || [];
+  const tips = data.tips || [];
 
   const addHotel = useCallback(() => {
     if (hotels.length >= 5) return;
@@ -44,6 +48,60 @@ export function TravelStayEditor({ data, onChange }: TravelStayEditorProps) {
       });
     },
     [data, hotels, onChange]
+  );
+
+  const addAirport = useCallback(() => {
+    if (airports.length >= 3) return;
+    onChange({
+      ...data,
+      airports: [...airports, { code: "", name: "" }],
+    });
+  }, [data, airports, onChange]);
+
+  const updateAirport = useCallback(
+    (index: number, updates: Partial<Airport>) => {
+      const newAirports = [...airports];
+      newAirports[index] = { ...newAirports[index], ...updates };
+      onChange({ ...data, airports: newAirports });
+    },
+    [data, airports, onChange]
+  );
+
+  const removeAirport = useCallback(
+    (index: number) => {
+      onChange({
+        ...data,
+        airports: airports.filter((_, i) => i !== index),
+      });
+    },
+    [data, airports, onChange]
+  );
+
+  const addTip = useCallback(() => {
+    if (tips.length >= 5) return;
+    onChange({
+      ...data,
+      tips: [...tips, ""],
+    });
+  }, [data, tips, onChange]);
+
+  const updateTip = useCallback(
+    (index: number, value: string) => {
+      const newTips = [...tips];
+      newTips[index] = value;
+      onChange({ ...data, tips: newTips });
+    },
+    [data, tips, onChange]
+  );
+
+  const removeTip = useCallback(
+    (index: number) => {
+      onChange({
+        ...data,
+        tips: tips.filter((_, i) => i !== index),
+      });
+    },
+    [data, tips, onChange]
   );
 
   return (
@@ -130,6 +188,9 @@ export function TravelStayEditor({ data, onChange }: TravelStayEditorProps) {
                         }
                         placeholder="https://hotel.com/book"
                       />
+                      {hotel.bookingUrl && (() => { try { new URL(hotel.bookingUrl); return false; } catch { return true; } })() && (
+                        <p className="text-xs text-amber-600">Please enter a valid URL (e.g., https://...)</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -179,6 +240,105 @@ export function TravelStayEditor({ data, onChange }: TravelStayEditorProps) {
           {hotels.length >= 5 && " (max 5)"}
         </Button>
       </div>
+
+      {/* Airports - V2 only */}
+      {isV2 && (
+        <div className="space-y-2">
+          <Label>Nearby Airports</Label>
+          <p className="text-xs text-muted-foreground">
+            Help guests find the best airports for your venue
+          </p>
+
+          {airports.map((airport, index) => (
+            <div key={index} className="flex items-start gap-2 rounded-lg border p-3">
+              <div className="flex-1 grid gap-2 sm:grid-cols-3">
+                <Input
+                  value={airport.code}
+                  onChange={(e) => updateAirport(index, { code: e.target.value })}
+                  placeholder="Code (e.g., LAX)"
+                  maxLength={10}
+                />
+                <Input
+                  value={airport.name}
+                  onChange={(e) => updateAirport(index, { name: e.target.value })}
+                  placeholder="Airport name"
+                  maxLength={100}
+                />
+                <Input
+                  value={airport.distance || ""}
+                  onChange={(e) => updateAirport(index, { distance: e.target.value || undefined })}
+                  placeholder="Distance (e.g., 30 min)"
+                  maxLength={50}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeAirport(index)}
+                className="mt-1 h-8 w-8 p-0 text-destructive hover:text-destructive"
+                aria-label="Remove airport"
+              >
+                ×
+              </Button>
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addAirport}
+            disabled={airports.length >= 3}
+          >
+            + Add Airport
+            {airports.length >= 3 && " (max 3)"}
+          </Button>
+        </div>
+      )}
+
+      {/* Travel Tips - V2 only */}
+      {isV2 && (
+        <div className="space-y-2">
+          <Label>Travel Tips</Label>
+          <p className="text-xs text-muted-foreground">
+            Share helpful tips for guests traveling to your venue
+          </p>
+
+          {tips.map((tip, index) => (
+            <div key={index} className="flex items-start gap-2">
+              <Input
+                value={tip}
+                onChange={(e) => updateTip(index, e.target.value)}
+                placeholder="e.g., Rent a car for the best experience"
+                maxLength={200}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeTip(index)}
+                className="mt-0.5 h-8 w-8 p-0 text-destructive hover:text-destructive"
+                aria-label="Remove tip"
+              >
+                ×
+              </Button>
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addTip}
+            disabled={tips.length >= 5}
+          >
+            + Add Tip
+            {tips.length >= 5 && " (max 5)"}
+          </Button>
+        </div>
+      )}
 
       {/* Additional Notes */}
       <div className="space-y-2">

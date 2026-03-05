@@ -4,8 +4,9 @@ import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { WeddingPartySection, PartyMember } from "@/schemas/event-page";
+import type { WeddingPartySection, PartyMember, PartySide } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -18,6 +19,7 @@ type WeddingPartyEditorProps = {
   data: WeddingPartySection["data"];
   assets: Asset[];
   onChange: (data: WeddingPartySection["data"]) => void;
+  templateId?: string;
 };
 
 /**
@@ -28,9 +30,11 @@ export function WeddingPartyEditor({
   data,
   assets,
   onChange,
+  templateId,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   const partyAssets = assets.filter((a) => a.kind === "GALLERY");
+  const isV2 = templateId === "wedding_v2";
 
   const addMember = useCallback(() => {
     if (members.length >= 16) return;
@@ -103,8 +107,9 @@ export function WeddingPartyEditor({
       <div className="space-y-2">
         <Label>Party Members</Label>
         <p className="text-xs text-muted-foreground">
-          Tip: Use roles like &quot;Maid of Honor&quot;, &quot;Best Man&quot;,
-          &quot;Bridesmaid&quot;, &quot;Groomsman&quot; to auto-group by side
+          {isV2
+            ? "Assign each member to a side for grouping in the cinematic layout"
+            : "Tip: Use roles like \"Maid of Honor\", \"Best Man\", \"Bridesmaid\", \"Groomsman\" to auto-group by side"}
         </p>
 
         {members.length === 0 ? (
@@ -160,7 +165,7 @@ export function WeddingPartyEditor({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className={`grid gap-4 ${isV2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                     <div className="space-y-2">
                       <Label htmlFor={`member-name-${index}`}>Name</Label>
                       <Input
@@ -186,6 +191,26 @@ export function WeddingPartyEditor({
                         maxLength={50}
                       />
                     </div>
+
+                    {isV2 && (
+                      <div className="space-y-2">
+                        <Label htmlFor={`member-side-${index}`}>Side</Label>
+                        <Select
+                          id={`member-side-${index}`}
+                          value={member.side || ""}
+                          onChange={(e) =>
+                            updateMember(index, {
+                              side: (e.target.value || undefined) as PartySide | undefined,
+                            })
+                          }
+                        >
+                          <option value="">Unassigned</option>
+                          <option value="bride">Bride&apos;s Side</option>
+                          <option value="groom">Groom&apos;s Side</option>
+                          <option value="other">Other / Shared</option>
+                        </Select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">

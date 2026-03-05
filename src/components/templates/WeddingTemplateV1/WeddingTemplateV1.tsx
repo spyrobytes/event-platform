@@ -21,22 +21,7 @@ type WeddingTemplateV1Props = {
   eventId?: string;
 };
 
-/**
- * Get human-readable label for section type
- */
-function getSectionLabel(type: string): string {
-  const labels: Record<string, string> = {
-    details: "Details",
-    schedule: "Schedule",
-    faq: "FAQ",
-    gallery: "Gallery",
-    rsvp: "RSVP",
-    speakers: "Speakers",
-    sponsors: "Sponsors",
-    map: "Location",
-  };
-  return labels[type] || type;
-}
+import { getSectionLabel } from "@/lib/guest-access";
 
 /**
  * Classic Wedding Template (v1) - Legacy

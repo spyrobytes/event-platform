@@ -21,21 +21,16 @@ type PartyTemplateV1Props = {
   eventId?: string;
 };
 
-/**
- * Get human-readable label for section type
- */
+import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
+
+const PARTY_LABEL_OVERRIDES: Record<string, string> = {
+  gallery: "Photos",
+  speakers: "Hosts",
+  sponsors: "Thanks",
+};
+
 function getSectionLabel(type: string): string {
-  const labels: Record<string, string> = {
-    details: "Details",
-    schedule: "Schedule",
-    faq: "FAQ",
-    gallery: "Photos",
-    rsvp: "RSVP",
-    speakers: "Hosts",
-    sponsors: "Thanks",
-    map: "Location",
-  };
-  return labels[type] || type;
+  return PARTY_LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
 }
 
 /**

@@ -7,6 +7,7 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   TemplateSelector,
@@ -29,26 +30,29 @@ import {
   ThingsToDoEditor,
   RegistryEditor,
 } from "@/components/features";
+import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
+import { isAccessibleColor } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
   Section,
-  ScheduleSection,
-  FAQSection,
-  GallerySection,
-  RSVPSection,
-  SpeakersSection,
-  SponsorsSection,
-  MapSection,
-  StorySection,
-  TravelStaySection,
-  WeddingPartySection,
-  AttireSection,
-  ThingsToDoSection,
-  RegistrySection,
   ChromeConfig,
 } from "@/schemas/event-page";
+
+const GENERIC_SECTIONS: Section["type"][] = [
+  "details", "schedule", "faq", "gallery", "rsvp", "speakers", "sponsors", "map",
+];
+const WEDDING_SECTIONS: Section["type"][] = [
+  ...GENERIC_SECTIONS, "story", "travelStay", "weddingParty", "attire", "thingsToDo",
+];
+
+const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
+  wedding_v1: new Set(WEDDING_SECTIONS),
+  wedding_v2: new Set([...WEDDING_SECTIONS, "registry"]),
+  conference_v1: new Set(GENERIC_SECTIONS),
+  party_v1: new Set(GENERIC_SECTIONS),
+};
 
 type PageConfigResponse = {
   config: EventPageConfigV1;
@@ -112,9 +116,24 @@ export default function PageEditorPage() {
   }, [params.id, getIdToken]);
 
   const handleTemplateChange = useCallback((newTemplateId: string) => {
+    if (config) {
+      const supported = TEMPLATE_SUPPORTED_SECTIONS[newTemplateId];
+      if (supported) {
+        const orphaned = config.sections.filter(
+          (s) => s.enabled && !supported.has(s.type)
+        );
+        if (orphaned.length > 0) {
+          const names = orphaned.map((s) => getSectionLabel(s.type)).join(", ");
+          const confirmed = window.confirm(
+            `The "${newTemplateId}" template does not render these sections: ${names}.\n\nSwitch anyway? (Sections will be preserved but won't appear on the published page.)`
+          );
+          if (!confirmed) return;
+        }
+      }
+    }
     setTemplateId(newTemplateId);
     setHasChanges(true);
-  }, []);
+  }, [config]);
 
   const handleVariantChange = useCallback((newVariantId: string) => {
     setConfig((prev) => {
@@ -150,182 +169,12 @@ export default function PageEditorPage() {
     setHasChanges(true);
   }, []);
 
-  const updateScheduleItems = useCallback(
-    (index: number, items: ScheduleSection["data"]["items"]) => {
+  const updateSectionData = useCallback(
+    (index: number, data: Section["data"]) => {
       setConfig((prev) => {
         if (!prev) return prev;
         const newSections = [...prev.sections];
-        const section = newSections[index] as ScheduleSection;
-        newSections[index] = { ...section, data: { items } };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateFAQItems = useCallback(
-    (index: number, items: FAQSection["data"]["items"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as FAQSection;
-        newSections[index] = { ...section, data: { items } };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateGalleryData = useCallback(
-    (index: number, data: GallerySection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as GallerySection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateRSVPData = useCallback(
-    (index: number, data: RSVPSection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as RSVPSection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateSpeakersData = useCallback(
-    (index: number, data: SpeakersSection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as SpeakersSection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateSponsorsData = useCallback(
-    (index: number, data: SponsorsSection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as SponsorsSection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateMapData = useCallback(
-    (index: number, data: MapSection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as MapSection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  // Wedding-specific section update callbacks
-  const updateStoryData = useCallback(
-    (index: number, data: StorySection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as StorySection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateTravelStayData = useCallback(
-    (index: number, data: TravelStaySection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as TravelStaySection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateWeddingPartyData = useCallback(
-    (index: number, data: WeddingPartySection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as WeddingPartySection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateAttireData = useCallback(
-    (index: number, data: AttireSection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as AttireSection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateThingsToDoData = useCallback(
-    (index: number, data: ThingsToDoSection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as ThingsToDoSection;
-        newSections[index] = { ...section, data };
-        return { ...prev, sections: newSections };
-      });
-      setHasChanges(true);
-    },
-    []
-  );
-
-  const updateRegistryData = useCallback(
-    (index: number, data: RegistrySection["data"]) => {
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const newSections = [...prev.sections];
-        const section = newSections[index] as RegistrySection;
-        newSections[index] = { ...section, data };
+        newSections[index] = { ...newSections[index], data } as Section;
         return { ...prev, sections: newSections };
       });
       setHasChanges(true);
@@ -375,7 +224,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "gallery",
               enabled: true,
-              data: { assetIds: [] },
+              data: { items: [] },
             };
             break;
           case "rsvp":
@@ -432,7 +281,7 @@ export default function PageEditorPage() {
               enabled: true,
               data: {
                 heading: "Our Story",
-                content: "",
+                content: "Share your story here... Tell your guests about your journey together.",
                 layout: "full",
               },
             };
@@ -827,19 +676,23 @@ export default function PageEditorPage() {
                   placeholder="#000000"
                 />
               </div>
+              {config.theme.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(config.theme.primaryColor) && !isAccessibleColor(config.theme.primaryColor) && (
+                <p className="text-xs text-amber-600">
+                  This color may have poor contrast against white backgrounds (WCAG 4.5:1 required)
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="font">Font Pair</Label>
-              <select
+              <Select
                 id="font"
                 value={config.theme.fontPair}
                 onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="modern">Modern</option>
                 <option value="classic">Classic</option>
                 <option value="serif_sans">Serif + Sans</option>
-              </select>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -898,14 +751,13 @@ export default function PageEditorPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Hero Style</Label>
-                  <select
+                  <Select
                     value={config.hero.style || "standard"}
                     onChange={(e) => updateHero({ style: e.target.value as "standard" | "cinematic" })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
                     <option value="standard">Standard</option>
                     <option value="cinematic">Cinematic (Full Viewport)</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
               <div className="flex flex-wrap gap-4">
@@ -1019,6 +871,8 @@ export default function PageEditorPage() {
           (!section.enabled ||
             effectiveVis === "hidden" ||
             (effectiveVis === "guests" && viewAs === "public"));
+        const supported = TEMPLATE_SUPPORTED_SECTIONS[templateId];
+        const isOrphaned = supported ? !supported.has(section.type) : false;
 
         return (
         <Card key={`${section.type}-${index}`} className={hiddenForView ? "opacity-40 pointer-events-none" : ""}>
@@ -1027,6 +881,13 @@ export default function PageEditorPage() {
               <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                 Hidden for {viewAs === "public" ? "public visitors" : "guests"}
               </span>
+            </div>
+          )}
+          {isOrphaned && (
+            <div className="mx-6 mt-4 rounded-md bg-amber-50 border border-amber-200 px-3 py-2">
+              <p className="text-xs font-medium text-amber-700">
+                Not rendered by the current template ({templateId}). This section&apos;s data is preserved but won&apos;t appear on the published page.
+              </p>
             </div>
           )}
           <CardHeader>
@@ -1042,21 +903,21 @@ export default function PageEditorPage() {
                   />
                   Enabled
                 </label>
-                <select
+                <Select
                   value={section.visibility || ""}
                   onChange={(e) =>
                     updateSection(index, {
                       visibility: (e.target.value || undefined) as SectionVisibility | undefined,
                     })
                   }
-                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  className="h-8 text-xs"
                   title="Who can see this section"
                 >
                   <option value="">Default ({getDefaultVisibility(section.type)})</option>
                   <option value="public">Public (everyone)</option>
                   <option value="guests">Guests only</option>
                   <option value="hidden">Hidden</option>
-                </select>
+                </Select>
                 <Button
                   type="button"
                   variant="ghost"
@@ -1070,7 +931,13 @@ export default function PageEditorPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {section.type === "details" && section.enabled && (
+            {!section.enabled && (
+              <p className="mb-3 text-sm font-medium text-amber-600">
+                This section is disabled and won&apos;t appear on the published page.
+              </p>
+            )}
+            <div className={cn(!section.enabled && "opacity-50 pointer-events-none")}>
+            {section.type === "details" && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Date Text</Label>
@@ -1098,96 +965,95 @@ export default function PageEditorPage() {
                 </div>
               </div>
             )}
-            {section.type === "schedule" && section.enabled && (
+            {section.type === "schedule" && (
               <ScheduleEditor
                 items={section.data.items}
-                onChange={(items) => updateScheduleItems(index, items)}
+                onChange={(items) => updateSectionData(index, { items })}
               />
             )}
-            {section.type === "faq" && section.enabled && (
+            {section.type === "faq" && (
               <FAQEditor
                 items={section.data.items}
-                onChange={(items) => updateFAQItems(index, items)}
+                onChange={(items) => updateSectionData(index, { items })}
               />
             )}
-            {section.type === "gallery" && section.enabled && (
+            {section.type === "gallery" && (
               <GalleryEditor
                 data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(data) => updateGalleryData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {section.type === "rsvp" && section.enabled && (
+            {section.type === "rsvp" && (
               <RSVPEditor
                 data={section.data}
-                onChange={(data) => updateRSVPData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {section.type === "speakers" && section.enabled && (
+            {section.type === "speakers" && (
               <SpeakersEditor
                 data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(data) => updateSpeakersData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {section.type === "sponsors" && section.enabled && (
+            {section.type === "sponsors" && (
               <SponsorsEditor
                 data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(data) => updateSponsorsData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {section.type === "map" && section.enabled && (
+            {section.type === "map" && (
               <MapEditor
                 data={section.data}
-                onChange={(data) => updateMapData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
             {/* Wedding-specific section editors */}
-            {section.type === "story" && section.enabled && (
+            {section.type === "story" && (
               <StoryEditor
                 data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(data) => updateStoryData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
+                templateId={templateId}
               />
             )}
-            {section.type === "travelStay" && section.enabled && (
+            {section.type === "travelStay" && (
               <TravelStayEditor
                 data={section.data}
-                onChange={(data) => updateTravelStayData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
+                templateId={templateId}
               />
             )}
-            {section.type === "weddingParty" && section.enabled && (
+            {section.type === "weddingParty" && (
               <WeddingPartyEditor
                 data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(data) => updateWeddingPartyData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
+                templateId={templateId}
               />
             )}
-            {section.type === "attire" && section.enabled && (
+            {section.type === "attire" && (
               <AttireEditor
                 data={section.data}
-                onChange={(data) => updateAttireData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {section.type === "thingsToDo" && section.enabled && (
+            {section.type === "thingsToDo" && (
               <ThingsToDoEditor
                 data={section.data}
-                onChange={(data) => updateThingsToDoData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {section.type === "registry" && section.enabled && (
+            {section.type === "registry" && (
               <RegistryEditor
                 data={section.data}
                 assets={pageData?.assets || []}
-                onChange={(data) => updateRegistryData(index, data)}
+                onChange={(data) => updateSectionData(index, data)}
               />
             )}
-            {!section.enabled && (
-              <p className="text-sm text-muted-foreground">
-                This section is disabled. Enable it to edit.
-              </p>
-            )}
+            </div>
           </CardContent>
         </Card>
         );

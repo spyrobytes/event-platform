@@ -58,25 +58,15 @@ type WeddingTemplateV2Props = {
   temporal?: TemporalData;
 };
 
-/** Human-readable section labels for nav */
+import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
+
+const V2_LABEL_OVERRIDES: Record<string, string> = {
+  travelStay: "Travel",
+  registry: "Registry",
+};
+
 function getSectionLabel(type: string): string {
-  const labels: Record<string, string> = {
-    details: "Details",
-    schedule: "Schedule",
-    faq: "FAQ",
-    gallery: "Gallery",
-    rsvp: "RSVP",
-    speakers: "Speakers",
-    sponsors: "Sponsors",
-    map: "Location",
-    story: "Our Story",
-    travelStay: "Travel",
-    weddingParty: "Wedding Party",
-    attire: "Attire",
-    thingsToDo: "Things to Do",
-    registry: "Registry",
-  };
-  return labels[type] || type;
+  return V2_LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
 }
 
 /** Map section type to anchor ID */

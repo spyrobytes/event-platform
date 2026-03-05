@@ -84,7 +84,7 @@ export function hasGuestOnlySections(sections: Section[]): boolean {
 // SECTION LABELS
 // =============================================================================
 
-const SECTION_LABELS: Record<string, string> = {
+export const SECTION_LABELS: Record<string, string> = {
   details: "Details",
   schedule: "Schedule",
   faq: "FAQ",
