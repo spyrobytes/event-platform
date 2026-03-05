@@ -1,0 +1,22 @@
+.track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 150;
+  height: 2px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.bar {
+  height: 100%;
+  width: 0%;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    display: none;
+  }
+}

@@ -5,8 +5,14 @@ type StorySectionProps = {
   data: {
     heading?: string;
     content: string;
-    layout?: "full" | "split";
+    layout?: "full" | "split" | "timeline";
     imageAssetId?: string;
+    milestones?: Array<{
+      year: string;
+      title: string;
+      description: string;
+      imageAssetId?: string;
+    }>;
   };
   assets: MediaAsset[];
   primaryColor: string;

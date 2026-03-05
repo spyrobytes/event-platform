@@ -21,21 +21,16 @@ type ConferenceTemplateV1Props = {
   eventId?: string;
 };
 
-/**
- * Get human-readable label for section type
- */
+import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
+
+const CONFERENCE_LABEL_OVERRIDES: Record<string, string> = {
+  schedule: "Agenda",
+  rsvp: "Register",
+  map: "Venue",
+};
+
 function getSectionLabel(type: string): string {
-  const labels: Record<string, string> = {
-    details: "Details",
-    schedule: "Agenda",
-    faq: "FAQ",
-    gallery: "Gallery",
-    rsvp: "Register",
-    speakers: "Speakers",
-    sponsors: "Sponsors",
-    map: "Venue",
-  };
-  return labels[type] || type;
+  return CONFERENCE_LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
 }
 
 /**

@@ -1,0 +1,13 @@
+.container {
+  position: relative;
+  overflow: hidden;
+  line-height: 0;
+  margin-top: -1px;
+}
+
+.skyline {
+  width: 100%;
+  height: auto;
+  display: block;
+  min-height: 80px;
+}

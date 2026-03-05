@@ -32,6 +32,17 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
     icon: "💒",
   },
   {
+    id: "wedding_v2",
+    name: "Wedding (Cinematic)",
+    category: "wedding",
+    description: "Premium cinematic design with timeline, masonry gallery, and mountain dividers",
+    previewColors: {
+      primary: "#7D8471",
+      background: "#FFFDF7",
+    },
+    icon: "🎬",
+  },
+  {
     id: "conference_v1",
     name: "Modern Conference",
     category: "conference",

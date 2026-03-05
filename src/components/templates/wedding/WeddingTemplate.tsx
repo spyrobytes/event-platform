@@ -49,27 +49,7 @@ type WeddingTemplateProps = {
   temporal?: TemporalData;
 };
 
-/**
- * Get human-readable label for section type
- */
-function getSectionLabel(type: string): string {
-  const labels: Record<string, string> = {
-    details: "Details",
-    schedule: "Schedule",
-    faq: "FAQ",
-    gallery: "Gallery",
-    rsvp: "RSVP",
-    speakers: "Speakers",
-    sponsors: "Sponsors",
-    map: "Location",
-    story: "Our Story",
-    travelStay: "Travel & Stay",
-    weddingParty: "Wedding Party",
-    attire: "Attire",
-    thingsToDo: "Things to Do",
-  };
-  return labels[type] || type;
-}
+import { getSectionLabel } from "@/lib/guest-access";
 
 /**
  * Variant-Aware Wedding Template

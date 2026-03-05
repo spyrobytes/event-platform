@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { GallerySection } from "@/schemas/event-page";
 
@@ -167,7 +168,7 @@ export function GalleryEditor({
           {/* Display Mode */}
           <div className="space-y-2">
             <Label htmlFor="display-mode">Display Mode</Label>
-            <select
+            <Select
               id="display-mode"
               value={data.displayMode || "grid"}
               onChange={(e) =>
@@ -176,19 +177,18 @@ export function GalleryEditor({
                   displayMode: e.target.value as "grid" | "carousel" | "masonry" | "slideshow",
                 })
               }
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="grid">Grid</option>
               <option value="carousel">Carousel</option>
               <option value="masonry">Masonry</option>
               <option value="slideshow">Slideshow</option>
-            </select>
+            </Select>
           </div>
 
           {/* Transition Effect */}
           <div className="space-y-2">
             <Label htmlFor="transition">Transition Effect</Label>
-            <select
+            <Select
               id="transition"
               value={data.transition || "fade"}
               onChange={(e) =>
@@ -197,13 +197,12 @@ export function GalleryEditor({
                   transition: e.target.value as "fade" | "slide" | "zoom" | "flip",
                 })
               }
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="fade">Fade</option>
               <option value="slide">Slide</option>
               <option value="zoom">Zoom</option>
               <option value="flip">Flip</option>
-            </select>
+            </Select>
           </div>
 
           {/* Auto-play Interval */}

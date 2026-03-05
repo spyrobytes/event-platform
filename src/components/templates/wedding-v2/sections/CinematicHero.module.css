@@ -1,0 +1,368 @@
+/* ===== HERO — cinematic entrance (POC parity) ===== */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+/* Background image */
+.heroMedia {
+  position: absolute;
+  inset: 0;
+}
+.heroMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  will-change: transform;
+}
+
+/* Complex gradient overlay fading to ivory */
+.heroMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 245, 240, 0.12) 0%,
+    rgba(248, 245, 240, 0) 25%,
+    rgba(248, 245, 240, 0) 45%,
+    rgba(248, 245, 240, 0.45) 68%,
+    rgba(248, 245, 240, 0.92) 85%,
+    var(--ivory, #f8f5f0) 100%
+  );
+}
+
+/* Fallback gradient when no image */
+.heroFallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--cream, #f0ebe3) 0%,
+    var(--linen, #e8e1d6) 100%
+  );
+}
+
+/* Content container — bottom-aligned via parent flex-end */
+.heroContent {
+  position: relative;
+  padding: 0 0 var(--section-y, 96px);
+  width: 100%;
+}
+
+.heroText {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Eyebrow: date flanked by decorative lines */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--sage-d, #5c6b55);
+  margin-bottom: 20px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: heroFadeUp 0.8s 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1))
+    forwards;
+}
+.eyebrow::before,
+.eyebrow::after {
+  content: "";
+  width: 36px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--sage-l, #a8b8a0));
+}
+.eyebrow::after {
+  background: linear-gradient(90deg, var(--sage-l, #a8b8a0), transparent);
+}
+
+/* Title: staggered word entrance */
+.title {
+  font-family: var(--serif);
+  font-size: var(--h1, clamp(2.8rem, 6vw, 5.4rem));
+  font-weight: 300;
+  font-style: italic;
+  color: var(--night, #1e1b17);
+  margin-bottom: 16px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: heroFadeUp 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1))
+    forwards;
+}
+.word:nth-child(1) {
+  animation-delay: 0.35s;
+}
+.word:nth-child(2) {
+  animation-delay: 0.5s;
+}
+.word:nth-child(3) {
+  animation-delay: 0.65s;
+}
+.wordEmphasis {
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* Subtitle */
+.subtitle {
+  font-family: var(--sans);
+  font-size: var(--body, 1rem);
+  color: var(--text-2, #786f65);
+  letter-spacing: 0.04em;
+  margin-bottom: 32px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: heroFadeUp 0.8s 0.85s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1))
+    forwards;
+}
+
+/* CTA buttons */
+.cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: heroFadeUp 0.8s 1s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1))
+    forwards;
+}
+
+@keyframes heroFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== Float Cards (countdown + schedule) ===== */
+.heroCards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap, 20px);
+  max-width: 680px;
+  margin: 48px auto 0;
+}
+@media (max-width: 640px) {
+  .heroCards {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+}
+
+.floatCard {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--r-lg, 24px);
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(30, 27, 23, 0.03),
+    0 8px 32px rgba(30, 27, 23, 0.06);
+  transition: transform 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    box-shadow 0.4s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+.floatCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 1px 2px rgba(30, 27, 23, 0.03),
+    0 20px 52px rgba(30, 27, 23, 0.1);
+}
+
+.floatCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.floatCardLabel {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--night, #1e1b17);
+}
+.floatCardTag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sage, #7a8c72);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(122, 140, 114, 0.08);
+}
+
+/* Countdown digits */
+.countdown {
+  display: flex;
+  gap: 10px;
+}
+.countUnit {
+  flex: 1;
+  text-align: center;
+  padding: 14px 8px;
+  border-radius: var(--r, 16px);
+  background: var(--cream, #f0ebe3);
+  border: 1px solid var(--linen, #e8e1d6);
+  transition: border-color var(--transition, 0.3s ease);
+  overflow: hidden;
+}
+.floatCard:hover .countUnit {
+  border-color: var(--sage-l, #a8b8a0);
+}
+.countNum {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--night, #1e1b17);
+  line-height: 1;
+  display: inline-block;
+  animation: digitFlip 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+@keyframes digitFlip {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.countLabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stone, #a69e93);
+  margin-top: 6px;
+}
+
+/* Schedule rows */
+.schedRows {
+  display: grid;
+  gap: 6px;
+}
+.schedRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: var(--r, 16px);
+  background: var(--cream, #f0ebe3);
+  border: 1px solid var(--linen, #e8e1d6);
+  transition: border-color var(--transition, 0.3s ease),
+    background var(--transition, 0.3s ease);
+}
+.schedRow:hover {
+  border-color: rgba(122, 140, 114, 0.2);
+  background: rgba(122, 140, 114, 0.04);
+}
+.schedDay {
+  font-size: var(--sm, 0.85rem);
+  font-weight: 600;
+  color: var(--sage-d, #5c6b55);
+  flex-shrink: 0;
+  min-width: 32px;
+}
+.schedInfo {
+  font-size: var(--sm, 0.85rem);
+  color: var(--text-2, #786f65);
+  text-align: right;
+}
+
+/* Float card footer */
+.floatCardFooter {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--linen, #e8e1d6);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 12px 26px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: all var(--transition, 0.3s ease);
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+}
+.btnPrimary {
+  background: var(--forest, #3f4f3a);
+  color: #fff;
+  border: 1px solid var(--forest, #3f4f3a);
+}
+.btnPrimary:hover {
+  background: var(--sage-d, #5c6b55);
+  border-color: var(--sage-d, #5c6b55);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(63, 79, 58, 0.22);
+}
+.btnOutline {
+  background: transparent;
+  color: var(--charcoal, #3d3830);
+  border: 1px solid var(--sand, #d4cabb);
+}
+.btnOutline:hover {
+  border-color: var(--sage, #7a8c72);
+  color: var(--forest, #3f4f3a);
+  background: rgba(122, 140, 114, 0.04);
+}
+.btnGhost {
+  background: transparent;
+  color: var(--text-2, #786f65);
+  border: 1px solid transparent;
+  padding: 8px 16px;
+}
+.btnGhost:hover {
+  background: rgba(122, 140, 114, 0.06);
+  color: var(--forest, #3f4f3a);
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .eyebrow,
+  .subtitle,
+  .cta,
+  .word {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .floatCard {
+    transition: none;
+  }
+  .countNum {
+    animation: none;
+  }
+}
