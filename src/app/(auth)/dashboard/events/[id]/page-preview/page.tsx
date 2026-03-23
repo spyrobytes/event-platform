@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { getTemplate, type TemporalData } from "@/components/templates";
+import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -33,6 +34,7 @@ export default function PagePreviewPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [eventSlug, setEventSlug] = useState<string | null>(null);
   const [temporal, setTemporal] = useState<TemporalData | null>(null);
+  const [viewAs, setViewAs] = useState<"public" | "guest">("public");
 
   useEffect(() => {
     async function fetchPageConfig() {
@@ -170,6 +172,14 @@ export default function PagePreviewPage() {
     return getTemplate(pageData.templateId) || getTemplate("wedding_v1");
   }, [pageData]);
 
+  // Filter config sections by visibility (same logic as live view)
+  const filteredConfig = useMemo(() => {
+    if (!pageData) return null;
+    const accessLevel: AccessLevel = viewAs;
+    const filteredSections = filterSectionsByVisibility(pageData.config.sections, accessLevel);
+    return { ...pageData.config, sections: filteredSections };
+  }, [pageData, viewAs]);
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -219,6 +229,31 @@ export default function PagePreviewPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 rounded-md border bg-surface-2 p-0.5">
+            <button
+              type="button"
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                viewAs === "public"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setViewAs("public")}
+            >
+              Public
+            </button>
+            <button
+              type="button"
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                viewAs === "guest"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              onClick={() => setViewAs("guest")}
+            >
+              Guest
+            </button>
+          </div>
+          <div className="h-6 w-px bg-border" />
           {pageData.isPublished && eventSlug && (
             <Link href={`/e/${eventSlug}`} target="_blank">
               <Button variant="outline" size="sm">
@@ -251,7 +286,7 @@ export default function PagePreviewPage() {
       {/* Preview frame */}
       <div className="overflow-hidden rounded-lg border shadow-lg">
         <Template
-          config={pageData.config}
+          config={filteredConfig!}
           assets={templateAssets}
           eventId={params.id}
           temporal={temporal ?? undefined}

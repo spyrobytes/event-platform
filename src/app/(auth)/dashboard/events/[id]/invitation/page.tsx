@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemePicker, TypographyPicker } from "@/components/features/Invitation";
+import { ImageAssetPicker } from "@/components/features/ImageAssetPicker";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import {
   CONTENT_LIMITS,
@@ -669,38 +670,22 @@ export default function InvitationConfigPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-3">
-                  <Label htmlFor="couplePhotoUrl">
-                    Couple Photo URL <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="couplePhotoUrl"
-                    type="url"
-                    value={couplePhotoUrl}
-                    onChange={(e) => handleFieldChange(setCouplePhotoUrl)(e.target.value)}
-                    placeholder="https://example.com/couple-photo.jpg"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Circular photo on the book cover
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <Label htmlFor="venuePhotoUrl">
-                    Venue Photo URL <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="venuePhotoUrl"
-                    type="url"
-                    value={venuePhotoUrl}
-                    onChange={(e) => handleFieldChange(setVenuePhotoUrl)(e.target.value)}
-                    placeholder="https://example.com/venue-photo.jpg"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Background photo on the details spread
-                  </p>
-                </div>
+                <ImageAssetPicker
+                  eventId={params.id}
+                  getIdToken={getIdToken}
+                  value={couplePhotoUrl}
+                  onChange={handleFieldChange(setCouplePhotoUrl)}
+                  label="Couple Photo"
+                  description="Circular photo on the book cover"
+                />
+                <ImageAssetPicker
+                  eventId={params.id}
+                  getIdToken={getIdToken}
+                  value={venuePhotoUrl}
+                  onChange={handleFieldChange(setVenuePhotoUrl)}
+                  label="Venue Photo"
+                  description="Background photo on the details spread"
+                />
               </div>
             </CardContent>
           </Card>
@@ -990,21 +975,14 @@ export default function InvitationConfigPage() {
               <CardTitle>Hero Image</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <Label htmlFor="heroImageUrl">
-                  Image URL <span className="text-muted-foreground">(optional)</span>
-                </Label>
-                <Input
-                  id="heroImageUrl"
-                  type="url"
-                  value={heroImageUrl}
-                  onChange={(e) => handleFieldChange(setHeroImageUrl)(e.target.value)}
-                  placeholder="https://example.com/your-photo.jpg"
-                />
-                <p className="text-xs text-muted-foreground">
-                  A photo to display on the invitation card
-                </p>
-              </div>
+              <ImageAssetPicker
+                eventId={params.id}
+                getIdToken={getIdToken}
+                value={heroImageUrl}
+                onChange={handleFieldChange(setHeroImageUrl)}
+                label="Invitation Photo"
+                description="A photo to display on the invitation card"
+              />
             </CardContent>
           </Card>
         )}

@@ -203,6 +203,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "details",
               enabled: true,
+              visibility: "public",
               data: { dateText: "", locationText: "" },
             };
             break;
@@ -210,6 +211,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "schedule",
               enabled: true,
+              visibility: "public",
               data: { items: [] },
             };
             break;
@@ -217,6 +219,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "faq",
               enabled: true,
+              visibility: "public",
               data: { items: [] },
             };
             break;
@@ -224,6 +227,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "gallery",
               enabled: true,
+              visibility: "public",
               data: { items: [] },
             };
             break;
@@ -231,6 +235,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "rsvp",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "RSVP",
                 showMaybeOption: true,
@@ -243,6 +248,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "speakers",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Speakers",
                 items: [],
@@ -253,6 +259,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "sponsors",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Our Sponsors",
                 showTiers: false,
@@ -264,6 +271,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "map",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Location",
                 address: "",
@@ -279,6 +287,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "story",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Our Story",
                 content: "Share your story here... Tell your guests about your journey together.",
@@ -290,6 +299,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "travelStay",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Travel & Accommodations",
                 hotels: [],
@@ -300,6 +310,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "weddingParty",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "The Wedding Party",
                 members: [],
@@ -310,6 +321,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "attire",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Dress Code",
                 dressCode: "",
@@ -320,6 +332,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "thingsToDo",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Things To Do",
                 items: [],
@@ -330,6 +343,7 @@ export default function PageEditorPage() {
             newSection = {
               type: "registry",
               enabled: true,
+              visibility: "public",
               data: {
                 heading: "Gift Registry",
                 items: [],

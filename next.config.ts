@@ -52,7 +52,10 @@ const nextConfig: NextConfig = {
   },
 
   // Image optimization configuration
+  // In dev, skip the optimization proxy — it blocks private IPs (local Supabase)
+  // and images are already server-side optimized to WebP by sharp.
   images: {
+    ...(process.env.NODE_ENV === "development" ? { unoptimized: true } : {}),
     remotePatterns: [
       {
         protocol: "https",

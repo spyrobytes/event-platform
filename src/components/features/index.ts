@@ -1,4 +1,5 @@
 export { GuestBar } from "./GuestBar";
+export { ImageAssetPicker } from "./ImageAssetPicker";
 export { EventCard } from "./EventCard";
 export { EventList } from "./EventList";
 export { EventFilters } from "./EventFilters";

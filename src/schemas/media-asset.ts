@@ -16,7 +16,7 @@ export const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"] as const;
 export const IMAGE_CONSTRAINTS = {
   maxFileSize: PAGE_CONFIG_LIMITS.maxFileSizeBytes,
   maxDimensions: { width: 4000, height: 4000 },
-  minDimensions: { width: 400, height: 300 },
+  minDimensions: { width: 200, height: 200 },
   maxAssetsPerEvent: PAGE_CONFIG_LIMITS.maxAssetsPerEvent,
 } as const;
 
