@@ -9,6 +9,10 @@
     box-shadow var(--transition, 0.3s ease),
     border-color var(--transition, 0.3s ease);
   border-bottom: 1px solid transparent;
+  /* Light frosted glass even before scroll so nav is readable over hero image */
+  background: rgba(248, 245, 240, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .scrolled {
   background: rgba(248, 245, 240, 0.92);
@@ -42,7 +46,7 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: var(--forest, #3f4f3a);
+  background: var(--accent, #3f4f3a);
   display: grid;
   place-items: center;
   position: relative;

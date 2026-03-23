@@ -120,13 +120,10 @@ export function CinematicHero({
             <p className={styles.subtitle}>{subtitle}</p>
           )}
 
-          {/* CTA buttons */}
+          {/* CTA button — links to event details */}
           {isCinematic && (
             <div className={styles.cta}>
-              <a href="#rsvp" className={`${styles.btn} ${styles.btnPrimary}`}>
-                RSVP Now
-              </a>
-              <a href="#details" className={`${styles.btn} ${styles.btnOutline}`}>
+              <a href="#details" className={`${styles.btn} ${styles.btnPrimary}`}>
                 View Details
               </a>
             </div>
@@ -138,7 +135,7 @@ export function CinematicHero({
           <div className={styles.heroCards}>
             {/* Countdown card */}
             {countdown && (
-              <CountdownCard countdown={countdown} />
+              <CountdownCard countdown={countdown} rsvpDeadline={dateText} />
             )}
 
             {/* Schedule card */}
@@ -156,8 +153,10 @@ export function CinematicHero({
  * Uses key-based re-mounting to trigger CSS flip animation on value change. */
 function CountdownCard({
   countdown,
+  rsvpDeadline,
 }: {
   countdown: { days: number; hours: number; minutes: number };
+  rsvpDeadline?: string;
 }) {
   const dStr = String(countdown.days);
   const hStr = String(countdown.hours).padStart(2, "0");
@@ -188,11 +187,13 @@ function CountdownCard({
           <div className={styles.countLabel}>min</div>
         </div>
       </div>
-      <div className={styles.floatCardFooter}>
-        <a href="#rsvp" className={`${styles.btn} ${styles.btnGhost}`}>
-          RSVP
-        </a>
-      </div>
+      {rsvpDeadline && (
+        <div className={styles.floatCardFooter}>
+          <span className={styles.deadlineText}>
+            RSVP by {rsvpDeadline}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

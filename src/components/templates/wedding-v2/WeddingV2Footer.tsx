@@ -46,7 +46,7 @@ export function WeddingV2Footer({
               width: 42,
               height: 42,
               borderRadius: "50%",
-              background: "var(--forest, #3f4f3a)",
+              background: "var(--accent, #3f4f3a)",
               display: "grid",
               placeItems: "center",
               position: "relative",

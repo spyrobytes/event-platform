@@ -232,7 +232,7 @@
   overflow: hidden;
 }
 .floatCard:hover .countUnit {
-  border-color: var(--sage-l, #a8b8a0);
+  border-color: var(--accent, #a8b8a0);
 }
 .countNum {
   font-family: var(--serif);
@@ -304,6 +304,13 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.deadlineText {
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  color: var(--text-2, #786f65);
+  font-style: italic;
 }
 
 /* ===== Buttons ===== */
