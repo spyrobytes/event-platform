@@ -670,22 +670,26 @@ export default function InvitationConfigPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-2">
-                <ImageAssetPicker
-                  eventId={params.id}
-                  getIdToken={getIdToken}
-                  value={couplePhotoUrl}
-                  onChange={handleFieldChange(setCouplePhotoUrl)}
-                  label="Couple Photo"
-                  description="Circular photo on the book cover"
-                />
-                <ImageAssetPicker
-                  eventId={params.id}
-                  getIdToken={getIdToken}
-                  value={venuePhotoUrl}
-                  onChange={handleFieldChange(setVenuePhotoUrl)}
-                  label="Venue Photo"
-                  description="Background photo on the details spread"
-                />
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <ImageAssetPicker
+                    eventId={params.id}
+                    getIdToken={getIdToken}
+                    value={couplePhotoUrl}
+                    onChange={handleFieldChange(setCouplePhotoUrl)}
+                    label="Couple Photo"
+                    description="Circular photo on the book cover"
+                  />
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                  <ImageAssetPicker
+                    eventId={params.id}
+                    getIdToken={getIdToken}
+                    value={venuePhotoUrl}
+                    onChange={handleFieldChange(setVenuePhotoUrl)}
+                    label="Venue Photo"
+                    description="Background photo on the details spread"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
