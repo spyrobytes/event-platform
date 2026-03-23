@@ -10,7 +10,7 @@
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--sage, #7a8c72);
+  color: var(--accent, #7a8c72);
   margin-bottom: 12px;
   position: relative;
   display: inline-block;
@@ -24,7 +24,7 @@
   color: var(--night, #1e1b17);
 }
 
-/* 12-column asymmetric grid */
+/* 12-column asymmetric grid (masonry mode) */
 .grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -35,6 +35,26 @@
   .grid {
     grid-template-columns: 1fr 1fr;
     grid-auto-rows: 200px;
+  }
+}
+
+/* Even grid mode */
+.gridEven {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 260px;
+  gap: var(--gap, 20px);
+}
+@media (max-width: 900px) {
+  .gridEven {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 220px;
+  }
+}
+@media (max-width: 500px) {
+  .gridEven {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 260px;
   }
 }
 

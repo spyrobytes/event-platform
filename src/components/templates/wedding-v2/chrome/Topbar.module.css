@@ -125,7 +125,7 @@
   cursor: pointer;
 }
 .iconBtn:hover {
-  border-color: var(--sage, #7a8c72);
+  border-color: var(--accent, #7a8c72);
   color: var(--forest, #3f4f3a);
   background: rgba(122, 140, 114, 0.06);
 }

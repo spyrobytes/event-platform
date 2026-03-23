@@ -32,17 +32,46 @@ export const V2 = {
   goldDark: "#9e7e3a",
   rose: "#c4918a",
 
-  // Fonts
+  // Fonts (defaults — overridden by fontPair)
   serif: "'Cormorant Garamond', Georgia, serif",
   sans: "'DM Sans', system-ui, -apple-system, sans-serif",
 } as const;
 
 /**
+ * Font pair mappings for V2 template.
+ * Each pair provides a serif heading font and a sans body font.
+ */
+export type V2FontPair = "serif_sans" | "modern" | "classic";
+
+const FONT_PAIRS: Record<V2FontPair, { serif: string; sans: string }> = {
+  serif_sans: {
+    serif: "'Cormorant Garamond', Georgia, serif",
+    sans: "'DM Sans', system-ui, -apple-system, sans-serif",
+  },
+  modern: {
+    serif: "'DM Sans', system-ui, -apple-system, sans-serif",
+    sans: "'DM Sans', system-ui, -apple-system, sans-serif",
+  },
+  classic: {
+    serif: "'Playfair Display', Georgia, serif",
+    sans: "'Source Serif 4', Georgia, serif",
+  },
+};
+
+export function resolveV2Fonts(fontPair?: string): { serif: string; sans: string } {
+  if (fontPair && fontPair in FONT_PAIRS) {
+    return FONT_PAIRS[fontPair as V2FontPair];
+  }
+  return FONT_PAIRS.serif_sans;
+}
+
+/**
  * Full CSS variable map applied to the root article element.
  * Matches the POC's :root block exactly.
  */
-export function getV2CSSVariables(primaryColor?: string): Record<string, string> {
+export function getV2CSSVariables(primaryColor?: string, fontPair?: string): Record<string, string> {
   const accent = primaryColor || V2.sage;
+  const fonts = resolveV2Fonts(fontPair);
 
   return {
     // Raw palette
@@ -74,8 +103,8 @@ export function getV2CSSVariables(primaryColor?: string): Record<string, string>
     "--accent-2": V2.gold,
 
     // Typography (clamp-based responsive)
-    "--serif": V2.serif,
-    "--sans": V2.sans,
+    "--serif": fonts.serif,
+    "--sans": fonts.sans,
     "--h1": "clamp(2.8rem, 6vw, 5.4rem)",
     "--h2": "clamp(1.8rem, 3.2vw, 2.8rem)",
     "--h3": "clamp(1.15rem, 1.6vw, 1.35rem)",
@@ -109,8 +138,8 @@ export function getV2CSSVariables(primaryColor?: string): Record<string, string>
     "--wedding-text": V2.charcoal,
     "--wedding-text-muted": V2.earth,
     "--wedding-border": V2.linen,
-    "--wedding-font-heading": V2.serif,
-    "--wedding-font-body": V2.sans,
+    "--wedding-font-heading": fonts.serif,
+    "--wedding-font-body": fonts.sans,
     "--wedding-heading-weight": "400",
     "--wedding-body-weight": "400",
     "--wedding-heading-letter-spacing": "0.02em",

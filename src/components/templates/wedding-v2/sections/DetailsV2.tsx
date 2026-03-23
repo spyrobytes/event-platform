@@ -5,7 +5,6 @@ type DetailsV2Props = {
     dateText: string;
     locationText: string;
   };
-  primaryColor: string;
 };
 
 /**
@@ -15,7 +14,7 @@ type DetailsV2Props = {
  * Renders dateText and locationText in a rich card format.
  * Gracefully handles limited data by showing what's available.
  */
-export function DetailsV2({ data, primaryColor: _primaryColor }: DetailsV2Props) {
+export function DetailsV2({ data }: DetailsV2Props) {
   const { dateText, locationText } = data;
 
   return (
@@ -33,7 +32,7 @@ export function DetailsV2({ data, primaryColor: _primaryColor }: DetailsV2Props)
             fontWeight: 500,
             letterSpacing: ".18em",
             textTransform: "uppercase" as const,
-            color: "var(--sage, #7a8c72)",
+            color: "var(--accent, #7a8c72)",
             marginBottom: 12,
           }}>
             Event Details
@@ -129,7 +128,7 @@ function DetailCard({
         left: 0,
         right: 0,
         height: 3,
-        background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--sage, #7a8c72))",
+        background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72))",
         opacity: 0.7,
       }} />
 
@@ -138,7 +137,7 @@ function DetailCard({
         fontWeight: 600,
         letterSpacing: ".1em",
         textTransform: "uppercase" as const,
-        color: "var(--sage, #7a8c72)",
+        color: "var(--accent, #7a8c72)",
         marginBottom: 6,
       }}>
         {eyebrow}

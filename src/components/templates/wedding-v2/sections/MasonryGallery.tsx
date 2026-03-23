@@ -6,13 +6,12 @@ import type { GallerySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import styles from "./MasonryGallery.module.css";
 
-type MasonryGalleryProps = {
+type GalleryV2Props = {
   data: GallerySection["data"];
   assets: MediaAsset[];
-  primaryColor: string;
 };
 
-/** Grid span class cycling pattern from POC */
+/** Grid span class cycling pattern for masonry mode */
 const SPAN_CLASSES = [
   styles.gi1,
   styles.gi2,
@@ -23,14 +22,15 @@ const SPAN_CLASSES = [
 ];
 
 /**
- * Masonry Gallery — POC-parity rewrite
+ * V2 Gallery — supports masonry (default) and grid display modes.
  *
- * 12-column asymmetric grid with specific span patterns,
- * 3D tilt on hover, caption overlays, and full lightbox
- * with keyboard navigation.
+ * Masonry: 12-column asymmetric grid with specific span patterns,
+ * 3D tilt on hover, caption overlays, and full lightbox with keyboard nav.
+ * Grid: even columns with consistent sizing.
  */
-export function MasonryGallery({ data, assets, primaryColor: _primaryColor }: MasonryGalleryProps) {
-  const { heading, items, showCaptions } = normalizeGalleryData(data);
+export function MasonryGallery({ data, assets }: GalleryV2Props) {
+  const { heading, items, displayMode, showCaptions } = normalizeGalleryData(data);
+  const isMasonry = displayMode === "masonry" || displayMode === "grid" ? displayMode === "masonry" : true;
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Resolve asset URLs (memoized for stable reference)
@@ -119,13 +119,13 @@ export function MasonryGallery({ data, assets, primaryColor: _primaryColor }: Ma
           <h2 className={styles.heading}>{heading}</h2>
         </div>
 
-        <div className={styles.grid} role="group" aria-label="Photo gallery">
+        <div className={isMasonry ? styles.grid : styles.gridEven} role="group" aria-label="Photo gallery">
           {resolvedItems.map((item, index) => (
             <GalleryItem
               key={item.assetId}
               item={item}
               index={index}
-              spanClass={SPAN_CLASSES[index % SPAN_CLASSES.length]}
+              spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : ""}
               showCaption={showCaptions}
               onOpen={() => setLightboxIndex(index)}
             />

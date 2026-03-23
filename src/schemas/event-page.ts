@@ -330,6 +330,8 @@ export const hotelItemSchema = z.object({
   bookingUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   blockCode: z.string().max(30, "Block code must be 30 characters or less").optional(),
   deadline: z.string().max(100, "Deadline must be 100 characters or less").optional(),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+  tags: z.array(z.string().max(30, "Tag must be 30 characters or less")).max(5, "Maximum 5 tags").optional(),
 });
 
 export const airportSchema = z.object({
@@ -423,6 +425,8 @@ export const registryItemSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
   url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   logoAssetId: z.string().cuid().optional(),
+  description: z.string().max(200, "Description must be 200 characters or less").optional(),
+  note: z.string().max(200, "Note must be 200 characters or less").optional(),
 });
 
 export const registrySectionDataSchema = z.object({

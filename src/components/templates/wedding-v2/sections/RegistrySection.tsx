@@ -1,23 +1,11 @@
 "use client";
 
 import type { MediaAsset } from "@prisma/client";
-
-type RegistryItem = {
-  name: string;
-  url?: string;
-  logoAssetId?: string;
-  description?: string;
-  note?: string;
-};
+import type { RegistrySection as RegistrySectionData } from "@/schemas/event-page";
 
 type RegistrySectionProps = {
-  data: {
-    heading?: string;
-    description?: string;
-    items: RegistryItem[];
-  };
+  data: RegistrySectionData["data"];
   assets: MediaAsset[];
-  primaryColor: string;
 };
 
 /**
@@ -26,7 +14,7 @@ type RegistrySectionProps = {
  * Cards with icon area, title, description, CTA button.
  * Primary card uses gold gradient button. Notes with border-top separator.
  */
-export function RegistrySection({ data, assets, primaryColor: _primaryColor }: RegistrySectionProps) {
+export function RegistrySection({ data, assets }: RegistrySectionProps) {
   const { heading = "Gift Registry", description, items } = data;
 
   const getAssetUrl = (assetId?: string): string | null => {
@@ -50,7 +38,7 @@ export function RegistrySection({ data, assets, primaryColor: _primaryColor }: R
             fontWeight: 500,
             letterSpacing: ".18em",
             textTransform: "uppercase" as const,
-            color: "var(--sage, #7a8c72)",
+            color: "var(--accent, #7a8c72)",
             marginBottom: 12,
           }}>
             Gift Registry
@@ -115,7 +103,7 @@ export function RegistrySection({ data, assets, primaryColor: _primaryColor }: R
                     background: "rgba(122, 140, 114, 0.08)",
                     display: "grid",
                     placeItems: "center",
-                    color: "var(--sage, #7a8c72)",
+                    color: "var(--accent, #7a8c72)",
                     marginBottom: 4,
                   }}>
                     {logoUrl ? (
@@ -140,9 +128,9 @@ export function RegistrySection({ data, assets, primaryColor: _primaryColor }: R
                     {item.name}
                   </h3>
 
-                  {(item as RegistryItem & { description?: string }).description && (
+                  {item.description && (
                     <p style={{ color: "var(--text-2, #786f65)", fontSize: "var(--sm, 0.85rem)", lineHeight: 1.6 }}>
-                      {(item as RegistryItem & { description?: string }).description}
+                      {item.description}
                     </p>
                   )}
                 </div>

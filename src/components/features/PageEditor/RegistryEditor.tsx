@@ -100,6 +100,18 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
                 {item.url && (() => { try { new URL(item.url); return false; } catch { return true; } })() && (
                   <p className="text-xs text-amber-600">Please enter a valid URL (e.g., https://...)</p>
                 )}
+                <Input
+                  value={item.description || ""}
+                  onChange={(e) => updateItem(index, { description: e.target.value || undefined })}
+                  placeholder="Brief description (optional)"
+                  maxLength={200}
+                />
+                <Input
+                  value={item.note || ""}
+                  onChange={(e) => updateItem(index, { note: e.target.value || undefined })}
+                  placeholder="Note, e.g., Ships internationally (optional)"
+                  maxLength={200}
+                />
               </div>
               <Button
                 type="button"

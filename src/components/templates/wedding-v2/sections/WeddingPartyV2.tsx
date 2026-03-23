@@ -18,7 +18,6 @@ type WeddingPartyV2Props = {
     members: PartyMember[];
   };
   assets: MediaAsset[];
-  primaryColor: string;
 };
 
 /**
@@ -30,7 +29,7 @@ type WeddingPartyV2Props = {
  * - Hover effects: translateY + shadow
  * - 3-column grid, responsive to 2 → 1
  */
-export function WeddingPartyV2({ data, assets, primaryColor: _primaryColor }: WeddingPartyV2Props) {
+export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
   const { heading = "Wedding Party", description, members } = data;
 
   const getAssetUrl = (assetId?: string): string | null => {
@@ -158,7 +157,7 @@ export function WeddingPartyV2({ data, assets, primaryColor: _primaryColor }: We
               fontWeight: 600,
               letterSpacing: ".08em",
               textTransform: "uppercase" as const,
-              color: "var(--sage, #7a8c72)",
+              color: "var(--accent, #7a8c72)",
               marginBottom: 10,
             }}
           >
@@ -202,7 +201,7 @@ export function WeddingPartyV2({ data, assets, primaryColor: _primaryColor }: We
               fontWeight: 500,
               letterSpacing: ".18em",
               textTransform: "uppercase" as const,
-              color: "var(--sage, #7a8c72)",
+              color: "var(--accent, #7a8c72)",
               marginBottom: 12,
             }}
           >

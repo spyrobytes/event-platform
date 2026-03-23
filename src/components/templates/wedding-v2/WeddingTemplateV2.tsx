@@ -20,7 +20,7 @@ import type { TemporalData } from "../index";
 // V2 chrome
 import { Topbar, MountainDivider, FooterSkyline, ScrollProgress } from "./chrome";
 
-// V2-specific section renderers
+// V2 section renderers (all bespoke for cinematic aesthetic)
 import {
   CinematicHero,
   TimelineStory,
@@ -29,27 +29,21 @@ import {
   DetailsV2,
   TravelStayV2,
   RegistrySection,
+  ScheduleV2,
+  FAQV2,
+  RSVPV2,
+  AttireV2,
+  ThingsToDoV2,
+  SpeakersV2,
+  SponsorsV2,
+  MapV2,
 } from "./sections";
-
-// Reused V1 sections
-import {
-  ScheduleSection,
-  FAQSection,
-  RSVPSection,
-  SpeakersSection,
-  SponsorsSection,
-  MapSection,
-} from "../WeddingTemplateV1/sections";
-
-// Reused wedding-specific V1 sections
-import {
-  AttireSection,
-  ThingsToDoSection,
-} from "../wedding/sections";
 
 // V2 tokens + footer
 import { getV2CSSVariables, v2TokensToInline, V2 } from "./tokens";
 import { WeddingV2Footer } from "./WeddingV2Footer";
+
+import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
 
 type WeddingTemplateV2Props = {
   config: EventPageConfigV1;
@@ -57,8 +51,6 @@ type WeddingTemplateV2Props = {
   eventId?: string;
   temporal?: TemporalData;
 };
-
-import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
 
 const V2_LABEL_OVERRIDES: Record<string, string> = {
   travelStay: "Travel",
@@ -91,16 +83,18 @@ function getSectionId(type: string): string {
 }
 
 /**
- * Wedding Template V2 — Cinematic (POC Parity)
+ * Wedding Template V2 — Cinematic
  *
- * Features:
+ * Premium bespoke wedding template with:
  * - Cinematic full-viewport hero with floating countdown/schedule cards
  * - Scroll-drawn SVG timeline story section
- * - 12-column asymmetric gallery with lightbox
+ * - Multi-mode gallery (masonry/grid) with lightbox
+ * - All sections styled with V2 cinematic aesthetic
  * - Stroke-only mountain-range dividers between sections
  * - Fixed topbar with monogram, nav, RSVP, frosted glass on scroll
  * - Gradient scroll progress bar
  * - Full footer with monogram, nav, credits
+ * - User-configurable accent color, font pair, and chrome toggles
  */
 export function WeddingTemplateV2({ config, assets, eventId, temporal }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig } = config;
@@ -113,14 +107,26 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     footerSkyline: chromeConfig?.footerSkyline ?? true,
   };
 
-  // V2 uses its own default palette; user's primaryColor overrides accent
+  // V2 token system: user's primaryColor → --accent, fontPair → font families
   const primaryColor = theme.primaryColor;
-  const cssVars = getV2CSSVariables(primaryColor);
+  const cssVars = getV2CSSVariables(primaryColor, theme.fontPair);
 
   // Find hero asset
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
     : null;
+
+  // Build schedule cards from actual schedule section data for the hero float card
+  const scheduleCards = useMemo(() => {
+    const scheduleSec = sections.find((s) => s.type === "schedule" && s.enabled);
+    if (!scheduleSec || scheduleSec.type !== "schedule") return undefined;
+    const items = scheduleSec.data.items;
+    if (!items || items.length === 0) return undefined;
+    return items.slice(0, 4).map((item) => ({
+      day: item.time,
+      info: item.title,
+    }));
+  }, [sections]);
 
   // Build nav sections from enabled sections
   const navSections = useMemo(() => {
@@ -205,76 +211,74 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     );
 
     switch (section.type) {
-      // V2-specific renderers
       case "details":
         return wrapWithChrome(wrapWithAnimation(
-          <DetailsV2 data={section.data} primaryColor={primaryColor} />
+          <DetailsV2 data={section.data} />
         ));
 
       case "story":
         return wrapWithChrome(wrapWithAnimation(
-          <TimelineStory data={section.data} assets={assets} primaryColor={primaryColor} />
+          <TimelineStory data={section.data} assets={assets} />
         ));
 
       case "gallery":
         return wrapWithChrome(wrapWithAnimation(
-          <MasonryGallery data={section.data} assets={assets} primaryColor={primaryColor} />
+          <MasonryGallery data={section.data} assets={assets} />
         ));
 
       case "weddingParty":
         return wrapWithChrome(wrapWithAnimation(
-          <WeddingPartyV2 data={section.data} assets={assets} primaryColor={primaryColor} />
+          <WeddingPartyV2 data={section.data} assets={assets} />
         ));
 
       case "travelStay":
         return wrapWithChrome(wrapWithAnimation(
-          <TravelStayV2 data={section.data} primaryColor={primaryColor} />
+          <TravelStayV2 data={section.data} />
         ));
 
       case "registry":
         return wrapWithChrome(wrapWithAnimation(
-          <RegistrySection data={section.data} assets={assets} primaryColor={primaryColor} />
+          <RegistrySection data={section.data} assets={assets} />
         ));
 
-      // Reused V1 renderers
       case "schedule":
         return wrapWithChrome(wrapWithAnimation(
-          <ScheduleSection data={section.data} primaryColor={primaryColor} />
+          <ScheduleV2 data={section.data} />
         ));
 
       case "faq":
         return wrapWithChrome(wrapWithAnimation(
-          <FAQSection data={section.data} primaryColor={primaryColor} />
+          <FAQV2 data={section.data} />
         ));
 
       case "rsvp":
         return eventId ? wrapWithChrome(wrapWithAnimation(
-          <RSVPSection data={section.data} eventId={eventId} primaryColor={primaryColor} />
+          <RSVPV2 data={section.data} eventId={eventId} />
         )) : null;
 
       case "speakers":
         return wrapWithChrome(wrapWithAnimation(
-          <SpeakersSection data={section.data} assets={assets} primaryColor={primaryColor} />
+          <SpeakersV2 data={section.data} assets={assets} />
         ));
 
       case "sponsors":
         return wrapWithChrome(wrapWithAnimation(
-          <SponsorsSection data={section.data} assets={assets} primaryColor={primaryColor} />
+          <SponsorsV2 data={section.data} assets={assets} />
         ));
 
       case "map":
         return wrapWithChrome(wrapWithAnimation(
-          <MapSection data={section.data} primaryColor={primaryColor} />
+          <MapV2 data={section.data} />
         ));
 
       case "attire":
         return wrapWithChrome(wrapWithAnimation(
-          <AttireSection data={section.data} primaryColor={primaryColor} />
+          <AttireV2 data={section.data} />
         ));
 
       case "thingsToDo":
         return wrapWithChrome(wrapWithAnimation(
-          <ThingsToDoSection data={section.data} primaryColor={primaryColor} />
+          <ThingsToDoV2 data={section.data} />
         ));
 
       default:
@@ -300,7 +304,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
               ...v2TokensToInline(cssVars),
               backgroundColor: V2.ivory,
               color: V2.charcoal,
-              fontFamily: V2.sans,
+              fontFamily: "var(--sans)",
               fontSize: "var(--body)",
               lineHeight: 1.7,
               minHeight: "100vh",
@@ -328,7 +332,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
             <CinematicHero
               config={hero}
               heroAsset={heroAsset}
-              primaryColor={primaryColor}
+              scheduleCards={scheduleCards}
             />
 
             {/* Temporal Hero Overlay */}

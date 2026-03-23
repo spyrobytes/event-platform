@@ -223,6 +223,47 @@ export function TravelStayEditor({ data, onChange, templateId }: TravelStayEdito
                       maxLength={100}
                     />
                   </div>
+
+                  {isV2 && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor={`hotel-desc-${index}`}>
+                          Description (optional)
+                        </Label>
+                        <Textarea
+                          id={`hotel-desc-${index}`}
+                          value={hotel.description || ""}
+                          onChange={(e) =>
+                            updateHotel(index, { description: e.target.value || undefined })
+                          }
+                          placeholder="e.g., Boutique hotel overlooking the vineyard, 5 min from venue"
+                          rows={2}
+                          maxLength={300}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor={`hotel-tags-${index}`}>
+                          Tags (optional)
+                        </Label>
+                        <Input
+                          id={`hotel-tags-${index}`}
+                          value={(hotel.tags || []).join(", ")}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const tags = val
+                              ? val.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 5)
+                              : undefined;
+                            updateHotel(index, { tags });
+                          }}
+                          placeholder="e.g., Luxury, Pool, Pet-friendly"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Comma-separated, max 5 tags
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

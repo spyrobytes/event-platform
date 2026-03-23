@@ -11,7 +11,6 @@ type ScheduleCard = { day: string; info: string };
 type CinematicHeroProps = {
   config: HeroConfig;
   heroAsset?: MediaAsset | null;
-  primaryColor: string;
   scheduleCards?: ScheduleCard[];
 };
 
@@ -25,7 +24,6 @@ type CinematicHeroProps = {
 export function CinematicHero({
   config,
   heroAsset,
-  primaryColor: _primaryColor,
   scheduleCards: scheduleCardsProp,
 }: CinematicHeroProps) {
   const {
@@ -219,10 +217,9 @@ function ScheduleFloatCard({
 }) {
   const rows = scheduleCards && scheduleCards.length > 0
     ? scheduleCards
-    : [
-        { day: "Sat", info: "Ceremony" },
-        { day: "Sat", info: "Reception" },
-      ];
+    : [];
+
+  if (rows.length === 0) return null;
 
   return (
     <div className={styles.floatCard}>

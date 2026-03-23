@@ -1,27 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { Airport } from "@/schemas/event-page";
-
-type Hotel = {
-  name: string;
-  address: string;
-  bookingUrl?: string;
-  blockCode?: string;
-  deadline?: string;
-  description?: string;
-  tags?: string[];
-};
+import type { TravelStaySection, HotelItem } from "@/schemas/event-page";
 
 type TravelStayV2Props = {
-  data: {
-    heading?: string;
-    hotels: Hotel[];
-    notes?: string;
-    airports?: Airport[];
-    tips?: string[];
-  };
-  primaryColor: string;
+  data: TravelStaySection["data"];
 };
 
 /**
@@ -30,7 +13,7 @@ type TravelStayV2Props = {
  * Top row: "Getting In" + "Dress Code" detail cards.
  * Hotel cards with tags, copy-able codes, action buttons.
  */
-export function TravelStayV2({ data, primaryColor: _primaryColor }: TravelStayV2Props) {
+export function TravelStayV2({ data }: TravelStayV2Props) {
   const {
     heading = "Travel & Stay",
     hotels,
@@ -54,7 +37,7 @@ export function TravelStayV2({ data, primaryColor: _primaryColor }: TravelStayV2
             fontWeight: 500,
             letterSpacing: ".18em",
             textTransform: "uppercase" as const,
-            color: "var(--sage, #7a8c72)",
+            color: "var(--accent, #7a8c72)",
             marginBottom: 12,
           }}>
             Travel & Stay
@@ -111,7 +94,7 @@ export function TravelStayV2({ data, primaryColor: _primaryColor }: TravelStayV2
                 fontWeight: 500,
                 letterSpacing: ".18em",
                 textTransform: "uppercase" as const,
-                color: "var(--sage, #7a8c72)",
+                color: "var(--accent, #7a8c72)",
                 marginBottom: 12,
               }}>
                 Where to Stay
@@ -193,7 +176,7 @@ function InfoCard({
         left: 0,
         right: 0,
         height: 3,
-        background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--sage, #7a8c72))",
+        background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72))",
         opacity: 0.7,
       }} />
 
@@ -202,7 +185,7 @@ function InfoCard({
         fontWeight: 600,
         letterSpacing: ".1em",
         textTransform: "uppercase" as const,
-        color: "var(--sage, #7a8c72)",
+        color: "var(--accent, #7a8c72)",
         marginBottom: 6,
       }}>
         {eyebrow}
@@ -266,7 +249,7 @@ function InfoCard({
 }
 
 /** Hotel card with copyable block code */
-function HotelCard({ hotel }: { hotel: Hotel }) {
+function HotelCard({ hotel }: { hotel: HotelItem }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async (text: string) => {

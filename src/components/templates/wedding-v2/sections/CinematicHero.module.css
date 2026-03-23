@@ -203,7 +203,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--sage, #7a8c72);
+  color: var(--accent, #7a8c72);
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(122, 140, 114, 0.08);
@@ -334,7 +334,7 @@
   border: 1px solid var(--sand, #d4cabb);
 }
 .btnOutline:hover {
-  border-color: var(--sage, #7a8c72);
+  border-color: var(--accent, #7a8c72);
   color: var(--forest, #3f4f3a);
   background: rgba(122, 140, 114, 0.04);
 }

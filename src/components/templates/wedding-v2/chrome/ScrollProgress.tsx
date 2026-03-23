@@ -42,7 +42,7 @@ export function ScrollProgress(_props: ScrollProgressProps) {
         ref={barRef}
         className={styles.bar}
         style={{
-          background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--sage, #7a8c72), var(--gold-l, #ddc07a))",
+          background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72), var(--gold-l, #ddc07a))",
         }}
       />
     </div>

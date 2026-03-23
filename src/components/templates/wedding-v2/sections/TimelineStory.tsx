@@ -14,7 +14,6 @@ type TimelineStoryProps = {
     milestones?: Milestone[];
   };
   assets: MediaAsset[];
-  primaryColor: string;
 };
 
 /**
@@ -24,10 +23,11 @@ type TimelineStoryProps = {
  * SVG progress track draws on scroll. Milestone circles animate
  * with dash-draw, inner dot, pulse ring, and golden glow burst.
  */
-export function TimelineStory({ data, assets, primaryColor: _primaryColor }: TimelineStoryProps) {
+export function TimelineStory({ data, assets }: TimelineStoryProps) {
   const {
     heading = "Our Story",
     content,
+    layout = "timeline",
     milestones = [],
     imageAssetId,
   } = data;
@@ -50,6 +50,11 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
 
   const storyPhotoUrl = getAssetUrl(imageAssetId);
   const hasMilestones = milestones.length > 0;
+  // Respect the user's layout choice:
+  // - "full": text-only, ignores milestones
+  // - "split": text + image side-by-side, ignores milestones
+  // - "timeline": full timeline with milestones (falls back to full if none)
+  const effectiveLayout = layout === "timeline" && !hasMilestones ? "full" : layout;
 
   // Kicker underline draw on scroll
   useEffect(() => {
@@ -164,7 +169,7 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
   }, []);
 
   useEffect(() => {
-    if (!hasMilestones) return;
+    if (effectiveLayout !== "timeline") return;
     // Initial layout
     requestAnimationFrame(() => {
       layoutAndAnimate();
@@ -184,11 +189,11 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
     };
-  }, [hasMilestones, layoutAndAnimate]);
+  }, [effectiveLayout, layoutAndAnimate]);
 
-  if (!hasMilestones) {
+  if (effectiveLayout === "full") {
     return (
-      <section className="section" style={{ padding: "var(--section-y, 96px) 0" }} aria-label="Our story">
+      <section className="section" style={{ padding: "var(--section-y, 96px) 0" }} aria-label="Our story" id="story">
         <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
           <div className={styles.sectionHeader}>
             <p ref={kickerRef} className={`${styles.kicker} ${kickerDrawn ? styles.kickerDrawn : ""}`}>
@@ -199,6 +204,52 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
             <p style={{ color: "var(--text-2)", lineHeight: 1.75, whiteSpace: "pre-line" }}>{content}</p>
           </div>
         </div>
+      </section>
+    );
+  }
+
+  if (effectiveLayout === "split") {
+    return (
+      <section className="section" style={{ padding: "var(--section-y, 96px) 0" }} aria-label="Our story" id="story">
+        <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
+          <div className={styles.sectionHeader}>
+            <p ref={kickerRef} className={`${styles.kicker} ${kickerDrawn ? styles.kickerDrawn : ""}`}>
+              Our Story
+            </p>
+            <h2 className={styles.heading}>{heading}</h2>
+          </div>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: storyPhotoUrl ? "1fr 1fr" : "1fr",
+            gap: "clamp(24px, 4vw, 48px)",
+            alignItems: "center",
+          }}>
+            <div style={{ maxWidth: "56ch" }}>
+              <p style={{ color: "var(--text-2)", lineHeight: 1.75, whiteSpace: "pre-line" }}>{content}</p>
+            </div>
+            {storyPhotoUrl && (
+              <div style={{
+                borderRadius: "var(--r-lg, 24px)",
+                overflow: "hidden",
+                boxShadow: "var(--shadow-lg)",
+              }}>
+                <img
+                  src={storyPhotoUrl}
+                  alt="Our story"
+                  loading="lazy"
+                  style={{ width: "100%", height: "auto", display: "block" }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        <style>{`
+          @media (max-width: 700px) {
+            #story [style*="grid-template-columns: 1fr 1fr"] {
+              grid-template-columns: 1fr !important;
+            }
+          }
+        `}</style>
       </section>
     );
   }
@@ -240,7 +291,7 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
                 <defs>
                   <linearGradient id="tlGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--sage-l, #a8b8a0)" />
-                    <stop offset="60%" stopColor="var(--sage, #7a8c72)" />
+                    <stop offset="60%" stopColor="var(--accent, #7a8c72)" />
                     <stop offset="100%" stopColor="var(--gold-l, #ddc07a)" />
                   </linearGradient>
                 </defs>
@@ -296,7 +347,7 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
                         className={`tl-circle-fill ${isGold ? "tl-circle-fill--gold" : ""}`}
                         cx="24" cy="0" r="8"
                         fill="none"
-                        stroke={isGold ? "var(--gold, #c5a55a)" : "var(--sage, #7a8c72)"}
+                        stroke={isGold ? "var(--gold, #c5a55a)" : "var(--accent, #7a8c72)"}
                         strokeWidth="2" strokeLinecap="round"
                         style={{ strokeDasharray: "50.27", strokeDashoffset: "50.27", transition: "stroke-dashoffset .6s var(--ease-out-expo, cubic-bezier(.16,1,.3,1))" }}
                       />
@@ -336,17 +387,6 @@ export function TimelineStory({ data, assets, primaryColor: _primaryColor }: Tim
                     >
                       <h3 className={styles.cardTitle}>{milestone.title}</h3>
                       <p className={styles.cardDesc}>{milestone.description}</p>
-                      {/* Tags — optional extension, cast for forward compat */}
-                      {(milestone as Milestone & { tags?: string[] }).tags &&
-                        (milestone as Milestone & { tags?: string[] }).tags!.length > 0 && (
-                        <div className={styles.tags}>
-                          {(milestone as Milestone & { tags?: string[] }).tags!.map((tag, j) => (
-                            <span key={j} className={`${styles.tag} ${isGold ? styles.tagGold : ""}`}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
