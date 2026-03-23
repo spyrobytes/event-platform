@@ -66,6 +66,26 @@ export function resolveV2Fonts(fontPair?: string): { serif: string; sans: string
 }
 
 /**
+ * Google Fonts URL for the selected font pair.
+ * Each pair loads only the weights needed by the V2 template.
+ */
+const FONT_URLS: Record<V2FontPair, string> = {
+  serif_sans:
+    "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500;600;700&display=swap",
+  modern:
+    "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
+  classic:
+    "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Source+Serif+4:wght@400;500&display=swap",
+};
+
+export function getV2FontUrl(fontPair?: string): string {
+  if (fontPair && fontPair in FONT_URLS) {
+    return FONT_URLS[fontPair as V2FontPair];
+  }
+  return FONT_URLS.serif_sans;
+}
+
+/**
  * Full CSS variable map applied to the root article element.
  * Matches the POC's :root block exactly.
  */

@@ -40,7 +40,7 @@ import {
 } from "./sections";
 
 // V2 tokens + footer
-import { getV2CSSVariables, v2TokensToInline, V2 } from "./tokens";
+import { getV2CSSVariables, getV2FontUrl, v2TokensToInline, V2 } from "./tokens";
 import { WeddingV2Footer } from "./WeddingV2Footer";
 
 import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
@@ -110,6 +110,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
   // V2 token system: user's primaryColor → --accent, fontPair → font families
   const primaryColor = theme.primaryColor;
   const cssVars = getV2CSSVariables(primaryColor, theme.fontPair);
+  const fontUrl = getV2FontUrl(theme.fontPair);
 
   // Find hero asset
   const heroAsset = hero.heroImageAssetId
@@ -298,6 +299,10 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
           staggerDelay={75}
           enableStagger={true}
         >
+          {/* Load Google Fonts for the selected font pair */}
+          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+          <link rel="stylesheet" href={fontUrl} />
+
           <article
             className="wedding-template-v2"
             style={{
