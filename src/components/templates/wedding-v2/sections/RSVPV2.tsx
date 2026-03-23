@@ -26,6 +26,7 @@ export function RSVPV2({ data, eventId }: RSVPV2Props) {
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
           <p
+            className="v2-kicker"
             style={{
               fontFamily: "var(--sans)",
               fontSize: "var(--sm, 0.85rem)",

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
 import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
@@ -36,29 +35,8 @@ export function CinematicHero({
   } = config;
 
   const temporal = useTemporal();
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const isCinematic = heroStyle === "cinematic";
-
-  // Subtle parallax on hero image
-  const handleParallax = useCallback(() => {
-    const img = imgRef.current;
-    if (!img) return;
-    const hero = img.closest("section");
-    if (!hero) return;
-    const rect = hero.getBoundingClientRect();
-    if (rect.bottom < 0) return;
-    const progress = Math.max(0, -rect.top / (rect.height * 0.5));
-    img.style.transform = `translateY(${progress * 40}px) scale(${1 + progress * 0.02})`;
-  }, []);
-
-  useEffect(() => {
-    if (!isCinematic) return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mq.matches) return;
-    window.addEventListener("scroll", handleParallax, { passive: true });
-    return () => window.removeEventListener("scroll", handleParallax);
-  }, [isCinematic, handleParallax]);
 
   // Countdown data
   const countdown = (() => {
@@ -81,7 +59,6 @@ export function CinematicHero({
       {heroAsset?.publicUrl ? (
         <div className={styles.heroMedia} aria-hidden="true">
           <img
-            ref={imgRef}
             src={heroAsset.publicUrl}
             alt=""
             loading="eager"
@@ -90,6 +67,17 @@ export function CinematicHero({
       ) : (
         <div className={styles.heroFallback} aria-hidden="true" />
       )}
+
+      {/* Parallax mountain layers */}
+      <div className={styles.parallaxLayer} style={{ zIndex: 1, opacity: 0.06, color: "var(--sage-d, #5c6b55)" }} aria-hidden="true">
+        <svg viewBox="0 0 1440 200" preserveAspectRatio="none"><path d="M0 200 L0 120 L120 80 L240 110 L360 50 L480 90 L600 30 L720 70 L840 20 L960 60 L1080 40 L1200 80 L1320 55 L1440 100 L1440 200Z" fill="currentColor"/></svg>
+      </div>
+      <div className={styles.parallaxLayer} style={{ zIndex: 2, opacity: 0.045, color: "var(--forest, #3f4f3a)" }} aria-hidden="true">
+        <svg viewBox="0 0 1440 160" preserveAspectRatio="none"><path d="M0 160 L0 100 L100 70 L200 95 L340 45 L440 80 L560 25 L680 65 L800 15 L920 55 L1040 35 L1160 70 L1280 50 L1440 90 L1440 160Z" fill="currentColor"/></svg>
+      </div>
+      <div className={styles.parallaxLayer} style={{ zIndex: 3, opacity: 0.035, color: "var(--night, #1e1b17)" }} aria-hidden="true">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 120 L0 80 L80 60 L180 78 L300 40 L420 65 L520 30 L640 55 L760 20 L880 48 L1000 28 L1120 52 L1240 38 L1360 60 L1440 75 L1440 120Z" fill="currentColor"/></svg>
+      </div>
 
       {/* Content — bottom-aligned via parent flex-end */}
       <div

@@ -31,7 +31,7 @@ export function TravelStayV2({ data }: TravelStayV2Props) {
       <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
-          <p style={{
+          <p className="v2-kicker" style={{
             fontFamily: "var(--sans)",
             fontSize: "var(--sm, 0.85rem)",
             fontWeight: 500,
@@ -88,7 +88,7 @@ export function TravelStayV2({ data }: TravelStayV2Props) {
         {hotels.length > 0 && (
           <>
             <div style={{ marginTop: airports.length > 0 ? 48 : 0, marginBottom: 24 }}>
-              <p style={{
+              <p className="v2-kicker" style={{
                 fontFamily: "var(--sans)",
                 fontSize: "var(--sm, 0.85rem)",
                 fontWeight: 500,

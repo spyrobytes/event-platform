@@ -92,33 +92,52 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
           e.currentTarget.style.boxShadow = "var(--shadow)";
         }}
       >
-        {/* Photo */}
-        <div style={{ position: "relative", height: 260, overflow: "hidden" }}>
+        {/* Photo — arch-shaped mask */}
+        <div
+          style={{
+            position: "relative",
+            height: 280,
+            overflow: "hidden",
+            padding: "16px 16px 0",
+            background: "var(--cream, #f0ebe3)",
+          }}
+        >
           {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={member.name}
-              loading="lazy"
+            <div
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
-                objectPosition: "center 20%",
-                transition: "transform .7s var(--ease-out-expo, ease)",
+                borderRadius: "999px 999px 8px 8px",
+                overflow: "hidden",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.04)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "";
-              }}
-            />
+            >
+              <img
+                src={imageUrl}
+                alt={member.name}
+                loading="lazy"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center 20%",
+                  transition: "transform .7s var(--ease-out-expo, ease)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "";
+                }}
+              />
+            </div>
           ) : (
             <div
               style={{
                 width: "100%",
                 height: "100%",
-                background: "var(--cream, #f0ebe3)",
+                borderRadius: "999px 999px 8px 8px",
+                overflow: "hidden",
+                background: "var(--linen, #e8e1d6)",
                 display: "grid",
                 placeItems: "center",
               }}
@@ -195,6 +214,7 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
           <p
+            className="v2-kicker"
             style={{
               fontFamily: "var(--sans)",
               fontSize: "var(--sm, 0.85rem)",

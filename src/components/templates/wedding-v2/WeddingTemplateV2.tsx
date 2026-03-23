@@ -18,7 +18,7 @@ import {
 import type { TemporalData } from "../index";
 
 // V2 chrome
-import { Topbar, MountainDivider, FooterSkyline, ScrollProgress } from "./chrome";
+import { Topbar, MountainDivider, FooterSkyline, ScrollProgress, Botanical } from "./chrome";
 
 // V2 section renderers (all bespoke for cinematic aesthetic)
 import {
@@ -201,13 +201,28 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
       </AnimatedWrapper>
     );
 
+    // Botanical accent placement (matches POC)
+    const BOTANICAL_PLACEMENTS: Record<string, React.ReactNode> = {
+      story: <Botanical variant="sage" style={{ top: 40, right: "5%", width: 120, height: 200, transform: "rotate(15deg)" }} />,
+      gallery: <Botanical variant="gold" style={{ top: 20, left: "3%", width: 80, height: 140, transform: "rotate(-20deg) scaleX(-1)" }} />,
+      details: <Botanical variant="sage" style={{ bottom: 60, left: "2%", width: 100, height: 160, transform: "rotate(-10deg)" }} />,
+      travelStay: <Botanical variant="gold" style={{ top: 80, right: "3%", width: 90, height: 150, transform: "rotate(12deg)" }} />,
+    };
+
+    const botanical = BOTANICAL_PLACEMENTS[section.type] ?? null;
+
     const wrapWithChrome = (sectionElement: React.ReactNode) => (
       <Fragment key={key}>
         {chapterBreakElement}
         {chrome.mountainDividers && arrayIndex > 0 && (
-          <MountainDivider flip={arrayIndex % 2 === 1} />
+          <MountainDivider flip={arrayIndex % 2 === 1} dividerIndex={arrayIndex} />
         )}
-        {sectionElement}
+        {botanical ? (
+          <div style={{ position: "relative", overflow: "hidden" }}>
+            {botanical}
+            {sectionElement}
+          </div>
+        ) : sectionElement}
       </Fragment>
     );
 
@@ -363,8 +378,9 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
           {/* Floating Section Navigation */}
           <SectionNav accentColor={primaryColor} />
 
-          {/* Global typography styles for V2 */}
+          {/* Global styles for V2 — typography, atmosphere, section rhythm */}
           <style>{`
+            /* Typography */
             .wedding-template-v2 h1,
             .wedding-template-v2 h2,
             .wedding-template-v2 h3 {
@@ -395,6 +411,54 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
             .wedding-template-v2 a {
               color: inherit;
               text-decoration: none;
+            }
+
+            /* Alternating section backgrounds — cream on story, party, registry, faq, attire */
+            .wedding-template-v2 #story,
+            .wedding-template-v2 #party,
+            .wedding-template-v2 #registry,
+            .wedding-template-v2 #faq,
+            .wedding-template-v2 #attire {
+              background: var(--cream, #f0ebe3);
+            }
+
+            /* Noise texture overlay — subtle film-grain warmth */
+            .wedding-template-v2::before {
+              content: '';
+              position: fixed;
+              inset: 0;
+              z-index: 9999;
+              pointer-events: none;
+              opacity: 0.028;
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+              background-repeat: repeat;
+              background-size: 200px 200px;
+            }
+
+            /* Kicker underline draw animation — sage-to-gold gradient */
+            .wedding-template-v2 .v2-kicker {
+              position: relative;
+              display: inline-block;
+            }
+            .wedding-template-v2 .v2-kicker::after {
+              content: '';
+              position: absolute;
+              bottom: -4px;
+              left: 0;
+              width: 100%;
+              height: 1.5px;
+              background: linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--gold-l, #ddc07a));
+              transform: scaleX(0);
+              transform-origin: left;
+              animation: v2KickerDraw .8s .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)) forwards;
+            }
+            @keyframes v2KickerDraw {
+              to { transform: scaleX(1); }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              .wedding-template-v2::before { display: none; }
+              .wedding-template-v2 .v2-kicker::after { transform: scaleX(1); animation: none; }
             }
           `}</style>
         </AnimationProvider>
