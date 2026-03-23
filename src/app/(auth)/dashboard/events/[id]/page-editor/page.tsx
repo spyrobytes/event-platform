@@ -794,6 +794,16 @@ export default function PageEditorPage() {
                   Show Schedule Cards
                 </label>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="rsvpDeadline">RSVP Deadline (shown on countdown card)</Label>
+                <Input
+                  id="rsvpDeadline"
+                  value={config.hero.rsvpDeadline || ""}
+                  onChange={(e) => updateHero({ rsvpDeadline: e.target.value || undefined })}
+                  placeholder="e.g., August 10, 2026"
+                  maxLength={60}
+                />
+              </div>
             </div>
           )}
 

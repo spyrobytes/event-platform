@@ -286,7 +286,7 @@
 .schedDay {
   font-size: var(--sm, 0.85rem);
   font-weight: 600;
-  color: var(--sage-d, #5c6b55);
+  color: var(--accent, #5c6b55);
   flex-shrink: 0;
   min-width: 32px;
 }
@@ -332,15 +332,14 @@
   border: none;
 }
 .btnPrimary {
-  background: var(--forest, #3f4f3a);
+  background: var(--accent, #3f4f3a);
   color: #fff;
-  border: 1px solid var(--forest, #3f4f3a);
+  border: 1px solid var(--accent, #3f4f3a);
 }
 .btnPrimary:hover {
-  background: var(--sage-d, #5c6b55);
-  border-color: var(--sage-d, #5c6b55);
+  filter: brightness(0.88);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(63, 79, 58, 0.22);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 }
 .btnOutline {
   background: transparent;
@@ -349,7 +348,7 @@
 }
 .btnOutline:hover {
   border-color: var(--accent, #7a8c72);
-  color: var(--forest, #3f4f3a);
+  color: var(--accent, #7a8c72);
   background: rgba(122, 140, 114, 0.04);
 }
 .btnGhost {

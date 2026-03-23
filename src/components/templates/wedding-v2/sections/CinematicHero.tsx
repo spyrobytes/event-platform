@@ -32,6 +32,7 @@ export function CinematicHero({
     showCountdown = false,
     showScheduleCards = false,
     coupleNames,
+    rsvpDeadline,
   } = config;
 
   const temporal = useTemporal();
@@ -115,11 +116,6 @@ export function CinematicHero({
             </h1>
           )}
 
-          {/* Subtitle */}
-          {subtitle && (
-            <p className={styles.subtitle}>{subtitle}</p>
-          )}
-
           {/* CTA button — links to event details */}
           {isCinematic && (
             <div className={styles.cta}>
@@ -135,7 +131,7 @@ export function CinematicHero({
           <div className={styles.heroCards}>
             {/* Countdown card */}
             {countdown && (
-              <CountdownCard countdown={countdown} rsvpDeadline={dateText} />
+              <CountdownCard countdown={countdown} rsvpDeadline={rsvpDeadline} />
             )}
 
             {/* Schedule card */}

@@ -82,6 +82,7 @@ export const heroSchema = z.object({
   showScheduleCards: z.boolean().optional(),
   coupleNames: z.string().max(60, "Couple names must be 60 characters or less").optional(),
   monogram: z.string().max(5, "Monogram must be 5 characters or less").optional(),
+  rsvpDeadline: z.string().max(60, "RSVP deadline must be 60 characters or less").optional(),
 });
 
 export type HeroConfig = z.infer<typeof heroSchema>;

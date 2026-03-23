@@ -413,6 +413,46 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
               text-decoration: none;
             }
 
+            /* Link hover — inside-out underline using accent color */
+            .wedding-template-v2 a:not([class]) {
+              position: relative;
+              display: inline;
+            }
+            .wedding-template-v2 a:not([class])::after {
+              content: '';
+              position: absolute;
+              bottom: -1px;
+              left: 50%;
+              width: 0;
+              height: 1.5px;
+              background: var(--accent, #7a8c72);
+              transition: width .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)),
+                          left .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1));
+            }
+            .wedding-template-v2 a:not([class]):hover::after {
+              width: 100%;
+              left: 0;
+            }
+
+            /* Global button accent — all pill buttons use accent color */
+            .wedding-template-v2 .v2-btn-primary {
+              background: var(--accent, #7a8c72);
+              color: #fff;
+              border: 1px solid var(--accent, #7a8c72);
+            }
+            .wedding-template-v2 .v2-btn-primary:hover {
+              filter: brightness(0.88);
+              transform: translateY(-1px);
+              box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+            }
+            .wedding-template-v2 .v2-btn-outline {
+              border-color: var(--sand, #d4cabb);
+            }
+            .wedding-template-v2 .v2-btn-outline:hover {
+              border-color: var(--accent, #7a8c72);
+              color: var(--accent, #7a8c72);
+            }
+
             /* Alternating section backgrounds — cream on story, party, registry, faq, attire */
             .wedding-template-v2 #story,
             .wedding-template-v2 #party,
