@@ -8,10 +8,6 @@ import {
   AnimatedWrapper,
   SectionNavProvider,
   SectionNav,
-  ChapterBreak,
-  WEDDING_CHAPTERS,
-  assignChaptersToSections,
-  findChapterForSection,
   TemporalProvider,
   TemporalHeroOverlay,
 } from "../shared";
@@ -143,20 +139,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
   // Date text for topbar/footer
   const dateText = hero.subtitle || "";
 
-  // Assign chapters
-  const chapteredSections = useMemo(
-    () => assignChaptersToSections(sections, WEDDING_CHAPTERS),
-    [sections]
-  );
-
-  const totalChapters = useMemo(() => {
-    const chapterIds = new Set(chapteredSections.map((s) => s.chapterId));
-    return chapterIds.size;
-  }, [chapteredSections]);
-
   let sectionIndex = 0;
-  let chapterNumber = 0;
-  let lastChapterId: string | null = null;
 
   const renderSection = (section: (typeof sections)[number], arrayIndex: number) => {
     if (!section.enabled) return null;
@@ -165,38 +148,11 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     const currentSectionIndex = sectionIndex++;
     const sectionLabel = getSectionLabel(section.type);
 
-    // Chapter break logic
-    const chapteredSection = chapteredSections.find(
-      (cs) => cs.originalIndex === arrayIndex
-    );
-    const isChapterStart = chapteredSection?.isChapterStart ?? false;
-    const chapterId = chapteredSection?.chapterId ?? null;
-
-    let chapterBreakElement: React.ReactNode = null;
-    if (isChapterStart && chapterId !== lastChapterId) {
-      if (lastChapterId !== null) {
-        chapterNumber++;
-        const chapter = findChapterForSection(section.type, WEDDING_CHAPTERS);
-        chapterBreakElement = (
-          <ChapterBreak
-            key={`chapter-${chapterId}`}
-            chapter={chapter}
-            chapterNumber={chapterNumber}
-            totalChapters={totalChapters}
-            showNumber={false}
-            accentColor={primaryColor}
-          />
-        );
-      }
-      lastChapterId = chapterId;
-    }
-
     const wrapWithAnimation = (content: React.ReactNode) => (
       <AnimatedWrapper
         sectionIndex={currentSectionIndex}
         navId={section.type}
         navLabel={sectionLabel}
-        navChapterId={chapterId ?? undefined}
       >
         {content}
       </AnimatedWrapper>
@@ -214,7 +170,6 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
 
     const wrapWithChrome = (sectionElement: React.ReactNode) => (
       <Fragment key={key}>
-        {chapterBreakElement}
         {chrome.mountainDividers && arrayIndex > 0 && (
           <MountainDivider flip={arrayIndex % 2 === 1} dividerIndex={arrayIndex} />
         )}
