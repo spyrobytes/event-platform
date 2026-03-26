@@ -99,10 +99,19 @@ export type SectionVisibility = z.infer<typeof sectionVisibilitySchema>;
 // =============================================================================
 
 // Details Section
+export const detailsEventSchema = z.object({
+  name: z.string().max(100, "Event name must be 100 characters or less").optional(),
+  date: z.string().max(100, "Date must be 100 characters or less"),
+  location: z.string().max(200, "Location must be 200 characters or less"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+});
+
 export const detailsSectionDataSchema = z.object({
   dateText: z.string().max(100, "Date text must be 100 characters or less"),
   locationText: z.string().max(200, "Location text must be 200 characters or less"),
   venueDescription: z.string().max(300, "Venue description must be 300 characters or less").optional(),
+  // V2 multi-event support
+  events: z.array(detailsEventSchema).max(8, "Maximum 8 events allowed").optional(),
 });
 
 export const detailsSectionSchema = z.object({
@@ -117,12 +126,22 @@ export const scheduleItemSchema = z.object({
   time: z.string().max(20, "Time must be 20 characters or less"),
   title: z.string().max(100, "Title must be 100 characters or less"),
   description: z.string().max(500, "Description must be 500 characters or less").optional(),
+  location: z.string().max(200, "Location must be 200 characters or less").optional(),
+});
+
+export const scheduleGroupSchema = z.object({
+  label: z.string().max(100, "Label must be 100 characters or less"),
+  date: z.string().max(40, "Date must be 40 characters or less").optional(),
+  location: z.string().max(200, "Location must be 200 characters or less").optional(),
+  items: z.array(scheduleItemSchema).max(10, "Maximum 10 items per group"),
 });
 
 export const scheduleSectionDataSchema = z.object({
   heading: z.string().max(80, "Heading must be 80 characters or less").optional(),
   description: z.string().max(300, "Description must be 300 characters or less").optional(),
   items: z.array(scheduleItemSchema).max(20, "Maximum 20 schedule items allowed"),
+  // V2 multi-day grouping
+  groups: z.array(scheduleGroupSchema).max(6, "Maximum 6 day groups allowed").optional(),
 });
 
 export const scheduleSectionSchema = z.object({
@@ -473,7 +492,9 @@ export const sectionSchema = z.discriminatedUnion("type", [
 
 export type Section = z.infer<typeof sectionSchema>;
 export type DetailsSection = z.infer<typeof detailsSectionSchema>;
+export type DetailsEvent = z.infer<typeof detailsEventSchema>;
 export type ScheduleSection = z.infer<typeof scheduleSectionSchema>;
+export type ScheduleGroup = z.infer<typeof scheduleGroupSchema>;
 export type FAQSection = z.infer<typeof faqSectionSchema>;
 export type GallerySection = z.infer<typeof gallerySectionSchema>;
 export type GalleryItem = z.infer<typeof galleryItemSchema>;

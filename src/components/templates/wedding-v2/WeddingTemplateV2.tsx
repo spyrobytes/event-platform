@@ -119,6 +119,22 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
   const scheduleCards = useMemo(() => {
     const scheduleSec = sections.find((s) => s.type === "schedule");
     if (!scheduleSec || scheduleSec.type !== "schedule") return undefined;
+
+    // Prefer groups (multi-day): show first item from each group
+    const groups = scheduleSec.data.groups;
+    if (groups && groups.length > 0) {
+      const cards: { day: string; info: string }[] = [];
+      for (const group of groups.slice(0, 4)) {
+        const firstItem = group.items[0];
+        cards.push({
+          day: group.date || group.label,
+          info: firstItem ? firstItem.title : group.label,
+        });
+      }
+      return cards.length > 0 ? cards : undefined;
+    }
+
+    // Fallback: flat items
     const items = scheduleSec.data.items;
     if (!items || items.length === 0) return undefined;
     return items.slice(0, 4).map((item) => ({

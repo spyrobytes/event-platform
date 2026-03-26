@@ -1,17 +1,19 @@
-import type { ScheduleSection } from "@/schemas/event-page";
+import type { ScheduleSection, ScheduleGroup } from "@/schemas/event-page";
 
 type ScheduleV2Props = { data: ScheduleSection["data"] };
 
 /**
  * Schedule V2 — cinematic wedding template schedule section.
  *
- * Renders a vertical stack of schedule-item cards with left accent stripe,
- * time callout, title, and optional description.
+ * Supports two modes:
+ * - Grouped: renders day/event groups with headers + nested schedule items (multi-day weddings)
+ * - Flat: renders a vertical stack of schedule-item cards (backward compat)
  */
 export function ScheduleV2({ data }: ScheduleV2Props) {
-  const { items, heading, description } = data;
+  const { items, heading, description, groups } = data;
+  const hasGroups = groups && groups.length > 0;
   const hasItems = items && items.length > 0;
-  const displayHeading = heading || "Day of Events";
+  const displayHeading = heading || (hasGroups ? "Wedding Weekend" : "Day of Events");
   const kickerText = "Schedule";
   const showKicker = kickerText.toLowerCase() !== displayHeading.toLowerCase();
 
@@ -63,43 +65,131 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
           )}
         </div>
 
-        {/* Card list */}
-        <div
-          style={{
-            maxWidth: 700,
-            margin: "0 auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--gap, 20px)",
-          }}
-        >
-          {hasItems ? (
-            items.map((item, i) => (
-              <ScheduleCard
-                key={i}
-                time={item.time}
-                title={item.title}
-                description={item.description}
-              />
-            ))
-          ) : (
-            <div
-              style={{
-                border: "2px dashed var(--border, #e8e1d6)",
-                borderRadius: "var(--r-lg, 24px)",
-                padding: "clamp(32px, 4vw, 48px)",
-                textAlign: "center",
-                color: "var(--stone, #a69e93)",
-                fontFamily: "var(--sans)",
-                fontSize: "var(--body, 1rem)",
-              }}
-            >
-              Schedule coming soon
-            </div>
+        {/* Grouped layout */}
+        {hasGroups ? (
+          <div style={{ maxWidth: 700, margin: "0 auto", display: "flex", flexDirection: "column", gap: "clamp(40px, 5vw, 56px)" }}>
+            {groups.map((group, gi) => (
+              <ScheduleDayGroup key={gi} group={group} isFirst={gi === 0} />
+            ))}
+          </div>
+        ) : (
+          /* Flat card list (legacy) */
+          <div
+            style={{
+              maxWidth: 700,
+              margin: "0 auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--gap, 20px)",
+            }}
+          >
+            {hasItems ? (
+              items.map((item, i) => (
+                <ScheduleCard
+                  key={i}
+                  time={item.time}
+                  title={item.title}
+                  description={item.description}
+                  location={item.location}
+                />
+              ))
+            ) : (
+              <div
+                style={{
+                  border: "2px dashed var(--border, #e8e1d6)",
+                  borderRadius: "var(--r-lg, 24px)",
+                  padding: "clamp(32px, 4vw, 48px)",
+                  textAlign: "center",
+                  color: "var(--stone, #a69e93)",
+                  fontFamily: "var(--sans)",
+                  fontSize: "var(--body, 1rem)",
+                }}
+              >
+                Schedule coming soon
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Day/event group with header and nested schedule items */
+function ScheduleDayGroup({ group, isFirst }: { group: ScheduleGroup; isFirst: boolean }) {
+  return (
+    <div>
+      {/* Separator line (not before first group) */}
+      {!isFirst && (
+        <div style={{
+          height: 1,
+          background: "linear-gradient(90deg, transparent, var(--border, #e8e1d6), transparent)",
+          marginBottom: "clamp(32px, 4vw, 48px)",
+        }} />
+      )}
+
+      {/* Group header */}
+      <div style={{ marginBottom: "clamp(16px, 2.5vw, 24px)" }}>
+        <h3 style={{
+          fontFamily: "var(--serif)",
+          fontSize: "var(--h3, clamp(1.15rem, 2vw, 1.4rem))",
+          fontWeight: 400,
+          lineHeight: 1.3,
+          color: "var(--night, #1e1b17)",
+          marginBottom: 6,
+        }}>
+          {group.label}
+        </h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+          {group.date && (
+            <span style={{
+              fontSize: "var(--sm, 0.85rem)",
+              color: "var(--accent, #7a8c72)",
+              fontWeight: 500,
+            }}>
+              {group.date}
+            </span>
+          )}
+          {group.date && group.location && (
+            <span style={{ color: "var(--border, #e8e1d6)" }}>|</span>
+          )}
+          {group.location && (
+            <span style={{
+              fontSize: "var(--sm, 0.85rem)",
+              color: "var(--text-2, #786f65)",
+            }}>
+              {group.location}
+            </span>
           )}
         </div>
       </div>
-    </section>
+
+      {/* Group items */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap, 20px)" }}>
+        {group.items.length > 0 ? (
+          group.items.map((item, i) => (
+            <ScheduleCard
+              key={i}
+              time={item.time}
+              title={item.title}
+              description={item.description}
+              location={item.location}
+            />
+          ))
+        ) : (
+          <div style={{
+            border: "2px dashed var(--border, #e8e1d6)",
+            borderRadius: "var(--r-lg, 24px)",
+            padding: "clamp(24px, 3vw, 32px)",
+            textAlign: "center",
+            color: "var(--stone, #a69e93)",
+            fontSize: "var(--sm, 0.85rem)",
+          }}>
+            Schedule items coming soon
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -107,10 +197,12 @@ function ScheduleCard({
   time,
   title,
   description,
+  location,
 }: {
   time: string;
   title: string;
   description?: string;
+  location?: string;
 }) {
   return (
     <div
@@ -168,6 +260,26 @@ function ScheduleCard({
       >
         {title}
       </h3>
+
+      {/* Optional location (overrides group venue) */}
+      {location && (
+        <p
+          style={{
+            marginTop: 6,
+            fontSize: "var(--sm, 0.85rem)",
+            color: "var(--text-3, #a69e93)",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          {location}
+        </p>
+      )}
 
       {/* Optional description */}
       {description && (

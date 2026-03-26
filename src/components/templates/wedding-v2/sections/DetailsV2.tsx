@@ -7,14 +7,15 @@ type DetailsV2Props = {
 };
 
 /**
- * Details V2 — POC-parity rewrite
+ * Details V2 — Cinematic wedding details section.
  *
- * Multi-card grid with eyebrow, title, info-rows, accent top stripe.
- * Renders dateText and locationText in a rich card format.
- * Gracefully handles limited data by showing what's available.
+ * Supports two modes:
+ * - Multi-event: renders a card per event (for multi-day weddings)
+ * - Legacy: renders dateText/locationText as two cards (backward compat)
  */
 export function DetailsV2({ data }: DetailsV2Props) {
-  const { dateText, locationText } = data;
+  const { dateText, locationText, events } = data;
+  const hasEvents = events && events.length > 0;
 
   return (
     <section
@@ -43,35 +44,53 @@ export function DetailsV2({ data }: DetailsV2Props) {
             lineHeight: 1.15,
             color: "var(--night, #1e1b17)",
           }}>
-            Where to be, when to show up
+            {hasEvents ? "The Celebrations" : "Where to be, when to show up"}
           </h2>
         </div>
 
-        {/* Details grid */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "var(--gap, 20px)",
-        }}>
-          {/* Date/Time card */}
-          <DetailCard
-            eyebrow="When"
-            title="Date & Time"
-            infoRows={[
-              { key: "Date", value: dateText },
-            ]}
-          />
-
-          {/* Venue card */}
-          <DetailCard
-            eyebrow="Where"
-            title="Venue"
-            description={data.venueDescription}
-            infoRows={[
-              { key: "Location", value: locationText },
-            ]}
-          />
-        </div>
+        {/* Multi-event grid */}
+        {hasEvents ? (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: events.length === 1 ? "1fr" : "repeat(2, 1fr)",
+            gap: "var(--gap, 20px)",
+          }}>
+            {events.map((event, i) => (
+              <DetailCard
+                key={i}
+                eyebrow={event.name || `Event ${i + 1}`}
+                title={event.date}
+                description={event.description}
+                infoRows={[
+                  { key: "Venue", value: event.location },
+                ]}
+              />
+            ))}
+          </div>
+        ) : (
+          /* Legacy 2-card layout */
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "var(--gap, 20px)",
+          }}>
+            <DetailCard
+              eyebrow="When"
+              title="Date & Time"
+              infoRows={[
+                { key: "Date", value: dateText },
+              ]}
+            />
+            <DetailCard
+              eyebrow="Where"
+              title="Venue"
+              description={data.venueDescription}
+              infoRows={[
+                { key: "Location", value: locationText },
+              ]}
+            />
+          </div>
+        )}
       </div>
 
       {/* Responsive */}

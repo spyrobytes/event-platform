@@ -965,48 +965,151 @@ export default function PageEditorPage() {
             <div className={cn(!section.enabled && "opacity-50 pointer-events-none")}>
             {section.type === "details" && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Date Text</Label>
-                  <Input
-                    value={section.data.dateText}
-                    onChange={(e) =>
-                      updateSection(index, {
-                        data: { ...section.data, dateText: e.target.value },
-                      })
-                    }
-                    placeholder="e.g., December 15, 2024 at 4:00 PM"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Location Text</Label>
-                  <Input
-                    value={section.data.locationText}
-                    onChange={(e) =>
-                      updateSection(index, {
-                        data: { ...section.data, locationText: e.target.value },
-                      })
-                    }
-                    placeholder="e.g., Grand Ballroom, City Hotel"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Venue Description (optional)</Label>
-                  <Textarea
-                    value={section.data.venueDescription || ""}
-                    onChange={(e) =>
-                      updateSection(index, {
-                        data: { ...section.data, venueDescription: e.target.value || undefined },
-                      })
-                    }
-                    placeholder="e.g., A stunning waterfront venue with panoramic views..."
-                    rows={2}
-                    maxLength={300}
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  At-a-glance summary — the key dates, times, and venues your guests need to know first.
+                </p>
+
+                {/* V2 multi-event editor */}
+                {templateId === "wedding_v2" && (() => {
+                  const events = section.data.events || [];
+                  const addEvent = () => {
+                    updateSection(index, {
+                      data: { ...section.data, events: [...events, { date: "", location: "" }] },
+                    });
+                  };
+                  const updateEvent = (ei: number, updates: Record<string, unknown>) => {
+                    const newEvents = [...events];
+                    newEvents[ei] = { ...newEvents[ei], ...updates };
+                    updateSection(index, { data: { ...section.data, events: newEvents } });
+                  };
+                  const removeEvent = (ei: number) => {
+                    updateSection(index, {
+                      data: { ...section.data, events: events.filter((_: unknown, i: number) => i !== ei) },
+                    });
+                  };
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Events</Label>
+                        {events.length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            Multi-event mode — replaces the single date/location cards
+                          </span>
+                        )}
+                      </div>
+                      {events.map((event: { name?: string; date: string; location: string; description?: string }, ei: number) => (
+                        <div key={ei} className="rounded-lg border bg-card p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Event {ei + 1}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeEvent(ei)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              ×
+                            </Button>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <Input
+                              value={event.name || ""}
+                              onChange={(e) => updateEvent(ei, { name: e.target.value || undefined })}
+                              placeholder="Event name, e.g., Church Wedding"
+                              maxLength={100}
+                            />
+                            <Input
+                              value={event.date}
+                              onChange={(e) => updateEvent(ei, { date: e.target.value })}
+                              placeholder="Date & time, e.g., Saturday, Dec 14 at 2 PM"
+                              maxLength={100}
+                            />
+                          </div>
+                          <Input
+                            value={event.location}
+                            onChange={(e) => updateEvent(ei, { location: e.target.value })}
+                            placeholder="Venue, e.g., St. Mary's Cathedral"
+                            maxLength={200}
+                          />
+                          <Textarea
+                            value={event.description || ""}
+                            onChange={(e) => updateEvent(ei, { description: e.target.value || undefined })}
+                            placeholder="Brief venue description (optional)"
+                            rows={1}
+                            maxLength={300}
+                          />
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addEvent}
+                        disabled={events.length >= 8}
+                        className="w-full"
+                      >
+                        + Add Event{events.length >= 8 && " (max 8)"}
+                      </Button>
+                    </div>
+                  );
+                })()}
+
+                {/* Legacy flat fields — shown when no events or non-V2 */}
+                {(templateId !== "wedding_v2" || !(section.data.events && section.data.events.length > 0)) && (
+                  <>
+                    {templateId === "wedding_v2" && (
+                      <div style={{ height: 1, background: "var(--border)", margin: "8px 0" }} />
+                    )}
+                    <div className="space-y-2">
+                      <Label>Date Text</Label>
+                      <Input
+                        value={section.data.dateText}
+                        onChange={(e) =>
+                          updateSection(index, {
+                            data: { ...section.data, dateText: e.target.value },
+                          })
+                        }
+                        placeholder="e.g., December 15, 2024 at 4:00 PM"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Location Text</Label>
+                      <Input
+                        value={section.data.locationText}
+                        onChange={(e) =>
+                          updateSection(index, {
+                            data: { ...section.data, locationText: e.target.value },
+                          })
+                        }
+                        placeholder="e.g., Grand Ballroom, City Hotel"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Venue Description (optional)</Label>
+                      <Textarea
+                        value={section.data.venueDescription || ""}
+                        onChange={(e) =>
+                          updateSection(index, {
+                            data: { ...section.data, venueDescription: e.target.value || undefined },
+                          })
+                        }
+                        placeholder="e.g., A stunning waterfront venue with panoramic views..."
+                        rows={2}
+                        maxLength={300}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             )}
             {section.type === "schedule" && (
               <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Detailed itinerary — the full timeline of activities{templateId === "wedding_v2" ? ", grouped by day or event" : ""}.
+                </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Section Heading</Label>
@@ -1015,7 +1118,7 @@ export default function PageEditorPage() {
                       onChange={(e) => updateSection(index, {
                         data: { ...section.data, heading: e.target.value || undefined },
                       })}
-                      placeholder="Day of Events"
+                      placeholder={templateId === "wedding_v2" ? "Wedding Weekend" : "Day of Events"}
                       maxLength={80}
                     />
                   </div>
@@ -1033,9 +1136,14 @@ export default function PageEditorPage() {
                 </div>
                 <ScheduleEditor
                   items={section.data.items}
+                  groups={section.data.groups}
                   onChange={(items) => updateSection(index, {
                     data: { ...section.data, items },
                   })}
+                  onChangeGroups={(groups) => updateSection(index, {
+                    data: { ...section.data, groups },
+                  })}
+                  templateId={templateId}
                 />
               </div>
             )}
