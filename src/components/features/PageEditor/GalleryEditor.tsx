@@ -181,9 +181,9 @@ export function GalleryEditor({
               }
             >
               <option value="grid">Grid</option>
-              {templateId !== "wedding_v2" && <option value="carousel">Carousel</option>}
+              <option value="carousel">Carousel</option>
               <option value="masonry">Masonry</option>
-              {templateId !== "wedding_v2" && <option value="slideshow">Slideshow</option>}
+              <option value="slideshow">Slideshow</option>
             </Select>
           </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -9,6 +9,15 @@ import styles from "./MasonryGallery.module.css";
 type GalleryV2Props = {
   data: GallerySection["data"];
   assets: MediaAsset[];
+};
+
+type ResolvedItem = {
+  assetId: string;
+  caption?: string;
+  title?: string;
+  moment?: string;
+  url: string;
+  alt: string;
 };
 
 /** Grid span class cycling pattern for masonry mode */
@@ -22,15 +31,17 @@ const SPAN_CLASSES = [
 ];
 
 /**
- * V2 Gallery — supports masonry (default) and grid display modes.
+ * V2 Gallery — supports masonry, grid, slideshow, and carousel display modes.
  *
- * Masonry: 12-column asymmetric grid with specific span patterns,
- * 3D tilt on hover, caption overlays, and full lightbox with keyboard nav.
+ * Masonry: 12-column asymmetric grid with specific span patterns.
  * Grid: even columns with consistent sizing.
+ * Slideshow: cinematic full-width hero slideshow with transitions and autoplay.
+ * Carousel: horizontal scroll strip with snap points and peek.
+ *
+ * All modes share the same lightbox and resolved items.
  */
 export function MasonryGallery({ data, assets }: GalleryV2Props) {
-  const { heading, items, displayMode, showCaptions } = normalizeGalleryData(data);
-  const isMasonry = displayMode === "masonry" || displayMode === "grid" ? displayMode === "masonry" : true;
+  const { heading, items, displayMode, showCaptions, autoPlay, autoPlayInterval, transition } = normalizeGalleryData(data);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Resolve asset URLs (memoized for stable reference)
@@ -106,6 +117,47 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
     );
   }
 
+  const renderGalleryContent = () => {
+    if (displayMode === "slideshow") {
+      return (
+        <Slideshow
+          items={resolvedItems}
+          showCaptions={showCaptions}
+          autoPlay={autoPlay}
+          autoPlayInterval={autoPlayInterval}
+          transition={transition}
+          onOpen={(i) => setLightboxIndex(i)}
+        />
+      );
+    }
+
+    if (displayMode === "carousel") {
+      return (
+        <Carousel
+          items={resolvedItems}
+          showCaptions={showCaptions}
+          onOpen={(i) => setLightboxIndex(i)}
+        />
+      );
+    }
+
+    const isMasonry = displayMode === "masonry";
+    return (
+      <div className={isMasonry ? styles.grid : styles.gridEven} role="group" aria-label="Photo gallery">
+        {resolvedItems.map((item, index) => (
+          <GalleryItem
+            key={item.assetId}
+            item={item}
+            index={index}
+            spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : ""}
+            showCaption={showCaptions}
+            onOpen={() => setLightboxIndex(index)}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <section
       className="section"
@@ -119,18 +171,7 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
           <h2 className={styles.heading}>{heading}</h2>
         </div>
 
-        <div className={isMasonry ? styles.grid : styles.gridEven} role="group" aria-label="Photo gallery">
-          {resolvedItems.map((item, index) => (
-            <GalleryItem
-              key={item.assetId}
-              item={item}
-              index={index}
-              spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : ""}
-              showCaption={showCaptions}
-              onOpen={() => setLightboxIndex(index)}
-            />
-          ))}
-        </div>
+        {renderGalleryContent()}
       </div>
 
       {/* Lightbox */}
@@ -277,6 +318,256 @@ function Lightbox({
       <div className={styles.lightboxCounter}>
         {index + 1} / {items.length}
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// SLIDESHOW MODE
+// =============================================================================
+
+/** Cinematic full-width slideshow with transitions, autoplay, and progress bar */
+function Slideshow({
+  items,
+  showCaptions,
+  autoPlay,
+  autoPlayInterval,
+  transition,
+  onOpen,
+}: {
+  items: ResolvedItem[];
+  showCaptions: boolean;
+  autoPlay: boolean;
+  autoPlayInterval: number;
+  transition: "fade" | "slide" | "zoom" | "flip";
+  onOpen: (index: number) => void;
+}) {
+  const [current, setCurrent] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const goTo = useCallback(
+    (index: number) => {
+      if (isTransitioning) return;
+      setIsTransitioning(true);
+      setCurrent(index);
+      setTimeout(() => setIsTransitioning(false), 600);
+    },
+    [isTransitioning]
+  );
+
+  const goNext = useCallback(() => {
+    goTo((current + 1) % items.length);
+  }, [current, items.length, goTo]);
+
+  const goPrev = useCallback(() => {
+    goTo((current - 1 + items.length) % items.length);
+  }, [current, items.length, goTo]);
+
+  // Autoplay
+  useEffect(() => {
+    if (!autoPlay || items.length <= 1) return;
+    timerRef.current = setTimeout(goNext, autoPlayInterval * 1000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [autoPlay, autoPlayInterval, current, goNext, items.length]);
+
+  // Progress bar animation
+  useEffect(() => {
+    const el = progressRef.current;
+    if (!el || !autoPlay) return;
+    el.style.transition = "none";
+    el.style.width = "0%";
+    requestAnimationFrame(() => {
+      el.style.transition = `width ${autoPlayInterval}s linear`;
+      el.style.width = "100%";
+    });
+  }, [current, autoPlay, autoPlayInterval]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [goNext, goPrev]);
+
+  const transitionClass =
+    transition === "slide" ? styles.slideshowSlide
+      : transition === "zoom" ? styles.slideshowZoom
+        : transition === "flip" ? styles.slideshowFlip
+          : styles.slideshowFade;
+
+  const item = items[current];
+  const captionText = item.caption || item.title;
+
+  return (
+    <div className={styles.slideshow} role="region" aria-label="Photo slideshow" aria-roledescription="slideshow">
+      {/* Stage */}
+      <div
+        className={styles.slideshowStage}
+        onClick={() => onOpen(current)}
+      >
+        {items.map((img, i) => (
+          <div
+            key={img.assetId}
+            className={`${styles.slideshowSlideItem} ${transitionClass} ${i === current ? styles.slideshowActive : ""}`}
+            aria-hidden={i !== current}
+          >
+            <img src={img.url} alt={img.alt} />
+          </div>
+        ))}
+
+        {/* Caption overlay */}
+        {showCaptions && captionText && (
+          <div className={styles.slideshowCaption}>
+            {item.moment && (
+              <span className={styles.slideshowMoment}>{item.moment}</span>
+            )}
+            <span className={styles.slideshowCaptionText}>{captionText}</span>
+          </div>
+        )}
+
+        {/* Counter */}
+        <div className={styles.slideshowCounter}>
+          {current + 1} / {items.length}
+        </div>
+      </div>
+
+      {/* Navigation arrows */}
+      {items.length > 1 && (
+        <>
+          <button className={`${styles.slideshowNav} ${styles.slideshowNavPrev}`} onClick={goPrev} aria-label="Previous">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button className={`${styles.slideshowNav} ${styles.slideshowNavNext}`} onClick={goNext} aria-label="Next">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {/* Dot indicators */}
+      {items.length > 1 && (
+        <div className={styles.slideshowDots}>
+          {items.map((_, i) => (
+            <button
+              key={i}
+              className={`${styles.slideshowDot} ${i === current ? styles.slideshowDotActive : ""}`}
+              onClick={() => goTo(i)}
+              aria-label={`Go to photo ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Autoplay progress bar */}
+      {autoPlay && items.length > 1 && (
+        <div className={styles.slideshowProgress}>
+          <div ref={progressRef} className={styles.slideshowProgressFill} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// CAROUSEL MODE
+// =============================================================================
+
+/** Horizontal scroll carousel with snap points, peek, and touch support */
+function Carousel({
+  items,
+  showCaptions,
+  onOpen,
+}: {
+  items: ResolvedItem[];
+  showCaptions: boolean;
+  onOpen: (index: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll]);
+
+  const scroll = useCallback((direction: "left" | "right") => {
+    const el = trackRef.current;
+    if (!el) return;
+    const cardWidth = el.querySelector(`.${styles.carouselCard}`)?.clientWidth || 400;
+    el.scrollBy({ left: direction === "right" ? cardWidth + 20 : -(cardWidth + 20), behavior: "smooth" });
+  }, []);
+
+  return (
+    <div className={styles.carousel} role="region" aria-label="Photo carousel" aria-roledescription="carousel">
+      {/* Scroll track */}
+      <div ref={trackRef} className={styles.carouselTrack}>
+        {items.map((item, i) => {
+          const captionText = item.caption || item.title;
+          return (
+            <button
+              key={item.assetId}
+              className={styles.carouselCard}
+              onClick={() => onOpen(i)}
+              aria-label={`View photo: ${captionText || `Photo ${i + 1}`}`}
+            >
+              <img src={item.url} alt={item.alt} loading={i > 2 ? "lazy" : undefined} />
+              {showCaptions && captionText && (
+                <div className={styles.carouselCaption}>
+                  {item.moment && (
+                    <span className={styles.carouselMoment}>{item.moment}</span>
+                  )}
+                  <span>{captionText}</span>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Navigation arrows */}
+      {canScrollLeft && (
+        <button className={`${styles.carouselNav} ${styles.carouselNavLeft}`} onClick={() => scroll("left")} aria-label="Scroll left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+      )}
+      {canScrollRight && (
+        <button className={`${styles.carouselNav} ${styles.carouselNavRight}`} onClick={() => scroll("right")} aria-label="Scroll right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Fade edges */}
+      <div className={`${styles.carouselEdge} ${styles.carouselEdgeLeft} ${canScrollLeft ? styles.carouselEdgeVisible : ""}`} />
+      <div className={`${styles.carouselEdge} ${styles.carouselEdgeRight} ${canScrollRight ? styles.carouselEdgeVisible : ""}`} />
     </div>
   );
 }
