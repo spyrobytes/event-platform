@@ -1,10 +1,9 @@
 "use client";
 
+import type { DetailsSection } from "@/schemas/event-page";
+
 type DetailsV2Props = {
-  data: {
-    dateText: string;
-    locationText: string;
-  };
+  data: DetailsSection["data"];
 };
 
 /**
@@ -67,6 +66,7 @@ export function DetailsV2({ data }: DetailsV2Props) {
           <DetailCard
             eyebrow="Where"
             title="Venue"
+            description={data.venueDescription}
             infoRows={[
               { key: "Location", value: locationText },
             ]}

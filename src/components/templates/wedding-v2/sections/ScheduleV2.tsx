@@ -9,8 +9,11 @@ type ScheduleV2Props = { data: ScheduleSection["data"] };
  * time callout, title, and optional description.
  */
 export function ScheduleV2({ data }: ScheduleV2Props) {
-  const { items } = data;
+  const { items, heading, description } = data;
   const hasItems = items && items.length > 0;
+  const displayHeading = heading || "Day of Events";
+  const kickerText = "Schedule";
+  const showKicker = kickerText.toLowerCase() !== displayHeading.toLowerCase();
 
   return (
     <section
@@ -26,20 +29,22 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
       >
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
-          <p
-            className="v2-kicker"
-            style={{
-              fontFamily: "var(--sans)",
-              fontSize: "var(--sm, 0.85rem)",
-              fontWeight: 500,
-              letterSpacing: ".18em",
-              textTransform: "uppercase" as const,
-              color: "var(--accent, #7a8c72)",
-              marginBottom: 12,
-            }}
-          >
-            Schedule
-          </p>
+          {showKicker && (
+            <p
+              className="v2-kicker"
+              style={{
+                fontFamily: "var(--sans)",
+                fontSize: "var(--sm, 0.85rem)",
+                fontWeight: 500,
+                letterSpacing: ".18em",
+                textTransform: "uppercase" as const,
+                color: "var(--accent, #7a8c72)",
+                marginBottom: 12,
+              }}
+            >
+              {kickerText}
+            </p>
+          )}
           <h2
             style={{
               fontFamily: "var(--serif)",
@@ -49,8 +54,13 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
               color: "var(--night, #1e1b17)",
             }}
           >
-            Day of Events
+            {displayHeading}
           </h2>
+          {description && (
+            <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
+              {description}
+            </p>
+          )}
         </div>
 
         {/* Card list */}

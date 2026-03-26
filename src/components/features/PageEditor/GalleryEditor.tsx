@@ -29,6 +29,7 @@ type GalleryEditorProps = {
   assets: Asset[];
   onChange: (data: GallerySection["data"]) => void;
   maxImages?: number;
+  templateId?: string;
 };
 
 /**
@@ -40,6 +41,7 @@ export function GalleryEditor({
   assets,
   onChange,
   maxImages = 20,
+  templateId,
 }: GalleryEditorProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
@@ -179,9 +181,9 @@ export function GalleryEditor({
               }
             >
               <option value="grid">Grid</option>
-              <option value="carousel">Carousel</option>
+              {templateId !== "wedding_v2" && <option value="carousel">Carousel</option>}
               <option value="masonry">Masonry</option>
-              <option value="slideshow">Slideshow</option>
+              {templateId !== "wedding_v2" && <option value="slideshow">Slideshow</option>}
             </Select>
           </div>
 

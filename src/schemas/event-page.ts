@@ -102,6 +102,7 @@ export type SectionVisibility = z.infer<typeof sectionVisibilitySchema>;
 export const detailsSectionDataSchema = z.object({
   dateText: z.string().max(100, "Date text must be 100 characters or less"),
   locationText: z.string().max(200, "Location text must be 200 characters or less"),
+  venueDescription: z.string().max(300, "Venue description must be 300 characters or less").optional(),
 });
 
 export const detailsSectionSchema = z.object({
@@ -119,6 +120,8 @@ export const scheduleItemSchema = z.object({
 });
 
 export const scheduleSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").optional(),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
   items: z.array(scheduleItemSchema).max(20, "Maximum 20 schedule items allowed"),
 });
 
@@ -136,6 +139,8 @@ export const faqItemSchema = z.object({
 });
 
 export const faqSectionDataSchema = z.object({
+  heading: z.string().max(80, "Heading must be 80 characters or less").optional(),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
   items: z.array(faqItemSchema).max(10, "Maximum 10 FAQ items allowed"),
 });
 
@@ -383,11 +388,14 @@ export const weddingPartySectionSchema = z.object({
 });
 
 // Attire Section - Dress code guidance
+export const attireIconStyleSchema = z.enum(["auto", "formal", "casual"]);
+
 export const attireSectionDataSchema = z.object({
   heading: z.string().max(60, "Heading must be 60 characters or less").default("Dress Code"),
   dressCode: z.string().min(1, "Dress code is required").max(50, "Dress code must be 50 characters or less"),
   notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
   colors: z.array(z.string().max(30)).max(6, "Maximum 6 suggested colors").optional(),
+  iconStyle: attireIconStyleSchema.optional(),
 });
 
 export const attireSectionSchema = z.object({
@@ -428,6 +436,7 @@ export const registryItemSchema = z.object({
   logoAssetId: z.string().cuid().optional(),
   description: z.string().max(200, "Description must be 200 characters or less").optional(),
   note: z.string().max(200, "Note must be 200 characters or less").optional(),
+  featured: z.boolean().optional(),
 });
 
 export const registrySectionDataSchema = z.object({
@@ -485,6 +494,7 @@ export type HotelItem = z.infer<typeof hotelItemSchema>;
 export type WeddingPartySection = z.infer<typeof weddingPartySectionSchema>;
 export type PartyMember = z.infer<typeof partyMemberSchema>;
 export type AttireSection = z.infer<typeof attireSectionSchema>;
+export type AttireIconStyle = z.infer<typeof attireIconStyleSchema>;
 export type ThingsToDoSection = z.infer<typeof thingsToDoSectionSchema>;
 export type ActivityItem = z.infer<typeof activityItemSchema>;
 export type ActivityCategory = z.infer<typeof activityCategorySchema>;
@@ -507,6 +517,7 @@ export const chromeConfigSchema = z.object({
   scrollProgress: z.boolean().optional(),
   mountainDividers: z.boolean().optional(),
   footerSkyline: z.boolean().optional(),
+  botanicals: z.boolean().optional(),
 });
 
 export const eventPageConfigV1Schema = z.object({

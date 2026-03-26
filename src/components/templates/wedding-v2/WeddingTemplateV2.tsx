@@ -102,6 +102,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     scrollProgress: chromeConfig?.scrollProgress ?? true,
     mountainDividers: chromeConfig?.mountainDividers ?? true,
     footerSkyline: chromeConfig?.footerSkyline ?? true,
+    botanicals: chromeConfig?.botanicals ?? true,
   };
 
   // V2 token system: user's primaryColor → --accent, fontPair → font families
@@ -116,7 +117,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
 
   // Build schedule cards from actual schedule section data for the hero float card
   const scheduleCards = useMemo(() => {
-    const scheduleSec = sections.find((s) => s.type === "schedule" && s.enabled);
+    const scheduleSec = sections.find((s) => s.type === "schedule");
     if (!scheduleSec || scheduleSec.type !== "schedule") return undefined;
     const items = scheduleSec.data.items;
     if (!items || items.length === 0) return undefined;
@@ -166,7 +167,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
       travelStay: <Botanical variant="gold" style={{ top: 80, right: "3%", width: 90, height: 150, transform: "rotate(12deg)" }} />,
     };
 
-    const botanical = BOTANICAL_PLACEMENTS[section.type] ?? null;
+    const botanical = chrome.botanicals ? (BOTANICAL_PLACEMENTS[section.type] ?? null) : null;
 
     const wrapWithChrome = (sectionElement: React.ReactNode) => (
       <Fragment key={key}>

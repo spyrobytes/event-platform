@@ -72,7 +72,8 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
           {items.map((item, index) => {
             const logoUrl = getAssetUrl(item.logoAssetId);
             const hasLink = item.url && item.url.length > 0;
-            const isPrimary = index === 0;
+            const hasFeatured = items.some((i) => i.featured);
+            const isPrimary = hasFeatured ? !!item.featured : index === 0;
 
             return (
               <div

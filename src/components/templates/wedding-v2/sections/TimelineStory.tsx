@@ -406,11 +406,6 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
                 alt="Couple photo"
                 loading="lazy"
               />
-              <div className={styles.photoCaption}>
-                <p className={styles.photoCaptionText}>
-                  {content ? content.slice(0, 80) : ""}
-                </p>
-              </div>
             </div>
           )}
         </div>

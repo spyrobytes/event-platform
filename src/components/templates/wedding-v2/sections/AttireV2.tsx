@@ -91,7 +91,7 @@ function CasualIcon() {
   );
 }
 
-function isFormal(dressCode: string): boolean {
+function detectFormal(dressCode: string): boolean {
   const lower = dressCode.toLowerCase();
   return (
     lower.includes("formal") ||
@@ -100,6 +100,12 @@ function isFormal(dressCode: string): boolean {
     lower.includes("gala") ||
     lower.includes("white tie")
   );
+}
+
+function shouldShowFormalIcon(iconStyle: string | undefined, dressCode: string): boolean {
+  if (iconStyle === "formal") return true;
+  if (iconStyle === "casual") return false;
+  return detectFormal(dressCode);
 }
 
 export function AttireV2({ data }: AttireV2Props) {
@@ -183,7 +189,7 @@ export function AttireV2({ data }: AttireV2Props) {
           <div style={{ padding: "clamp(32px, 5vw, 48px) clamp(24px, 4vw, 40px)" }}>
             {/* Icon */}
             {hasDressCode && (
-              isFormal(data.dressCode) ? <FormalIcon /> : <CasualIcon />
+              shouldShowFormalIcon(data.iconStyle, data.dressCode) ? <FormalIcon /> : <CasualIcon />
             )}
 
             {/* Dress code text */}

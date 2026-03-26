@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   TemplateSelector,
@@ -648,6 +649,7 @@ export default function PageEditorPage() {
                 { key: "scrollProgress" as const, label: "Scroll Progress Bar", desc: "Thin accent bar at the top" },
                 { key: "mountainDividers" as const, label: "Mountain Dividers", desc: "SVG mountain range between sections" },
                 { key: "footerSkyline" as const, label: "Footer Skyline", desc: "Mountain skyline above the footer" },
+                { key: "botanicals" as const, label: "Botanical Accents", desc: "Decorative leaf flourishes on sections" },
               ].map(({ key, label, desc }) => (
                 <label key={key} className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-muted/50">
                   <input
@@ -703,9 +705,9 @@ export default function PageEditorPage() {
                 value={config.theme.fontPair}
                 onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
               >
-                <option value="modern">Modern</option>
-                <option value="classic">Classic</option>
-                <option value="serif_sans">Serif + Sans</option>
+                <option value="modern">Modern (DM Sans)</option>
+                <option value="classic">Classic (Playfair Display + Source Serif)</option>
+                <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
               </Select>
             </div>
           </div>
@@ -987,25 +989,96 @@ export default function PageEditorPage() {
                     placeholder="e.g., Grand Ballroom, City Hotel"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Venue Description (optional)</Label>
+                  <Textarea
+                    value={section.data.venueDescription || ""}
+                    onChange={(e) =>
+                      updateSection(index, {
+                        data: { ...section.data, venueDescription: e.target.value || undefined },
+                      })
+                    }
+                    placeholder="e.g., A stunning waterfront venue with panoramic views..."
+                    rows={2}
+                    maxLength={300}
+                  />
+                </div>
               </div>
             )}
             {section.type === "schedule" && (
-              <ScheduleEditor
-                items={section.data.items}
-                onChange={(items) => updateSectionData(index, { items })}
-              />
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Section Heading</Label>
+                    <Input
+                      value={section.data.heading || ""}
+                      onChange={(e) => updateSection(index, {
+                        data: { ...section.data, heading: e.target.value || undefined },
+                      })}
+                      placeholder="Day of Events"
+                      maxLength={80}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description (optional)</Label>
+                    <Input
+                      value={section.data.description || ""}
+                      onChange={(e) => updateSection(index, {
+                        data: { ...section.data, description: e.target.value || undefined },
+                      })}
+                      placeholder="A brief overview of the day's events"
+                      maxLength={300}
+                    />
+                  </div>
+                </div>
+                <ScheduleEditor
+                  items={section.data.items}
+                  onChange={(items) => updateSection(index, {
+                    data: { ...section.data, items },
+                  })}
+                />
+              </div>
             )}
             {section.type === "faq" && (
-              <FAQEditor
-                items={section.data.items}
-                onChange={(items) => updateSectionData(index, { items })}
-              />
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Section Heading</Label>
+                    <Input
+                      value={section.data.heading || ""}
+                      onChange={(e) => updateSection(index, {
+                        data: { ...section.data, heading: e.target.value || undefined },
+                      })}
+                      placeholder="Common Questions"
+                      maxLength={80}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description (optional)</Label>
+                    <Input
+                      value={section.data.description || ""}
+                      onChange={(e) => updateSection(index, {
+                        data: { ...section.data, description: e.target.value || undefined },
+                      })}
+                      placeholder="Answers to frequently asked questions"
+                      maxLength={300}
+                    />
+                  </div>
+                </div>
+                <FAQEditor
+                  items={section.data.items}
+                  onChange={(items) => updateSection(index, {
+                    data: { ...section.data, items },
+                  })}
+                />
+              </div>
             )}
             {section.type === "gallery" && (
               <GalleryEditor
                 data={section.data}
                 assets={pageData?.assets || []}
                 onChange={(data) => updateSectionData(index, data)}
+                templateId={templateId}
               />
             )}
             {section.type === "rsvp" && (

@@ -72,7 +72,7 @@ export function TravelStayV2({ data }: TravelStayV2Props) {
           }}>
             <InfoCard
               eyebrow="Getting In"
-              title={airports.length > 0 ? `${airports[0].code} Airport` : "Getting There"}
+              title={airports.length === 1 ? `${airports[0].code} Airport` : "Nearest Airports"}
               infoRows={airports.map((a) => ({
                 key: a.code,
                 value: `${a.name}${a.distance ? ` · ${a.distance}` : ""}`,

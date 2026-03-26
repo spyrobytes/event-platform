@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { AttireSection } from "@/schemas/event-page";
 
@@ -103,6 +104,19 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="attire-icon">Icon Style</Label>
+        <Select
+          id="attire-icon"
+          value={data.iconStyle || "auto"}
+          onChange={(e) => onChange({ ...data, iconStyle: e.target.value as "auto" | "formal" | "casual" })}
+        >
+          <option value="auto">Auto (detected from dress code)</option>
+          <option value="formal">Formal (bow tie)</option>
+          <option value="casual">Casual (garment)</option>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="attire-notes">Additional Notes (optional)</Label>
         <Textarea
           id="attire-notes"
@@ -118,7 +132,7 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
       <div className="space-y-2">
         <Label>Suggested Colors (optional)</Label>
         <p className="text-xs text-muted-foreground">
-          Help guests coordinate by suggesting colors for their attire
+          Use hex codes (e.g., #2C5F7C) for colored swatches, or text names for labels only
         </p>
 
         {colors.length > 0 && (

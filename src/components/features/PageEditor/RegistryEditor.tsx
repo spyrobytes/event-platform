@@ -83,6 +83,27 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
         <Label>Registry Items</Label>
         {items.map((item, index) => (
           <div key={index} className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!item.featured}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      const newItems = items.map((it, i) => ({
+                        ...it,
+                        featured: i === index ? true : undefined,
+                      }));
+                      onChange({ ...data, items: newItems });
+                    } else {
+                      updateItem(index, { featured: undefined });
+                    }
+                  }}
+                  className="rounded"
+                />
+                <span className="text-muted-foreground">Featured (gold CTA button)</span>
+              </label>
+            </div>
             <div className="flex items-start gap-2">
               <div className="flex-1 space-y-2">
                 <Input
