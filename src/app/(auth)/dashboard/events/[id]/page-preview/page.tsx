@@ -283,8 +283,12 @@ export default function PagePreviewPage() {
         </div>
       </div>
 
-      {/* Preview frame */}
-      <div className="overflow-hidden rounded-lg border shadow-lg">
+      {/* Preview frame — transform creates a containing block so the
+           template's position:fixed topbar/scroll-progress stays inside */}
+      <div
+        className="overflow-hidden rounded-lg border shadow-lg"
+        style={{ transform: "translateZ(0)", isolation: "isolate" }}
+      >
         <Template
           config={filteredConfig!}
           assets={templateAssets}

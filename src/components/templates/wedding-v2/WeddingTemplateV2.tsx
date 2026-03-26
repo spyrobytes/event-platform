@@ -39,9 +39,10 @@ import {
   MapV2,
 } from "./sections";
 
-// V2 tokens + footer
+// V2 tokens + footer + global styles
 import { getV2CSSVariables, getV2FontUrl, v2TokensToInline, V2 } from "./tokens";
 import { WeddingV2Footer } from "./WeddingV2Footer";
+import "./WeddingTemplateV2.module.css";
 
 import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
 
@@ -378,129 +379,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
           {/* Floating Section Navigation */}
           <SectionNav accentColor={primaryColor} />
 
-          {/* Global styles for V2 — typography, atmosphere, section rhythm */}
-          <style>{`
-            /* Typography */
-            .wedding-template-v2 h1,
-            .wedding-template-v2 h2,
-            .wedding-template-v2 h3 {
-              font-family: var(--serif);
-              font-weight: 400;
-              line-height: 1.15;
-            }
-            .wedding-template-v2 h1 {
-              font-size: var(--h1);
-              letter-spacing: -.02em;
-              color: var(--night);
-            }
-            .wedding-template-v2 h2 {
-              font-size: var(--h2);
-              letter-spacing: -.015em;
-              color: var(--night);
-            }
-            .wedding-template-v2 h3 {
-              font-size: var(--h3);
-              letter-spacing: -.01em;
-              color: var(--charcoal);
-            }
-            .wedding-template-v2 img {
-              display: block;
-              max-width: 100%;
-              height: auto;
-            }
-            .wedding-template-v2 a {
-              color: inherit;
-              text-decoration: none;
-            }
-
-            /* Link hover — inside-out underline using accent color */
-            .wedding-template-v2 a:not([class]) {
-              position: relative;
-              display: inline;
-            }
-            .wedding-template-v2 a:not([class])::after {
-              content: '';
-              position: absolute;
-              bottom: -1px;
-              left: 50%;
-              width: 0;
-              height: 1.5px;
-              background: var(--accent, #7a8c72);
-              transition: width .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)),
-                          left .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1));
-            }
-            .wedding-template-v2 a:not([class]):hover::after {
-              width: 100%;
-              left: 0;
-            }
-
-            /* Global button accent — all pill buttons use accent color */
-            .wedding-template-v2 .v2-btn-primary {
-              background: var(--accent, #7a8c72);
-              color: #fff;
-              border: 1px solid var(--accent, #7a8c72);
-            }
-            .wedding-template-v2 .v2-btn-primary:hover {
-              filter: brightness(0.88);
-              transform: translateY(-1px);
-              box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-            }
-            .wedding-template-v2 .v2-btn-outline {
-              border-color: var(--sand, #d4cabb);
-            }
-            .wedding-template-v2 .v2-btn-outline:hover {
-              border-color: var(--accent, #7a8c72);
-              color: var(--accent, #7a8c72);
-            }
-
-            /* Alternating section backgrounds — cream on story, party, registry, faq, attire */
-            .wedding-template-v2 #story,
-            .wedding-template-v2 #party,
-            .wedding-template-v2 #registry,
-            .wedding-template-v2 #faq,
-            .wedding-template-v2 #attire {
-              background: var(--cream, #f0ebe3);
-            }
-
-            /* Noise texture overlay — subtle film-grain warmth */
-            .wedding-template-v2::before {
-              content: '';
-              position: fixed;
-              inset: 0;
-              z-index: 9999;
-              pointer-events: none;
-              opacity: 0.028;
-              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-              background-repeat: repeat;
-              background-size: 200px 200px;
-            }
-
-            /* Kicker underline draw animation — sage-to-gold gradient */
-            .wedding-template-v2 .v2-kicker {
-              position: relative;
-              display: inline-block;
-            }
-            .wedding-template-v2 .v2-kicker::after {
-              content: '';
-              position: absolute;
-              bottom: -4px;
-              left: 0;
-              width: 100%;
-              height: 1.5px;
-              background: linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--gold-l, #ddc07a));
-              transform: scaleX(0);
-              transform-origin: left;
-              animation: v2KickerDraw .8s .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)) forwards;
-            }
-            @keyframes v2KickerDraw {
-              to { transform: scaleX(1); }
-            }
-
-            @media (prefers-reduced-motion: reduce) {
-              .wedding-template-v2::before { display: none; }
-              .wedding-template-v2 .v2-kicker::after { transform: scaleX(1); animation: none; }
-            }
-          `}</style>
+          {/* Global V2 styles loaded via WeddingTemplateV2.module.css */}
         </AnimationProvider>
       </SectionNavProvider>
     </TemporalProvider>
