@@ -99,28 +99,54 @@
   background-size: 200px 200px;
 }
 
-/* Kicker underline draw animation — sage-to-gold gradient */
+/* =================================================================
+   PREMIUM SECTION HEADERS
+   1. Flanking decorative lines on kickers (hero eyebrow pattern)
+   2. Ornamental separator between kicker and heading
+   3. Section h2 in italic serif for warmth
+================================================================= */
+
+/* Kicker — flanking gradient lines + underline draw */
 :global(.wedding-template-v2 .v2-kicker) {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
 }
+/* Flanking lines — accent→transparent gradient */
+:global(.wedding-template-v2 .v2-kicker)::before,
 :global(.wedding-template-v2 .v2-kicker)::after {
   content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 100%;
+  width: 44px;
   height: 1.5px;
-  background: linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--gold-l, #ddc07a));
-  transform: scaleX(0);
-  transform-origin: left;
-  animation: v2KickerDraw 0.8s 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  background: linear-gradient(90deg, transparent, var(--accent, #7a8c72));
+  flex-shrink: 0;
 }
-@keyframes v2KickerDraw {
-  to { transform: scaleX(1); }
+:global(.wedding-template-v2 .v2-kicker)::after {
+  background: linear-gradient(90deg, var(--accent, #7a8c72), transparent);
+}
+
+/* Ornamental separator — small diamond glyph between kicker and heading */
+:global(.wedding-template-v2 .v2-kicker) + h2::before {
+  content: '◇';
+  display: block;
+  font-size: 0.75rem;
+  color: var(--stone, #a69e93);
+  letter-spacing: 0.3em;
+  margin-bottom: 10px;
+}
+
+/* Section h2 — italic serif for premium warmth */
+:global(.wedding-template-v2) section h2 {
+  font-weight: 300;
+  font-style: italic;
+}
+/* Card-level h3 stays upright */
+:global(.wedding-template-v2) section h3 {
+  font-style: normal;
+  font-weight: 400;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :global(.wedding-template-v2)::before { display: none; }
-  :global(.wedding-template-v2 .v2-kicker)::after { transform: scaleX(1); animation: none; }
 }
