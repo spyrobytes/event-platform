@@ -16,6 +16,8 @@ type RegistrySectionProps = {
  */
 export function RegistrySection({ data, assets }: RegistrySectionProps) {
   const { heading = "Gift Registry", description, items } = data;
+  const kickerText = "Gift Registry";
+  const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
   const getAssetUrl = (assetId?: string): string | null => {
     if (!assetId) return null;
@@ -32,17 +34,19 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
       <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
-          <p className="v2-kicker" style={{
-            fontFamily: "var(--sans)",
-            fontSize: "var(--sm, 0.85rem)",
-            fontWeight: 500,
-            letterSpacing: ".18em",
-            textTransform: "uppercase" as const,
-            color: "var(--accent, #7a8c72)",
-            marginBottom: 12,
-          }}>
-            Gift Registry
-          </p>
+          {showKicker && (
+            <p className="v2-kicker" style={{
+              fontFamily: "var(--sans)",
+              fontSize: "var(--sm, 0.85rem)",
+              fontWeight: 500,
+              letterSpacing: ".18em",
+              textTransform: "uppercase" as const,
+              color: "var(--accent, #7a8c72)",
+              marginBottom: 12,
+            }}>
+              {kickerText}
+            </p>
+          )}
           <h2 style={{
             fontFamily: "var(--serif)",
             fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",

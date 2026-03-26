@@ -11,6 +11,7 @@ type CinematicHeroProps = {
   config: HeroConfig;
   heroAsset?: MediaAsset | null;
   scheduleCards?: ScheduleCard[];
+  hasDetailsSection?: boolean;
 };
 
 /**
@@ -24,6 +25,7 @@ export function CinematicHero({
   config,
   heroAsset,
   scheduleCards: scheduleCardsProp,
+  hasDetailsSection = false,
 }: CinematicHeroProps) {
   const {
     title,
@@ -116,8 +118,8 @@ export function CinematicHero({
             </h1>
           )}
 
-          {/* CTA button — links to event details */}
-          {isCinematic && (
+          {/* CTA button — links to event details (only if details section exists) */}
+          {isCinematic && hasDetailsSection && (
             <div className={styles.cta}>
               <a href="#details" className={`${styles.btn} ${styles.btnPrimary}`}>
                 View Details

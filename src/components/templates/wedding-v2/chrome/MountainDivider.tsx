@@ -52,7 +52,7 @@ function RiverPattern({ flip }: { flip: boolean }) {
       aria-hidden="true"
       style={{
         display: "block",
-        margin: "var(--section-y, 96px) auto",
+        margin: "clamp(8px, 1.5vw, 16px) auto",
         maxWidth: 280,
         height: 32,
         color: "var(--sand, #d4cabb)",
@@ -89,7 +89,7 @@ function TreelinePattern({ flip }: { flip: boolean }) {
       aria-hidden="true"
       style={{
         display: "block",
-        margin: "var(--section-y, 96px) auto",
+        margin: "clamp(8px, 1.5vw, 16px) auto",
         maxWidth: 280,
         height: 32,
         color: "var(--sand, #d4cabb)",
@@ -164,7 +164,7 @@ export function MountainDivider({
       aria-hidden="true"
       style={{
         display: "block",
-        margin: "var(--section-y, 96px) auto",
+        margin: "clamp(8px, 1.5vw, 16px) auto",
         maxWidth: 280,
         height: 32,
         color: "var(--sand, #d4cabb)",

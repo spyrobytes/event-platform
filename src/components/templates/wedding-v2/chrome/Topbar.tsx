@@ -167,9 +167,6 @@ export function Topbar({
             </button>
           )}
 
-          <a href="#rsvp" className={styles.rsvpBtn}>
-            RSVP
-          </a>
         </div>
       </div>
     </header>

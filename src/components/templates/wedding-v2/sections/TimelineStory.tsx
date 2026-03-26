@@ -49,6 +49,8 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
   };
 
   const storyPhotoUrl = getAssetUrl(imageAssetId);
+  const kickerText = "Our Story";
+  const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
   const hasMilestones = milestones.length > 0;
   // Respect the user's layout choice:
   // - "full": text-only, ignores milestones
@@ -266,12 +268,14 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
       <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
         {/* Section header */}
         <div className={styles.sectionHeader}>
-          <p
-            ref={kickerRef}
-            className={`${styles.kicker} ${kickerDrawn ? styles.kickerDrawn : ""}`}
-          >
-            Our Story
-          </p>
+          {showKicker && (
+            <p
+              ref={kickerRef}
+              className={`${styles.kicker} ${kickerDrawn ? styles.kickerDrawn : ""}`}
+            >
+              {kickerText}
+            </p>
+          )}
           <h2 className={styles.heading}>{heading}</h2>
           {content && <p className={styles.intro}>{content}</p>}
         </div>

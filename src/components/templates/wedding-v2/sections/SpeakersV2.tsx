@@ -73,6 +73,8 @@ function getInitials(name: string): string {
 
 export function SpeakersV2({ data, assets }: SpeakersV2Props) {
   const { heading = "Speakers", description, items } = data;
+  const kickerText = "Speakers";
+  const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
   const getAssetUrl = (assetId?: string): string | null => {
     if (!assetId) return null;
@@ -257,20 +259,22 @@ export function SpeakersV2({ data, assets }: SpeakersV2Props) {
       >
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
-          <p
-            className="v2-kicker"
-            style={{
-              fontFamily: "var(--sans)",
-              fontSize: "var(--sm, 0.85rem)",
-              fontWeight: 500,
-              letterSpacing: ".18em",
-              textTransform: "uppercase" as const,
-              color: "var(--accent, #7a8c72)",
-              marginBottom: 12,
-            }}
-          >
-            Speakers
-          </p>
+          {showKicker && (
+            <p
+              className="v2-kicker"
+              style={{
+                fontFamily: "var(--sans)",
+                fontSize: "var(--sm, 0.85rem)",
+                fontWeight: 500,
+                letterSpacing: ".18em",
+                textTransform: "uppercase" as const,
+                color: "var(--accent, #7a8c72)",
+                marginBottom: 12,
+              }}
+            >
+              {kickerText}
+            </p>
+          )}
           <h2
             style={{
               fontFamily: "var(--serif)",

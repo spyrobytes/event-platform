@@ -104,6 +104,8 @@ function isFormal(dressCode: string): boolean {
 
 export function AttireV2({ data }: AttireV2Props) {
   const heading = data.heading || "Dress Code";
+  const kickerText = "Dress Code";
+  const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
   const hasDressCode = !!data.dressCode;
   const hasColors = data.colors && data.colors.length > 0;
 
@@ -121,20 +123,22 @@ export function AttireV2({ data }: AttireV2Props) {
       >
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
-          <p
-            className="v2-kicker"
-            style={{
-              fontFamily: "var(--sans)",
-              fontSize: "var(--sm, 0.85rem)",
-              fontWeight: 500,
-              letterSpacing: ".18em",
-              textTransform: "uppercase" as const,
-              color: "var(--accent, #7a8c72)",
-              marginBottom: 12,
-            }}
-          >
-            Dress Code
-          </p>
+          {showKicker && (
+            <p
+              className="v2-kicker"
+              style={{
+                fontFamily: "var(--sans)",
+                fontSize: "var(--sm, 0.85rem)",
+                fontWeight: 500,
+                letterSpacing: ".18em",
+                textTransform: "uppercase" as const,
+                color: "var(--accent, #7a8c72)",
+                marginBottom: 12,
+              }}
+            >
+              {kickerText}
+            </p>
+          )}
           <h2
             style={{
               fontFamily: "var(--serif)",

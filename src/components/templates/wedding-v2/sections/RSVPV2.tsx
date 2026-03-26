@@ -10,6 +10,8 @@ type RSVPV2Props = {
 
 export function RSVPV2({ data, eventId }: RSVPV2Props) {
   const heading = data.heading || "RSVP";
+  const kickerText = "RSVP";
+  const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
   return (
     <section
@@ -25,20 +27,22 @@ export function RSVPV2({ data, eventId }: RSVPV2Props) {
       >
         {/* Section header */}
         <div style={{ textAlign: "center", marginBottom: "clamp(32px, 5vw, 56px)" }}>
-          <p
-            className="v2-kicker"
-            style={{
-              fontFamily: "var(--sans)",
-              fontSize: "var(--sm, 0.85rem)",
-              fontWeight: 500,
-              letterSpacing: ".18em",
-              textTransform: "uppercase" as const,
-              color: "var(--accent, #7a8c72)",
-              marginBottom: 12,
-            }}
-          >
-            RSVP
-          </p>
+          {showKicker && (
+            <p
+              className="v2-kicker"
+              style={{
+                fontFamily: "var(--sans)",
+                fontSize: "var(--sm, 0.85rem)",
+                fontWeight: 500,
+                letterSpacing: ".18em",
+                textTransform: "uppercase" as const,
+                color: "var(--accent, #7a8c72)",
+                marginBottom: 12,
+              }}
+            >
+              {kickerText}
+            </p>
+          )}
           <h2
             style={{
               fontFamily: "var(--serif)",

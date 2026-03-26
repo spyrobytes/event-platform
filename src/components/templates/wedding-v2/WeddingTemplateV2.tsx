@@ -354,6 +354,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
               config={hero}
               heroAsset={heroAsset}
               scheduleCards={scheduleCards}
+              hasDetailsSection={sections.some((s) => s.type === "details" && s.enabled)}
             />
 
             {/* Temporal Hero Overlay */}
