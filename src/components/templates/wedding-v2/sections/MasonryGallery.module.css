@@ -1,5 +1,13 @@
 /* ===== GALLERY — POC parity: 12-col asymmetric grid + lightbox ===== */
 
+.sectionWrapper {
+  padding: var(--section-y, 96px) 0;
+}
+.sectionInner {
+  width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
 .sectionHeader {
   margin-bottom: clamp(32px, 5vw, 56px);
   text-align: center;
@@ -443,6 +451,7 @@
 
 .carouselCard {
   flex: 0 0 min(420px, 75vw);
+  aspect-ratio: 3 / 4;
   scroll-snap-align: center;
   border-radius: var(--r-lg, 24px);
   overflow: hidden;
@@ -463,8 +472,6 @@
 }
 
 .carouselCard img {
-  width: 100%;
-  aspect-ratio: 3 / 4;
   object-fit: cover;
   display: block;
   transition: transform 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));

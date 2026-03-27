@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import Image from "next/image";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
+import { cn } from "@/lib/utils";
 import styles from "./MasonryGallery.module.css";
 
 type GalleryV2Props = {
@@ -31,59 +33,63 @@ const SPAN_CLASSES = [
 ];
 
 /**
+ * Maps each slideshow transition name to its CSS duration in ms.
+ * Must stay in sync with the transition durations in MasonryGallery.module.css.
+ */
+const TRANSITION_DURATIONS: Record<string, number> = {
+  fade: 700,
+  zoom: 700,
+  slide: 600,
+  flip: 600,
+};
+
+/**
  * V2 Gallery — supports masonry, grid, slideshow, and carousel display modes.
- *
- * Masonry: 12-column asymmetric grid with specific span patterns.
- * Grid: even columns with consistent sizing.
- * Slideshow: cinematic full-width hero slideshow with transitions and autoplay.
- * Carousel: horizontal scroll strip with snap points and peek.
  *
  * All modes share the same lightbox and resolved items.
  */
 export function MasonryGallery({ data, assets }: GalleryV2Props) {
-  const { heading, items, displayMode, showCaptions, autoPlay, autoPlayInterval, transition } = normalizeGalleryData(data);
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const { heading, items, displayMode, showCaptions, autoPlay, autoPlayInterval, transition } =
+    normalizeGalleryData(data);
 
-  // Resolve asset URLs (memoized for stable reference)
-  const resolvedItems = useMemo(() =>
-    items
-      .map((item) => {
-        const asset = assets.find((a) => a.id === item.assetId);
-        if (!asset?.publicUrl) return null;
-        return {
-          ...item,
-          url: asset.publicUrl,
-          alt: asset.alt || item.caption || item.title || "Gallery image",
-        };
-      })
-      .filter(Boolean) as Array<{
-      assetId: string;
-      caption?: string;
-      title?: string;
-      moment?: string;
-      url: string;
-      alt: string;
-    }>,
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const isLightboxOpen = lightboxIndex !== null;
+
+  const resolvedItems = useMemo(
+    () =>
+      items
+        .map((item) => {
+          const asset = assets.find((a) => a.id === item.assetId);
+          if (!asset?.publicUrl) return null;
+          return {
+            ...item,
+            url: asset.publicUrl,
+            alt: asset.alt || item.caption || item.title || "Gallery image",
+          };
+        })
+        .filter(Boolean) as ResolvedItem[],
     [items, assets]
   );
 
   const itemCount = resolvedItems.length;
 
-  // Lightbox navigation
-  const closeLightbox = () => setLightboxIndex(null);
-  const showPrev = () => {
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+
+  const showPrev = useCallback(() => {
     setLightboxIndex((prev) =>
       prev !== null ? (prev - 1 + itemCount) % itemCount : null
     );
-  };
-  const showNext = () => {
+  }, [itemCount]);
+
+  const showNext = useCallback(() => {
     setLightboxIndex((prev) =>
       prev !== null ? (prev + 1) % itemCount : null
     );
-  };
+  }, [itemCount]);
 
+  // Lightbox keyboard handler and body scroll lock.
   useEffect(() => {
-    if (lightboxIndex === null) return;
+    if (!isLightboxOpen) return;
     document.body.style.overflow = "hidden";
 
     const handleKey = (e: KeyboardEvent) => {
@@ -96,17 +102,12 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
       document.body.style.overflow = "";
       document.removeEventListener("keydown", handleKey);
     };
-  }, [lightboxIndex, closeLightbox, showNext, showPrev]);
+  }, [isLightboxOpen, closeLightbox, showNext, showPrev]);
 
   if (resolvedItems.length === 0) {
     return (
-      <section
-        className="section"
-        style={{ padding: "var(--section-y, 96px) 0" }}
-        aria-label="Gallery"
-        id="gallery"
-      >
-        <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
+      <section className={cn("section", styles.sectionWrapper)} aria-label="Gallery" id="gallery">
+        <div className={styles.sectionInner}>
           <div className={styles.sectionHeader}>
             <p className={styles.kicker}>Gallery</p>
             <h2 className={styles.heading}>{heading}</h2>
@@ -126,6 +127,7 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
           autoPlay={autoPlay}
           autoPlayInterval={autoPlayInterval}
           transition={transition}
+          isLightboxOpen={isLightboxOpen}
           onOpen={(i) => setLightboxIndex(i)}
         />
       );
@@ -143,13 +145,17 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
 
     const isMasonry = displayMode === "masonry";
     return (
-      <div className={isMasonry ? styles.grid : styles.gridEven} role="group" aria-label="Photo gallery">
+      <div
+        className={isMasonry ? styles.grid : styles.gridEven}
+        role="group"
+        aria-label="Photo gallery"
+      >
         {resolvedItems.map((item, index) => (
           <GalleryItem
             key={item.assetId}
             item={item}
             index={index}
-            spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : ""}
+            spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : undefined}
             showCaption={showCaptions}
             onOpen={() => setLightboxIndex(index)}
           />
@@ -159,13 +165,8 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
   };
 
   return (
-    <section
-      className="section"
-      style={{ padding: "var(--section-y, 96px) 0" }}
-      aria-label="Gallery"
-      id="gallery"
-    >
-      <div style={{ width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))", margin: "0 auto" }}>
+    <section className={cn("section", styles.sectionWrapper)} aria-label="Gallery" id="gallery">
+      <div className={styles.sectionInner}>
         <div className={styles.sectionHeader}>
           <p className={styles.kicker}>Gallery</p>
           <h2 className={styles.heading}>{heading}</h2>
@@ -174,11 +175,11 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
         {renderGalleryContent()}
       </div>
 
-      {/* Lightbox */}
-      {lightboxIndex !== null && (
+      {/* Lightbox — rendered outside the constrained container so it can be fixed/full-screen */}
+      {isLightboxOpen && (
         <Lightbox
           items={resolvedItems}
-          index={lightboxIndex}
+          index={lightboxIndex as number}
           onClose={closeLightbox}
           onPrev={showPrev}
           onNext={showNext}
@@ -187,6 +188,10 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
     </section>
   );
 }
+
+// =============================================================================
+// GALLERY ITEM (masonry / grid mode)
+// =============================================================================
 
 /** Individual gallery item with 3D tilt on hover */
 function GalleryItem({
@@ -198,13 +203,14 @@ function GalleryItem({
 }: {
   item: { url: string; alt: string; caption?: string; title?: string };
   index: number;
-  spanClass: string;
+  spanClass?: string;
   showCaption: boolean;
   onOpen: () => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
 
-  // 3D tilt effect on mousemove
+  // 3D tilt effect on mousemove — imperative because the transform values are
+  // computed from live mouse coordinates, not expressible as static CSS.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -234,13 +240,15 @@ function GalleryItem({
   return (
     <button
       ref={ref}
-      className={`${styles.item} ${spanClass}`}
+      className={cn(styles.item, spanClass)}
       onClick={onOpen}
       aria-label={`View photo: ${captionText || `Photo ${index + 1}`}`}
     >
-      <img
+      <Image
         src={item.url}
         alt={item.alt}
+        fill
+        sizes="(max-width: 700px) 100vw, 50vw"
         loading={index > 2 ? "lazy" : undefined}
       />
       {showCaption && captionText && (
@@ -252,7 +260,14 @@ function GalleryItem({
   );
 }
 
-/** Full-screen lightbox with navigation */
+// =============================================================================
+// LIGHTBOX
+// =============================================================================
+
+/** Focusable elements query for focus trap */
+const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/** Full-screen lightbox with navigation and focus trap */
 function Lightbox({
   items,
   index,
@@ -266,49 +281,113 @@ function Lightbox({
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog on open.
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
+  // Focus trap — cycle Tab between interactive children of the dialog.
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleFocusTrap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first || document.activeElement === dialog) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    dialog.addEventListener("keydown", handleFocusTrap);
+    return () => dialog.removeEventListener("keydown", handleFocusTrap);
+  }, []);
+
   const item = items[index];
   const captionText = item.caption || item.title;
 
   return (
     <div
-      className={`${styles.lightbox} ${styles.lightboxOpen}`}
-      aria-hidden="false"
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image preview"
+      tabIndex={-1}
+      className={cn(styles.lightbox, styles.lightboxOpen)}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <button
-        className={styles.lightboxClose}
-        onClick={onClose}
-        aria-label="Close"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+      <button className={styles.lightboxClose} onClick={onClose} aria-label="Close">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          width={20}
+          height={20}
+        >
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
       </button>
 
       <button
-        className={`${styles.lightboxNav} ${styles.lightboxPrev}`}
+        className={cn(styles.lightboxNav, styles.lightboxPrev)}
         onClick={onPrev}
         aria-label="Previous image"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={22} height={22}>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          width={22}
+          height={22}
+        >
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
 
       <button
-        className={`${styles.lightboxNav} ${styles.lightboxNext}`}
+        className={cn(styles.lightboxNav, styles.lightboxNext)}
         onClick={onNext}
         aria-label="Next image"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={22} height={22}>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          width={22}
+          height={22}
+        >
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </button>
 
-      <div className={styles.lightboxStage} role="dialog" aria-modal="true" aria-label="Image preview">
+      <div className={styles.lightboxStage}>
+        {/* Lightbox keeps plain <img> — dynamic full-screen sizing doesn't suit next/image */}
         <img src={item.url} alt={item.alt} />
         {captionText && (
           <div className={styles.lightboxCaption}>{captionText}</div>
@@ -333,6 +412,7 @@ function Slideshow({
   autoPlay,
   autoPlayInterval,
   transition,
+  isLightboxOpen,
   onOpen,
 }: {
   items: ResolvedItem[];
@@ -340,85 +420,106 @@ function Slideshow({
   autoPlay: boolean;
   autoPlayInterval: number;
   transition: "fade" | "slide" | "zoom" | "flip";
+  isLightboxOpen: boolean;
   onOpen: (index: number) => void;
 }) {
   const [current, setCurrent] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const isTransitioningRef = useRef(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const goTo = useCallback(
     (index: number) => {
-      if (isTransitioning) return;
-      setIsTransitioning(true);
+      if (isTransitioningRef.current) return;
+      isTransitioningRef.current = true;
       setCurrent(index);
-      setTimeout(() => setIsTransitioning(false), 600);
+      setTimeout(
+        () => { isTransitioningRef.current = false; },
+        TRANSITION_DURATIONS[transition] ?? 600
+      );
     },
-    [isTransitioning]
+    [transition]
   );
 
-  const goNext = useCallback(() => {
-    goTo((current + 1) % items.length);
-  }, [current, items.length, goTo]);
+  const goNext = useCallback(
+    () => goTo((current + 1) % items.length),
+    [current, items.length, goTo]
+  );
 
-  const goPrev = useCallback(() => {
-    goTo((current - 1 + items.length) % items.length);
-  }, [current, items.length, goTo]);
+  const goPrev = useCallback(
+    () => goTo((current - 1 + items.length) % items.length),
+    [current, items.length, goTo]
+  );
 
-  // Autoplay
+  // Autoplay — suspended while the lightbox is open.
   useEffect(() => {
-    if (!autoPlay || items.length <= 1) return;
+    if (!autoPlay || items.length <= 1 || isLightboxOpen) return;
     timerRef.current = setTimeout(goNext, autoPlayInterval * 1000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [autoPlay, autoPlayInterval, current, goNext, items.length]);
+  }, [autoPlay, autoPlayInterval, current, goNext, items.length, isLightboxOpen]);
 
-  // Progress bar animation
+  // Progress bar animation — forced reflow guarantees transition restart.
   useEffect(() => {
     const el = progressRef.current;
-    if (!el || !autoPlay) return;
+    if (!el || !autoPlay || isLightboxOpen) return;
     el.style.transition = "none";
     el.style.width = "0%";
-    requestAnimationFrame(() => {
-      el.style.transition = `width ${autoPlayInterval}s linear`;
-      el.style.width = "100%";
-    });
-  }, [current, autoPlay, autoPlayInterval]);
+    void el.offsetWidth; // force reflow
+    el.style.transition = `width ${autoPlayInterval}s linear`;
+    el.style.width = "100%";
+  }, [current, autoPlay, autoPlayInterval, isLightboxOpen]);
 
-  // Keyboard navigation
+  // Keyboard navigation — gated behind isLightboxOpen to avoid double-fire.
   useEffect(() => {
+    if (isLightboxOpen) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") goNext();
       if (e.key === "ArrowLeft") goPrev();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, isLightboxOpen]);
 
   const transitionClass =
-    transition === "slide" ? styles.slideshowSlide
-      : transition === "zoom" ? styles.slideshowZoom
-        : transition === "flip" ? styles.slideshowFlip
+    transition === "slide"
+      ? styles.slideshowSlide
+      : transition === "zoom"
+        ? styles.slideshowZoom
+        : transition === "flip"
+          ? styles.slideshowFlip
           : styles.slideshowFade;
 
   const item = items[current];
   const captionText = item.caption || item.title;
 
   return (
-    <div className={styles.slideshow} role="region" aria-label="Photo slideshow" aria-roledescription="slideshow">
+    <div
+      className={styles.slideshow}
+      role="region"
+      aria-label="Photo slideshow"
+      aria-roledescription="slideshow"
+    >
       {/* Stage */}
-      <div
-        className={styles.slideshowStage}
-        onClick={() => onOpen(current)}
-      >
+      <div className={styles.slideshowStage} onClick={() => onOpen(current)}>
         {items.map((img, i) => (
           <div
             key={img.assetId}
-            className={`${styles.slideshowSlideItem} ${transitionClass} ${i === current ? styles.slideshowActive : ""}`}
+            className={cn(
+              styles.slideshowSlideItem,
+              transitionClass,
+              i === current && styles.slideshowActive,
+            )}
             aria-hidden={i !== current}
           >
-            <img src={img.url} alt={img.alt} />
+            <Image
+              src={img.url}
+              alt={img.alt}
+              fill
+              sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
+              priority={i === 0}
+            />
           </div>
         ))}
 
@@ -441,13 +542,37 @@ function Slideshow({
       {/* Navigation arrows */}
       {items.length > 1 && (
         <>
-          <button className={`${styles.slideshowNav} ${styles.slideshowNavPrev}`} onClick={goPrev} aria-label="Previous">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+          <button
+            className={cn(styles.slideshowNav, styles.slideshowNavPrev)}
+            onClick={goPrev}
+            aria-label="Previous"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              width={20}
+              height={20}
+            >
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <button className={`${styles.slideshowNav} ${styles.slideshowNavNext}`} onClick={goNext} aria-label="Next">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+          <button
+            className={cn(styles.slideshowNav, styles.slideshowNavNext)}
+            onClick={goNext}
+            aria-label="Next"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              width={20}
+              height={20}
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
@@ -460,7 +585,10 @@ function Slideshow({
           {items.map((_, i) => (
             <button
               key={i}
-              className={`${styles.slideshowDot} ${i === current ? styles.slideshowDotActive : ""}`}
+              className={cn(
+                styles.slideshowDot,
+                i === current && styles.slideshowDotActive,
+              )}
               onClick={() => goTo(i)}
               aria-label={`Go to photo ${i + 1}`}
             />
@@ -494,7 +622,7 @@ function Carousel({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const checkScroll = useCallback(() => {
     const el = trackRef.current;
@@ -518,12 +646,21 @@ function Carousel({
   const scroll = useCallback((direction: "left" | "right") => {
     const el = trackRef.current;
     if (!el) return;
-    const cardWidth = el.querySelector(`.${styles.carouselCard}`)?.clientWidth || 400;
-    el.scrollBy({ left: direction === "right" ? cardWidth + 20 : -(cardWidth + 20), behavior: "smooth" });
+    const cardWidth =
+      el.querySelector(`.${styles.carouselCard}`)?.clientWidth || 400;
+    el.scrollBy({
+      left: direction === "right" ? cardWidth + 20 : -(cardWidth + 20),
+      behavior: "smooth",
+    });
   }, []);
 
   return (
-    <div className={styles.carousel} role="region" aria-label="Photo carousel" aria-roledescription="carousel">
+    <div
+      className={styles.carousel}
+      role="region"
+      aria-label="Photo carousel"
+      aria-roledescription="carousel"
+    >
       {/* Scroll track */}
       <div ref={trackRef} className={styles.carouselTrack}>
         {items.map((item, i) => {
@@ -535,7 +672,13 @@ function Carousel({
               onClick={() => onOpen(i)}
               aria-label={`View photo: ${captionText || `Photo ${i + 1}`}`}
             >
-              <img src={item.url} alt={item.alt} loading={i > 2 ? "lazy" : undefined} />
+              <Image
+                src={item.url}
+                alt={item.alt}
+                fill
+                sizes="(max-width: 700px) 75vw, 420px"
+                loading={i > 2 ? "lazy" : undefined}
+              />
               {showCaptions && captionText && (
                 <div className={styles.carouselCaption}>
                   {item.moment && (
@@ -551,23 +694,47 @@ function Carousel({
 
       {/* Navigation arrows */}
       {canScrollLeft && (
-        <button className={`${styles.carouselNav} ${styles.carouselNavLeft}`} onClick={() => scroll("left")} aria-label="Scroll left">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+        <button
+          className={cn(styles.carouselNav, styles.carouselNavLeft)}
+          onClick={() => scroll("left")}
+          aria-label="Scroll left"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            width={20}
+            height={20}
+          >
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
       )}
       {canScrollRight && (
-        <button className={`${styles.carouselNav} ${styles.carouselNavRight}`} onClick={() => scroll("right")} aria-label="Scroll right">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={20} height={20}>
+        <button
+          className={cn(styles.carouselNav, styles.carouselNavRight)}
+          onClick={() => scroll("right")}
+          aria-label="Scroll right"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            width={20}
+            height={20}
+          >
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
       )}
 
       {/* Fade edges */}
-      <div className={`${styles.carouselEdge} ${styles.carouselEdgeLeft} ${canScrollLeft ? styles.carouselEdgeVisible : ""}`} />
-      <div className={`${styles.carouselEdge} ${styles.carouselEdgeRight} ${canScrollRight ? styles.carouselEdgeVisible : ""}`} />
+      <div className={cn(styles.carouselEdge, styles.carouselEdgeLeft, canScrollLeft && styles.carouselEdgeVisible)} />
+      <div className={cn(styles.carouselEdge, styles.carouselEdgeRight, canScrollRight && styles.carouselEdgeVisible)} />
     </div>
   );
 }
