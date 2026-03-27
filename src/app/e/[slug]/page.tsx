@@ -49,6 +49,7 @@ async function getEventBySlug(slug: string, hasGuestToken: boolean) {
       pageConfig: true,
       templateId: true,
       publishedAt: true,
+      rsvpDeadline: true,
       mediaAssets: {
         select: {
           id: true,
@@ -261,6 +262,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     startAt: event.startAt?.toISOString() ?? null,
     endAt: event.endAt?.toISOString() ?? null,
     timezone: event.timezone,
+    rsvpDeadline: event.rsvpDeadline?.toISOString() ?? null,
   };
 
   // Use direct component reference from TEMPLATES to satisfy static component rules

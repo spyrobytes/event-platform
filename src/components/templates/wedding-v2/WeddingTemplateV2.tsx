@@ -120,18 +120,21 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     const scheduleSec = sections.find((s) => s.type === "schedule");
     if (!scheduleSec || scheduleSec.type !== "schedule") return undefined;
 
-    // Prefer groups (multi-day): show first item from each group
+    // Prefer groups (multi-day): show all items from each group
     const groups = scheduleSec.data.groups;
     if (groups && groups.length > 0) {
       const cards: { day: string; info: string }[] = [];
-      for (const group of groups.slice(0, 4)) {
-        const firstItem = group.items[0];
-        cards.push({
-          day: group.date || group.label,
-          info: firstItem ? firstItem.title : group.label,
-        });
+      for (const group of groups) {
+        const dayLabel = group.date || group.label;
+        if (group.items.length === 0) {
+          cards.push({ day: dayLabel, info: group.label });
+        } else {
+          for (const item of group.items) {
+            cards.push({ day: dayLabel, info: item.title });
+          }
+        }
       }
-      return cards.length > 0 ? cards : undefined;
+      return cards.length > 0 ? cards.slice(0, 6) : undefined;
     }
 
     // Fallback: flat items
@@ -327,6 +330,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
               heroAsset={heroAsset}
               scheduleCards={scheduleCards}
               hasDetailsSection={sections.some((s) => s.type === "details" && s.enabled)}
+              eventRsvpDeadline={temporal?.rsvpDeadline ?? undefined}
             />
 
             {/* Temporal Hero Overlay */}

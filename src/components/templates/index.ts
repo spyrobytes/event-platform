@@ -19,6 +19,8 @@ export type TemporalData = {
   endAt: string | null;
   /** Event timezone (IANA timezone string) */
   timezone: string;
+  /** RSVP deadline date/time (ISO string) */
+  rsvpDeadline: string | null;
 };
 
 /**

@@ -12,6 +12,8 @@ type CinematicHeroProps = {
   heroAsset?: MediaAsset | null;
   scheduleCards?: ScheduleCard[];
   hasDetailsSection?: boolean;
+  /** Event-level RSVP deadline (ISO string) — used when hero config has no manual override */
+  eventRsvpDeadline?: string;
 };
 
 /**
@@ -26,6 +28,7 @@ export function CinematicHero({
   heroAsset,
   scheduleCards: scheduleCardsProp,
   hasDetailsSection = false,
+  eventRsvpDeadline,
 }: CinematicHeroProps) {
   const {
     title,
@@ -52,6 +55,15 @@ export function CinematicHero({
   const nameWords = coupleNames
     ? coupleNames.split(/(\s*&\s*)/).filter(Boolean)
     : [];
+
+  // Resolve RSVP deadline: prefer hero config override, fall back to event-level date
+  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
+    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : undefined);
 
   // Date text for eyebrow — use subtitle as date text
   const dateText = subtitle || "";
@@ -133,7 +145,11 @@ export function CinematicHero({
           <div className={styles.heroCards}>
             {/* Countdown card */}
             {countdown && (
-              <CountdownCard countdown={countdown} rsvpDeadline={rsvpDeadline} />
+              <CountdownCard
+                countdown={countdown}
+                rsvpDeadline={resolvedRsvpDeadline}
+                rsvpDeadlineIso={eventRsvpDeadline ?? rsvpDeadline}
+              />
             )}
 
             {/* Schedule card */}
@@ -148,17 +164,56 @@ export function CinematicHero({
 }
 
 /** Glass-morph countdown card with animated digits.
- * Uses key-based re-mounting to trigger CSS flip animation on value change. */
+ * Uses key-based re-mounting to trigger CSS flip animation on value change.
+ *
+ * RSVP deadline footer states:
+ * - No deadline set → no footer
+ * - Deadline upcoming → "RSVP by [date]"
+ * - Deadline ≤ 3 days away → urgent "RSVP closes in X days"
+ * - Deadline passed → "RSVP closed"
+ */
 function CountdownCard({
   countdown,
   rsvpDeadline,
+  rsvpDeadlineIso,
 }: {
   countdown: { days: number; hours: number; minutes: number };
+  /** Formatted display string, e.g. "March 15, 2026" */
   rsvpDeadline?: string;
+  /** Raw ISO string or date-like string for computing deadline state */
+  rsvpDeadlineIso?: string;
 }) {
   const dStr = String(countdown.days);
   const hStr = String(countdown.hours).padStart(2, "0");
   const mStr = String(countdown.minutes).padStart(2, "0");
+
+  // Compute RSVP deadline state
+  const deadlineState = (() => {
+    if (!rsvpDeadline) return null;
+
+    const deadlineDate = rsvpDeadlineIso ? new Date(rsvpDeadlineIso) : null;
+    if (!deadlineDate || isNaN(deadlineDate.getTime())) {
+      return { status: "upcoming" as const, text: `RSVP by ${rsvpDeadline}` };
+    }
+
+    const now = new Date();
+    const msRemaining = deadlineDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(msRemaining / (1000 * 60 * 60 * 24));
+
+    if (daysRemaining < 0) {
+      return { status: "closed" as const, text: "RSVP closed" };
+    }
+    if (daysRemaining === 0) {
+      return { status: "urgent" as const, text: "RSVP closes today" };
+    }
+    if (daysRemaining <= 3) {
+      return {
+        status: "urgent" as const,
+        text: `RSVP closes in ${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`,
+      };
+    }
+    return { status: "upcoming" as const, text: `RSVP by ${rsvpDeadline}` };
+  })();
 
   return (
     <div className={styles.floatCard}>
@@ -185,10 +240,18 @@ function CountdownCard({
           <div className={styles.countLabel}>min</div>
         </div>
       </div>
-      {rsvpDeadline && (
+      {deadlineState && (
         <div className={styles.floatCardFooter}>
-          <span className={styles.deadlineText}>
-            RSVP by {rsvpDeadline}
+          <span
+            className={
+              deadlineState.status === "urgent"
+                ? styles.deadlineUrgent
+                : deadlineState.status === "closed"
+                  ? styles.deadlineClosed
+                  : styles.deadlineText
+            }
+          >
+            {deadlineState.text}
           </span>
         </div>
       )}

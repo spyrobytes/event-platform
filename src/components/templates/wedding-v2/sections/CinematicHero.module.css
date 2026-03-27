@@ -312,6 +312,22 @@
   color: var(--text-2, #786f65);
   font-style: italic;
 }
+.deadlineUrgent {
+  font-size: var(--sm, 0.85rem);
+  font-weight: 600;
+  color: var(--amber, #b5872a);
+  animation: urgentPulse 2s ease-in-out infinite;
+}
+.deadlineClosed {
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  color: var(--text-3, #a09889);
+}
+
+@keyframes urgentPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
 
 /* ===== Buttons ===== */
 .btn {

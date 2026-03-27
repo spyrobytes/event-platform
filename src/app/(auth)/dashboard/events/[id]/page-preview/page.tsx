@@ -75,6 +75,7 @@ export default function PagePreviewPage() {
           startAt: eventData.data.startAt ?? null,
           endAt: eventData.data.endAt ?? null,
           timezone: eventData.data.timezone ?? "UTC",
+          rsvpDeadline: eventData.data.rsvpDeadline ?? null,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load preview");
