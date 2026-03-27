@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
@@ -175,18 +176,34 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
         {renderGalleryContent()}
       </div>
 
-      {/* Lightbox — rendered outside the constrained container so it can be fixed/full-screen */}
+      {/* Lightbox — portaled to document.body to escape AnimatedWrapper's
+          transform-based containing block, which breaks position:fixed */}
       {isLightboxOpen && (
-        <Lightbox
-          items={resolvedItems}
-          index={lightboxIndex as number}
-          onClose={closeLightbox}
-          onPrev={showPrev}
-          onNext={showNext}
-        />
+        <LightboxPortal>
+          <Lightbox
+            items={resolvedItems}
+            index={lightboxIndex as number}
+            onClose={closeLightbox}
+            onPrev={showPrev}
+            onNext={showNext}
+          />
+        </LightboxPortal>
       )}
     </section>
   );
+}
+
+// =============================================================================
+// LIGHTBOX PORTAL
+// =============================================================================
+
+/**
+ * Portals children to document.body to escape transform-based containing blocks.
+ * Safe to use without a mount guard because this component is only rendered when
+ * the lightbox is open (requires a user click, so always client-side).
+ */
+function LightboxPortal({ children }: { children: React.ReactNode }) {
+  return createPortal(children, document.body);
 }
 
 // =============================================================================
@@ -424,9 +441,12 @@ function Slideshow({
   onOpen: (index: number) => void;
 }) {
   const [current, setCurrent] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const isTransitioningRef = useRef(false);
   const progressRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isAutoPlaying = autoPlay && !isPaused;
 
   const goTo = useCallback(
     (index: number) => {
@@ -451,36 +471,63 @@ function Slideshow({
     [current, items.length, goTo]
   );
 
-  // Autoplay — suspended while the lightbox is open.
+  // Manual navigation pauses autoplay.
+  const goToManual = useCallback(
+    (index: number) => {
+      setIsPaused(true);
+      goTo(index);
+    },
+    [goTo]
+  );
+  const goNextManual = useCallback(() => {
+    setIsPaused(true);
+    goNext();
+  }, [goNext]);
+  const goPrevManual = useCallback(() => {
+    setIsPaused(true);
+    goPrev();
+  }, [goPrev]);
+
+  // Autoplay — suspended while paused or lightbox is open.
   useEffect(() => {
-    if (!autoPlay || items.length <= 1 || isLightboxOpen) return;
+    if (!isAutoPlaying || items.length <= 1 || isLightboxOpen) return;
     timerRef.current = setTimeout(goNext, autoPlayInterval * 1000);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [autoPlay, autoPlayInterval, current, goNext, items.length, isLightboxOpen]);
+  }, [isAutoPlaying, autoPlayInterval, current, goNext, items.length, isLightboxOpen]);
 
   // Progress bar animation — forced reflow guarantees transition restart.
   useEffect(() => {
     const el = progressRef.current;
-    if (!el || !autoPlay || isLightboxOpen) return;
+    if (!el || !isAutoPlaying || isLightboxOpen) return;
     el.style.transition = "none";
     el.style.width = "0%";
     void el.offsetWidth; // force reflow
     el.style.transition = `width ${autoPlayInterval}s linear`;
     el.style.width = "100%";
-  }, [current, autoPlay, autoPlayInterval, isLightboxOpen]);
+  }, [current, isAutoPlaying, autoPlayInterval, isLightboxOpen]);
+
+  // Reset progress bar when paused.
+  useEffect(() => {
+    const el = progressRef.current;
+    if (!el) return;
+    if (isPaused || isLightboxOpen) {
+      el.style.transition = "none";
+      el.style.width = "0%";
+    }
+  }, [isPaused, isLightboxOpen]);
 
   // Keyboard navigation — gated behind isLightboxOpen to avoid double-fire.
   useEffect(() => {
     if (isLightboxOpen) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") goNext();
-      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNextManual();
+      if (e.key === "ArrowLeft") goPrevManual();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [goNext, goPrev, isLightboxOpen]);
+  }, [goNextManual, goPrevManual, isLightboxOpen]);
 
   const transitionClass =
     transition === "slide"
@@ -544,7 +591,7 @@ function Slideshow({
         <>
           <button
             className={cn(styles.slideshowNav, styles.slideshowNavPrev)}
-            onClick={goPrev}
+            onClick={goPrevManual}
             aria-label="Previous"
           >
             <svg
@@ -561,7 +608,7 @@ function Slideshow({
           </button>
           <button
             className={cn(styles.slideshowNav, styles.slideshowNavNext)}
-            onClick={goNext}
+            onClick={goNextManual}
             aria-label="Next"
           >
             <svg
@@ -579,9 +626,27 @@ function Slideshow({
         </>
       )}
 
-      {/* Dot indicators */}
+      {/* Dot indicators + autoplay toggle */}
       {items.length > 1 && (
         <div className={styles.slideshowDots}>
+          {autoPlay && (
+            <button
+              className={styles.slideshowPlayPause}
+              onClick={() => setIsPaused((p) => !p)}
+              aria-label={isPaused ? "Resume autoplay" : "Pause autoplay"}
+            >
+              {isPaused ? (
+                <svg viewBox="0 0 24 24" fill="currentColor" width={14} height={14}>
+                  <polygon points="6,4 20,12 6,20" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="currentColor" width={14} height={14}>
+                  <rect x="5" y="4" width="4" height="16" rx="1" />
+                  <rect x="15" y="4" width="4" height="16" rx="1" />
+                </svg>
+              )}
+            </button>
+          )}
           {items.map((_, i) => (
             <button
               key={i}
@@ -589,7 +654,7 @@ function Slideshow({
                 styles.slideshowDot,
                 i === current && styles.slideshowDotActive,
               )}
-              onClick={() => goTo(i)}
+              onClick={() => goToManual(i)}
               aria-label={`Go to photo ${i + 1}`}
             />
           ))}
