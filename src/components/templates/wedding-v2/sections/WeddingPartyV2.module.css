@@ -1,0 +1,237 @@
+/* ===== Wedding Party V2 ===== */
+
+.section {
+  padding: var(--section-y, 96px) 0;
+}
+
+.container {
+  width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+
+.kicker {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+  margin-bottom: 12px;
+}
+
+.heading {
+  font-family: var(--serif);
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--night, #1e1b17);
+}
+
+.description {
+  max-width: 56ch;
+  color: var(--text-2, #786f65);
+  line-height: 1.75;
+  margin: 8px auto 0;
+}
+
+/* ===== Divider ===== */
+.divider {
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--linen, #e8e1d6);
+}
+
+.dividerLabel {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--stone, #a69e93);
+  flex-shrink: 0;
+}
+
+/* ===== Grid ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap, 20px);
+}
+
+.gridSpaced {
+  margin-bottom: 48px;
+}
+
+.groupSpaced {
+  margin-top: 48px;
+}
+
+.specialGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gap, 20px);
+}
+
+/* ===== Card ===== */
+.card {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e8e1d6);
+  border-radius: var(--r-lg, 24px);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.4s var(--ease-out-expo, ease),
+    box-shadow 0.4s var(--ease-out-expo, ease);
+  cursor: default;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.specialCard {
+  width: 260px;
+  max-width: 100%;
+}
+
+/* ===== Photo ===== */
+.photoArea {
+  position: relative;
+  height: 280px;
+  padding: 16px 16px 6px;
+  background: var(--cream, #f0ebe3);
+}
+
+.specialCard .photoArea {
+  height: 220px;
+}
+
+/*
+ * Arch frame with ornamental mat-style double border.
+ *
+ * Two concentric box-shadow rings simulate a picture mat:
+ *   1. 3px cream ring  — the "mat" gap (matches photoArea background)
+ *   2. 1.5px accent ring — the outer frame line
+ *
+ * overflow:hidden clips the image; the outward box-shadow is NOT
+ * clipped by the element's own overflow, only by an ancestor's.
+ * photoArea has enough padding (16px sides, 6px bottom) to contain
+ * the 4.5px ring, so no clipping occurs.
+ */
+.photoFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px 999px 8px 8px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 3px var(--cream, #f0ebe3),
+    0 0 0 4.5px rgba(122, 140, 114, 0.3);
+}
+
+/* Inset shadow — subtle depth at the top of the arch */
+.photoFrame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  transition: transform 0.7s var(--ease-out-expo, ease);
+}
+
+.card:hover .photo {
+  transform: scale(1.04);
+}
+
+.placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--linen, #e8e1d6);
+  display: grid;
+  place-items: center;
+}
+
+/* ===== Card Body ===== */
+.cardBody {
+  padding: 20px;
+}
+
+.memberName {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--night, #1e1b17);
+  margin-bottom: 4px;
+}
+
+.memberRole {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+  margin-bottom: 10px;
+}
+
+.memberBio {
+  font-size: var(--sm, 0.85rem);
+  color: var(--text-2, #786f65);
+  line-height: 1.65;
+}
+
+/* ===== Empty State ===== */
+.empty {
+  border: 2px dashed var(--border, #e8e1d6);
+  border-radius: var(--r-lg, 24px);
+  padding: 48px;
+  text-align: center;
+  color: var(--text-3, #a09e93);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .grid {
+    grid-template-columns: 1fr;
+    max-width: 380px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .specialGrid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .specialCard {
+    width: 100%;
+    max-width: 380px;
+  }
+}
