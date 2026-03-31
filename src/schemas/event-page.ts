@@ -55,10 +55,7 @@ export type FontPair = z.infer<typeof fontPairSchema>;
 
 export const hexColorSchema = z
   .string()
-  .regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color (e.g., #FF5733)")
-  .refine(isAccessibleColor, {
-    message: "Color must meet WCAG AA contrast requirements (4.5:1 ratio)",
-  });
+  .regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color (e.g., #FF5733)");
 
 export const themeSchema = z.object({
   preset: themePresetSchema,
