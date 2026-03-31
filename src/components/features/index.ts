@@ -26,6 +26,8 @@ export {
   getDefaultTemplateId,
 } from "./TemplateSelector";
 export { WeddingVariantPicker, getVariantInfo } from "./WeddingVariantPicker";
+export { V2VariantPicker } from "./V2VariantPicker";
+export { V2AccentSwatches } from "./V2AccentSwatches";
 export {
   ScheduleEditor,
   FAQEditor,

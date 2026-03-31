@@ -1,7 +1,7 @@
 import type React from "react";
 
 type BotanicalProps = {
-  variant?: "sage" | "gold";
+  variant?: "sage" | "gold" | "rose";
   style?: React.CSSProperties;
 };
 
@@ -62,7 +62,11 @@ export function Botanical({ variant = "sage", style }: BotanicalProps) {
         position: "absolute",
         pointerEvents: "none",
         opacity: 0.08,
-        color: variant === "gold" ? "var(--gold-l, #ddc07a)" : "var(--accent, #7a8c72)",
+        color: variant === "gold"
+          ? "var(--gold-l, #ddc07a)"
+          : variant === "rose"
+            ? "var(--rose, #c4918a)"
+            : "var(--accent, #7a8c72)",
         ...style,
       }}
       aria-hidden="true"

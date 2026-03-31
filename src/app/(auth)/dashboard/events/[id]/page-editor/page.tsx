@@ -14,6 +14,7 @@ import {
   TemplateSelector,
   getTemplateInfo,
   WeddingVariantPicker,
+  V2VariantPicker,
   ScheduleEditor,
   FAQEditor,
   GalleryEditor,
@@ -31,6 +32,7 @@ import {
   ThingsToDoEditor,
   RegistryEditor,
 } from "@/components/features";
+import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { isAccessibleColor } from "@/schemas/event-page";
@@ -140,6 +142,42 @@ export default function PageEditorPage() {
     setConfig((prev) => {
       if (!prev) return prev;
       return { ...prev, variantId: newVariantId };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const handleV2VariantChange = useCallback((newVariantId: string) => {
+    const variant = getV2Variant(newVariantId);
+    setConfig((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        variantId: newVariantId,
+        theme: {
+          ...prev.theme,
+          fontPair: variant.fontPair,
+          primaryColor: variant.accentSwatches[0]?.hex || prev.theme.primaryColor,
+        },
+        chrome: {
+          topbar: variant.chromeDefaults.topbar,
+          scrollProgress: variant.chromeDefaults.scrollProgress,
+          mountainDividers: variant.chromeDefaults.mountainDividers,
+          footerSkyline: variant.chromeDefaults.footerSkyline,
+          botanicals: variant.chromeDefaults.botanicals,
+        },
+      };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const handleV2VariantClear = useCallback(() => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        variantId: undefined,
+        chrome: undefined,
+      };
     });
     setHasChanges(true);
   }, []);
@@ -633,6 +671,29 @@ export default function PageEditorPage() {
         </Card>
       )}
 
+      {/* V2 Design Variant Selection - Only show for wedding_v2 */}
+      {templateId === "wedding_v2" && config && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Design Variant</CardTitle>
+            <CardDescription>
+              Choose a curated design that sets the color palette, typography, and decorative elements.
+              Select &ldquo;Original&rdquo; to use the default template with your own theme settings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <V2VariantPicker
+              value={config.variantId}
+              onChange={handleV2VariantChange}
+              onClear={handleV2VariantClear}
+              disabled={saving}
+              accentColor={config.theme.primaryColor}
+              onAccentChange={(hex) => updateTheme({ primaryColor: hex })}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* V2 Chrome Toggles - Only show for wedding_v2 */}
       {templateId === "wedding_v2" && config && (
         <Card>
@@ -669,50 +730,52 @@ export default function PageEditorPage() {
         </Card>
       )}
 
-      {/* Theme Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Theme</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="primaryColor">Primary Color</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="primaryColor"
-                  type="color"
-                  value={config.theme.primaryColor}
-                  onChange={(e) => updateTheme({ primaryColor: e.target.value })}
-                  className="h-10 w-16 cursor-pointer"
-                />
-                <Input
-                  value={config.theme.primaryColor}
-                  onChange={(e) => updateTheme({ primaryColor: e.target.value })}
-                  placeholder="#000000"
-                />
+      {/* Theme Section — hidden when a V2 variant is selected (variant controls theme) */}
+      {!(templateId === "wedding_v2" && config.variantId) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Theme</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="primaryColor">Primary Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="primaryColor"
+                    type="color"
+                    value={config.theme.primaryColor}
+                    onChange={(e) => updateTheme({ primaryColor: e.target.value })}
+                    className="h-10 w-16 cursor-pointer"
+                  />
+                  <Input
+                    value={config.theme.primaryColor}
+                    onChange={(e) => updateTheme({ primaryColor: e.target.value })}
+                    placeholder="#000000"
+                  />
+                </div>
+                {config.theme.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(config.theme.primaryColor) && !isAccessibleColor(config.theme.primaryColor) && (
+                  <p className="text-xs text-amber-600">
+                    This color may have poor contrast against white backgrounds (WCAG 4.5:1 required)
+                  </p>
+                )}
               </div>
-              {config.theme.primaryColor && /^#[0-9A-Fa-f]{6}$/.test(config.theme.primaryColor) && !isAccessibleColor(config.theme.primaryColor) && (
-                <p className="text-xs text-amber-600">
-                  This color may have poor contrast against white backgrounds (WCAG 4.5:1 required)
-                </p>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="font">Font Pair</Label>
+                <Select
+                  id="font"
+                  value={config.theme.fontPair}
+                  onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
+                >
+                  <option value="modern">Modern (DM Sans)</option>
+                  <option value="classic">Classic (Playfair Display + Source Serif)</option>
+                  <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="font">Font Pair</Label>
-              <Select
-                id="font"
-                value={config.theme.fontPair}
-                onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
-              >
-                <option value="modern">Modern (DM Sans)</option>
-                <option value="classic">Classic (Playfair Display + Source Serif)</option>
-                <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Hero Section */}
       <Card>

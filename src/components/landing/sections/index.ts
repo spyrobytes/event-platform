@@ -7,3 +7,4 @@ export { MissionStatement } from "./MissionStatement";
 export { UseCaseGrid } from "./UseCaseGrid";
 export { FinalCTA } from "./FinalCTA";
 export { Footer } from "./Footer";
+export { VariantShowcase } from "./VariantShowcase";

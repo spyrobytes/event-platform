@@ -41,7 +41,13 @@ export const V2 = {
  * Font pair mappings for V2 template.
  * Each pair provides a serif heading font and a sans body font.
  */
-export type V2FontPair = "serif_sans" | "modern" | "classic";
+export type V2FontPair =
+  | "serif_sans"
+  | "modern"
+  | "classic"
+  | "playfair_dmsans"
+  | "dmsans_sourceserif"
+  | "cormorant_sourceserif";
 
 const FONT_PAIRS: Record<V2FontPair, { serif: string; sans: string }> = {
   serif_sans: {
@@ -54,6 +60,18 @@ const FONT_PAIRS: Record<V2FontPair, { serif: string; sans: string }> = {
   },
   classic: {
     serif: "'Playfair Display', Georgia, serif",
+    sans: "'Source Serif 4', Georgia, serif",
+  },
+  playfair_dmsans: {
+    serif: "'Playfair Display', Georgia, serif",
+    sans: "'DM Sans', system-ui, -apple-system, sans-serif",
+  },
+  dmsans_sourceserif: {
+    serif: "'DM Sans', system-ui, -apple-system, sans-serif",
+    sans: "'Source Serif 4', Georgia, serif",
+  },
+  cormorant_sourceserif: {
+    serif: "'Cormorant Garamond', Georgia, serif",
     sans: "'Source Serif 4', Georgia, serif",
   },
 };
@@ -76,6 +94,12 @@ const FONT_URLS: Record<V2FontPair, string> = {
     "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap",
   classic:
     "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Source+Serif+4:wght@400;500&display=swap",
+  playfair_dmsans:
+    "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap",
+  dmsans_sourceserif:
+    "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;500&display=swap",
+  cormorant_sourceserif:
+    "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Source+Serif+4:wght@400;500&display=swap",
 };
 
 export function getV2FontUrl(fontPair?: string): string {
@@ -86,41 +110,147 @@ export function getV2FontUrl(fontPair?: string): string {
 }
 
 /**
+ * Palette overrides type — allows variants to override any raw or semantic color.
+ */
+export type V2PaletteOverrides = Partial<{
+  ivory: string;
+  cream: string;
+  linen: string;
+  sand: string;
+  stone: string;
+  earth: string;
+  charcoal: string;
+  night: string;
+  sage: string;
+  sageLight: string;
+  sageDark: string;
+  forest: string;
+  gold: string;
+  goldLight: string;
+  goldDark: string;
+  rose: string;
+  bg: string;
+  surface: string;
+  text: string;
+  text2: string;
+  text3: string;
+  border: string;
+  accent: string;
+  accent2: string;
+}>;
+
+/**
+ * Glass tokens for frosted/translucent UI elements.
+ * Needed so dark-background variants can override the RGBA values.
+ */
+export type V2GlassTokens = {
+  frostedBg: string;
+  frostedBgScrolled: string;
+  mobileNavBg: string;
+  heroOverlayColor: string;
+  accentTint?: string;
+  accentHoverBg?: string;
+};
+
+/** Default glass tokens matching the current ivory-based design */
+const DEFAULT_GLASS: V2GlassTokens = {
+  frostedBg: "rgba(248, 245, 240, 0.55)",
+  frostedBgScrolled: "rgba(248, 245, 240, 0.92)",
+  mobileNavBg: "rgba(248, 245, 240, 0.97)",
+  heroOverlayColor: V2.ivory,
+  accentTint: "rgba(122, 140, 114, 0.08)",
+  accentHoverBg: "rgba(122, 140, 114, 0.06)",
+};
+
+/**
+ * Convert glass tokens to CSS custom properties.
+ */
+export function getV2GlassVariables(glass?: V2GlassTokens): Record<string, string> {
+  const g = glass || DEFAULT_GLASS;
+  return {
+    "--glass-bg": g.frostedBg,
+    "--glass-bg-scrolled": g.frostedBgScrolled,
+    "--glass-bg-mobile": g.mobileNavBg,
+    "--hero-overlay-color": g.heroOverlayColor,
+    "--accent-tint": g.accentTint || DEFAULT_GLASS.accentTint!,
+    "--accent-hover-bg": g.accentHoverBg || DEFAULT_GLASS.accentHoverBg!,
+  };
+}
+
+/**
  * Full CSS variable map applied to the root article element.
  * Matches the POC's :root block exactly.
+ *
+ * @param primaryColor - User-selected accent color (overrides palette accent)
+ * @param fontPair - Font pair identifier
+ * @param paletteOverrides - Variant palette overrides (raw + semantic colors)
  */
-export function getV2CSSVariables(primaryColor?: string, fontPair?: string): Record<string, string> {
-  const accent = primaryColor || V2.sage;
+export function getV2CSSVariables(
+  primaryColor?: string,
+  fontPair?: string,
+  paletteOverrides?: V2PaletteOverrides,
+): Record<string, string> {
+  const p = paletteOverrides || {};
   const fonts = resolveV2Fonts(fontPair);
+
+  // Resolve raw palette (overrides take precedence)
+  const ivory = p.ivory || V2.ivory;
+  const cream = p.cream || V2.cream;
+  const linen = p.linen || V2.linen;
+  const sand = p.sand || V2.sand;
+  const stone = p.stone || V2.stone;
+  const earth = p.earth || V2.earth;
+  const charcoal = p.charcoal || V2.charcoal;
+  const night = p.night || V2.night;
+  const sage = p.sage || V2.sage;
+  const sageLight = p.sageLight || V2.sageLight;
+  const sageDark = p.sageDark || V2.sageDark;
+  const forest = p.forest || V2.forest;
+  const gold = p.gold || V2.gold;
+  const goldLight = p.goldLight || V2.goldLight;
+  const goldDark = p.goldDark || V2.goldDark;
+  const rose = p.rose || V2.rose;
+
+  // Accent: primaryColor > palette override > sage default
+  const accent = primaryColor || p.accent || sage;
+
+  // Semantic colors (overrides take precedence over derived defaults)
+  const bg = p.bg || ivory;
+  const surface = p.surface || "#ffffff";
+  const text = p.text || charcoal;
+  const text2 = p.text2 || earth;
+  const text3 = p.text3 || stone;
+  const border = p.border || linen;
+  const accent2 = p.accent2 || gold;
 
   return {
     // Raw palette
-    "--ivory": V2.ivory,
-    "--cream": V2.cream,
-    "--linen": V2.linen,
-    "--sand": V2.sand,
-    "--stone": V2.stone,
-    "--earth": V2.earth,
-    "--charcoal": V2.charcoal,
-    "--night": V2.night,
-    "--sage": V2.sage,
-    "--sage-l": V2.sageLight,
-    "--sage-d": V2.sageDark,
-    "--forest": V2.forest,
-    "--gold": V2.gold,
-    "--gold-l": V2.goldLight,
-    "--gold-d": V2.goldDark,
-    "--rose": V2.rose,
+    "--ivory": ivory,
+    "--cream": cream,
+    "--linen": linen,
+    "--sand": sand,
+    "--stone": stone,
+    "--earth": earth,
+    "--charcoal": charcoal,
+    "--night": night,
+    "--sage": sage,
+    "--sage-l": sageLight,
+    "--sage-d": sageDark,
+    "--forest": forest,
+    "--gold": gold,
+    "--gold-l": goldLight,
+    "--gold-d": goldDark,
+    "--rose": rose,
 
     // Semantic
-    "--bg": V2.ivory,
-    "--surface": "#ffffff",
-    "--text": V2.charcoal,
-    "--text-2": V2.earth,
-    "--text-3": V2.stone,
-    "--border": V2.linen,
+    "--bg": bg,
+    "--surface": surface,
+    "--text": text,
+    "--text-2": text2,
+    "--text-3": text3,
+    "--border": border,
     "--accent": accent,
-    "--accent-2": V2.gold,
+    "--accent-2": accent2,
 
     // Typography (clamp-based responsive)
     "--serif": fonts.serif,
@@ -152,12 +282,12 @@ export function getV2CSSVariables(primaryColor?: string, fontPair?: string): Rec
 
     // Backward-compat aliases (used by some shared components)
     "--wedding-primary": accent,
-    "--wedding-secondary": V2.gold,
-    "--wedding-background": V2.ivory,
-    "--wedding-surface": "#ffffff",
-    "--wedding-text": V2.charcoal,
-    "--wedding-text-muted": V2.earth,
-    "--wedding-border": V2.linen,
+    "--wedding-secondary": gold,
+    "--wedding-background": bg,
+    "--wedding-surface": surface,
+    "--wedding-text": text,
+    "--wedding-text-muted": text2,
+    "--wedding-border": border,
     "--wedding-font-heading": fonts.serif,
     "--wedding-font-body": fonts.sans,
     "--wedding-heading-weight": "400",

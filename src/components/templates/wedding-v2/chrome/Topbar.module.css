@@ -10,12 +10,12 @@
     border-color var(--transition, 0.3s ease);
   border-bottom: 1px solid transparent;
   /* Light frosted glass even before scroll so nav is readable over hero image */
-  background: rgba(248, 245, 240, 0.55);
+  background: var(--glass-bg, rgba(248, 245, 240, 0.55));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 .scrolled {
-  background: rgba(248, 245, 240, 0.92);
+  background: var(--glass-bg-scrolled, rgba(248, 245, 240, 0.92));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom-color: var(--border, #e8e1d6);
@@ -149,7 +149,7 @@
 .iconBtn:hover {
   border-color: var(--accent, #7a8c72);
   color: var(--forest, #3f4f3a);
-  background: rgba(122, 140, 114, 0.06);
+  background: var(--accent-hover-bg, rgba(122, 140, 114, 0.06));
 }
 
 /* Mobile hamburger */
@@ -166,7 +166,7 @@
   cursor: pointer;
 }
 .navToggle:hover {
-  background: rgba(122, 140, 114, 0.06);
+  background: var(--accent-hover-bg, rgba(122, 140, 114, 0.06));
 }
 
 /* RSVP button */
@@ -209,7 +209,7 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(248, 245, 240, 0.97);
+    background: var(--glass-bg-mobile, rgba(248, 245, 240, 0.97));
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border, #e8e1d6);
     padding: 12px var(--pad, 40px);

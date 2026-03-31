@@ -35,8 +35,10 @@ import {
   MapV2,
 } from "./sections";
 
-// V2 tokens + footer + global styles
-import { getV2CSSVariables, getV2FontUrl, v2TokensToInline, V2 } from "./tokens";
+// V2 tokens + variants + footer + global styles
+import { getV2CSSVariables, getV2GlassVariables, getV2FontUrl, v2TokensToInline } from "./tokens";
+import { getV2Variant } from "./variants";
+import type { V2BotanicalVariant } from "./variants";
 import { WeddingV2Footer } from "./WeddingV2Footer";
 import "./WeddingTemplateV2.module.css";
 
@@ -94,21 +96,31 @@ function getSectionId(type: string): string {
  * - User-configurable accent color, font pair, and chrome toggles
  */
 export function WeddingTemplateV2({ config, assets, eventId, temporal }: WeddingTemplateV2Props) {
-  const { theme, hero, sections, chrome: chromeConfig } = config;
+  const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
-  // Resolve chrome settings with defaults for V2
-  const chrome: ChromeConfig = {
-    topbar: chromeConfig?.topbar ?? true,
-    scrollProgress: chromeConfig?.scrollProgress ?? true,
-    mountainDividers: chromeConfig?.mountainDividers ?? true,
-    footerSkyline: chromeConfig?.footerSkyline ?? true,
-    botanicals: chromeConfig?.botanicals ?? true,
-  };
+  // Resolve variant (if set)
+  const variant = variantId ? getV2Variant(variantId) : null;
+
+  // Font pair: variant overrides theme.fontPair
+  const fontPair = variant?.fontPair || theme.fontPair;
 
   // V2 token system: user's primaryColor → --accent, fontPair → font families
   const primaryColor = theme.primaryColor;
-  const cssVars = getV2CSSVariables(primaryColor, theme.fontPair);
-  const fontUrl = getV2FontUrl(theme.fontPair);
+  const cssVars = getV2CSSVariables(primaryColor, fontPair, variant?.palette);
+  const glassVars = getV2GlassVariables(variant?.glass);
+  const fontUrl = getV2FontUrl(fontPair);
+
+  // Resolve chrome settings: explicit config > variant defaults > all-true
+  const chrome: ChromeConfig = {
+    topbar: chromeConfig?.topbar ?? variant?.chromeDefaults?.topbar ?? true,
+    scrollProgress: chromeConfig?.scrollProgress ?? variant?.chromeDefaults?.scrollProgress ?? true,
+    mountainDividers: chromeConfig?.mountainDividers ?? variant?.chromeDefaults?.mountainDividers ?? true,
+    footerSkyline: chromeConfig?.footerSkyline ?? variant?.chromeDefaults?.footerSkyline ?? true,
+    botanicals: chromeConfig?.botanicals ?? variant?.chromeDefaults?.botanicals ?? true,
+  };
+
+  // Botanical variant from variant config
+  const botanicalVariant: V2BotanicalVariant = variant?.chromeDefaults?.botanicalVariant || "sage";
 
   // Find hero asset
   const heroAsset = hero.heroImageAssetId
@@ -179,11 +191,13 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     );
 
     // Botanical accent placement (matches POC)
+    // Use variant's botanical variant; alternate with gold for visual variety
+    const altBotanical = botanicalVariant === "gold" ? "sage" : botanicalVariant === "none" ? "sage" : "gold";
     const BOTANICAL_PLACEMENTS: Record<string, React.ReactNode> = {
-      story: <Botanical variant="sage" style={{ top: 40, right: "5%", width: 120, height: 200, transform: "rotate(15deg)" }} />,
-      gallery: <Botanical variant="gold" style={{ top: 20, left: "3%", width: 80, height: 140, transform: "rotate(-20deg) scaleX(-1)" }} />,
-      details: <Botanical variant="sage" style={{ bottom: 60, left: "2%", width: 100, height: 160, transform: "rotate(-10deg)" }} />,
-      travelStay: <Botanical variant="gold" style={{ top: 80, right: "3%", width: 90, height: 150, transform: "rotate(12deg)" }} />,
+      story: <Botanical variant={botanicalVariant === "none" ? "sage" : botanicalVariant} style={{ top: 40, right: "5%", width: 120, height: 200, transform: "rotate(15deg)" }} />,
+      gallery: <Botanical variant={altBotanical} style={{ top: 20, left: "3%", width: 80, height: 140, transform: "rotate(-20deg) scaleX(-1)" }} />,
+      details: <Botanical variant={botanicalVariant === "none" ? "sage" : botanicalVariant} style={{ bottom: 60, left: "2%", width: 100, height: 160, transform: "rotate(-10deg)" }} />,
+      travelStay: <Botanical variant={altBotanical} style={{ top: 80, right: "3%", width: 90, height: 150, transform: "rotate(12deg)" }} />,
     };
 
     const botanical = chrome.botanicals ? (BOTANICAL_PLACEMENTS[section.type] ?? null) : null;
@@ -297,9 +311,9 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
           <article
             className="wedding-template-v2"
             style={{
-              ...v2TokensToInline(cssVars),
-              backgroundColor: V2.ivory,
-              color: V2.charcoal,
+              ...v2TokensToInline({ ...cssVars, ...glassVars }),
+              backgroundColor: "var(--bg)",
+              color: "var(--text)",
               fontFamily: "var(--sans)",
               fontSize: "var(--body)",
               lineHeight: 1.7,
@@ -321,7 +335,10 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
 
             {/* Chrome: Scroll Progress */}
             {chrome.scrollProgress && (
-              <ScrollProgress accentColor={primaryColor} />
+              <ScrollProgress
+                accentColor={primaryColor}
+                gradient={variant?.scrollProgressGradient}
+              />
             )}
 
             {/* Hero Section */}

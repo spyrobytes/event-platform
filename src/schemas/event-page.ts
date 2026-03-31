@@ -43,7 +43,14 @@ export function isAccessibleColor(color: string): boolean {
 export const themePresetSchema = z.enum(["classic", "modern", "romantic"]);
 export type ThemePreset = z.infer<typeof themePresetSchema>;
 
-export const fontPairSchema = z.enum(["serif_sans", "modern", "classic"]);
+export const fontPairSchema = z.enum([
+  "serif_sans",
+  "modern",
+  "classic",
+  "playfair_dmsans",
+  "dmsans_sourceserif",
+  "cormorant_sourceserif",
+]);
 export type FontPair = z.infer<typeof fontPairSchema>;
 
 export const hexColorSchema = z

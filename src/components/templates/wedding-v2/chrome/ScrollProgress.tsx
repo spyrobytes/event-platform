@@ -5,6 +5,7 @@ import styles from "./ScrollProgress.module.css";
 
 type ScrollProgressProps = {
   accentColor: string;
+  gradient?: string;
 };
 
 /**
@@ -13,7 +14,7 @@ type ScrollProgressProps = {
  * 2px gradient bar (sage-l → sage → gold-l) at the top of viewport.
  * Uses direct DOM manipulation for performance (no re-renders).
  */
-export function ScrollProgress(_props: ScrollProgressProps) {
+export function ScrollProgress({ gradient }: ScrollProgressProps) {
   const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export function ScrollProgress(_props: ScrollProgressProps) {
         ref={barRef}
         className={styles.bar}
         style={{
-          background: "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72), var(--gold-l, #ddc07a))",
+          background: gradient || "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72), var(--gold-l, #ddc07a))",
         }}
       />
     </div>
