@@ -222,19 +222,19 @@ function CountdownCard({
       </div>
       <div className={styles.countdown}>
         <div className={styles.countUnit}>
-          <div key={dStr} className={styles.countNum}>
+          <div key={dStr} className={styles.countNum} suppressHydrationWarning>
             {dStr}
           </div>
           <div className={styles.countLabel}>days</div>
         </div>
         <div className={styles.countUnit}>
-          <div key={hStr} className={styles.countNum}>
+          <div key={hStr} className={styles.countNum} suppressHydrationWarning>
             {hStr}
           </div>
           <div className={styles.countLabel}>hours</div>
         </div>
         <div className={styles.countUnit}>
-          <div key={mStr} className={styles.countNum}>
+          <div key={mStr} className={styles.countNum} suppressHydrationWarning>
             {mStr}
           </div>
           <div className={styles.countLabel}>min</div>
@@ -250,6 +250,7 @@ function CountdownCard({
                   ? styles.deadlineClosed
                   : styles.deadlineText
             }
+            suppressHydrationWarning
           >
             {deadlineState.text}
           </span>
