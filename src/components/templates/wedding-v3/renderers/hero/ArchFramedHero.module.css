@@ -1,0 +1,175 @@
+/* ===================================================================
+   Arch Framed Hero — The Garden House
+
+   Hero image inside an arch-shaped mask with botanical framing.
+   Organic, natural, warm. The arch shape is the defining visual
+   signature — immediately distinguishable from all other templates.
+   =================================================================== */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(80px, 10vw, 140px) clamp(20px, 5vw, 40px);
+  background: var(--bg, #f8f5f0);
+  text-align: center;
+  overflow: hidden;
+}
+
+/* ===== ARCH IMAGE ===== */
+
+.archContainer {
+  position: relative;
+  width: clamp(260px, 40vw, 420px);
+  margin-bottom: clamp(32px, 4vw, 48px);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: archReveal 1s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes archReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.archMask {
+  aspect-ratio: 3 / 4.2;
+  border-radius: 999px 999px 24px 24px;
+  overflow: hidden;
+  border: 3px solid var(--border, #e8e1d6);
+}
+
+.archMask img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.archFallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    160deg,
+    var(--cream, #f0ebe3) 0%,
+    var(--linen, #e8e1d6) 100%
+  );
+}
+
+/* ===== TEXT ===== */
+
+.textBlock {
+  max-width: 540px;
+}
+
+.monogram {
+  font-family: var(--serif);
+  font-size: clamp(0.72rem, 0.9vw, 0.85rem);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+  margin-bottom: clamp(16px, 2vw, 24px);
+  opacity: 0;
+  animation: archReveal 0.8s 0.5s ease forwards;
+}
+
+.names {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 4.5vw, 3.8rem);
+  font-weight: 300;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--text, #3d3830);
+  margin: 0 0 clamp(12px, 2vw, 20px);
+  opacity: 0;
+  animation: archReveal 0.8s 0.6s ease forwards;
+}
+
+.ampersand {
+  display: block;
+  font-style: italic;
+  font-size: 0.55em;
+  color: var(--accent, #7a8c72);
+  margin: 6px 0;
+}
+
+.titleOnly {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 300;
+  line-height: 1.2;
+  color: var(--text, #3d3830);
+  margin: 0 0 clamp(12px, 2vw, 20px);
+  opacity: 0;
+  animation: archReveal 0.8s 0.6s ease forwards;
+}
+
+.dateText {
+  font-family: var(--sans);
+  font-size: clamp(0.7rem, 0.82vw, 0.78rem);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3, #a69e93);
+  opacity: 0;
+  animation: archReveal 0.8s 0.8s ease forwards;
+}
+
+.cta {
+  margin-top: clamp(24px, 3vw, 36px);
+  opacity: 0;
+  animation: archReveal 0.8s 1s ease forwards;
+}
+
+.ctaBtn {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: clamp(0.7rem, 0.8vw, 0.76rem);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--surface, #ffffff);
+  background: var(--accent, #7a8c72);
+  text-decoration: none;
+  padding: 12px 32px;
+  border-radius: 999px;
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.ctaBtn:hover {
+  filter: brightness(0.9);
+  transform: translateY(-1px);
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .archContainer,
+  .monogram,
+  .names,
+  .titleOnly,
+  .dateText,
+  .cta {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .ctaBtn {
+    transition: none;
+  }
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 640px) {
+  .archContainer {
+    width: clamp(220px, 65vw, 300px);
+  }
+}

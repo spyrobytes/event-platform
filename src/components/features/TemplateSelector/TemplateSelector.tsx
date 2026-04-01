@@ -43,6 +43,72 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
     icon: "🎬",
   },
   {
+    id: "wedding_editorial",
+    name: "The Editorial",
+    category: "wedding",
+    description: "Magazine-like, modern, polished. Asymmetric layouts and strong typography.",
+    previewColors: {
+      primary: "#2a2622",
+      background: "#faf8f5",
+    },
+    icon: "📰",
+  },
+  {
+    id: "wedding_intimate_note",
+    name: "The Intimate Note",
+    category: "wedding",
+    description: "Minimal, personal, quiet. Simplicity with emotional clarity.",
+    previewColors: {
+      primary: "#74706a",
+      background: "#faf8f4",
+    },
+    icon: "✉️",
+  },
+  {
+    id: "wedding_fine_art",
+    name: "The Fine Art Romance",
+    category: "wedding",
+    description: "Soft, romantic, graceful. Invitation-inspired elegance with decorative framing.",
+    previewColors: {
+      primary: "#c49a8a",
+      background: "#fdf8f6",
+    },
+    icon: "🌸",
+  },
+  {
+    id: "wedding_garden_house",
+    name: "The Garden House",
+    category: "wedding",
+    description: "Organic, natural, warm. Curved shapes and earthy textures for outdoor venues.",
+    previewColors: {
+      primary: "#7a8c6e",
+      background: "#f7f6f0",
+    },
+    icon: "🌿",
+  },
+  {
+    id: "wedding_grand_luxe",
+    name: "The Grand Luxe",
+    category: "wedding",
+    description: "Dramatic, bold, premium. High-contrast glamour for black-tie weddings.",
+    previewColors: {
+      primary: "#c5a55a",
+      background: "#f8f5f0",
+    },
+    icon: "🥂",
+  },
+  {
+    id: "wedding_celebration",
+    name: "The Celebration House",
+    category: "wedding",
+    description: "Festive, communal, vibrant. For large family weddings and multi-event celebrations.",
+    previewColors: {
+      primary: "#c48820",
+      background: "#fdf8f0",
+    },
+    icon: "🎊",
+  },
+  {
     id: "conference_v1",
     name: "Modern Conference",
     category: "conference",

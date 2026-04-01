@@ -1,0 +1,318 @@
+/* ===================================================================
+   Asymmetric Hero — The Editorial
+
+   Magazine-spread layout: image dominates left,
+   typography commands right. Asymmetric split creates
+   tension and sophistication — like turning the first
+   page of a luxury fashion publication.
+   =================================================================== */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 57% 43%;
+  overflow: hidden;
+  background: var(--bg, #f8f5f0);
+}
+
+/* ===== IMAGE PANEL ===== */
+
+.imagePanel {
+  position: relative;
+  overflow: hidden;
+}
+
+.imagePanel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+  /* Slow, barely perceptible drift — editorial stillness */
+  animation: editorialDrift 30s ease-in-out infinite alternate;
+}
+
+@keyframes editorialDrift {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.03) translate(-0.3%, -0.2%); }
+}
+
+/* Vertical accent line on the image's right edge */
+.imagePanel::after {
+  content: "";
+  position: absolute;
+  top: 12%;
+  right: 0;
+  bottom: 12%;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--accent, #7a8c72) 20%,
+    var(--accent, #7a8c72) 80%,
+    transparent
+  );
+  opacity: 0.35;
+}
+
+.imageFallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    160deg,
+    var(--cream, #f0ebe3) 0%,
+    var(--linen, #e8e1d6) 40%,
+    var(--sand, #d4cabb) 100%
+  );
+}
+
+/* ===== TEXT PANEL ===== */
+
+.textPanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(48px, 6vw, 96px) clamp(32px, 5vw, 80px);
+  padding-right: clamp(24px, 4vw, 64px);
+  position: relative;
+}
+
+/* Thin decorative rule at top of text panel */
+.textPanel::before {
+  content: "";
+  position: absolute;
+  top: clamp(32px, 5vw, 72px);
+  left: clamp(32px, 5vw, 80px);
+  width: 48px;
+  height: 1px;
+  background: var(--accent, #7a8c72);
+  opacity: 0;
+  animation: ruleReveal 1s 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ruleReveal {
+  to {
+    opacity: 0.6;
+    width: 48px;
+  }
+}
+
+/* ===== MONOGRAM ===== */
+
+.monogram {
+  font-family: var(--serif);
+  font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+  margin-bottom: clamp(24px, 3vw, 40px);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: editorialFadeUp 0.9s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== COUPLE NAMES ===== */
+
+.names {
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 4.5vw, 4.8rem);
+  font-weight: 300;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--text, #3d3830);
+  margin: 0 0 clamp(16px, 2vw, 28px);
+}
+
+.nameLine {
+  display: block;
+  opacity: 0;
+  transform: translateY(24px);
+  animation: editorialFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.nameLine:nth-child(1) { animation-delay: 0.5s; }
+.nameLine:nth-child(2) { animation-delay: 0.65s; }
+.nameLine:nth-child(3) { animation-delay: 0.8s; }
+
+/* Ampersand styling — lighter weight, accent color */
+.ampersand {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--accent, #7a8c72);
+  opacity: 0.7;
+}
+
+/* ===== DIVIDER RULE ===== */
+
+.rule {
+  width: 0;
+  height: 1px;
+  background: var(--border, #e8e1d6);
+  margin: clamp(12px, 1.5vw, 20px) 0;
+  animation: ruleGrow 0.8s 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ruleGrow {
+  to { width: 100%; }
+}
+
+/* ===== DATE & LOCATION ===== */
+
+.infoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: editorialFadeUp 0.8s 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dateText {
+  font-family: var(--sans);
+  font-size: clamp(0.72rem, 0.85vw, 0.82rem);
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-2, #786f65);
+}
+
+/* ===== TITLE (fallback when no coupleNames) ===== */
+
+.titleOnly {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--text, #3d3830);
+  margin: 0 0 clamp(16px, 2vw, 28px);
+  opacity: 0;
+  transform: translateY(24px);
+  animation: editorialFadeUp 0.8s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== CTA ===== */
+
+.cta {
+  margin-top: clamp(24px, 3vw, 40px);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: editorialFadeUp 0.8s 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ctaLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--sans);
+  font-size: clamp(0.72rem, 0.8vw, 0.78rem);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text, #3d3830);
+  text-decoration: none;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border, #e8e1d6);
+  transition:
+    border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ctaLink:hover {
+  color: var(--accent, #7a8c72);
+  border-color: var(--accent, #7a8c72);
+}
+
+.ctaArrow {
+  display: inline-block;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ctaLink:hover .ctaArrow {
+  transform: translateX(4px);
+}
+
+/* ===== SHARED KEYFRAME ===== */
+
+@keyframes editorialFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== MOBILE — stack vertically ===== */
+
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .imagePanel {
+    height: 60svh;
+    min-height: 360px;
+  }
+
+  /* Remove the vertical accent line on mobile */
+  .imagePanel::after {
+    display: none;
+  }
+
+  .textPanel {
+    padding: clamp(40px, 8vw, 64px) clamp(24px, 6vw, 40px);
+    min-height: auto;
+  }
+
+  /* Move the decorative rule inline on mobile */
+  .textPanel::before {
+    top: clamp(24px, 5vw, 40px);
+    left: clamp(24px, 6vw, 40px);
+  }
+
+  .names {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+}
+
+/* Tablet — tighten the split */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hero {
+    grid-template-columns: 50% 50%;
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .imagePanel img {
+    animation: none;
+  }
+
+  .monogram,
+  .nameLine,
+  .titleOnly,
+  .infoBlock,
+  .cta {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .rule {
+    width: 100%;
+    animation: none;
+  }
+
+  .textPanel::before {
+    opacity: 0.6;
+    animation: none;
+  }
+
+  .ctaLink,
+  .ctaArrow {
+    transition: none;
+  }
+}

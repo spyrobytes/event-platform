@@ -1,6 +1,7 @@
 export { SectionWrapper, SectionTitle } from "./SectionWrapper";
 export { AnimatedSection, AnimatedSectionTitle, AnimatedWrapper } from "./AnimatedSection";
 export { AnimationProvider, useAnimation, useHasAnimationProvider } from "./AnimationContext";
+export type { MotionPresetConfig } from "./AnimationContext";
 export {
   SectionNav,
   SectionNavProgress,

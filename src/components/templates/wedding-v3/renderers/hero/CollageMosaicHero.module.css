@@ -1,0 +1,200 @@
+/* ===================================================================
+   Collage Mosaic Hero — The Celebration House
+
+   Mosaic of multiple photos with a celebratory headline layered
+   over the center. Joyful, social, vibrant. Like a wall of
+   polaroids at a family gathering.
+   =================================================================== */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg, #f8f5f0);
+}
+
+/* ===== MOSAIC GRID ===== */
+
+.mosaic {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3px;
+  opacity: 0.35;
+}
+
+.mosaic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Gradient overlay over mosaic */
+.mosaic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--bg, #f8f5f0) 60%, transparent) 0%,
+    var(--bg, #f8f5f0) 70%
+  );
+}
+
+.mosaicFallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    var(--cream, #f0ebe3) 0%,
+    var(--bg, #f8f5f0) 50%,
+    var(--linen, #e8e1d6) 100%
+  );
+}
+
+/* ===== CONTENT ===== */
+
+.content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 640px;
+  padding: 0 clamp(20px, 4vw, 40px);
+}
+
+.monogram {
+  font-family: var(--sans);
+  font-size: clamp(0.72rem, 0.85vw, 0.8rem);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+  margin-bottom: clamp(16px, 2vw, 24px);
+  opacity: 0;
+  transform: translateY(16px) scale(0.95);
+  animation: celebrationPop 0.6s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.names {
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  color: var(--text, #3d3830);
+  margin: 0 0 clamp(12px, 2vw, 20px);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: celebrationReveal 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ampersand {
+  display: inline-block;
+  font-style: italic;
+  font-weight: 300;
+  color: var(--accent, #7a8c72);
+  margin: 0 8px;
+  font-size: 0.75em;
+}
+
+.titleOnly {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 4.5vw, 3.8rem);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--text, #3d3830);
+  margin: 0 0 clamp(12px, 2vw, 20px);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: celebrationReveal 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dateText {
+  font-family: var(--sans);
+  font-size: clamp(0.72rem, 0.85vw, 0.8rem);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-2, #786f65);
+  opacity: 0;
+  animation: celebrationReveal 0.6s 0.7s ease forwards;
+}
+
+.cta {
+  margin-top: clamp(24px, 3vw, 36px);
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: celebrationReveal 0.6s 0.9s ease forwards;
+}
+
+.ctaBtn {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: clamp(0.7rem, 0.8vw, 0.76rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--surface, #ffffff);
+  background: var(--accent, #7a8c72);
+  text-decoration: none;
+  padding: 12px 28px;
+  border-radius: var(--r, 16px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ctaBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes celebrationPop {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes celebrationReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 640px) {
+  .mosaic {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .monogram,
+  .names,
+  .titleOnly,
+  .dateText,
+  .cta {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .ctaBtn {
+    transition: none;
+  }
+}

@@ -1,0 +1,190 @@
+/**
+ * The Garden House — Template Definition
+ *
+ * Organic, natural, warm, softly artisanal. Designed for outdoor
+ * and nature-led weddings. Curves, arches, and organic textures
+ * make it immediately distinct from sharper premium templates.
+ */
+
+import type { TemplateDefinition } from "../types";
+
+export const GARDEN_HOUSE: TemplateDefinition = {
+  id: "garden_house",
+  displayName: "The Garden House",
+  description: "Organic, natural, warm. Curved shapes and earthy textures for outdoor celebrations.",
+  bestFor: [
+    "Garden weddings",
+    "Countryside venues",
+    "Vineyard weddings",
+    "Spring/summer celebrations",
+  ],
+
+  heroRenderer: "arch-framed",
+  navRenderer: "pill-dot",
+  galleryRenderer: "soft-masonry",
+  scheduleRenderer: "curved-stacked",
+  storyRenderer: "photo-prose",
+  rsvpRenderer: "natural-paper",
+  footerRenderer: "organic-wave",
+  dividerRenderer: "organic-curve",
+
+  motionPreset: {
+    revealType: "organic-drift",
+    duration: 600,
+    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+    staggerDelay: 90,
+    parallax: false,
+  },
+
+  chromeKit: {
+    scrollProgress: true,
+    botanicals: false,
+    footerDecoration: false,
+  },
+
+  themePacks: [
+    // Sage Meadow — sage, cream, moss, muted clay
+    {
+      id: "sage-meadow",
+      label: "Sage Meadow",
+      palette: {
+        ivory: "#f7f6f0",
+        cream: "#eeece2",
+        linen: "#e2ded4",
+        sand: "#cac6b8",
+        stone: "#969288",
+        earth: "#6c6860",
+        charcoal: "#34322c",
+        night: "#1a1916",
+        sage: "#7a8c6e",
+        sageLight: "#a4b498",
+        sageDark: "#5a6c4e",
+        accent: "#7a8c6e",
+        accent2: "#a8946c",
+        bg: "#f7f6f0",
+        surface: "#ffffff",
+        text: "#34322c",
+        text2: "#6c6860",
+        text3: "#969288",
+        border: "#e2ded4",
+      },
+      glass: {
+        frostedBg: "rgba(247, 246, 240, 0.55)",
+        frostedBgScrolled: "rgba(247, 246, 240, 0.95)",
+        mobileNavBg: "rgba(247, 246, 240, 0.97)",
+        heroOverlayColor: "#f7f6f0",
+        accentTint: "rgba(122, 140, 110, 0.08)",
+        accentHoverBg: "rgba(122, 140, 110, 0.05)",
+      },
+      fontPair: "serif_sans",
+      spacingScale: "balanced",
+      maxWidth: "1100px",
+      radiusScale: "organic",
+      shadowIntensity: "subtle",
+      buttonStyle: "solid",
+      motif: "none",
+    },
+    // Terracotta Bloom — terracotta, linen, olive
+    {
+      id: "terracotta-bloom",
+      label: "Terracotta Bloom",
+      palette: {
+        ivory: "#faf6f0",
+        cream: "#f2ece2",
+        linen: "#e6dfd4",
+        sand: "#cec6b8",
+        stone: "#a09888",
+        earth: "#746c5e",
+        charcoal: "#38342c",
+        night: "#1c1a16",
+        sage: "#8a8060",
+        sageLight: "#aaa484",
+        sageDark: "#6a6042",
+        accent: "#b4826a",
+        accent2: "#8a8060",
+        bg: "#faf6f0",
+        surface: "#ffffff",
+        text: "#38342c",
+        text2: "#746c5e",
+        text3: "#a09888",
+        border: "#e6dfd4",
+      },
+      glass: {
+        frostedBg: "rgba(250, 246, 240, 0.55)",
+        frostedBgScrolled: "rgba(250, 246, 240, 0.95)",
+        mobileNavBg: "rgba(250, 246, 240, 0.97)",
+        heroOverlayColor: "#faf6f0",
+        accentTint: "rgba(180, 130, 106, 0.08)",
+        accentHoverBg: "rgba(180, 130, 106, 0.05)",
+      },
+      fontPair: "serif_sans",
+      spacingScale: "balanced",
+      maxWidth: "1100px",
+      radiusScale: "organic",
+      shadowIntensity: "subtle",
+      buttonStyle: "solid",
+      motif: "none",
+    },
+    // Dusty Blue Field — dusty blue, ivory, soft green
+    {
+      id: "dusty-blue-field",
+      label: "Dusty Blue Field",
+      palette: {
+        ivory: "#f5f7f8",
+        cream: "#eaeff0",
+        linen: "#dee4e6",
+        sand: "#c2cace",
+        stone: "#8e969a",
+        earth: "#646c70",
+        charcoal: "#303638",
+        night: "#1a1e20",
+        sage: "#7a9090",
+        sageLight: "#a0b4b4",
+        sageDark: "#5a7070",
+        accent: "#7a96a0",
+        accent2: "#8a9a80",
+        bg: "#f5f7f8",
+        surface: "#ffffff",
+        text: "#303638",
+        text2: "#646c70",
+        text3: "#8e969a",
+        border: "#dee4e6",
+      },
+      glass: {
+        frostedBg: "rgba(245, 247, 248, 0.55)",
+        frostedBgScrolled: "rgba(245, 247, 248, 0.95)",
+        mobileNavBg: "rgba(245, 247, 248, 0.97)",
+        heroOverlayColor: "#f5f7f8",
+        accentTint: "rgba(122, 150, 160, 0.08)",
+        accentHoverBg: "rgba(122, 150, 160, 0.05)",
+      },
+      fontPair: "serif_sans",
+      spacingScale: "balanced",
+      maxWidth: "1100px",
+      radiusScale: "organic",
+      shadowIntensity: "subtle",
+      buttonStyle: "solid",
+      motif: "none",
+    },
+  ],
+
+  accentSwatches: [
+    { hex: "#7a8c6e", label: "Sage" },
+    { hex: "#b4826a", label: "Terracotta" },
+    { hex: "#7a96a0", label: "Dusty Blue" },
+    { hex: "#a8946c", label: "Clay" },
+    { hex: "#6a8060", label: "Moss" },
+  ],
+
+  defaultSectionOrder: [
+    "story",
+    "details",
+    "travelStay",
+    "thingsToDo",
+    "gallery",
+    "registry",
+    "rsvp",
+  ],
+
+  scrollProgressGradient: "linear-gradient(90deg, #7a8c6e, #a4b498, #cac6b8)",
+};

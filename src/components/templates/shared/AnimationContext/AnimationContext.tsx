@@ -12,6 +12,19 @@ import {
 import type { AnimationLevel } from "@/components/templates/wedding/variants/types";
 
 /**
+ * V3 Motion preset — describes the animation personality of a template.
+ * Optional: when provided, overrides animationLevel/staggerDelay with
+ * richer motion configuration.
+ */
+export type MotionPresetConfig = {
+  revealType: "fade-up" | "dissolve" | "mask-reveal" | "organic-drift" | "soft-fade" | "bounce";
+  duration: number;
+  easing: string;
+  staggerDelay: number;
+  parallax: boolean;
+};
+
+/**
  * Animation context value
  */
 type AnimationContextValue = {
@@ -25,6 +38,8 @@ type AnimationContextValue = {
   staggerDelay: number;
   /** Get delay for a section based on its index */
   getSectionDelay: (index: number) => number;
+  /** V3 motion preset (undefined when using legacy V2 path) */
+  motionPreset?: MotionPresetConfig;
 };
 
 const AnimationContext = createContext<AnimationContextValue | null>(null);
@@ -37,6 +52,8 @@ type AnimationProviderProps = {
   staggerDelay?: number;
   /** Whether to enable staggered reveals (default: true) */
   enableStagger?: boolean;
+  /** V3 motion preset — when provided, staggerDelay is derived from preset */
+  motionPreset?: MotionPresetConfig;
 };
 
 /**
@@ -57,9 +74,12 @@ type AnimationProviderProps = {
 export function AnimationProvider({
   children,
   animationLevel = "subtle",
-  staggerDelay = 100,
+  staggerDelay: staggerDelayProp = 100,
   enableStagger = true,
+  motionPreset,
 }: AnimationProviderProps) {
+  // When motionPreset is provided, derive stagger from it
+  const staggerDelay = motionPreset?.staggerDelay ?? staggerDelayProp;
   // Check for reduced motion preference
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -104,8 +124,9 @@ export function AnimationProvider({
       effectiveAnimationLevel,
       staggerDelay: enableStagger ? staggerDelay : 0,
       getSectionDelay,
+      motionPreset: prefersReducedMotion ? undefined : motionPreset,
     }),
-    [animationLevel, prefersReducedMotion, effectiveAnimationLevel, staggerDelay, enableStagger, getSectionDelay]
+    [animationLevel, prefersReducedMotion, effectiveAnimationLevel, staggerDelay, enableStagger, getSectionDelay, motionPreset]
   );
 
   return (

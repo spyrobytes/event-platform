@@ -9,6 +9,14 @@ import { WeddingTemplateV2 } from "./wedding-v2";
 import { ConferenceTemplateV1 } from "./ConferenceTemplateV1";
 import { PartyTemplateV1 } from "./PartyTemplateV1";
 
+// V3 template components (pre-built, lazy-loaded)
+import { WeddingEditorialTemplate } from "./wedding-v3/templates/editorial-template";
+import { WeddingIntimateNoteTemplate } from "./wedding-v3/templates/intimate-note-template";
+import { WeddingFineArtTemplate } from "./wedding-v3/templates/fine-art-template";
+import { WeddingGardenHouseTemplate } from "./wedding-v3/templates/garden-house-template";
+import { WeddingGrandLuxeTemplate } from "./wedding-v3/templates/grand-luxe-template";
+import { WeddingCelebrationTemplate } from "./wedding-v3/templates/celebration-template";
+
 /**
  * Temporal data for time-aware page rendering
  */
@@ -55,6 +63,13 @@ export const TEMPLATES: Record<string, TemplateComponent> = {
   wedding_v1_legacy: WeddingTemplateV1,
   // Cinematic wedding template (V2)
   wedding_v2: WeddingTemplateV2,
+  // V3 unique editorial templates
+  wedding_editorial: WeddingEditorialTemplate,
+  wedding_intimate_note: WeddingIntimateNoteTemplate,
+  wedding_fine_art: WeddingFineArtTemplate,
+  wedding_garden_house: WeddingGardenHouseTemplate,
+  wedding_grand_luxe: WeddingGrandLuxeTemplate,
+  wedding_celebration: WeddingCelebrationTemplate,
   conference_v1: ConferenceTemplateV1,
   party_v1: PartyTemplateV1,
 };

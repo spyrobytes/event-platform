@@ -50,9 +50,17 @@ const WEDDING_SECTIONS: Section["type"][] = [
   ...GENERIC_SECTIONS, "story", "travelStay", "weddingParty", "attire", "thingsToDo",
 ];
 
+const V3_WEDDING_SECTIONS: Section["type"][] = [...WEDDING_SECTIONS, "registry"];
+
 const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
   wedding_v1: new Set(WEDDING_SECTIONS),
   wedding_v2: new Set([...WEDDING_SECTIONS, "registry"]),
+  wedding_editorial: new Set(V3_WEDDING_SECTIONS),
+  wedding_intimate_note: new Set(V3_WEDDING_SECTIONS),
+  wedding_fine_art: new Set(V3_WEDDING_SECTIONS),
+  wedding_garden_house: new Set(V3_WEDDING_SECTIONS),
+  wedding_grand_luxe: new Set(V3_WEDDING_SECTIONS),
+  wedding_celebration: new Set(V3_WEDDING_SECTIONS),
   conference_v1: new Set(GENERIC_SECTIONS),
   party_v1: new Set(GENERIC_SECTIONS),
 };
