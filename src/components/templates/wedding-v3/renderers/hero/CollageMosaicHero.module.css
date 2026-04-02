@@ -2,14 +2,15 @@
    Collage Mosaic Hero — The Celebration House
 
    Mosaic of multiple photos with a celebratory headline layered
-   over the center. Joyful, social, vibrant. Like a wall of
-   polaroids at a family gathering.
+   over the center. Couple photo portrait, two glass float-cards
+   for countdown + event dates. Joyful, social, vibrant.
    =================================================================== */
 
 .hero {
   position: relative;
   min-height: 100svh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -68,18 +69,31 @@
   padding: 0 clamp(20px, 4vw, 40px);
 }
 
-.monogram {
-  font-family: var(--sans);
-  font-size: clamp(0.72rem, 0.85vw, 0.8rem);
-  font-weight: 600;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--accent, #7a8c72);
-  margin-bottom: clamp(16px, 2vw, 24px);
+/* ===== COUPLE PHOTO ===== */
+
+.couplePhoto {
+  width: clamp(120px, 18vw, 180px);
+  height: clamp(120px, 18vw, 180px);
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto clamp(20px, 3vw, 32px);
+  border: 4px solid color-mix(in srgb, var(--surface, #ffffff) 80%, transparent);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px var(--border, #e8e1d6);
   opacity: 0;
-  transform: translateY(16px) scale(0.95);
-  animation: celebrationPop 0.6s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform: scale(0.9);
+  animation: celebrationPop 0.7s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+
+.couplePhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ===== NAMES + DATE ===== */
 
 .names {
   font-family: var(--serif);
@@ -88,7 +102,7 @@
   line-height: 1.1;
   letter-spacing: -0.015em;
   color: var(--text, #3d3830);
-  margin: 0 0 clamp(12px, 2vw, 20px);
+  margin: 0 0 clamp(8px, 1.5vw, 14px);
   opacity: 0;
   transform: translateY(20px);
   animation: celebrationReveal 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -109,7 +123,7 @@
   font-weight: 500;
   line-height: 1.15;
   color: var(--text, #3d3830);
-  margin: 0 0 clamp(12px, 2vw, 20px);
+  margin: 0 0 clamp(8px, 1.5vw, 14px);
   opacity: 0;
   transform: translateY(20px);
   animation: celebrationReveal 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -123,7 +137,7 @@
   text-transform: uppercase;
   color: var(--text-2, #786f65);
   opacity: 0;
-  animation: celebrationReveal 0.6s 0.7s ease forwards;
+  animation: celebrationReveal 0.6s 0.6s ease forwards;
 }
 
 .cta {
@@ -133,7 +147,7 @@
   justify-content: center;
   flex-wrap: wrap;
   opacity: 0;
-  animation: celebrationReveal 0.6s 0.9s ease forwards;
+  animation: celebrationReveal 0.6s 0.8s ease forwards;
 }
 
 .ctaBtn {
@@ -154,6 +168,168 @@
 .ctaBtn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== FLOAT CARDS ===== */
+
+.floatCards {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: clamp(12px, 2vw, 20px);
+  margin-top: clamp(32px, 4vw, 48px);
+  flex-wrap: wrap;
+  justify-content: center;
+  opacity: 0;
+  animation: celebrationReveal 0.7s 0.9s ease forwards;
+}
+
+.floatCard {
+  background: color-mix(in srgb, var(--surface, #ffffff) 80%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border, #e8e1d6);
+  border-radius: var(--r, 16px);
+  padding: clamp(16px, 2vw, 24px);
+  min-width: 200px;
+  max-width: 280px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.4s ease;
+}
+
+.floatCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1),
+    0 0 0 1px color-mix(in srgb, var(--accent, #7a8c72) 20%, transparent);
+}
+
+.floatCardHead {
+  margin-bottom: clamp(8px, 1vw, 12px);
+}
+
+.floatCardLabel {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+}
+
+/* ===== FLOAT CARD FOOTER (RSVP deadline) ===== */
+
+.floatCardFoot {
+  margin-top: clamp(10px, 1.2vw, 14px);
+  padding-top: clamp(8px, 1vw, 12px);
+  border-top: 1px solid var(--border, #e8e1d6);
+  text-align: center;
+}
+
+.deadlineText {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-3, #a69e93);
+}
+
+.deadlineUrgent {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent, #7a8c72);
+}
+
+.deadlineClosed {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-3, #a69e93);
+  opacity: 0.7;
+}
+
+/* ===== COUNTDOWN ===== */
+
+.countdown {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(8px, 1vw, 12px);
+}
+
+.countUnit {
+  text-align: center;
+}
+
+.countNum {
+  font-family: var(--serif);
+  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text, #3d3830);
+  margin-bottom: 4px;
+}
+
+.countSep {
+  font-family: var(--serif);
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-weight: 300;
+  color: var(--text-3, #a69e93);
+  margin-top: 2px;
+}
+
+.countLabel {
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3, #a69e93);
+}
+
+/* ===== EVENT LIST ===== */
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eventRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.eventDay {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent, #7a8c72);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.eventDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-3, #a69e93);
+  flex-shrink: 0;
+  /* Align dot to baseline of text */
+  align-self: center;
+}
+
+.eventInfo {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: var(--text-2, #786f65);
+  line-height: 1.4;
+  /* Allow text to wrap instead of truncating */
+  word-break: break-word;
 }
 
 /* ===== KEYFRAMES ===== */
@@ -179,22 +355,33 @@
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(4, 1fr);
   }
+
+  .floatCards {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .floatCard {
+    min-width: 240px;
+  }
 }
 
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
-  .monogram,
+  .couplePhoto,
   .names,
   .titleOnly,
   .dateText,
-  .cta {
+  .cta,
+  .floatCards {
     opacity: 1;
     transform: none;
     animation: none;
   }
 
-  .ctaBtn {
+  .ctaBtn,
+  .floatCard {
     transition: none;
   }
 }

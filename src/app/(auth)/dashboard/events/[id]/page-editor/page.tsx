@@ -15,6 +15,7 @@ import {
   getTemplateInfo,
   WeddingVariantPicker,
   V2VariantPicker,
+  V2AccentSwatches,
   ScheduleEditor,
   FAQEditor,
   GalleryEditor,
@@ -33,6 +34,7 @@ import {
   RegistryEditor,
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
+import { getV3Definition } from "@/components/templates/wedding-v3";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { isAccessibleColor } from "@/schemas/event-page";
@@ -737,6 +739,30 @@ export default function PageEditorPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* V3 Accent Swatches — show for V3 wedding templates */}
+      {config && (() => {
+        const v3Def = getV3Definition(templateId);
+        if (!v3Def || v3Def.accentSwatches.length === 0) return null;
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Accent Color</CardTitle>
+              <CardDescription>
+                Choose a curated accent color for your {v3Def.displayName} template
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <V2AccentSwatches
+                swatches={v3Def.accentSwatches}
+                value={config.theme.primaryColor}
+                onChange={(hex) => updateTheme({ primaryColor: hex })}
+                disabled={saving}
+              />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Theme Section — hidden when a V2 variant is selected (variant controls theme) */}
       {!(templateId === "wedding_v2" && config.variantId) && (

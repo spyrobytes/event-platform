@@ -3,20 +3,28 @@
 /**
  * Utility Forward Nav — The Celebration House
  *
- * Prominent utility nav with clear labels and quick-action buttons.
- * More active and functional than other template navs. Mobile-first
- * with a visible quick-action bar for Schedule, Venue, RSVP.
+ * Prominent utility nav with section scroll progress (underline on active section),
+ * monogram circle linking to hero, clear labels, and quick-action priority buttons.
+ * Mobile-first with hamburger drawer.
  */
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
+import styles from "./UtilityForwardNav.module.css";
 
 export function UtilityForwardNav({
+  monogram,
   coupleNames,
   sections,
 }: NavRendererProps) {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.scrollY > 80;
+  });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
 
+  // Scroll detection for frosted glass
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 80);
   }, []);
@@ -26,69 +34,68 @@ export function UtilityForwardNav({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
+  // Active section tracking via IntersectionObserver
+  useEffect(() => {
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: "-30% 0px -65% 0px", threshold: 0.01 }
+    );
+
+    sections.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [sections]);
+
+  const handleNavClick = () => {
+    setMobileNavOpen(false);
+  };
+
   // Priority actions shown as buttons
   const priorityIds = ["schedule", "details", "rsvp"];
   const prioritySections = sections.filter((s) => priorityIds.includes(s.id));
   const otherSections = sections.filter(
-    (s) => !priorityIds.includes(s.id) && ["story", "gallery", "travel", "party", "registry"].includes(s.id)
+    (s) => !priorityIds.includes(s.id) && !["top"].includes(s.id)
   );
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        padding: "0 clamp(16px, 3vw, 24px)",
-        background: scrolled ? "var(--bg, #f8f5f0)" : "transparent",
-        borderBottom: scrolled ? "1px solid var(--border, #e8e1d6)" : "1px solid transparent",
-        transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-      }}
+    <header
+      className={`${styles.topbar} ${scrolled ? styles.scrolled : ""}`}
       aria-label="Main navigation"
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          maxWidth: "var(--max, 1140px)",
-          margin: "0 auto",
-          height: 56,
-        }}
-      >
-        {/* Brand */}
-        <a
-          href="#top"
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "0.92rem",
-            fontWeight: 500,
-            color: "var(--text, #3d3830)",
-            textDecoration: "none",
-          }}
-        >
-          {coupleNames || "Our Wedding"}
+      <div className={styles.inner}>
+        {/* Brand — monogram circle links to hero */}
+        <a className={styles.brand} href="#top" aria-label="Back to top">
+          {monogram ? (
+            <div className={styles.monogramCircle} aria-hidden="true">
+              <span className={styles.monogramLetter}>{monogram}</span>
+            </div>
+          ) : coupleNames ? (
+            <span className={styles.brandNames}>{coupleNames}</span>
+          ) : null}
         </a>
 
-        {/* Section links */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {/* Section nav links with active underline */}
+        <nav
+          className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
+          aria-label="Page sections"
+        >
           {otherSections.map((s) => (
             <a
               key={s.id}
               href={`#${s.id}`}
-              style={{
-                fontFamily: "var(--sans)",
-                fontSize: "0.68rem",
-                fontWeight: 500,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase" as const,
-                color: "var(--text-2, #786f65)",
-                textDecoration: "none",
-                padding: "6px 10px",
-                borderRadius: "var(--r, 16px)",
-              }}
+              className={`${styles.navLink} ${activeSection === s.id ? styles.navLinkActive : ""}`}
+              onClick={handleNavClick}
             >
               {s.label}
             </a>
@@ -101,31 +108,41 @@ export function UtilityForwardNav({
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                style={{
-                  fontFamily: "var(--sans)",
-                  fontSize: "0.68rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase" as const,
-                  color: isRsvp ? "var(--surface, #ffffff)" : "var(--accent, #7a8c72)",
-                  background: isRsvp ? "var(--accent, #7a8c72)" : "color-mix(in srgb, var(--accent, #7a8c72) 10%, transparent)",
-                  textDecoration: "none",
-                  padding: "6px 14px",
-                  borderRadius: "var(--r, 16px)",
-                }}
+                className={`${styles.priorityLink} ${isRsvp ? styles.priorityRsvp : styles.priorityDefault}`}
+                onClick={handleNavClick}
               >
                 {s.label}
               </a>
             );
           })}
+        </nav>
+
+        {/* Actions */}
+        <div className={styles.actions}>
+          {sections.length > 0 && (
+            <button
+              className={styles.navToggle}
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              aria-label="Toggle navigation"
+              aria-expanded={mobileNavOpen}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                width={18}
+                height={18}
+              >
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          nav > div > div { display: none !important; }
-        }
-      `}</style>
-    </nav>
+    </header>
   );
 }
