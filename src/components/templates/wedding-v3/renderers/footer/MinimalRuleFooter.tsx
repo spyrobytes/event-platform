@@ -3,94 +3,45 @@
 /**
  * Minimal Rule Footer — The Editorial / Intimate Note
  *
- * Clean footer with a single thin rule at top, couple names,
- * navigation links inline, and a subtle credit line.
- * No decorative elements, no skyline — pure typography.
+ * Dark "back cover" footer with inverted colors.
+ * Thin top rule, couple names in large faded serif as watermark,
+ * navigation links, and subtle credit line.
  */
 
 import type { FooterRendererProps } from "../../types";
+import styles from "./MinimalRuleFooter.module.css";
 
 export function MinimalRuleFooter({
+  monogram,
   coupleNames,
   dateText,
   sections,
 }: FooterRendererProps) {
   return (
-    <footer
-      style={{
-        borderTop: "1px solid var(--border, #e8e1d6)",
-        padding: "clamp(40px, 5vw, 64px) 0 clamp(24px, 3vw, 40px)",
-      }}
-    >
-      <div
-        style={{
-          width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))",
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: "clamp(20px, 3vw, 32px)",
-        }}
-      >
+    <footer className={styles.footer}>
+      <div className={styles.container}>
+        {/* Watermark — large faded monogram or couple names */}
+        {(monogram || coupleNames) && (
+          <div className={styles.watermark} aria-hidden="true">
+            {monogram || coupleNames}
+          </div>
+        )}
+
         {/* Top row: names + date */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "baseline",
-            flexWrap: "wrap",
-            gap: 16,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--serif)",
-              fontSize: "clamp(1.1rem, 1.5vw, 1.3rem)",
-              fontWeight: 400,
-              color: "var(--text, #3d3830)",
-            }}
-          >
+        <div className={styles.topRow}>
+          <span className={styles.names}>
             {coupleNames || "Our Wedding"}
           </span>
           {dateText && (
-            <span
-              style={{
-                fontFamily: "var(--sans)",
-                fontSize: "0.72rem",
-                fontWeight: 500,
-                letterSpacing: "0.18em",
-                textTransform: "uppercase" as const,
-                color: "var(--text-3, #a69e93)",
-              }}
-            >
-              {dateText}
-            </span>
+            <span className={styles.date}>{dateText}</span>
           )}
         </div>
 
         {/* Navigation links */}
         {sections.length > 0 && (
-          <nav
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "clamp(16px, 2vw, 24px)",
-            }}
-            aria-label="Footer navigation"
-          >
+          <nav className={styles.nav} aria-label="Footer navigation">
             {sections.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                style={{
-                  fontFamily: "var(--sans)",
-                  fontSize: "0.72rem",
-                  fontWeight: 500,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase" as const,
-                  color: "var(--text-2, #786f65)",
-                  textDecoration: "none",
-                }}
-              >
+              <a key={s.id} href={`#${s.id}`} className={styles.navLink}>
                 {s.label}
               </a>
             ))}
@@ -98,16 +49,7 @@ export function MinimalRuleFooter({
         )}
 
         {/* Credit line */}
-        <p
-          style={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.68rem",
-            color: "var(--text-3, #a69e93)",
-            letterSpacing: "0.04em",
-          }}
-        >
-          Powered by Events Fixer
-        </p>
+        <p className={styles.credit}>Powered by Events Fixer</p>
       </div>
     </footer>
   );

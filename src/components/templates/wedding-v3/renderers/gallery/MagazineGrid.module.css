@@ -1,9 +1,9 @@
 /* ===================================================================
-   Magazine Grid Gallery — The Editorial
+   Editorial Spread Gallery — The Editorial
 
-   Editorial photo grid with mixed aspect ratios, thin gutters,
-   and a clean magazine-spread feel. Images alternate between
-   portrait and landscape in a controlled asymmetric pattern.
+   Split-view gallery: editorial text sidebar (25%) + featured
+   image (75%). Horizontal thumbnail strip below. Each photo is
+   treated as a page spread, not a grid dump.
    =================================================================== */
 
 .section {
@@ -14,6 +14,8 @@
   width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
   margin: 0 auto;
 }
+
+/* ===== HEADER ===== */
 
 .header {
   margin-bottom: clamp(40px, 5vw, 64px);
@@ -37,102 +39,209 @@
   color: var(--text, #3d3830);
 }
 
-/* ===== GRID ===== */
+/* ===== SPLIT SPREAD ===== */
 
-.grid {
+.spread {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 4px;
+  grid-template-columns: 1fr 3fr;
+  gap: 1px;
+  background: var(--border, #e8e1d6);
+  border: 1px solid var(--border, #e8e1d6);
 }
 
-/* Pattern: first image spans 7 cols, second spans 5, etc. */
-.item:nth-child(6n + 1) { grid-column: span 7; }
-.item:nth-child(6n + 2) { grid-column: span 5; }
-.item:nth-child(6n + 3) { grid-column: span 4; }
-.item:nth-child(6n + 4) { grid-column: span 4; }
-.item:nth-child(6n + 5) { grid-column: span 4; }
-.item:nth-child(6n + 6) { grid-column: span 12; }
+/* ===== SIDEBAR ===== */
 
-.item {
+.sidebar {
+  background: var(--bg, #f8f5f0);
+  padding: clamp(24px, 3vw, 40px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 0;
+}
+
+/* Counter — large current, small total */
+.counter {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.counterCurrent {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3.5vw, 3.2rem);
+  font-weight: 300;
+  line-height: 1;
+  color: var(--text, #3d3830);
+}
+
+.counterSep {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-3, #a69e93);
+}
+
+.counterTotal {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-3, #a69e93);
+}
+
+/* Caption text */
+.captionText {
+  font-family: var(--serif);
+  font-size: clamp(0.9rem, 1.1vw, 1.05rem);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-2, #786f65);
+  font-style: italic;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Prev / Next links */
+.navLinks {
+  display: flex;
+  gap: 20px;
+}
+
+.navBtn {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2, #786f65);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 0;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.navBtn:hover {
+  color: var(--accent, #7a8c72);
+  border-color: var(--accent, #7a8c72);
+}
+
+/* ===== FEATURED IMAGE ===== */
+
+.featured {
+  background: var(--bg, #f8f5f0);
   position: relative;
   overflow: hidden;
-  cursor: pointer;
+  aspect-ratio: 4 / 3;
 }
 
-/* Aspect ratios based on position */
-.item:nth-child(6n + 1) { aspect-ratio: 7 / 5; }
-.item:nth-child(6n + 2) { aspect-ratio: 5 / 6; }
-.item:nth-child(6n + 3) { aspect-ratio: 1 / 1; }
-.item:nth-child(6n + 4) { aspect-ratio: 1 / 1; }
-.item:nth-child(6n + 5) { aspect-ratio: 1 / 1; }
-.item:nth-child(6n + 6) { aspect-ratio: 21 / 9; }
-
-.item img {
+.featuredImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: editorialImageReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.item:hover img {
-  transform: scale(1.03);
+@keyframes editorialImageReveal {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* Caption overlay — appears on hover */
-.caption {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 16px 20px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
-  color: #fff;
-  font-family: var(--sans);
-  font-size: var(--sm, 0.85rem);
-  opacity: 0;
-  transform: translateY(4px);
+/* ===== THUMBNAIL STRIP ===== */
+
+.thumbStrip {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  padding-bottom: 4px;
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border: 1px solid var(--border, #e8e1d6);
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  overflow: hidden;
+  opacity: 0.5;
   transition:
-    opacity 0.4s ease,
-    transform 0.4s ease;
+    opacity 0.3s ease,
+    border-color 0.3s ease;
 }
 
-.item:hover .caption {
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb:hover {
+  opacity: 0.85;
+}
+
+.thumbActive {
   opacity: 1;
-  transform: translateY(0);
+  border-color: var(--accent, #7a8c72);
 }
 
 /* ===== MOBILE ===== */
 
 @media (max-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 3px;
+  .spread {
+    grid-template-columns: 1fr;
   }
 
-  .item:nth-child(6n + 1),
-  .item:nth-child(6n + 2),
-  .item:nth-child(6n + 3),
-  .item:nth-child(6n + 4),
-  .item:nth-child(6n + 5) {
-    grid-column: span 1;
-    aspect-ratio: 1 / 1;
+  /* Image first on mobile (reorder) */
+  .featured {
+    order: -1;
+    aspect-ratio: 4 / 3;
   }
 
-  .item:nth-child(6n + 6) {
-    grid-column: span 2;
-    aspect-ratio: 16 / 9;
+  .sidebar {
+    padding: clamp(20px, 4vw, 32px);
+    gap: 16px;
+  }
+
+  .counter {
+    display: none;
+  }
+
+  .navLinks {
+    justify-content: space-between;
+  }
+
+  .thumb {
+    width: 56px;
+    height: 56px;
   }
 }
 
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
-  .item img {
-    transition: none;
+  .featuredImg {
+    animation: none;
   }
 
-  .caption {
+  .navBtn,
+  .thumb {
     transition: none;
   }
 }

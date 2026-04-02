@@ -1,0 +1,112 @@
+/* ===================================================================
+   Minimal Rule Footer — The Editorial
+
+   Dark "back cover" footer. Near-black background with inverted
+   light text. Thin top rule, large faded watermark, minimal
+   nav links, and credit line. Strong editorial anchor.
+   =================================================================== */
+
+.footer {
+  background: var(--text, #2a2622);
+  color: var(--bg, #faf8f5);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: clamp(64px, 8vw, 120px) 0 clamp(24px, 3vw, 40px);
+  position: relative;
+  overflow: hidden;
+}
+
+.container {
+  width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 3vw, 32px);
+  position: relative;
+  z-index: 1;
+}
+
+/* Large faded watermark behind content */
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--serif);
+  font-size: clamp(5rem, 14vw, 12rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: rgba(255, 255, 255, 0.03);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+/* Top row: names + date */
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.names {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.date {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Navigation links */
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(16px, 2vw, 24px);
+}
+
+.navLink {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.navLink:hover {
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Credit line */
+.credit {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.04em;
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink {
+    transition: none;
+  }
+}

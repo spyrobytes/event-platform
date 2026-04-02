@@ -9,7 +9,8 @@
 
 .hero {
   position: relative;
-  min-height: 100svh;
+  height: 100svh;
+  max-height: 100svh;
   display: grid;
   grid-template-columns: 57% 43%;
   overflow: hidden;
@@ -73,30 +74,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(48px, 6vw, 96px) clamp(32px, 5vw, 80px);
+  padding: clamp(24px, 3vw, 40px) clamp(32px, 5vw, 80px);
   padding-right: clamp(24px, 4vw, 64px);
   position: relative;
 }
 
-/* Thin decorative rule at top of text panel */
-.textPanel::before {
-  content: "";
-  position: absolute;
-  top: clamp(32px, 5vw, 72px);
-  left: clamp(32px, 5vw, 80px);
-  width: 48px;
-  height: 1px;
-  background: var(--accent, #7a8c72);
-  opacity: 0;
-  animation: ruleReveal 1s 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes ruleReveal {
-  to {
-    opacity: 0.6;
-    width: 48px;
-  }
-}
 
 /* ===== MONOGRAM ===== */
 
@@ -107,7 +89,7 @@
   letter-spacing: 0.35em;
   text-transform: uppercase;
   color: var(--accent, #7a8c72);
-  margin-bottom: clamp(24px, 3vw, 40px);
+  margin-bottom: clamp(8px, 1vw, 14px);
   opacity: 0;
   transform: translateY(16px);
   animation: editorialFadeUp 0.9s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -117,19 +99,19 @@
 
 .names {
   font-family: var(--serif);
-  font-size: clamp(2.4rem, 4.5vw, 4.8rem);
+  font-size: clamp(1.8rem, 3.2vw, 3.2rem);
   font-weight: 300;
   line-height: 1.08;
   letter-spacing: -0.025em;
   color: var(--text, #3d3830);
-  margin: 0 0 clamp(16px, 2vw, 28px);
+  margin: 0 0 clamp(8px, 1vw, 12px);
+  white-space: nowrap;
 }
 
 .nameLine {
-  display: block;
+  display: inline;
   opacity: 0;
-  transform: translateY(24px);
-  animation: editorialFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: editorialFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .nameLine:nth-child(1) { animation-delay: 0.5s; }
@@ -150,7 +132,7 @@
   width: 0;
   height: 1px;
   background: var(--border, #e8e1d6);
-  margin: clamp(12px, 1.5vw, 20px) 0;
+  margin: clamp(8px, 1vw, 14px) 0;
   animation: ruleGrow 0.8s 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -187,19 +169,138 @@
   line-height: 1.15;
   letter-spacing: -0.015em;
   color: var(--text, #3d3830);
-  margin: 0 0 clamp(16px, 2vw, 28px);
+  margin: 0 0 clamp(10px, 1.2vw, 16px);
   opacity: 0;
   transform: translateY(24px);
   animation: editorialFadeUp 0.8s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ===== INFO CARDS (Countdown + Schedule) ===== */
+
+.infoCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: clamp(14px, 1.8vw, 24px);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: editorialFadeUp 0.8s 1.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.infoCard {
+  border: 1px solid var(--border, #e8e1d6);
+  padding: clamp(12px, 1.5vw, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.infoCard:hover {
+  border-color: var(--accent, #7a8c72);
+}
+
+.infoCardLabel {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+}
+
+.infoCardNote {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-3, #a69e93);
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #e8e1d6);
+}
+
+/* Countdown digits — editorial: large serif numbers with tiny suffix */
+.countdownRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.countUnit {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.countNum {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 2vw, 1.8rem);
+  font-weight: 300;
+  color: var(--text, #3d3830);
+  line-height: 1;
+}
+
+.countSuffix {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3, #a69e93);
+}
+
+.countSep {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--border, #e8e1d6);
+  margin: 0 2px;
+}
+
+/* Schedule rows inside the card */
+.schedRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.schedRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, #e8e1d6);
+}
+
+.schedRow:last-child {
+  border-bottom: none;
+}
+
+.schedDay {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent, #7a8c72);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.schedInfo {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--text-2, #786f65);
+  text-align: right;
+}
+
 /* ===== CTA ===== */
 
 .cta {
-  margin-top: clamp(24px, 3vw, 40px);
+  margin-top: clamp(14px, 1.8vw, 24px);
   opacity: 0;
   transform: translateY(12px);
-  animation: editorialFadeUp 0.8s 1.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: editorialFadeUp 0.8s 1.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .ctaLink {
@@ -234,12 +335,18 @@
   transform: translateX(4px);
 }
 
-/* ===== SHARED KEYFRAME ===== */
+/* ===== SHARED KEYFRAMES ===== */
 
 @keyframes editorialFadeUp {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes editorialFadeIn {
+  to {
+    opacity: 1;
   }
 }
 
@@ -262,18 +369,16 @@
   }
 
   .textPanel {
-    padding: clamp(40px, 8vw, 64px) clamp(24px, 6vw, 40px);
+    padding: clamp(32px, 6vw, 48px) clamp(24px, 6vw, 40px);
     min-height: auto;
-  }
-
-  /* Move the decorative rule inline on mobile */
-  .textPanel::before {
-    top: clamp(24px, 5vw, 40px);
-    left: clamp(24px, 6vw, 40px);
   }
 
   .names {
     font-size: clamp(2rem, 8vw, 3rem);
+  }
+
+  .infoCards {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -292,12 +397,17 @@
   }
 
   .monogram,
-  .nameLine,
   .titleOnly,
   .infoBlock,
+  .infoCards,
   .cta {
     opacity: 1;
     transform: none;
+    animation: none;
+  }
+
+  .nameLine {
+    opacity: 1;
     animation: none;
   }
 
@@ -306,13 +416,12 @@
     animation: none;
   }
 
-  .textPanel::before {
-    opacity: 0.6;
-    animation: none;
-  }
-
   .ctaLink,
   .ctaArrow {
+    transition: none;
+  }
+
+  .infoCard {
     transition: none;
   }
 }

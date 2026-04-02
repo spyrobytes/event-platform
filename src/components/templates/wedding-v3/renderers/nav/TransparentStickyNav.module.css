@@ -1,9 +1,9 @@
 /* ===================================================================
    Transparent Sticky Nav — The Editorial
 
-   Starts fully transparent, becomes a crisp white bar on scroll.
-   No frosted glass, no decorative elements — just clean typography
-   and thin rule underline. The anti-chrome nav.
+   Starts transparent with light text over the hero image,
+   becomes a dark bar on scroll matching the footer. No frosted
+   glass, no decorative elements — just clean typography.
    =================================================================== */
 
 .nav {
@@ -13,16 +13,8 @@
   right: 0;
   z-index: 100;
   padding: 0 clamp(20px, 4vw, 40px);
-  transition:
-    background-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  background: transparent;
-  border-bottom: 1px solid transparent;
-}
-
-.nav[data-scrolled="true"] {
-  background: var(--bg, #f8f5f0);
-  border-bottom-color: var(--border, #e8e1d6);
+  background: var(--text, #2a2622);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .inner {
@@ -46,7 +38,7 @@
   font-family: var(--serif);
   font-size: clamp(0.9rem, 1.1vw, 1.05rem);
   font-weight: 400;
-  color: var(--text, #3d3830);
+  color: rgba(255, 255, 255, 0.85);
   letter-spacing: 0.02em;
   white-space: nowrap;
   text-decoration: none;
@@ -58,14 +50,14 @@
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-3, #a69e93);
+  color: rgba(255, 255, 255, 0.35);
   white-space: nowrap;
 }
 
 .brandSep {
   width: 1px;
   height: 16px;
-  background: var(--border, #e8e1d6);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* ===== CENTER: Navigation links ===== */
@@ -85,26 +77,23 @@
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--text-2, #786f65);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   padding: 4px 0;
   position: relative;
-  transition: color 0.3s ease;
 }
 
+/* Center-out underline: starts at center, expands outward */
 .link::after {
   content: "";
   position: absolute;
   bottom: -2px;
-  left: 0;
+  left: 50%;
   width: 0;
   height: 1px;
-  background: var(--accent, #7a8c72);
+  background: #fff;
+  transform: translateX(-50%);
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.link:hover {
-  color: var(--text, #3d3830);
 }
 
 .link:hover::after {
@@ -119,18 +108,18 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--accent, #7a8c72);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   padding: 8px 0;
-  border-bottom: 1px solid var(--accent, #7a8c72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
   transition:
     color 0.3s ease,
     border-color 0.3s ease;
 }
 
 .rsvpLink:hover {
-  color: var(--text, #3d3830);
-  border-color: var(--text, #3d3830);
+  color: #fff;
+  border-color: #fff;
 }
 
 /* ===== MOBILE ===== */
@@ -152,14 +141,8 @@
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
-  .nav {
-    transition: none;
-  }
-
-  .link::after {
-    transition: none;
-  }
-
+  .link,
+  .link::after,
   .rsvpLink {
     transition: none;
   }

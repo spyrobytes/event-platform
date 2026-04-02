@@ -8,22 +8,26 @@
  * visual tension and asymmetry — like the opening spread of a
  * luxury fashion publication.
  *
- * Couple names are rendered one per line in large serif type.
- * A thin horizontal rule separates names from date/location.
- * CTA is an understated text link with arrow, not a button.
+ * Text pane layout (top → bottom):
+ *   Monogram → Couple names → Rule → Date → Info cards (countdown + schedule) → CTA
  *
  * On mobile: stacks vertically with image on top (60svh).
  */
 
 import type { HeroRendererProps } from "../../types";
+import { useTemporal } from "../../../shared";
 import styles from "./AsymmetricHero.module.css";
 
 export function AsymmetricHero({
   config,
   heroAsset,
+  scheduleCards,
   hasDetailsSection = false,
+  eventRsvpDeadline,
 }: HeroRendererProps) {
-  const { title, subtitle, coupleNames, monogram } = config;
+  const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
+
+  const temporal = useTemporal();
 
   // Split couple names on "&" for line-by-line rendering
   const nameLines = coupleNames
@@ -31,6 +35,25 @@ export function AsymmetricHero({
     : [];
 
   const hasNames = nameLines.length > 0;
+
+  // Countdown data
+  const countdown = (() => {
+    if (!temporal?.shouldShowCountdown || !temporal.timeRemaining) return null;
+    const { days, hours, minutes } = temporal.timeRemaining;
+    return { days, hours, minutes };
+  })();
+
+  // Resolve RSVP deadline display text
+  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
+    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : undefined);
+
+  // Show cards area if countdown or schedule cards exist
+  const showCards = !!(countdown || (scheduleCards && scheduleCards.length > 0));
 
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
@@ -79,6 +102,60 @@ export function AsymmetricHero({
         {subtitle && (
           <div className={styles.infoBlock}>
             <span className={styles.dateText}>{subtitle}</span>
+          </div>
+        )}
+
+        {/* Editorial info cards: countdown + schedule */}
+        {showCards && (
+          <div className={styles.infoCards}>
+            {/* Countdown card */}
+            {countdown && (
+              <div className={styles.infoCard}>
+                <span className={styles.infoCardLabel}>Countdown</span>
+                <div className={styles.countdownRow}>
+                  <div className={styles.countUnit}>
+                    <span className={styles.countNum} suppressHydrationWarning>
+                      {String(countdown.days)}
+                    </span>
+                    <span className={styles.countSuffix}>days</span>
+                  </div>
+                  <span className={styles.countSep}>:</span>
+                  <div className={styles.countUnit}>
+                    <span className={styles.countNum} suppressHydrationWarning>
+                      {String(countdown.hours).padStart(2, "0")}
+                    </span>
+                    <span className={styles.countSuffix}>hrs</span>
+                  </div>
+                  <span className={styles.countSep}>:</span>
+                  <div className={styles.countUnit}>
+                    <span className={styles.countNum} suppressHydrationWarning>
+                      {String(countdown.minutes).padStart(2, "0")}
+                    </span>
+                    <span className={styles.countSuffix}>min</span>
+                  </div>
+                </div>
+                {resolvedRsvpDeadline && (
+                  <span className={styles.infoCardNote} suppressHydrationWarning>
+                    RSVP by {resolvedRsvpDeadline}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Schedule card */}
+            {scheduleCards && scheduleCards.length > 0 && (
+              <div className={styles.infoCard}>
+                <span className={styles.infoCardLabel}>The Weekend</span>
+                <div className={styles.schedRows}>
+                  {scheduleCards.slice(0, 4).map((row, i) => (
+                    <div key={i} className={styles.schedRow}>
+                      <span className={styles.schedDay}>{row.day}</span>
+                      <span className={styles.schedInfo}>{row.info}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
