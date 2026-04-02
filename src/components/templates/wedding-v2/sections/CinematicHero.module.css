@@ -67,6 +67,62 @@
   margin: 0 auto;
 }
 
+/* Hero text with couple photo — side-aligned layout */
+.heroTextWithPhoto {
+  display: flex;
+  align-items: center;
+  gap: clamp(24px, 3vw, 40px);
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+/* The text column when photo is present */
+.heroTextBlock {
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Couple photo — circular portrait beside the names */
+.couplePhoto {
+  width: clamp(110px, 14vw, 160px);
+  height: clamp(110px, 14vw, 160px);
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  opacity: 0;
+  transform: scale(0.85);
+  animation: couplePhotoReveal 0.9s 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.couplePhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+@keyframes couplePhotoReveal {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile: stack vertically, photo above names */
+@media (max-width: 640px) {
+  .heroTextWithPhoto {
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 24px);
+  }
+  .couplePhoto {
+    width: 110px;
+    height: 110px;
+  }
+}
+
 /* Eyebrow: date flanked by decorative lines */
 .eyebrow {
   display: inline-flex;
@@ -394,6 +450,11 @@
 
 /* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
+  .couplePhoto {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
   .eyebrow,
   .subtitle,
   .cta,

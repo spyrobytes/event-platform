@@ -10,6 +10,7 @@ type ScheduleCard = { day: string; info: string };
 type CinematicHeroProps = {
   config: HeroConfig;
   heroAsset?: MediaAsset | null;
+  couplePhotoAsset?: MediaAsset | null;
   scheduleCards?: ScheduleCard[];
   hasDetailsSection?: boolean;
   /** Event-level RSVP deadline (ISO string) — used when hero config has no manual override */
@@ -26,6 +27,7 @@ type CinematicHeroProps = {
 export function CinematicHero({
   config,
   heroAsset,
+  couplePhotoAsset,
   scheduleCards: scheduleCardsProp,
   hasDetailsSection = false,
   eventRsvpDeadline,
@@ -68,6 +70,8 @@ export function CinematicHero({
   // Date text for eyebrow — use subtitle as date text
   const dateText = subtitle || "";
 
+  const hasCouplePhoto = isCinematic && !!couplePhotoAsset?.publicUrl;
+
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
       {/* Background image with gradient overlay */}
@@ -99,45 +103,58 @@ export function CinematicHero({
         className={styles.heroContent}
         style={{ width: `min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))`, margin: "0 auto" }}
       >
-        <div className={styles.heroText}>
-          {/* Eyebrow */}
-          {dateText && (
-            <div className={styles.eyebrow}>{dateText}</div>
-          )}
-
-          {/* Title — word-by-word stagger for cinematic mode */}
-          {isCinematic && coupleNames ? (
-            <h1 className={styles.title}>
-              {nameWords.map((word, i) => {
-                const trimmed = word.trim();
-                const isAmpersand = trimmed === "&";
-                return (
-                  <span key={i} className={styles.word}>
-                    {isAmpersand ? (
-                      <>&amp; </>
-                    ) : (
-                      <em className={styles.wordEmphasis}>{trimmed} </em>
-                    )}
-                  </span>
-                );
-              })}
-            </h1>
-          ) : (
-            <h1 className={styles.title}>
-              <span className={styles.word}>
-                <em className={styles.wordEmphasis}>{title}</em>
-              </span>
-            </h1>
-          )}
-
-          {/* CTA button — links to event details (only if details section exists) */}
-          {isCinematic && hasDetailsSection && (
-            <div className={styles.cta}>
-              <a href="#details" className={`${styles.btn} ${styles.btnPrimary}`}>
-                View Details
-              </a>
+        <div className={hasCouplePhoto ? styles.heroTextWithPhoto : styles.heroText}>
+          {/* Couple photo — portrait beside the names */}
+          {hasCouplePhoto && (
+            <div className={styles.couplePhoto}>
+              <img
+                src={couplePhotoAsset!.publicUrl!}
+                alt={coupleNames || ""}
+                loading="eager"
+              />
             </div>
           )}
+
+          <div className={hasCouplePhoto ? styles.heroTextBlock : undefined}>
+            {/* Eyebrow */}
+            {dateText && (
+              <div className={styles.eyebrow}>{dateText}</div>
+            )}
+
+            {/* Title — word-by-word stagger for cinematic mode */}
+            {isCinematic && coupleNames ? (
+              <h1 className={styles.title}>
+                {nameWords.map((word, i) => {
+                  const trimmed = word.trim();
+                  const isAmpersand = trimmed === "&";
+                  return (
+                    <span key={i} className={styles.word}>
+                      {isAmpersand ? (
+                        <>&amp; </>
+                      ) : (
+                        <em className={styles.wordEmphasis}>{trimmed} </em>
+                      )}
+                    </span>
+                  );
+                })}
+              </h1>
+            ) : (
+              <h1 className={styles.title}>
+                <span className={styles.word}>
+                  <em className={styles.wordEmphasis}>{title}</em>
+                </span>
+              </h1>
+            )}
+
+            {/* CTA button — links to event details (only if details section exists) */}
+            {isCinematic && hasDetailsSection && (
+              <div className={styles.cta}>
+                <a href="#details" className={`${styles.btn} ${styles.btnPrimary}`}>
+                  View Details
+                </a>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Float cards: countdown + schedule */}

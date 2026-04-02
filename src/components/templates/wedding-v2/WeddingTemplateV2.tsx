@@ -127,6 +127,11 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
     ? assets.find((a) => a.id === hero.heroImageAssetId)
     : null;
 
+  // Find couple photo asset (optional portrait overlay on cinematic hero)
+  const couplePhotoAsset = hero.couplePhotoAssetId
+    ? assets.find((a) => a.id === hero.couplePhotoAssetId)
+    : null;
+
   // Build schedule cards from actual schedule section data for the hero float card
   const scheduleCards = useMemo(() => {
     const scheduleSec = sections.find((s) => s.type === "schedule");
@@ -345,6 +350,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
             <CinematicHero
               config={hero}
               heroAsset={heroAsset}
+              couplePhotoAsset={couplePhotoAsset}
               scheduleCards={scheduleCards}
               hasDetailsSection={sections.some((s) => s.type === "details" && s.enabled)}
               eventRsvpDeadline={temporal?.rsvpDeadline ?? undefined}

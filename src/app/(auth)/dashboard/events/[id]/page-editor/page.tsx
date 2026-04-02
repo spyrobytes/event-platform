@@ -972,6 +972,64 @@ export default function PageEditorPage() {
               </div>
             )}
           </div>
+
+          {/* Couple Photo Selection — cinematic template only */}
+          {templateId === "wedding_v2" && (
+            <div className="space-y-2 pt-4 border-t">
+              <Label>Couple Photo <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+              <p className="text-xs text-muted-foreground">
+                A portrait photo that floats over the hero background. Works best with a close-up of the couple.
+              </p>
+              {pageData?.assets?.filter((a) => a.kind === "HERO").length ? (
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => updateHero({ couplePhotoAssetId: undefined })}
+                    className={`h-16 w-16 rounded-full border-2 p-1 transition-all ${
+                      !config.hero.couplePhotoAssetId
+                        ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                        : "border-muted hover:border-muted-foreground"
+                    }`}
+                    title={config.hero.couplePhotoAssetId ? "Clear couple photo" : "No couple photo"}
+                  >
+                    <div className="flex h-full items-center justify-center text-muted-foreground">
+                      <span className="text-[9px]">None</span>
+                    </div>
+                  </button>
+                  {pageData.assets.filter((a) => a.kind === "HERO").map((asset) => (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => updateHero({ couplePhotoAssetId: asset.id })}
+                      className={`group relative h-16 w-16 overflow-hidden rounded-full border-2 transition-all ${
+                        config.hero.couplePhotoAssetId === asset.id
+                          ? "border-primary ring-2 ring-primary/20"
+                          : "border-muted hover:border-muted-foreground"
+                      }`}
+                      title={asset.alt || "Select as couple photo"}
+                    >
+                      {asset.publicUrl && (
+                        <img
+                          src={asset.publicUrl}
+                          alt={asset.alt || ""}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                      {config.hero.couplePhotoAssetId === asset.id && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-primary/30">
+                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">Upload hero images first to select a couple photo</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
