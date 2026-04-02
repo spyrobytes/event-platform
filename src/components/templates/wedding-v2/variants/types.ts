@@ -2,6 +2,10 @@ import type { V2FontPair, V2PaletteOverrides, V2GlassTokens } from "../tokens";
 export type { V2PaletteOverrides, V2GlassTokens };
 
 export type V2VariantId =
+  | "midnight_gold"
+  | "emerald_ivory"
+  | "plum_blush"
+  // Legacy IDs — kept for backward compatibility with existing events
   | "garden_romance"
   | "black_tie"
   | "old_world"
@@ -12,7 +16,6 @@ export type V2VariantId =
   | "lavender_mist"
   | "desert_sun"
   | "forest_floor"
-  | "midnight_gold"
   | "citrus_grove";
 
 export type V2VariantCategory = "classic" | "modern" | "romantic" | "earthy" | "bold";

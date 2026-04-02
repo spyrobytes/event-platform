@@ -685,10 +685,9 @@ export default function PageEditorPage() {
       {templateId === "wedding_v2" && config && (
         <Card>
           <CardHeader>
-            <CardTitle>Design Variant</CardTitle>
+            <CardTitle>Color Mode</CardTitle>
             <CardDescription>
-              Choose a curated design that sets the color palette, typography, and decorative elements.
-              Select &ldquo;Original&rdquo; to use the default template with your own theme settings.
+              Choose a dark skin for a dramatic evening aesthetic, or keep the original light mode.
             </CardDescription>
           </CardHeader>
           <CardContent>
