@@ -71,6 +71,10 @@ export type ThemePack = {
   buttonStyle: ButtonStyle;
   /** Decorative motif type */
   motif: DecorativeMotif;
+  /** Optional cursive/handwriting font family for section headers */
+  cursiveFont?: string;
+  /** Google Fonts URL segment for the cursive font (appended to main URL) */
+  cursiveFontUrl?: string;
 };
 
 export type CuratedSwatch = {
@@ -175,7 +179,8 @@ export type DividerRendererId =
   | "floral-frame"          // Fine Art Romance
   | "metallic-line"         // Grand Luxe
   | "organic-curve"         // Garden House
-  | "none"                  // Intimate Note
+  | "none"                  // (no divider)
+  | "cursive-flourish"      // Intimate Note
   | "rhythmic-pattern";     // Celebration House
 
 // ---------------------------------------------------------------------------

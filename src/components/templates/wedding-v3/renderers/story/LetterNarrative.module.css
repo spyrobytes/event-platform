@@ -1,0 +1,57 @@
+/* ===================================================================
+   Letter Narrative Story — The Intimate Note
+
+   Personal letter aesthetic — centered serif italic prose with
+   a decorative opening quotation mark. Paragraphs have generous
+   spacing for a gentle reading rhythm.
+   =================================================================== */
+
+.section {
+  padding: var(--section-y, 96px) 0;
+  text-align: center;
+}
+
+.container {
+  width: min(var(--max, 800px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+  max-width: 580px;
+}
+
+.heading {
+  font-family: var(--cursive, var(--serif));
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 300;
+  line-height: 1.15;
+  color: var(--text, #3d3830);
+  margin-bottom: clamp(24px, 3vw, 40px);
+}
+
+/* Decorative opening quotation mark */
+.openingMark {
+  font-family: var(--serif);
+  font-size: clamp(3rem, 5vw, 4.5rem);
+  font-weight: 300;
+  line-height: 0.6;
+  color: var(--border, #e8e1d6);
+  margin-bottom: clamp(12px, 2vw, 20px);
+  user-select: none;
+}
+
+/* Prose block */
+.prose {
+  text-align: left;
+}
+
+.paragraph {
+  font-family: var(--serif);
+  font-size: clamp(1rem, 1.2vw, 1.1rem);
+  line-height: 1.9;
+  color: var(--text-2, #786f65);
+  font-weight: 300;
+  font-style: italic;
+  margin: 0 0 clamp(16px, 2vw, 24px);
+}
+
+.paragraph:last-child {
+  margin-bottom: 0;
+}

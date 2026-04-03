@@ -57,7 +57,7 @@ export function MapV2({ data }: MapV2Props) {
             </p>
           )}
           <h2 style={{
-            fontFamily: "var(--serif)",
+            fontFamily: "var(--cursive, var(--serif))",
             fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
             fontWeight: 400,
             lineHeight: 1.15,
@@ -107,7 +107,7 @@ export function MapV2({ data }: MapV2Props) {
               <div style={{ flex: "1 1 auto", minWidth: 200 }}>
                 {venueName && (
                   <h3 style={{
-                    fontFamily: "var(--serif)",
+                    fontFamily: "var(--cursive, var(--serif))",
                     fontSize: "var(--h3, clamp(1.1rem, 1.8vw, 1.35rem))",
                     fontWeight: 400,
                     lineHeight: 1.25,

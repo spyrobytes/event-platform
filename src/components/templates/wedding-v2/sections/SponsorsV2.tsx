@@ -72,7 +72,7 @@ export function SponsorsV2({ data, assets }: SponsorsV2Props) {
       <div style={{ flex: 1, height: 1, background: "var(--linen, #e8e1d6)" }} />
       <span
         style={{
-          fontFamily: "var(--serif)",
+          fontFamily: "var(--cursive, var(--serif))",
           fontSize: "1.1rem",
           fontStyle: "italic",
           color: "var(--stone, #a69e93)",
@@ -144,7 +144,7 @@ export function SponsorsV2({ data, assets }: SponsorsV2Props) {
         <div style={{ padding: 16, textAlign: "center" }}>
           <h3
             style={{
-              fontFamily: "var(--serif)",
+              fontFamily: "var(--cursive, var(--serif))",
               fontSize: "1rem",
               fontWeight: 500,
               color: "var(--night, #1e1b17)",
@@ -243,7 +243,7 @@ export function SponsorsV2({ data, assets }: SponsorsV2Props) {
           </p>
           <h2
             style={{
-              fontFamily: "var(--serif)",
+              fontFamily: "var(--cursive, var(--serif))",
               fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
               fontWeight: 400,
               lineHeight: 1.15,

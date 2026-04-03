@@ -27,7 +27,7 @@ export const INTIMATE_NOTE: TemplateDefinition = {
   storyRenderer: "letter-narrative",
   rsvpRenderer: "streamlined",
   footerRenderer: "minimal-rule",
-  dividerRenderer: "none",
+  dividerRenderer: "cursive-flourish",
 
   // Motion: barely there — soft fade only, no transforms
   motionPreset: {
@@ -81,12 +81,14 @@ export const INTIMATE_NOTE: TemplateDefinition = {
         accentHoverBg: "rgba(116, 112, 106, 0.04)",
       },
       fontPair: "cormorant_sourceserif",
-      spacingScale: "generous",
+      spacingScale: "balanced",
       maxWidth: "800px",
       radiusScale: "sharp",
       shadowIntensity: "none",
       buttonStyle: "ghost",
       motif: "none",
+      cursiveFont: "'Dancing Script', cursive",
+      cursiveFontUrl: "Dancing+Script:wght@400;500;600",
     },
     // Stone Rose — pale rose, cream, muted brown
     {
@@ -122,12 +124,14 @@ export const INTIMATE_NOTE: TemplateDefinition = {
         accentHoverBg: "rgba(160, 128, 128, 0.04)",
       },
       fontPair: "cormorant_sourceserif",
-      spacingScale: "generous",
+      spacingScale: "balanced",
       maxWidth: "800px",
       radiusScale: "sharp",
       shadowIntensity: "none",
       buttonStyle: "ghost",
       motif: "none",
+      cursiveFont: "'Dancing Script', cursive",
+      cursiveFontUrl: "Dancing+Script:wght@400;500;600",
     },
     // Mist Blue — mist blue, white, soft slate
     {
@@ -163,12 +167,14 @@ export const INTIMATE_NOTE: TemplateDefinition = {
         accentHoverBg: "rgba(120, 136, 160, 0.04)",
       },
       fontPair: "cormorant_sourceserif",
-      spacingScale: "generous",
+      spacingScale: "balanced",
       maxWidth: "800px",
       radiusScale: "sharp",
       shadowIntensity: "none",
       buttonStyle: "ghost",
       motif: "none",
+      cursiveFont: "'Dancing Script', cursive",
+      cursiveFontUrl: "Dancing+Script:wght@400;500;600",
     },
   ],
 

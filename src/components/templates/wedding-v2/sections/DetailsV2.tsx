@@ -38,7 +38,7 @@ export function DetailsV2({ data }: DetailsV2Props) {
             Event Details
           </p>
           <h2 style={{
-            fontFamily: "var(--serif)",
+            fontFamily: "var(--cursive, var(--serif))",
             fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
             fontWeight: 400,
             lineHeight: 1.15,
@@ -163,7 +163,7 @@ function DetailCard({
       </div>
 
       <h3 style={{
-        fontFamily: "var(--serif)",
+        fontFamily: "var(--cursive, var(--serif))",
         fontSize: "1.3rem",
         fontWeight: 400,
         lineHeight: 1.15,

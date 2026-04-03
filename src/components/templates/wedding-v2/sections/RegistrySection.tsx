@@ -48,7 +48,7 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
             </p>
           )}
           <h2 style={{
-            fontFamily: "var(--serif)",
+            fontFamily: "var(--cursive, var(--serif))",
             fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
             fontWeight: 400,
             lineHeight: 1.15,
@@ -123,7 +123,7 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                   </div>
 
                   <h3 style={{
-                    fontFamily: "var(--serif)",
+                    fontFamily: "var(--cursive, var(--serif))",
                     fontSize: "1.2rem",
                     fontWeight: 400,
                     lineHeight: 1.15,

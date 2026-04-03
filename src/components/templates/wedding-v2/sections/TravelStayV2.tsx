@@ -47,7 +47,7 @@ export function TravelStayV2({ data }: TravelStayV2Props) {
             </p>
           )}
           <h2 style={{
-            fontFamily: "var(--serif)",
+            fontFamily: "var(--cursive, var(--serif))",
             fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
             fontWeight: 400,
             lineHeight: 1.15,
@@ -104,7 +104,7 @@ export function TravelStayV2({ data }: TravelStayV2Props) {
                 Where to Stay
               </p>
               <h2 style={{
-                fontFamily: "var(--serif)",
+                fontFamily: "var(--cursive, var(--serif))",
                 fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
                 fontWeight: 400,
                 lineHeight: 1.15,
@@ -196,7 +196,7 @@ function InfoCard({
       </div>
 
       <h3 style={{
-        fontFamily: "var(--serif)",
+        fontFamily: "var(--cursive, var(--serif))",
         fontSize: "1.3rem",
         fontWeight: 400,
         lineHeight: 1.15,
@@ -286,7 +286,7 @@ function HotelCard({ hotel }: { hotel: HotelItem }) {
     >
       <div style={{ padding: "clamp(20px, 2.5vw, 28px)" }}>
         <h3 style={{
-          fontFamily: "var(--serif)",
+          fontFamily: "var(--cursive, var(--serif))",
           fontSize: "1.15rem",
           fontWeight: 500,
           color: "var(--night, #1e1b17)",

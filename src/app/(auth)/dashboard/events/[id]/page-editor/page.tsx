@@ -793,18 +793,21 @@ export default function PageEditorPage() {
                   </p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="font">Font Pair</Label>
-                <Select
-                  id="font"
-                  value={config.theme.fontPair}
-                  onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
-                >
-                  <option value="modern">Modern (DM Sans)</option>
-                  <option value="classic">Classic (Playfair Display + Source Serif)</option>
-                  <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
-                </Select>
-              </div>
+              {/* Font Pair — hidden for V3 templates (font is part of curated design) */}
+              {!templateId.startsWith("wedding_") || ["wedding_v1", "wedding_v2"].includes(templateId) ? (
+                <div className="space-y-2">
+                  <Label htmlFor="font">Font Pair</Label>
+                  <Select
+                    id="font"
+                    value={config.theme.fontPair}
+                    onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
+                  >
+                    <option value="modern">Modern (DM Sans)</option>
+                    <option value="classic">Classic (Playfair Display + Source Serif)</option>
+                    <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
+                  </Select>
+                </div>
+              ) : null}
             </div>
           </CardContent>
         </Card>

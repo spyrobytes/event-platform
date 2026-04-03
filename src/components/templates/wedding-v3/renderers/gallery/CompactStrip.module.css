@@ -1,0 +1,197 @@
+/* ===================================================================
+   Compact Strip Gallery — The Intimate Note
+
+   Horizontal row of portrait images. Centered layout, subtle
+   hover lift, minimal lightbox. Quiet and restrained.
+   =================================================================== */
+
+.section {
+  padding: var(--section-y, 96px) 0;
+}
+
+.container {
+  width: min(var(--max, 800px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
+.heading {
+  font-family: var(--cursive, var(--serif));
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 300;
+  line-height: 1.15;
+  color: var(--text, #3d3830);
+  text-align: center;
+  margin-bottom: clamp(32px, 4vw, 48px);
+}
+
+/* ===== STRIP ===== */
+
+.strip {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.item {
+  flex: 1 1 0;
+  max-width: 160px;
+  min-width: 0;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  position: relative;
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Image count */
+.count {
+  text-align: center;
+  margin-top: clamp(16px, 2vw, 24px);
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3, #a69e93);
+}
+
+/* ===== LIGHTBOX ===== */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  animation: lbFadeIn 0.25s ease;
+}
+
+@keyframes lbFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lbClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.lbClose:hover {
+  color: #fff;
+}
+
+.lbPrev,
+.lbNext {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 12px;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.lbPrev:hover,
+.lbNext:hover {
+  color: #fff;
+}
+
+.lbImageWrap {
+  max-width: 80vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lbImage {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  display: block;
+}
+
+.lbCaption {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 12px;
+  text-align: center;
+}
+
+.lbCounter {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 8px;
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 640px) {
+  .strip {
+    gap: 4px;
+  }
+
+  .item {
+    max-width: none;
+  }
+
+  .lbPrev,
+  .lbNext {
+    padding: 8px;
+    font-size: 1.2rem;
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+
+  .lightbox {
+    animation: none;
+  }
+
+  .lbClose,
+  .lbPrev,
+  .lbNext {
+    transition: none;
+  }
+}

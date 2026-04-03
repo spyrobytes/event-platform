@@ -1,0 +1,116 @@
+/* ===================================================================
+   Concise Essentials Schedule — The Intimate Note
+
+   Centered, minimal schedule. Bordered rows with accent time,
+   hover opacity. Groups with thin rule separators.
+   =================================================================== */
+
+.section {
+  padding: var(--section-y, 96px) 0;
+  text-align: center;
+}
+
+.container {
+  width: min(var(--max, 800px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
+.heading {
+  font-family: var(--cursive, var(--serif));
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 300;
+  line-height: 1.15;
+  color: var(--text, #3d3830);
+  margin-bottom: clamp(8px, 1vw, 12px);
+}
+
+.description {
+  font-family: var(--sans);
+  font-size: var(--body, 1rem);
+  color: var(--text-2, #786f65);
+  line-height: 1.75;
+  max-width: 44ch;
+  margin: 0 auto clamp(32px, 4vw, 48px);
+}
+
+/* ===== ITEMS ===== */
+
+.items {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: clamp(10px, 1.5vw, 14px) 0;
+  border-bottom: 1px solid var(--border, #e8e1d6);
+  transition: opacity 0.3s ease;
+  text-align: left;
+}
+
+.row:first-child {
+  border-top: 1px solid var(--border, #e8e1d6);
+}
+
+.row:hover {
+  opacity: 0.65;
+}
+
+.time {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 600;
+  color: var(--accent, #7a8c72);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.title {
+  font-family: var(--sans);
+  font-size: var(--body, 1rem);
+  color: var(--text-2, #786f65);
+  text-align: right;
+}
+
+/* ===== GROUPS ===== */
+
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+.groupSep {
+  height: 1px;
+  background: var(--border, #e8e1d6);
+  margin: clamp(20px, 3vw, 32px) 0;
+}
+
+.groupLabel {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+  margin-bottom: clamp(8px, 1vw, 12px);
+}
+
+.empty {
+  color: var(--text-3, #a69e93);
+  font-family: var(--sans);
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+}

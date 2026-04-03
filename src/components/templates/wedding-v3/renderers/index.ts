@@ -55,6 +55,7 @@ import { SideBySideRSVP } from "./rsvp/SideBySideRSVP";
 import { StreamlinedRSVP } from "./rsvp/StreamlinedRSVP";
 import { MinimalRuleFooter } from "./footer/MinimalRuleFooter";
 import { ThinRuleDivider } from "./divider/ThinRuleDivider";
+import { CursiveFlourishDivider } from "./divider/CursiveFlorishDivider";
 
 // ---------------------------------------------------------------------------
 // Phase 2 renderers — Fine Art Romance + Garden House
@@ -200,6 +201,7 @@ export const dividerRenderers: Record<DividerRendererId, DividerRenderer> = {
   "metallic-line": MetallicLineDivider,
   "organic-curve": OrganicCurveDivider,
   none: () => null,
+  "cursive-flourish": CursiveFlourishDivider,
   "rhythmic-pattern": RhythmicPatternDivider,
 };
 

@@ -45,7 +45,7 @@ export function RSVPV2({ data, eventId }: RSVPV2Props) {
           )}
           <h2
             style={{
-              fontFamily: "var(--serif)",
+              fontFamily: "var(--cursive, var(--serif))",
               fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
               fontWeight: 400,
               lineHeight: 1.15,

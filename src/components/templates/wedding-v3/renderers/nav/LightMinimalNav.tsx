@@ -3,84 +3,50 @@
 /**
  * Light Minimal Nav — The Intimate Note
  *
- * Barely visible navigation that appears only when scrolled.
- * Just couple names and an RSVP link. No section links — this
- * template is short enough to scroll through naturally.
+ * Always-visible dark nav bar matching the footer. Monogram in
+ * concentric circles on left (clickable to hero), section links
+ * in center, RSVP on right. Center-out underline hover.
  */
 
-import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
+import styles from "./LightMinimalNav.module.css";
 
 export function LightMinimalNav({
+  monogram,
   coupleNames,
   sections,
 }: NavRendererProps) {
-  const [visible, setVisible] = useState(false);
-
-  const handleScroll = useCallback(() => {
-    setVisible(window.scrollY > 300);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
-
   const hasRsvp = sections.some((s) => s.id === "rsvp");
 
+  // Show all sections except RSVP (shown separately on right)
+  const navSections = sections.filter((s) => s.id !== "rsvp");
+
   return (
-    <nav
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        padding: "0 clamp(20px, 4vw, 40px)",
-        background: "var(--bg, #f8f5f0)",
-        borderBottom: "1px solid var(--border, #e8e1d6)",
-        transform: visible ? "translateY(0)" : "translateY(-100%)",
-        transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-        opacity: visible ? 1 : 0,
-      }}
-      aria-label="Main navigation"
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          maxWidth: "var(--max, 800px)",
-          margin: "0 auto",
-          height: 52,
-        }}
-      >
-        <a
-          href="#top"
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "0.9rem",
-            fontWeight: 400,
-            color: "var(--text, #3d3830)",
-            textDecoration: "none",
-          }}
-        >
-          {coupleNames || "Our Wedding"}
+    <nav className={styles.nav} aria-label="Main navigation">
+      <div className={styles.inner}>
+        {/* Left: monogram logo in concentric circles */}
+        <a href="#top" className={styles.monogramLink} aria-label="Back to top">
+          <span className={styles.monogram}>
+            {monogram || (coupleNames ? coupleNames.charAt(0) : "W")}
+          </span>
         </a>
 
+        {/* Center: section links */}
+        {navSections.length > 0 && (
+          <ul className={styles.links}>
+            {navSections.map((s) => (
+              <li key={s.id}>
+                <a href={`#${s.id}`} className={styles.link}>
+                  {s.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Right: RSVP */}
         {hasRsvp && (
-          <a
-            href="#rsvp"
-            style={{
-              fontFamily: "var(--sans)",
-              fontSize: "0.72rem",
-              fontWeight: 500,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase" as const,
-              color: "var(--accent, #7a8c72)",
-              textDecoration: "none",
-            }}
-          >
+          <a href="#rsvp" className={styles.rsvpLink}>
             RSVP
           </a>
         )}

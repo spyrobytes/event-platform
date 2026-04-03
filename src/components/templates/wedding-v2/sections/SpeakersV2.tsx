@@ -141,7 +141,7 @@ export function SpeakersV2({ data, assets }: SpeakersV2Props) {
             >
               <span
                 style={{
-                  fontFamily: "var(--serif)",
+                  fontFamily: "var(--cursive, var(--serif))",
                   fontSize: "2rem",
                   fontWeight: 400,
                   color: "var(--stone, #a69e93)",
@@ -158,7 +158,7 @@ export function SpeakersV2({ data, assets }: SpeakersV2Props) {
         <div style={{ padding: 20 }}>
           <h3
             style={{
-              fontFamily: "var(--serif)",
+              fontFamily: "var(--cursive, var(--serif))",
               fontSize: "1.15rem",
               fontWeight: 500,
               color: "var(--night, #1e1b17)",
@@ -277,7 +277,7 @@ export function SpeakersV2({ data, assets }: SpeakersV2Props) {
           )}
           <h2
             style={{
-              fontFamily: "var(--serif)",
+              fontFamily: "var(--cursive, var(--serif))",
               fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
               fontWeight: 400,
               lineHeight: 1.15,

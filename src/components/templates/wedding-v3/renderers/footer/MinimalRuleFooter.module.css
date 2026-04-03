@@ -99,7 +99,7 @@
 .credit {
   font-family: var(--sans);
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.4);
   letter-spacing: 0.04em;
 }
 

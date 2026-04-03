@@ -1,23 +1,25 @@
 /* ===================================================================
    Typographic Hero — The Intimate Note
 
-   Minimal, text-only hero. No image, no decoration, no cards.
-   Just beautiful typography centered in generous whitespace.
-   The restraint IS the design statement.
+   Minimal, text-only hero. Beautiful typography centered in
+   generous whitespace, with compact event info cards below.
+   Restraint IS the design statement.
    =================================================================== */
 
 .hero {
-  min-height: 80svh;
+  min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(80px, 12vw, 160px) clamp(24px, 6vw, 48px);
+  padding: clamp(48px, 6vw, 80px) clamp(24px, 6vw, 48px);
+  padding-top: clamp(72px, 8vw, 100px); /* clear the fixed nav */
   background: var(--bg, #f8f5f0);
   text-align: center;
 }
 
 .content {
   max-width: 600px;
+  width: 100%;
 }
 
 /* ===== MONOGRAM ===== */
@@ -29,7 +31,7 @@
   letter-spacing: 0.4em;
   text-transform: uppercase;
   color: var(--text-3, #a69e93);
-  margin-bottom: clamp(32px, 4vw, 48px);
+  margin-bottom: clamp(12px, 2vw, 20px);
   opacity: 0;
   animation: intimateFade 1.2s 0.2s ease forwards;
 }
@@ -43,7 +45,7 @@
   line-height: 1.12;
   letter-spacing: -0.02em;
   color: var(--text, #3d3830);
-  margin: 0 0 clamp(20px, 3vw, 32px);
+  margin: 0 0 clamp(16px, 2vw, 24px);
   opacity: 0;
   animation: intimateFade 1.4s 0.4s ease forwards;
 }
@@ -65,7 +67,7 @@
   font-weight: 300;
   line-height: 1.2;
   color: var(--text, #3d3830);
-  margin: 0 0 clamp(20px, 3vw, 32px);
+  margin: 0 0 clamp(16px, 2vw, 24px);
   opacity: 0;
   animation: intimateFade 1.4s 0.4s ease forwards;
 }
@@ -83,12 +85,131 @@
   animation: intimateFade 1.2s 0.8s ease forwards;
 }
 
+/* ===== INFO CARDS ===== */
+
+.infoCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: clamp(28px, 3.5vw, 40px);
+  text-align: left;
+  opacity: 0;
+  animation: intimateFade 1s 1s ease forwards;
+}
+
+.infoCard {
+  border: 1px solid var(--border, #e8e1d6);
+  padding: clamp(14px, 2vw, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.3s ease;
+}
+
+.infoCard:hover {
+  border-color: var(--accent, #7a8c72);
+}
+
+.cardLabel {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent, #7a8c72);
+}
+
+.cardNote {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-3, #a69e93);
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #e8e1d6);
+}
+
+/* Countdown */
+.countdownRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.countUnit {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.countNum {
+  font-family: var(--serif);
+  font-size: clamp(1.3rem, 1.8vw, 1.6rem);
+  font-weight: 300;
+  color: var(--text, #3d3830);
+  line-height: 1;
+}
+
+.countSuffix {
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3, #a69e93);
+}
+
+.countSep {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: var(--border, #e8e1d6);
+  margin: 0 1px;
+}
+
+/* Schedule rows */
+.schedRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.schedRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border, #e8e1d6);
+}
+
+.schedRow:last-child {
+  border-bottom: none;
+}
+
+.schedTime {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent, #7a8c72);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.schedTitle {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--text-2, #786f65);
+  text-align: right;
+}
+
 /* ===== CTA ===== */
 
 .cta {
-  margin-top: clamp(32px, 4vw, 48px);
+  margin-top: clamp(24px, 3vw, 36px);
   opacity: 0;
-  animation: intimateFade 1.2s 1s ease forwards;
+  animation: intimateFade 1.2s 1.2s ease forwards;
 }
 
 .ctaLink {
@@ -117,6 +238,14 @@
   }
 }
 
+/* ===== MOBILE ===== */
+
+@media (max-width: 640px) {
+  .infoCards {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -124,12 +253,14 @@
   .names,
   .titleOnly,
   .dateText,
+  .infoCards,
   .cta {
     opacity: 1;
     animation: none;
   }
 
-  .ctaLink {
+  .ctaLink,
+  .infoCard {
     transition: none;
   }
 }

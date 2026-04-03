@@ -3,15 +3,17 @@
 /**
  * Compact Strip Gallery — The Intimate Note
  *
- * A single-row horizontal strip of images. Minimal, restrained,
- * trusts the photography to speak for itself. No grid complexity,
- * no overlay captions — just a quiet row of memories.
+ * Horizontal strip of portrait images, centered when fewer than
+ * viewport width. Subtle hover lift, click opens a minimal
+ * lightbox. Image count shown as a quiet caption.
  */
 
-import { useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import styles from "./CompactStrip.module.css";
 
 export function CompactStrip({
   data,
@@ -29,72 +31,110 @@ export function CompactStrip({
       .filter(Boolean) as Array<{
         assetId: string;
         caption?: string;
+        title?: string;
         url: string;
       }>;
   }, [normalized.items, assets]);
 
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const goNext = useCallback(() => {
+    setLightboxIndex((i) => i !== null ? (i + 1) % resolvedItems.length : null);
+  }, [resolvedItems.length]);
+  const goPrev = useCallback(() => {
+    setLightboxIndex((i) => i !== null ? (i - 1 + resolvedItems.length) % resolvedItems.length : null);
+  }, [resolvedItems.length]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [lightboxIndex, closeLightbox, goNext, goPrev]);
+
   if (resolvedItems.length === 0) return null;
 
+  const displayItems = resolvedItems.slice(0, 6);
+
   return (
-    <section
-      style={{ padding: "var(--section-y, 96px) 0" }}
-      aria-label="Gallery"
-      id="gallery"
-    >
-      <div
-        style={{
-          width: "min(var(--max, 800px), 100% - 2 * var(--pad, 40px))",
-          margin: "0 auto",
-        }}
-      >
-        {/* Heading */}
-        <h2
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
-            fontWeight: 300,
-            lineHeight: 1.15,
-            color: "var(--text, #3d3830)",
-            textAlign: "center",
-            marginBottom: "clamp(32px, 4vw, 48px)",
-          }}
-        >
+    <section className={styles.section} aria-label="Gallery" id="gallery">
+      <div className={styles.container}>
+        <h2 className={styles.heading}>
           {normalized.heading || "Gallery"}
         </h2>
 
-        {/* Single-row strip */}
-        <div
-          style={{
-            display: "flex",
-            gap: 4,
-            overflow: "hidden",
-          }}
-        >
-          {resolvedItems.slice(0, 5).map((item, i) => (
-            <div
+        {/* Strip */}
+        <div className={styles.strip}>
+          {displayItems.map((item, i) => (
+            <button
               key={item.assetId || i}
-              style={{
-                flex: "1 1 0",
-                minWidth: 0,
-                aspectRatio: "3 / 4",
-                overflow: "hidden",
-              }}
+              type="button"
+              className={styles.item}
+              onClick={() => setLightboxIndex(i)}
+              aria-label={`View photo ${i + 1}`}
             >
               <img
                 src={item.url}
-                alt={item.caption || ""}
+                alt={item.caption || item.title || ""}
                 loading="lazy"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  display: "block",
-                }}
               />
-            </div>
+            </button>
           ))}
         </div>
+
+        {/* Image count */}
+        <p className={styles.count}>
+          {displayItems.length} moment{displayItems.length !== 1 ? "s" : ""}
+        </p>
       </div>
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && (
+        <LightboxPortal>
+          <div className={styles.lightbox} onClick={closeLightbox} role="dialog" aria-modal="true" aria-label="Image lightbox">
+            <button type="button" className={styles.lbClose} onClick={closeLightbox} aria-label="Close lightbox">
+              &times;
+            </button>
+
+            <button type="button" className={styles.lbPrev} onClick={(e) => { e.stopPropagation(); goPrev(); }} aria-label="Previous image">
+              &larr;
+            </button>
+
+            <div className={styles.lbImageWrap} onClick={(e) => e.stopPropagation()}>
+              <img
+                src={resolvedItems[lightboxIndex]?.url}
+                alt={resolvedItems[lightboxIndex]?.caption || ""}
+                className={styles.lbImage}
+              />
+              {resolvedItems[lightboxIndex]?.caption && (
+                <p className={styles.lbCaption}>
+                  {resolvedItems[lightboxIndex].caption}
+                </p>
+              )}
+              <p className={styles.lbCounter}>
+                {lightboxIndex + 1} / {resolvedItems.length}
+              </p>
+            </div>
+
+            <button type="button" className={styles.lbNext} onClick={(e) => { e.stopPropagation(); goNext(); }} aria-label="Next image">
+              &rarr;
+            </button>
+          </div>
+        </LightboxPortal>
+      )}
     </section>
   );
+}
+
+function LightboxPortal({ children }: { children: React.ReactNode }) {
+  return createPortal(children, document.body);
 }

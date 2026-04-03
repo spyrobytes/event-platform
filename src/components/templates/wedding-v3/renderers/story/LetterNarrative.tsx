@@ -3,61 +3,51 @@
 /**
  * Letter Narrative Story — The Intimate Note
  *
- * The story as a personal letter — centered prose in serif type,
- * like a handwritten note to guests. No timeline, no milestones grid.
- * Just flowing text that trusts the couple's words.
+ * The story as a personal letter — centered prose in serif italic,
+ * like a handwritten note to guests. A decorative opening mark
+ * anchors the text. Paragraphs split on double newlines for
+ * proper structure.
  */
 
+import { useMemo } from "react";
 import type { SectionRendererProps } from "../../types";
 import type { StorySection } from "@/schemas/event-page";
+import styles from "./LetterNarrative.module.css";
 
 export function LetterNarrative({
   data,
 }: SectionRendererProps<StorySection["data"]>) {
   const { heading, content } = data;
 
+  // Split content into paragraphs on double newlines
+  const paragraphs = useMemo(() => {
+    if (!content) return [];
+    return content
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+  }, [content]);
+
+  if (!content && paragraphs.length === 0) return null;
+
   return (
-    <section
-      style={{
-        padding: "var(--section-y, 96px) 0",
-        textAlign: "center",
-      }}
-      aria-label="Our Story"
-      id="story"
-    >
-      <div
-        style={{
-          width: "min(var(--max, 800px), 100% - 2 * var(--pad, 40px))",
-          margin: "0 auto",
-          maxWidth: 580,
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
-            fontWeight: 300,
-            lineHeight: 1.15,
-            color: "var(--text, #3d3830)",
-            marginBottom: "clamp(24px, 3vw, 40px)",
-          }}
-        >
+    <section className={styles.section} aria-label="Our Story" id="story">
+      <div className={styles.container}>
+        <h2 className={styles.heading}>
           {heading || "Our Story"}
         </h2>
 
-        <div
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "clamp(1rem, 1.2vw, 1.1rem)",
-            lineHeight: 1.9,
-            color: "var(--text-2, #786f65)",
-            fontWeight: 300,
-            fontStyle: "italic",
-            whiteSpace: "pre-line",
-            textAlign: "left",
-          }}
-        >
-          {content}
+        {/* Decorative opening mark */}
+        <div className={styles.openingMark} aria-hidden="true">&ldquo;</div>
+
+        <div className={styles.prose}>
+          {paragraphs.length > 0 ? (
+            paragraphs.map((p, i) => (
+              <p key={i} className={styles.paragraph}>{p}</p>
+            ))
+          ) : (
+            <p className={styles.paragraph}>{content}</p>
+          )}
         </div>
       </div>
     </section>

@@ -121,6 +121,11 @@ export function getV3CSSVariables(
     Object.assign(baseVars, getMotionCSSVariables(motionPreset));
   }
 
+  // Add cursive font if defined
+  if (themePack.cursiveFont) {
+    baseVars["--cursive"] = themePack.cursiveFont;
+  }
+
   return baseVars;
 }
 
@@ -129,7 +134,14 @@ export function getV3GlassVariables(themePack: ThemePack): Record<string, string
 }
 
 export function getV3FontUrl(themePack: ThemePack): string {
-  return getV2FontUrl(themePack.fontPair);
+  const baseUrl = getV2FontUrl(themePack.fontPair);
+  if (themePack.cursiveFontUrl) {
+    // Append the cursive font family to the Google Fonts URL
+    // cursiveFontUrl is pre-formatted for Google Fonts (e.g. "Dancing+Script:wght@400;500;600")
+    const sep = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${sep}family=${themePack.cursiveFontUrl}`;
+  }
+  return baseUrl;
 }
 
 export { v2TokensToInline as tokensToInline };

@@ -8,7 +8,7 @@
 :global(.wedding-template-v2) h1,
 :global(.wedding-template-v2) h2,
 :global(.wedding-template-v2) h3 {
-  font-family: var(--serif);
+  font-family: var(--cursive, var(--serif));
   font-weight: 400;
   line-height: 1.15;
 }
