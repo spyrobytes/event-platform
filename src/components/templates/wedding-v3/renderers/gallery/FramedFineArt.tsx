@@ -4,14 +4,17 @@
  * Framed Fine Art Gallery — The Fine Art Romance
  *
  * Images presented in decorative frames with mat-like borders,
- * as if hung in a gallery. Soft shadows, rounded corners, generous
- * spacing. Each image feels precious and intentional.
+ * as if hung in a gallery. Hover scale reveals depth, click
+ * opens lightbox with mat-framed image. Each photo feels
+ * precious and intentional.
  */
 
-import { useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import styles from "./FramedFineArt.module.css";
 
 export function FramedFineArt({
   data,
@@ -34,102 +37,106 @@ export function FramedFineArt({
       }>;
   }, [normalized.items, assets]);
 
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const goNext = useCallback(() => {
+    setLightboxIndex((i) => i !== null ? (i + 1) % resolvedItems.length : null);
+  }, [resolvedItems.length]);
+  const goPrev = useCallback(() => {
+    setLightboxIndex((i) => i !== null ? (i - 1 + resolvedItems.length) % resolvedItems.length : null);
+  }, [resolvedItems.length]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [lightboxIndex, closeLightbox, goNext, goPrev]);
+
   if (resolvedItems.length === 0) return null;
 
+  const current = lightboxIndex !== null ? resolvedItems[lightboxIndex] : null;
+
   return (
-    <section
-      style={{ padding: "var(--section-y, 96px) 0" }}
-      aria-label="Gallery"
-      id="gallery"
-    >
-      <div
-        style={{
-          width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))",
-          margin: "0 auto",
-          textAlign: "center",
-        }}
-      >
+    <section className={styles.section} aria-label="Gallery" id="gallery">
+      <div className={styles.container}>
         {/* Header */}
-        <p
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "var(--sm, 0.85rem)",
-            fontStyle: "italic",
-            color: "var(--accent, #7a8c72)",
-            marginBottom: 8,
-          }}
-        >
-          Gallery
-        </p>
-        <h2
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
-            fontWeight: 300,
-            lineHeight: 1.15,
-            color: "var(--text, #3d3830)",
-            marginBottom: "clamp(40px, 5vw, 64px)",
-          }}
-        >
+        <p className={styles.kicker}>Gallery</p>
+        <h2 className={styles.heading}>
           {normalized.heading || "Moments"}
         </h2>
 
         {/* Framed grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "clamp(24px, 3vw, 40px)",
-          }}
-        >
+        <div className={styles.grid}>
           {resolvedItems.map((item, i) => (
-            <div
+            <button
               key={item.assetId || i}
-              style={{
-                background: "var(--surface, #ffffff)",
-                padding: "clamp(12px, 2vw, 20px)",
-                border: "1px solid var(--border, #e8e1d6)",
-                borderRadius: "var(--r, 16px)",
-                boxShadow: "0 2px 20px rgba(0,0,0,0.04)",
-              }}
+              type="button"
+              className={styles.frame}
+              onClick={() => setLightboxIndex(i)}
+              aria-label={`View photo ${i + 1}`}
             >
               <div
-                style={{
-                  aspectRatio: i % 3 === 0 ? "4 / 5" : "3 / 4",
-                  overflow: "hidden",
-                  borderRadius: "calc(var(--r, 16px) - 4px)",
-                }}
+                className={styles.imageWrap}
+                style={{ aspectRatio: i % 3 === 0 ? "4 / 5" : "3 / 4" }}
               >
                 <img
                   src={item.url}
                   alt={item.caption || item.title || ""}
                   loading="lazy"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    display: "block",
-                  }}
                 />
               </div>
               {(item.caption || item.title) && (
-                <p
-                  style={{
-                    fontFamily: "var(--serif)",
-                    fontSize: "var(--sm, 0.85rem)",
-                    fontStyle: "italic",
-                    color: "var(--text-3, #a69e93)",
-                    marginTop: "clamp(8px, 1vw, 14px)",
-                    lineHeight: 1.4,
-                  }}
-                >
+                <p className={styles.caption}>
                   {item.caption || item.title}
                 </p>
               )}
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && current && (
+        <LightboxPortal>
+          <div className={styles.lightbox} onClick={closeLightbox} role="dialog" aria-modal="true" aria-label="Image lightbox">
+            <button type="button" className={styles.lbClose} onClick={closeLightbox} aria-label="Close">
+              &times;
+            </button>
+
+            <button type="button" className={styles.lbPrev} onClick={(e) => { e.stopPropagation(); goPrev(); }} aria-label="Previous">
+              &larr;
+            </button>
+
+            <div className={styles.lbFrame} onClick={(e) => e.stopPropagation()}>
+              <img src={current.url} alt={current.caption || ""} className={styles.lbImage} />
+              {current.caption && (
+                <p className={styles.lbCaption}>{current.caption}</p>
+              )}
+              <p className={styles.lbCounter}>
+                {lightboxIndex + 1} / {resolvedItems.length}
+              </p>
+            </div>
+
+            <button type="button" className={styles.lbNext} onClick={(e) => { e.stopPropagation(); goNext(); }} aria-label="Next">
+              &rarr;
+            </button>
+          </div>
+        </LightboxPortal>
+      )}
     </section>
   );
+}
+
+function LightboxPortal({ children }: { children: React.ReactNode }) {
+  return createPortal(children, document.body);
 }
