@@ -135,6 +135,11 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       ? assets.find((a) => a.id === hero.heroImageAssetId)
       : null;
 
+    // Find couple photo asset (optional portrait)
+    const couplePhotoAsset = hero.couplePhotoAssetId
+      ? assets.find((a) => a.id === hero.couplePhotoAssetId)
+      : null;
+
     // Build schedule cards for hero
     const scheduleCards = useMemo(() => {
       const scheduleSec = sections.find((s) => s.type === "schedule");
@@ -319,6 +324,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
               <HeroComponent
                 config={hero}
                 heroAsset={heroAsset}
+                couplePhotoAsset={couplePhotoAsset}
                 scheduleCards={scheduleCards}
                 hasDetailsSection={sections.some((s) => s.type === "details" && s.enabled)}
                 eventRsvpDeadline={temporal?.rsvpDeadline ?? undefined}

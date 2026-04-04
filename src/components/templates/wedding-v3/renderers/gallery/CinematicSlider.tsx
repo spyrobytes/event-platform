@@ -79,16 +79,27 @@ export function CinematicSlider({
     };
   }, [lightboxIndex, closeLightbox, goNext, goPrev]);
 
-  // Track active slide from scroll position
+  // Track active slide — find which slide center is closest to strip center
   const updateActiveSlide = useCallback(() => {
     const strip = stripRef.current;
     if (!strip) return;
-    const slide = strip.querySelector("button");
-    if (!slide) return;
-    const slideWidth = slide.offsetWidth + 4;
-    const index = Math.round(strip.scrollLeft / slideWidth);
-    setActiveSlide(Math.min(index, resolvedItems.length - 1));
-  }, [resolvedItems.length]);
+    const slides = strip.querySelectorAll("button");
+    if (slides.length === 0) return;
+    const stripRect = strip.getBoundingClientRect();
+    const stripCenter = stripRect.left + stripRect.width / 2;
+    let closest = 0;
+    let minDist = Infinity;
+    slides.forEach((slide, i) => {
+      const rect = slide.getBoundingClientRect();
+      const slideCenter = rect.left + rect.width / 2;
+      const dist = Math.abs(slideCenter - stripCenter);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = i;
+      }
+    });
+    setActiveSlide(closest);
+  }, []);
 
   useEffect(() => {
     const strip = stripRef.current;

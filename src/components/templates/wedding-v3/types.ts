@@ -197,6 +197,7 @@ export type SectionRendererProps<TData> = {
 export type HeroRendererProps = {
   config: HeroConfig;
   heroAsset?: MediaAsset | null;
+  couplePhotoAsset?: MediaAsset | null;
   scheduleCards?: { day: string; info: string }[];
   hasDetailsSection?: boolean;
   eventRsvpDeadline?: string;
@@ -310,4 +311,7 @@ export type TemplateDefinition = {
 
   /** Scroll progress gradient CSS (optional override) */
   scrollProgressGradient?: string;
+
+  /** Optional tip shown to organizers about hero image selection */
+  heroImageTip?: string;
 };

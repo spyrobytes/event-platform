@@ -61,6 +61,34 @@
   );
 }
 
+/* ===== COUPLE PHOTO — top-left portrait ===== */
+
+.couplePhoto {
+  position: absolute;
+  top: clamp(20px, 3vw, 36px);
+  left: clamp(20px, 3vw, 40px);
+  z-index: 4;
+  width: clamp(80px, 10vw, 130px);
+  height: clamp(100px, 13vw, 170px);
+  border-radius: 10px 5px 10px 5px;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--accent, #c5a55a) 60%, transparent);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  opacity: 0;
+  animation: luxeFadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateY(20px);
+}
+
+.couplePhoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.05) brightness(0.95);
+}
+
 /* ===== CONTENT ===== */
 
 .content {
@@ -342,6 +370,7 @@
     animation: none;
   }
 
+  .couplePhoto,
   .monogram,
   .names,
   .titleOnly,
@@ -361,6 +390,13 @@
 /* ===== MOBILE ===== */
 
 @media (max-width: 640px) {
+  .couplePhoto {
+    width: clamp(60px, 18vw, 90px);
+    height: clamp(75px, 22vw, 115px);
+    top: 14px;
+    left: 14px;
+  }
+
   .names {
     font-size: clamp(1.6rem, 7vw, 2.4rem);
     white-space: normal;

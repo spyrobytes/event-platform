@@ -916,6 +916,17 @@ export default function PageEditorPage() {
                 ? "Click an image to select it as your hero background"
                 : "Upload a hero image in the Media Library below to use it here"}
             </p>
+            {(() => {
+              const v3Tip = getV3Definition(templateId)?.heroImageTip;
+              return v3Tip ? (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                  <svg className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <span>{v3Tip}</span>
+                </p>
+              ) : null;
+            })()}
             {pageData?.assets?.filter((a) => a.kind === "HERO").length ? (
               <div className="grid grid-cols-4 gap-2">
                 <button
@@ -976,8 +987,8 @@ export default function PageEditorPage() {
             )}
           </div>
 
-          {/* Couple Photo Selection — cinematic template only */}
-          {templateId === "wedding_v2" && (
+          {/* Couple Photo Selection — cinematic + grand luxe templates */}
+          {(templateId === "wedding_v2" || templateId === "wedding_grand_luxe") && (
             <div className="space-y-2 pt-4 border-t">
               <Label>Couple Photo <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
               <p className="text-xs text-muted-foreground">

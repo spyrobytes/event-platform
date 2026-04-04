@@ -16,6 +16,7 @@ import styles from "./FullscreenDramaticHero.module.css";
 export function FullscreenDramaticHero({
   config,
   heroAsset,
+  couplePhotoAsset,
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
@@ -58,6 +59,17 @@ export function FullscreenDramaticHero({
         </div>
       ) : (
         <div className={styles.bgFallback} aria-hidden="true" />
+      )}
+
+      {/* Couple portrait — top left */}
+      {couplePhotoAsset?.publicUrl && (
+        <div className={styles.couplePhoto}>
+          <img
+            src={couplePhotoAsset.publicUrl}
+            alt={coupleNames || "Couple"}
+            loading="eager"
+          />
+        </div>
       )}
 
       <div className={styles.content}>
