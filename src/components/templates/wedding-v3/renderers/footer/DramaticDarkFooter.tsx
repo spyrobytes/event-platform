@@ -54,7 +54,7 @@ export function DramaticDarkFooter({
         {sections.length > 0 && (
           <nav style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "clamp(14px, 2vw, 24px)", marginBottom: "clamp(24px, 3vw, 36px)" }} aria-label="Footer navigation">
             {sections.map((s) => (
-              <a key={s.id} href={`#${s.id}`} style={{ fontFamily: "var(--sans)", fontSize: "0.68rem", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
+              <a key={s.id} href={`#${s.id}`} className="gl-footer-link" style={{ fontFamily: "var(--sans)", fontSize: "0.68rem", fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "rgba(255,255,255,0.4)", textDecoration: "none", transition: "color 0.3s ease" }}>
                 {s.label}
               </a>
             ))}
@@ -65,6 +65,13 @@ export function DramaticDarkFooter({
           Powered by Events Fixer
         </p>
       </div>
+
+      {/* Hover styles for footer links */}
+      <style>{`
+        .gl-footer-link:hover {
+          color: var(--accent, #c5a55a) !important;
+        }
+      `}</style>
     </footer>
   );
 }

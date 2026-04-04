@@ -3,15 +3,18 @@
 /**
  * Cinematic Slider Gallery — The Grand Luxe
  *
- * Full-width images in a horizontal scroll strip with cinematic
- * aspect ratio (21:9). Dark gutters, dramatic presentation.
- * Like viewing film stills from a feature.
+ * Full-width horizontal scroll strip with cinematic aspect ratio.
+ * Dark gutters, hover glow + scale, prev/next navigation arrows,
+ * dot indicators, and mouse drag-scroll. Click opens a dramatic
+ * dark lightbox with metallic-accented controls.
  */
 
-import { useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import styles from "./CinematicSlider.module.css";
 
 export function CinematicSlider({
   data,
@@ -26,110 +29,293 @@ export function CinematicSlider({
         if (!asset?.publicUrl) return null;
         return { ...item, url: asset.publicUrl };
       })
-      .filter(Boolean) as Array<{ assetId: string; caption?: string; title?: string; url: string }>;
+      .filter(Boolean) as Array<{
+      assetId: string;
+      caption?: string;
+      title?: string;
+      url: string;
+    }>;
   }, [normalized.items, assets]);
+
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Drag state refs (not state — avoids re-renders during drag)
+  const dragRef = useRef({
+    isDragging: false,
+    startX: 0,
+    scrollLeft: 0,
+    moved: 0,
+  });
+
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const goNext = useCallback(() => {
+    setLightboxIndex((i) =>
+      i !== null ? (i + 1) % resolvedItems.length : null,
+    );
+  }, [resolvedItems.length]);
+  const goPrev = useCallback(() => {
+    setLightboxIndex((i) =>
+      i !== null
+        ? (i - 1 + resolvedItems.length) % resolvedItems.length
+        : null,
+    );
+  }, [resolvedItems.length]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [lightboxIndex, closeLightbox, goNext, goPrev]);
+
+  // Track active slide from scroll position
+  const updateActiveSlide = useCallback(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const slide = strip.querySelector("button");
+    if (!slide) return;
+    const slideWidth = slide.offsetWidth + 4;
+    const index = Math.round(strip.scrollLeft / slideWidth);
+    setActiveSlide(Math.min(index, resolvedItems.length - 1));
+  }, [resolvedItems.length]);
+
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    strip.addEventListener("scroll", updateActiveSlide, { passive: true });
+    return () => strip.removeEventListener("scroll", updateActiveSlide);
+  }, [updateActiveSlide]);
+
+  // Scroll the strip by one slide width
+  const scrollStrip = useCallback((direction: "prev" | "next") => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const slide = strip.querySelector("button");
+    const slideWidth = slide ? slide.offsetWidth + 4 : 400;
+    strip.scrollBy({
+      left: direction === "next" ? slideWidth : -slideWidth,
+      behavior: "smooth",
+    });
+  }, []);
+
+  // Scroll to a specific slide (for dot clicks)
+  const scrollToSlide = useCallback((index: number) => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const slide = strip.querySelector("button");
+    const slideWidth = slide ? slide.offsetWidth + 4 : 400;
+    strip.scrollTo({
+      left: slideWidth * index,
+      behavior: "smooth",
+    });
+  }, []);
+
+  // --- Drag-scroll handlers ---
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const strip = stripRef.current;
+      if (!strip) return;
+      dragRef.current = {
+        isDragging: true,
+        startX: e.pageX - strip.offsetLeft,
+        scrollLeft: strip.scrollLeft,
+        moved: 0,
+      };
+      strip.classList.add(styles.dragging);
+    },
+    [],
+  );
+
+  const handleDragMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!dragRef.current.isDragging) return;
+      e.preventDefault();
+      const strip = stripRef.current;
+      if (!strip) return;
+      const x = e.pageX - strip.offsetLeft;
+      const delta = x - dragRef.current.startX;
+      dragRef.current.moved = Math.abs(delta);
+      strip.scrollLeft = dragRef.current.scrollLeft - delta;
+    },
+    [],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    dragRef.current.isDragging = false;
+    const strip = stripRef.current;
+    if (strip) {
+      strip.classList.remove(styles.dragging);
+    }
+  }, []);
+
+  // Click handler that suppresses lightbox open during drag
+  const handleSlideClick = useCallback(
+    (index: number) => {
+      if (dragRef.current.moved > 5) return;
+      setLightboxIndex(index);
+    },
+    [],
+  );
 
   if (resolvedItems.length === 0) return null;
 
+  const current =
+    lightboxIndex !== null ? resolvedItems[lightboxIndex] : null;
+
   return (
-    <section
-      style={{ padding: "var(--section-y, 96px) 0" }}
-      aria-label="Gallery"
-      id="gallery"
-    >
-      <div
-        style={{
-          width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))",
-          margin: "0 auto",
-          textAlign: "center",
-          marginBottom: "clamp(32px, 4vw, 48px)",
-        }}
-      >
-        <p
-          style={{
-            fontFamily: "var(--sans)",
-            fontSize: "var(--sm, 0.85rem)",
-            fontWeight: 600,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase" as const,
-            color: "var(--accent, #c5a55a)",
-            marginBottom: 8,
-          }}
-        >
-          Gallery
-        </p>
-        <h2
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
-            fontWeight: 400,
-            color: "var(--text, #3d3830)",
-          }}
-        >
+    <section className={styles.section} aria-label="Gallery" id="gallery">
+      <div className={styles.header}>
+        <p className={styles.kicker}>Gallery</p>
+        <h2 className={styles.heading}>
           {normalized.heading || "Moments"}
         </h2>
       </div>
 
-      {/* Full-width horizontal scroll strip */}
-      <div
-        style={{
-          display: "flex",
-          gap: 3,
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          scrollbarWidth: "none",
-          padding: "0 clamp(16px, 3vw, 32px)",
-        }}
-      >
-        {resolvedItems.map((item, i) => (
-          <div
-            key={item.assetId || i}
-            style={{
-              flexShrink: 0,
-              width: "clamp(300px, 60vw, 700px)",
-              aspectRatio: "16 / 9",
-              scrollSnapAlign: "center",
-              overflow: "hidden",
-              borderRadius: 2,
-              position: "relative",
-            }}
-          >
-            <img
-              src={item.url}
-              alt={item.caption || item.title || ""}
-              loading="lazy"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-            {(item.caption || item.title) && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  padding: "32px 20px 16px",
-                  background: "linear-gradient(transparent, rgba(0,0,0,0.5))",
-                  fontFamily: "var(--sans)",
-                  fontSize: "var(--sm, 0.85rem)",
-                  color: "rgba(255,255,255,0.9)",
-                }}
-              >
-                {item.caption || item.title}
-              </div>
-            )}
-          </div>
-        ))}
+      {/* Slider with nav arrows */}
+      <div className={styles.sliderWrap}>
+        <button
+          type="button"
+          className={`${styles.navBtn} ${styles.navPrev}`}
+          onClick={() => scrollStrip("prev")}
+          aria-label="Previous photos"
+        >
+          &#8592;
+        </button>
+
+        <div
+          className={styles.strip}
+          ref={stripRef}
+          onMouseDown={handleDragStart}
+          onMouseMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+        >
+          {resolvedItems.map((item, i) => (
+            <button
+              key={item.assetId || i}
+              type="button"
+              className={styles.slide}
+              onClick={() => handleSlideClick(i)}
+              aria-label={`View photo ${i + 1}`}
+            >
+              <img
+                src={item.url}
+                alt={item.caption || item.title || ""}
+                loading="lazy"
+                className={styles.slideImg}
+                draggable={false}
+              />
+              {(item.caption || item.title) && (
+                <div className={styles.caption}>
+                  {item.caption || item.title}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={`${styles.navBtn} ${styles.navNext}`}
+          onClick={() => scrollStrip("next")}
+          aria-label="Next photos"
+        >
+          &#8594;
+        </button>
       </div>
 
-      {/* Hide scrollbar */}
-      <style>{`
-        #gallery div::-webkit-scrollbar { display: none; }
-      `}</style>
+      {/* Dot indicators */}
+      {resolvedItems.length > 1 && (
+        <div className={styles.dots}>
+          {resolvedItems.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`${styles.dot} ${i === activeSlide ? styles.dotActive : ""}`}
+              onClick={() => scrollToSlide(i)}
+              aria-label={`Go to photo ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxIndex !== null && current && (
+        <LightboxPortal>
+          <div
+            className={styles.lightbox}
+            onClick={closeLightbox}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image lightbox"
+          >
+            <button
+              type="button"
+              className={styles.lbClose}
+              onClick={closeLightbox}
+              aria-label="Close"
+            >
+              &times;
+            </button>
+
+            <button
+              type="button"
+              className={styles.lbPrev}
+              onClick={(e) => {
+                e.stopPropagation();
+                goPrev();
+              }}
+              aria-label="Previous"
+            >
+              &#8592;
+            </button>
+
+            <div
+              className={styles.lbFrame}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={current.url}
+                alt={current.caption || ""}
+                className={styles.lbImage}
+              />
+              {current.caption && (
+                <p className={styles.lbCaption}>{current.caption}</p>
+              )}
+              <p className={styles.lbCounter}>
+                {lightboxIndex + 1} / {resolvedItems.length}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className={styles.lbNext}
+              onClick={(e) => {
+                e.stopPropagation();
+                goNext();
+              }}
+              aria-label="Next"
+            >
+              &#8594;
+            </button>
+          </div>
+        </LightboxPortal>
+      )}
     </section>
   );
+}
+
+function LightboxPortal({ children }: { children: React.ReactNode }) {
+  return createPortal(children, document.body);
 }

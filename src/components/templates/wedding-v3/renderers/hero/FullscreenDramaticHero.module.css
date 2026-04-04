@@ -2,7 +2,8 @@
    Fullscreen Dramatic Hero — The Grand Luxe
 
    Bold, cinematic, high-contrast. Full-viewport dark image treatment
-   with large metallic-style text. The hero that makes an entrance.
+   with large metallic-style text. Dark glassmorphic info cards
+   anchored at the bottom. The hero that makes an entrance.
    =================================================================== */
 
 .hero {
@@ -13,6 +14,8 @@
   justify-content: center;
   overflow: hidden;
   background: var(--night, #1e1b17);
+  /* Bottom clearance so centered content doesn't overlap info cards */
+  padding-bottom: clamp(100px, 12vh, 160px);
 }
 
 /* ===== BACKGROUND ===== */
@@ -76,8 +79,7 @@
   text-transform: uppercase;
   color: var(--accent, #c5a55a);
   margin-bottom: clamp(24px, 3vw, 40px);
-  opacity: 0;
-  animation: luxeFadeUp 1s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
 }
 
 .names {
@@ -88,11 +90,10 @@
   letter-spacing: -0.02em;
   color: #ffffff;
   margin: 0 0 clamp(16px, 2vw, 28px);
-  opacity: 0;
-  animation: luxeFadeUp 1s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5), 0 4px 48px rgba(0, 0, 0, 0.3);
 }
 
-/* Metallic shimmer on names */
+/* Metallic shimmer rule after names */
 .names::after {
   content: "";
   display: block;
@@ -118,8 +119,7 @@
   line-height: 1.15;
   color: #ffffff;
   margin: 0 0 clamp(16px, 2vw, 28px);
-  opacity: 0;
-  animation: luxeFadeUp 1s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5), 0 4px 48px rgba(0, 0, 0, 0.3);
 }
 
 .dateText {
@@ -128,15 +128,12 @@
   font-weight: 500;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
-  opacity: 0;
-  animation: luxeFadeUp 0.8s 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
 }
 
 .cta {
   margin-top: clamp(32px, 4vw, 48px);
-  opacity: 0;
-  animation: luxeFadeUp 0.8s 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .ctaBtn {
@@ -160,6 +157,8 @@
   box-shadow: 0 8px 32px rgba(197, 165, 90, 0.3);
 }
 
+/* ===== STAGGERED REVEAL ===== */
+
 @keyframes luxeFadeUp {
   to {
     opacity: 1;
@@ -167,13 +166,159 @@
   }
 }
 
-/* Initial states for fade-up */
 .monogram,
 .names,
 .titleOnly,
 .dateText,
-.cta {
+.cta,
+.infoRow {
+  opacity: 0;
   transform: translateY(20px);
+}
+
+.monogram  { animation: luxeFadeUp 1s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.names     { animation: luxeFadeUp 1s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.titleOnly { animation: luxeFadeUp 1s 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.dateText  { animation: luxeFadeUp 0.8s 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.cta       { animation: luxeFadeUp 0.8s 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.infoRow   { animation: luxeFadeUp 0.8s 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ===== DARK GLASSMORPHIC INFO CARDS ===== */
+
+.infoRow {
+  position: absolute;
+  bottom: clamp(28px, 4vw, 48px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  display: flex;
+  gap: clamp(12px, 2vw, 20px);
+  z-index: 3;
+}
+
+.infoCard {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: clamp(14px, 2vw, 20px);
+  min-width: clamp(160px, 18vw, 220px);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Metallic top edge */
+.infoCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--accent, #c5a55a),
+    transparent
+  );
+}
+
+.cardLabel {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent, #c5a55a);
+  margin-bottom: 10px;
+}
+
+.cardNote {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Countdown */
+.countdownRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.countUnit {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.countNum {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 2vw, 1.8rem);
+  font-weight: 400;
+  color: #ffffff;
+  line-height: 1;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+}
+
+.countSuffix {
+  font-family: var(--sans);
+  font-size: 0.55rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.countSep {
+  font-size: 0.8rem;
+  color: var(--accent, #c5a55a);
+  opacity: 0.4;
+}
+
+/* Schedule */
+.schedRows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.schedRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.schedRow:last-child {
+  border-bottom: none;
+}
+
+.schedTime {
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--accent, #c5a55a);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.schedTitle {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
 }
 
 /* ===== REDUCED MOTION ===== */
@@ -187,7 +332,8 @@
   .names,
   .titleOnly,
   .dateText,
-  .cta {
+  .cta,
+  .infoRow {
     opacity: 1;
     transform: none;
     animation: none;
@@ -195,5 +341,23 @@
 
   .ctaBtn {
     transition: none;
+  }
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 640px) {
+  .infoRow {
+    flex-direction: column;
+    align-items: center;
+    left: 0;
+    right: 0;
+    transform: translateY(20px);
+    padding: 0 clamp(16px, 4vw, 32px);
+  }
+
+  .infoCard {
+    width: 100%;
+    max-width: 320px;
   }
 }

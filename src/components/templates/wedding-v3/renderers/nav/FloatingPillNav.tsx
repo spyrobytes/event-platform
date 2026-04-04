@@ -4,13 +4,16 @@
  * Floating Pill Nav — The Grand Luxe
  *
  * Detached floating pill that appears after scrolling past the hero.
- * Dark/translucent background with metallic accent. Persistent RSVP CTA.
+ * Dark/translucent background with metallic accent. Monogram in a
+ * sharp metallic-bordered square links to #top. All enabled sections
+ * shown. RSVP gets a highlighted accent pill.
  */
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
 
 export function FloatingPillNav({
+  monogram,
   coupleNames,
   sections,
 }: NavRendererProps) {
@@ -25,10 +28,9 @@ export function FloatingPillNav({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  const navSections = sections.filter((s) =>
-    ["details", "gallery", "schedule", "travel", "registry", "rsvp"].includes(s.id)
-  );
-  const hasRsvp = sections.some((s) => s.id === "rsvp");
+  const navSections = sections;
+  const displayMonogram =
+    monogram || (coupleNames ? coupleNames.charAt(0) : "W");
 
   return (
     <nav
@@ -36,68 +38,92 @@ export function FloatingPillNav({
         position: "fixed",
         top: 16,
         left: "50%",
-        transform: visible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-80px)",
+        transform: visible
+          ? "translateX(-50%) translateY(0)"
+          : "translateX(-50%) translateY(-80px)",
         zIndex: 100,
         background: "rgba(30, 27, 23, 0.85)",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         borderRadius: 999,
-        padding: "8px 8px 8px 20px",
+        padding: "8px 8px 8px 12px",
         display: "flex",
         alignItems: "center",
         gap: 4,
         boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
-        transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease",
+        transition:
+          "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease",
         opacity: visible ? 1 : 0,
       }}
       aria-label="Main navigation"
     >
-      {/* Brand */}
+      {/* Monogram in metallic-bordered square */}
       <a
         href="#top"
+        className="gl-nav-monogram"
         style={{
-          fontFamily: "var(--serif)",
-          fontSize: "0.82rem",
-          fontWeight: 400,
-          color: "rgba(255,255,255,0.85)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 28,
+          height: 28,
+          borderRadius: 2,
+          border: "1px solid var(--accent, #c5a55a)",
           textDecoration: "none",
+          fontFamily: "var(--serif)",
+          fontSize: "0.75rem",
+          fontWeight: 400,
+          color: "var(--accent, #c5a55a)",
           marginRight: 8,
-          whiteSpace: "nowrap",
+          transition: "background 0.3s ease",
         }}
+        aria-label="Back to top"
       >
-        {coupleNames || "Our Wedding"}
+        {displayMonogram}
       </a>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)", marginRight: 4 }} aria-hidden="true" />
+      <div
+        style={{
+          width: 1,
+          height: 20,
+          background: "rgba(255,255,255,0.15)",
+          marginRight: 4,
+        }}
+        aria-hidden="true"
+      />
 
-      {/* Section links */}
-      {navSections.filter((s) => s.id !== "rsvp").map((s) => (
-        <a
-          key={s.id}
-          href={`#${s.id}`}
-          style={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.65rem",
-            fontWeight: 500,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase" as const,
-            color: "rgba(255,255,255,0.6)",
-            textDecoration: "none",
-            padding: "6px 10px",
-            borderRadius: 999,
-            whiteSpace: "nowrap",
-            transition: "color 0.3s ease",
-          }}
-        >
-          {s.label}
-        </a>
-      ))}
+      {/* Section links (excluding RSVP — rendered separately as accent pill) */}
+      {navSections
+        .filter((s) => s.id !== "rsvp")
+        .map((s) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className="gl-nav-link"
+            style={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.65rem",
+              fontWeight: 500,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase" as const,
+              color: "rgba(255,255,255,0.6)",
+              textDecoration: "none",
+              padding: "6px 10px",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+              transition: "color 0.3s ease",
+            }}
+          >
+            {s.label}
+          </a>
+        ))}
 
-      {/* RSVP button */}
-      {hasRsvp && (
+      {/* RSVP accent pill */}
+      {navSections.some((s) => s.id === "rsvp") && (
         <a
           href="#rsvp"
+          className="gl-nav-rsvp"
           style={{
             fontFamily: "var(--sans)",
             fontSize: "0.65rem",
@@ -110,16 +136,26 @@ export function FloatingPillNav({
             padding: "8px 18px",
             borderRadius: 999,
             whiteSpace: "nowrap",
+            transition: "filter 0.3s ease",
           }}
         >
           RSVP
         </a>
       )}
 
-      {/* Hide section links on mobile */}
+      {/* Hover + mobile styles */}
       <style>{`
+        .gl-nav-monogram:hover {
+          background: rgba(197, 165, 90, 0.15) !important;
+        }
+        .gl-nav-link:hover {
+          color: var(--accent, #c5a55a) !important;
+        }
+        .gl-nav-rsvp:hover {
+          filter: brightness(1.15) !important;
+        }
         @media (max-width: 768px) {
-          nav > a:not(:first-child):not(:last-child),
+          .gl-nav-link,
           nav > div[aria-hidden] { display: none !important; }
         }
       `}</style>
