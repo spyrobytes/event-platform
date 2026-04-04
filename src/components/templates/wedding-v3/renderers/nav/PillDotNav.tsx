@@ -3,15 +3,17 @@
 /**
  * Pill Dot Nav — The Garden House
  *
- * Sticky nav with pill-shaped links and rounded styling.
- * Organic feel with soft corners everywhere. Includes a
- * section-dot scroll indicator on the right edge (desktop).
+ * Sticky nav with pill-shaped hover backgrounds and organic feel.
+ * Monogram logo in a soft circle (echoing the arch motif) links
+ * to #top. RSVP gets a highlighted accent pill. Becomes opaque
+ * on scroll.
  */
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
 
 export function PillDotNav({
+  monogram,
   coupleNames,
   sections,
 }: NavRendererProps) {
@@ -26,11 +28,9 @@ export function PillDotNav({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  const navSections = sections.filter((s) =>
-    ["story", "gallery", "details", "schedule", "travel", "party", "registry", "rsvp"].includes(s.id)
-  );
-
-  const hasRsvp = sections.some((s) => s.id === "rsvp");
+  const navSections = sections;
+  const displayMonogram =
+    monogram || (coupleNames ? coupleNames.charAt(0) : "W");
 
   return (
     <nav
@@ -42,7 +42,9 @@ export function PillDotNav({
         zIndex: 100,
         padding: "0 clamp(16px, 3vw, 32px)",
         background: scrolled ? "var(--bg, #f8f5f0)" : "transparent",
-        borderBottom: scrolled ? "1px solid var(--border, #e8e1d6)" : "1px solid transparent",
+        borderBottom: scrolled
+          ? "1px solid var(--border, #e8e1d6)"
+          : "1px solid transparent",
         transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
       aria-label="Main navigation"
@@ -57,80 +59,91 @@ export function PillDotNav({
           height: 60,
         }}
       >
-        {/* Brand */}
+        {/* Monogram logo */}
         <a
           href="#top"
-          style={{
-            fontFamily: "var(--serif)",
-            fontSize: "0.92rem",
-            fontWeight: 400,
-            color: "var(--text, #3d3830)",
-            textDecoration: "none",
-          }}
-        >
-          {coupleNames || "Our Wedding"}
-        </a>
-
-        {/* Pill links */}
-        <div
+          className="gh-nav-logo"
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 6,
+            justifyContent: "center",
+            width: 34,
+            height: 34,
+            borderRadius: "50%",
+            border: "1.5px solid var(--accent, #7a8c72)",
+            background:
+              "color-mix(in srgb, var(--accent, #7a8c72) 6%, transparent)",
+            textDecoration: "none",
+            fontFamily: "var(--serif)",
+            fontSize: "0.8rem",
+            fontWeight: 400,
+            fontStyle: "italic",
+            color: "var(--text, #3d3830)",
+            transition: "background 0.3s ease, border-color 0.3s ease",
           }}
+          aria-label="Back to top"
         >
-          {navSections.filter((s) => s.id !== "rsvp").map((s) => (
+          {displayMonogram}
+        </a>
+
+        {/* Pill links */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {navSections.map((s) => (
             <a
               key={s.id}
               href={`#${s.id}`}
-              style={{
-                fontFamily: "var(--sans)",
-                fontSize: "0.68rem",
-                fontWeight: 500,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase" as const,
-                color: "var(--text-2, #786f65)",
-                textDecoration: "none",
-                padding: "6px 14px",
-                borderRadius: 999,
-                transition: "background 0.3s ease, color 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--cream, #f0ebe3)";
-                e.currentTarget.style.color = "var(--text, #3d3830)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "var(--text-2, #786f65)";
-              }}
+              className={
+                s.id === "rsvp" ? "gh-nav-rsvp" : "gh-nav-pill"
+              }
+              style={
+                s.id === "rsvp"
+                  ? {
+                      fontFamily: "var(--sans)",
+                      fontSize: "0.68rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase" as const,
+                      color: "var(--surface, #ffffff)",
+                      background: "var(--accent, #7a8c72)",
+                      textDecoration: "none",
+                      padding: "6px 16px",
+                      borderRadius: 999,
+                      transition: "filter 0.3s ease",
+                    }
+                  : {
+                      fontFamily: "var(--sans)",
+                      fontSize: "0.68rem",
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase" as const,
+                      color: "var(--text-2, #786f65)",
+                      textDecoration: "none",
+                      padding: "6px 14px",
+                      borderRadius: 999,
+                      transition:
+                        "background 0.3s ease, color 0.3s ease",
+                    }
+              }
             >
               {s.label}
             </a>
           ))}
-
-          {hasRsvp && (
-            <a
-              href="#rsvp"
-              style={{
-                fontFamily: "var(--sans)",
-                fontSize: "0.68rem",
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase" as const,
-                color: "var(--surface, #ffffff)",
-                background: "var(--accent, #7a8c72)",
-                textDecoration: "none",
-                padding: "6px 16px",
-                borderRadius: 999,
-              }}
-            >
-              RSVP
-            </a>
-          )}
         </div>
       </div>
 
+      {/* Hover + mobile styles */}
       <style>{`
+        .gh-nav-logo:hover {
+          background: color-mix(in srgb, var(--accent, #7a8c72) 14%, transparent) !important;
+          border-color: color-mix(in srgb, var(--accent, #7a8c72) 80%, transparent) !important;
+        }
+        .gh-nav-pill:hover {
+          background: var(--cream, #f0ebe3) !important;
+          color: var(--text, #3d3830) !important;
+        }
+        .gh-nav-rsvp:hover {
+          filter: brightness(0.88) !important;
+        }
         @media (max-width: 768px) {
           nav > div > div:last-child { display: none !important; }
         }

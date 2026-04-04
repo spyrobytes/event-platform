@@ -1,0 +1,223 @@
+/* ===================================================================
+   Soft Masonry Gallery — The Garden House
+
+   CSS columns masonry with organic rounded frames. Hover lifts
+   images with soft shadow growth. Click opens a lightbox with
+   organically-rounded framing. Warm, natural, inviting.
+   =================================================================== */
+
+.section {
+  padding: var(--section-y, 96px) 0;
+  text-align: center;
+}
+
+.container {
+  width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
+/* ===== HEADER ===== */
+
+.heading {
+  font-family: var(--serif);
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 300;
+  line-height: 1.15;
+  color: var(--text, #3d3830);
+  margin-bottom: clamp(40px, 5vw, 56px);
+}
+
+/* ===== MASONRY GRID ===== */
+
+.masonry {
+  column-count: 3;
+  column-gap: clamp(12px, 2vw, 20px);
+}
+
+/* ===== FRAME ===== */
+
+.frame {
+  break-inside: avoid;
+  margin-bottom: clamp(12px, 2vw, 20px);
+  border-radius: var(--r-lg, 24px);
+  overflow: hidden;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.frame:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.05),
+    0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+.frameImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.frame:hover .frameImg {
+  transform: scale(1.03);
+}
+
+.caption {
+  font-family: var(--serif);
+  font-size: var(--sm, 0.85rem);
+  font-style: italic;
+  color: var(--text-3, #a69e93);
+  padding: clamp(8px, 1vw, 12px) clamp(12px, 1.5vw, 16px);
+  background: var(--surface, #ffffff);
+  line-height: 1.4;
+}
+
+/* ===== LIGHTBOX ===== */
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  animation: lbFadeIn 0.3s ease;
+}
+
+@keyframes lbFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lbClose {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.lbClose:hover {
+  color: #fff;
+}
+
+.lbPrev,
+.lbNext {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 12px;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.lbPrev:hover,
+.lbNext:hover {
+  color: #fff;
+}
+
+/* Organically-rounded image frame in lightbox */
+.lbFrame {
+  background: var(--surface, #ffffff);
+  padding: clamp(12px, 2vw, 24px);
+  border-radius: var(--r-lg, 24px);
+  max-width: 75vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 60px rgba(0, 0, 0, 0.3);
+}
+
+.lbImage {
+  max-width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  display: block;
+  border-radius: calc(var(--r-lg, 24px) - 4px);
+}
+
+.lbCaption {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-3, #a69e93);
+  margin-top: 12px;
+  text-align: center;
+}
+
+.lbCounter {
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--text-3, #a69e93);
+  margin-top: 8px;
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 768px) {
+  .masonry {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .masonry {
+    column-count: 1;
+  }
+
+  .lbFrame {
+    padding: 10px;
+    max-width: 92vw;
+  }
+
+  .lbPrev,
+  .lbNext {
+    padding: 8px;
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .frame {
+    transition: none;
+  }
+
+  .frameImg {
+    transition: none;
+  }
+
+  .lightbox {
+    animation: none;
+  }
+
+  .lbClose,
+  .lbPrev,
+  .lbNext {
+    transition: none;
+  }
+}
