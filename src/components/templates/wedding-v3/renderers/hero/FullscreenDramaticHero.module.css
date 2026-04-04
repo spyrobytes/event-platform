@@ -71,6 +71,7 @@
   padding: 0 clamp(20px, 4vw, 40px);
 }
 
+/* Embossed metallic monogram — raised gold-foil impression */
 .monogram {
   font-family: var(--serif);
   font-size: clamp(0.72rem, 0.9vw, 0.85rem);
@@ -79,18 +80,27 @@
   text-transform: uppercase;
   color: var(--accent, #c5a55a);
   margin-bottom: clamp(24px, 3vw, 40px);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.7),
+    0 -1px 0 rgba(255, 215, 0, 0.2),
+    0 0 24px rgba(197, 165, 90, 0.35);
 }
 
+/* Embossed couple names — single line, raised letterpress effect */
 .names {
   font-family: var(--serif);
-  font-size: clamp(2.6rem, 6vw, 5.2rem);
+  font-size: clamp(2rem, 5vw, 4.2rem);
   font-weight: 400;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: #ffffff;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0 0 clamp(16px, 2vw, 28px);
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5), 0 4px 48px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.8),
+    0 -1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    0 0 48px rgba(197, 165, 90, 0.15);
 }
 
 /* Metallic shimmer rule after names */
@@ -103,13 +113,13 @@
   margin: clamp(16px, 2vw, 24px) auto 0;
 }
 
+/* Inline ampersand — accent gold, slightly smaller */
 .ampersand {
-  display: block;
+  display: inline;
   font-style: italic;
-  font-size: 0.5em;
+  font-size: 0.72em;
   color: var(--accent, #c5a55a);
-  margin: 8px 0;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
 }
 
 .titleOnly {
@@ -117,9 +127,13 @@
   font-size: clamp(2.2rem, 5vw, 4rem);
   font-weight: 400;
   line-height: 1.15;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.95);
   margin: 0 0 clamp(16px, 2vw, 28px);
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.5), 0 4px 48px rgba(0, 0, 0, 0.3);
+  text-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.8),
+    0 -1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    0 0 48px rgba(197, 165, 90, 0.15);
 }
 
 .dateText {
@@ -347,6 +361,11 @@
 /* ===== MOBILE ===== */
 
 @media (max-width: 640px) {
+  .names {
+    font-size: clamp(1.6rem, 7vw, 2.4rem);
+    white-space: normal;
+  }
+
   .infoRow {
     flex-direction: column;
     align-items: center;

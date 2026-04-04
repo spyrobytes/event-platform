@@ -67,7 +67,9 @@ export function FullscreenDramaticHero({
           <h1 className={styles.names}>
             {nameLines.map((name, i) => (
               <span key={i}>
-                {i > 0 && <span className={styles.ampersand}>&amp;</span>}
+                {i > 0 && (
+                  <span className={styles.ampersand}>&nbsp;&amp;&nbsp;</span>
+                )}
                 {name}
               </span>
             ))}
