@@ -7,7 +7,6 @@ import {
   TechCredibility,
   MissionStatement,
   UseCaseGrid,
-  VariantShowcase,
   FinalCTA,
   Footer,
 } from "./sections";
@@ -40,7 +39,6 @@ export function LandingPage() {
         <ProductValueSplit />
         <CreationDemo />
         <UseCaseGrid />
-        <VariantShowcase />
         <TechCredibility />
         <MissionStatement />
         <FinalCTA />
