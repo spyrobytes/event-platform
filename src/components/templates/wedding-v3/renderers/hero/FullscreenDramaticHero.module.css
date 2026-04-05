@@ -72,7 +72,7 @@
   height: clamp(100px, 13vw, 170px);
   border-radius: 10px 5px 10px 5px;
   overflow: hidden;
-  border: 2px solid color-mix(in srgb, var(--accent, #c5a55a) 60%, transparent);
+  border: none;
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -249,6 +249,15 @@
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.35s ease;
+}
+
+.infoCard:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Metallic top edge */
@@ -384,6 +393,14 @@
 
   .ctaBtn {
     transition: none;
+  }
+
+  .infoCard {
+    transition: none;
+  }
+
+  .infoCard:hover {
+    transform: none;
   }
 }
 
