@@ -988,7 +988,7 @@ export default function PageEditorPage() {
           </div>
 
           {/* Couple Photo Selection — cinematic + grand luxe templates */}
-          {(templateId === "wedding_v2" || templateId === "wedding_grand_luxe") && (
+          {(templateId === "wedding_v2" || templateId === "wedding_grand_luxe" || templateId === "wedding_celebration") && (
             <div className="space-y-2 pt-4 border-t">
               <Label>Couple Photo <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
               <p className="text-xs text-muted-foreground">

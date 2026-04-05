@@ -19,6 +19,7 @@ import styles from "./CollageMosaicHero.module.css";
 export function CollageMosaicHero({
   config,
   heroAsset,
+  couplePhotoAsset,
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
@@ -32,6 +33,7 @@ export function CollageMosaicHero({
   const hasNames = nameLines.length > 0;
 
   const hasImage = !!heroAsset?.publicUrl;
+  const hasCouplePhoto = !!couplePhotoAsset?.publicUrl;
 
   // Countdown data
   const countdown = (() => {
@@ -76,32 +78,26 @@ export function CollageMosaicHero({
 
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
-      {/* Background mosaic */}
+      {/* Background image */}
       {hasImage ? (
-        <div className={styles.mosaic} aria-hidden="true">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <img
-              key={i}
-              src={heroAsset!.publicUrl!}
-              alt=""
-              loading="eager"
-              style={{
-                objectPosition: `${(i % 4) * 25}% ${Math.floor(i / 4) * 33}%`,
-              }}
-            />
-          ))}
+        <div className={styles.bgImage} aria-hidden="true">
+          <img
+            src={heroAsset!.publicUrl!}
+            alt=""
+            loading="eager"
+          />
         </div>
       ) : (
-        <div className={styles.mosaicFallback} aria-hidden="true" />
+        <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
       {/* Center content */}
       <div className={styles.content}>
-        {/* Couple photo */}
-        {hasImage && (
+        {/* Couple photo — uses dedicated couple photo asset */}
+        {hasCouplePhoto && (
           <div className={styles.couplePhoto}>
             <img
-              src={heroAsset!.publicUrl!}
+              src={couplePhotoAsset!.publicUrl!}
               alt={coupleNames || title || ""}
               loading="eager"
             />
