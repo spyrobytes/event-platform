@@ -16,11 +16,7 @@ export function TransparentStickyNav({
   dateText,
   sections,
 }: NavRendererProps) {
-  // Filter for key nav sections (keep it editorial-sparse)
-  const navSections = sections.filter((s) =>
-    ["story", "gallery", "details", "schedule", "travel", "rsvp"].includes(s.id)
-  );
-
+  // Show all enabled sections — factory already filters to enabled-only
   const hasRsvp = sections.some((s) => s.id === "rsvp");
 
   return (
@@ -41,7 +37,7 @@ export function TransparentStickyNav({
 
         {/* Center: section links */}
         <ul className={styles.links}>
-          {navSections
+          {sections
             .filter((s) => s.id !== "rsvp")
             .map((s) => (
               <li key={s.id}>

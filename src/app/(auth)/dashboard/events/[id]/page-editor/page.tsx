@@ -567,6 +567,9 @@ export default function PageEditorPage() {
 
   if (!config) return null;
 
+  // Which section types the current template supports (drives "Add Section" buttons)
+  const supported = TEMPLATE_SUPPORTED_SECTIONS[templateId] ?? new Set(GENERIC_SECTIONS);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1522,71 +1525,66 @@ export default function PageEditorPage() {
                 + Map
               </Button>
             )}
-            {/* Wedding-specific sections - only show for wedding templates */}
-            {(templateId === "wedding_v1" || templateId === "wedding_v2") && (
-              <>
-                {!config.sections.some((s) => s.type === "story") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSection("story")}
-                  >
-                    + Our Story
-                  </Button>
-                )}
-                {!config.sections.some((s) => s.type === "travelStay") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSection("travelStay")}
-                  >
-                    + Travel & Stay
-                  </Button>
-                )}
-                {!config.sections.some((s) => s.type === "weddingParty") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSection("weddingParty")}
-                  >
-                    + Wedding Party
-                  </Button>
-                )}
-                {!config.sections.some((s) => s.type === "attire") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSection("attire")}
-                  >
-                    + Dress Code
-                  </Button>
-                )}
-                {!config.sections.some((s) => s.type === "thingsToDo") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSection("thingsToDo")}
-                  >
-                    + Things To Do
-                  </Button>
-                )}
-                {/* Registry - V2 only */}
-                {templateId === "wedding_v2" && !config.sections.some((s) => s.type === "registry") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSection("registry")}
-                  >
-                    + Gift Registry
-                  </Button>
-                )}
-              </>
+            {/* Wedding-specific sections — driven by TEMPLATE_SUPPORTED_SECTIONS */}
+            {supported.has("story") && !config.sections.some((s) => s.type === "story") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("story")}
+              >
+                + Our Story
+              </Button>
+            )}
+            {supported.has("travelStay") && !config.sections.some((s) => s.type === "travelStay") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("travelStay")}
+              >
+                + Travel & Stay
+              </Button>
+            )}
+            {supported.has("weddingParty") && !config.sections.some((s) => s.type === "weddingParty") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("weddingParty")}
+              >
+                + Wedding Party
+              </Button>
+            )}
+            {supported.has("attire") && !config.sections.some((s) => s.type === "attire") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("attire")}
+              >
+                + Dress Code
+              </Button>
+            )}
+            {supported.has("thingsToDo") && !config.sections.some((s) => s.type === "thingsToDo") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("thingsToDo")}
+              >
+                + Things To Do
+              </Button>
+            )}
+            {supported.has("registry") && !config.sections.some((s) => s.type === "registry") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("registry")}
+              >
+                + Gift Registry
+              </Button>
             )}
             {config.sections.length >= 12 && (
               <p className="text-sm text-muted-foreground">
