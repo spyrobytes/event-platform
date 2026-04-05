@@ -151,7 +151,7 @@
   background: linear-gradient(90deg, var(--sage-l, #a8b8a0), transparent);
 }
 
-/* Title: staggered word entrance */
+/* Title: staggered word entrance with embossed letterpress effect */
 .title {
   font-family: var(--serif);
   font-size: var(--h1, clamp(2.8rem, 6vw, 5.4rem));
@@ -161,6 +161,11 @@
   margin-bottom: 16px;
   line-height: 1.15;
   letter-spacing: -0.02em;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6),
+    0 -1px 1px rgba(0, 0, 0, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 0 24px color-mix(in srgb, var(--accent, #7a8c72) 12%, transparent);
 }
 .word {
   display: inline-block;

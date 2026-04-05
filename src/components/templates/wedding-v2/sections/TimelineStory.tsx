@@ -220,38 +220,21 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
             </p>
             <h2 className={styles.heading}>{heading}</h2>
           </div>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: storyPhotoUrl ? "1fr 1fr" : "1fr",
-            gap: "clamp(24px, 4vw, 48px)",
-            alignItems: "center",
-          }}>
-            <div style={{ maxWidth: "56ch" }}>
-              <p style={{ color: "var(--text-2)", lineHeight: 1.75, whiteSpace: "pre-line" }}>{content}</p>
+          <div className={styles.splitGrid}>
+            <div className={styles.splitText}>
+              <p>{content}</p>
             </div>
             {storyPhotoUrl && (
-              <div style={{
-                borderRadius: "var(--r-lg, 24px)",
-                overflow: "hidden",
-                boxShadow: "var(--shadow-lg)",
-              }}>
+              <div className={styles.splitPhoto}>
                 <img
                   src={storyPhotoUrl}
                   alt="Our story"
                   loading="lazy"
-                  style={{ width: "100%", height: "auto", display: "block" }}
                 />
               </div>
             )}
           </div>
         </div>
-        <style>{`
-          @media (max-width: 700px) {
-            #story [style*="grid-template-columns: 1fr 1fr"] {
-              grid-template-columns: 1fr !important;
-            }
-          }
-        `}</style>
       </section>
     );
   }
