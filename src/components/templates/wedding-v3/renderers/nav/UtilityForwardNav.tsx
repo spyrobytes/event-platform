@@ -16,6 +16,7 @@ export function UtilityForwardNav({
   monogram,
   coupleNames,
   sections,
+  hasHeroImage,
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -70,7 +71,7 @@ export function UtilityForwardNav({
 
   return (
     <header
-      className={`${styles.topbar} ${scrolled ? styles.scrolled : ""}`}
+      className={`${styles.topbar} ${scrolled ? styles.scrolled : ""} ${hasHeroImage && !scrolled ? styles.overImage : ""}`}
       aria-label="Main navigation"
     >
       <div className={styles.inner}>

@@ -79,9 +79,11 @@
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--text, #3d3830);
+  transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
-/* Nav links */
+/* ===== NAV LINKS (default: dark text for gradient fallback) ===== */
+
 .nav {
   display: flex;
   gap: 2px;
@@ -99,7 +101,7 @@
   border-radius: 999px;
   text-decoration: none;
   position: relative;
-  transition: color 0.3s ease;
+  transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
 .navLink::after {
@@ -111,7 +113,8 @@
   height: 1.5px;
   background: var(--accent, #7a8c72);
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    left 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.4s ease;
 }
 
 .navLink:hover {
@@ -144,7 +147,8 @@
   text-decoration: none;
   padding: 7px 16px;
   border-radius: 999px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.4s ease,
+    background 0.4s ease, text-shadow 0.4s ease;
 }
 
 .priorityLink:hover {
@@ -185,14 +189,56 @@
   color: var(--text-2, #786f65);
   background: none;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, color 0.4s ease, border-color 0.4s ease;
 }
 
 .navToggle:hover {
   background: color-mix(in srgb, var(--accent, #7a8c72) 6%, transparent);
 }
 
-/* Mobile responsive */
+/* ===== OVER-IMAGE STATE ===== */
+/* Applied when hero has a background image AND nav hasn't scrolled yet.
+   Switches all text to light-on-dark with text-shadow for readability. */
+
+.overImage .brandNames {
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.overImage .navLink {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.overImage .navLink::after {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.overImage .navLink:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.overImage .navLinkActive {
+  color: rgba(255, 255, 255, 1);
+}
+
+.overImage .navLinkActive::after {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.overImage .priorityDefault {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.overImage .navToggle {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ===== MOBILE ===== */
+
 @media (max-width: 900px) {
   .nav {
     display: none;
@@ -221,6 +267,13 @@
     padding: 12px 16px;
     width: 100%;
     border-radius: var(--r, 16px);
+    /* Mobile drawer always uses dark text (has opaque backdrop) */
+    color: var(--text-2, #786f65);
+    text-shadow: none;
+  }
+
+  .navOpen .navLink:hover {
+    color: var(--text, #3d3830);
   }
 
   .navOpen .navLink::after {

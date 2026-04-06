@@ -77,7 +77,7 @@ export function CollageMosaicHero({
   const hasFloatCards = !!countdown || showScheduleCards;
 
   return (
-    <section className={styles.hero} aria-label="Event hero" id="top">
+    <section className={`${styles.hero} ${hasImage ? styles.overImage : ""}`} aria-label="Event hero" id="top">
       {/* Background image */}
       {hasImage ? (
         <div className={styles.bgImage} aria-hidden="true">

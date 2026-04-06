@@ -310,6 +310,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 dateText={dateText}
                 sections={navSections}
                 accentColor={primaryColor}
+                hasHeroImage={!!heroAsset?.publicUrl}
               />
 
               {/* Chrome: Scroll Progress */}

@@ -216,6 +216,8 @@ export type NavRendererProps = {
   dateText: string;
   sections: { id: string; label: string }[];
   accentColor?: string;
+  /** Whether the hero section has a background image (affects nav contrast) */
+  hasHeroImage?: boolean;
 };
 
 /** Footer props */
