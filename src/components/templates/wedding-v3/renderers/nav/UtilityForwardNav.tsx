@@ -36,6 +36,9 @@ export function UtilityForwardNav({
   }, [handleScroll]);
 
   // Active section tracking via IntersectionObserver
+  // Observes the hero (#top) alongside all nav sections so that
+  // activeSection resets to "top" when the hero is in view,
+  // preventing stale highlights on page load or when scrolled to top.
   useEffect(() => {
     if (sections.length === 0) return;
 
@@ -49,6 +52,10 @@ export function UtilityForwardNav({
       },
       { rootMargin: "-30% 0px -65% 0px", threshold: 0.01 }
     );
+
+    // Observe the hero section so it can clear active nav highlights
+    const heroEl = document.getElementById("top");
+    if (heroEl) observer.observe(heroEl);
 
     sections.forEach(({ id }) => {
       const el = document.getElementById(id);
