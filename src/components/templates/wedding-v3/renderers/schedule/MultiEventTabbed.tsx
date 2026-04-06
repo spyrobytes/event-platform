@@ -84,6 +84,18 @@ export function MultiEventTabbed({
                     aria-selected={isActive}
                     aria-controls={`tabpanel-${i}`}
                     onClick={() => handleTabChange(i)}
+                    onMouseEnter={(e) => {
+                      if (isActive) return;
+                      e.currentTarget.style.background = "color-mix(in srgb, var(--accent, #7a8c72) 18%, transparent)";
+                      e.currentTarget.style.color = "var(--text, #3d3830)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isActive) return;
+                      e.currentTarget.style.background = "color-mix(in srgb, var(--accent, #7a8c72) 8%, transparent)";
+                      e.currentTarget.style.color = "var(--text-2, #786f65)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
                     style={{
                       fontFamily: "var(--sans)",
                       fontSize: "0.72rem",
