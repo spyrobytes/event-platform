@@ -88,88 +88,97 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Create or update RSVP
-      const rsvp = await db.rSVP.upsert({
-        where: {
-          inviteId: invite.id,
-        },
-        create: {
-          inviteId: invite.id,
-          eventId: invite.event.id,
-          response: data.response,
-          guestName: data.guestName,
-          guestEmail: data.guestEmail,
-          guestCount: data.guestCount,
-          dietaryRestrictions: data.dietaryRestrictions,
-          notes: data.notes,
-        },
-        update: {
-          response: data.response,
-          guestName: data.guestName,
-          guestEmail: data.guestEmail,
-          guestCount: data.guestCount,
-          dietaryRestrictions: data.dietaryRestrictions,
-          notes: data.notes,
-          updatedAt: new Date(),
-        },
-        select: {
-          id: true,
-          response: true,
-          guestName: true,
-          guestCount: true,
-          respondedAt: true,
-        },
-      });
-
-      // Update invite status
-      await db.invite.update({
-        where: { id: invite.id },
-        data: { status: "RESPONDED" },
-      });
-
       // Build portal URL for emails and API response
       const portalUrl = buildPortalUrl(invite.event.slug, inviteToken as string);
 
-      // Queue confirmation email
-      if (data.guestEmail || invite.email) {
-        const fullEvent = await db.event.findUnique({
-          where: { id: invite.event.id },
+      // Atomic transaction: RSVP upsert + invite status + email outbox
+      const { rsvp, emailId } = await db.$transaction(async (tx) => {
+        // Create or update RSVP
+        const rsvpResult = await tx.rSVP.upsert({
+          where: {
+            inviteId: invite.id,
+          },
+          create: {
+            inviteId: invite.id,
+            eventId: invite.event.id,
+            response: data.response,
+            guestName: data.guestName,
+            guestEmail: data.guestEmail,
+            guestCount: data.guestCount,
+            dietaryRestrictions: data.dietaryRestrictions,
+            notes: data.notes,
+          },
+          update: {
+            response: data.response,
+            guestName: data.guestName,
+            guestEmail: data.guestEmail,
+            guestCount: data.guestCount,
+            dietaryRestrictions: data.dietaryRestrictions,
+            notes: data.notes,
+            updatedAt: new Date(),
+          },
           select: {
-            startAt: true,
-            timezone: true,
-            venueName: true,
-            city: true,
-            creator: { select: { name: true, email: true } },
+            id: true,
+            response: true,
+            guestName: true,
+            guestCount: true,
+            respondedAt: true,
           },
         });
 
-        if (fullEvent) {
-          const eventDate = format(new Date(fullEvent.startAt), "EEEE, MMMM d, yyyy");
-          const eventTime = format(new Date(fullEvent.startAt), "h:mm a");
-          const eventLocation = fullEvent.venueName || fullEvent.city || undefined;
-          const hostName = fullEvent.creator.name || fullEvent.creator.email;
+        // Update invite status
+        await tx.invite.update({
+          where: { id: invite.id },
+          data: { status: "RESPONDED" },
+        });
 
-          const emailId = await queueConfirmationEmail(
-            invite.id,
-            data.guestEmail || invite.email,
-            {
-              guestName: data.guestName,
-              eventTitle: invite.event.title,
-              eventDate,
-              eventTime,
-              eventLocation,
-              response: data.response,
-              guestCount: data.guestCount || 1,
-              hostName,
-              portalUrl,
-            }
-          );
-
-          // Process immediately
-          processEmail(emailId).catch((err) => {
-            console.error(`Failed to send confirmation email ${emailId}:`, err);
+        // Queue confirmation email inside the transaction
+        let queuedEmailId: string | null = null;
+        if (data.guestEmail || invite.email) {
+          const fullEvent = await tx.event.findUnique({
+            where: { id: invite.event.id },
+            select: {
+              startAt: true,
+              timezone: true,
+              venueName: true,
+              city: true,
+              creator: { select: { name: true, email: true } },
+            },
           });
+
+          if (fullEvent) {
+            const eventDate = format(new Date(fullEvent.startAt), "EEEE, MMMM d, yyyy");
+            const eventTime = format(new Date(fullEvent.startAt), "h:mm a");
+            const eventLocation = fullEvent.venueName || fullEvent.city || undefined;
+            const hostName = fullEvent.creator.name || fullEvent.creator.email;
+
+            queuedEmailId = await queueConfirmationEmail(
+              invite.id,
+              data.guestEmail || invite.email,
+              {
+                guestName: data.guestName,
+                eventTitle: invite.event.title,
+                eventDate,
+                eventTime,
+                eventLocation,
+                response: data.response,
+                guestCount: data.guestCount || 1,
+                hostName,
+                portalUrl,
+              },
+              tx
+            );
+          }
         }
+
+        return { rsvp: rsvpResult, emailId: queuedEmailId };
+      });
+
+      // Fire-and-forget email delivery (outside transaction — outbox row is committed)
+      if (emailId) {
+        processEmail(emailId).catch((err) => {
+          console.error(`Failed to send confirmation email ${emailId}:`, err);
+        });
       }
 
       return successResponse({

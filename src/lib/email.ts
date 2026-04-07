@@ -201,13 +201,17 @@ export async function queueInviteEmail(
 }
 
 /**
- * Queue a confirmation email for sending
+ * Queue a confirmation email for sending.
+ * Accepts an optional transaction client so the outbox row can be
+ * created inside an existing transaction (e.g. atomic with RSVP upsert).
  */
 export async function queueConfirmationEmail(
   inviteId: string | null,
   toEmail: string,
-  payload: ConfirmationEmailPayload
+  payload: ConfirmationEmailPayload,
+  tx?: Prisma.TransactionClient
 ): Promise<string> {
+  const client = tx ?? db;
   const subject =
     payload.response === "YES"
       ? `You're confirmed for ${payload.eventTitle}!`
@@ -215,7 +219,7 @@ export async function queueConfirmationEmail(
         ? `RSVP received for ${payload.eventTitle}`
         : `RSVP received for ${payload.eventTitle}`;
 
-  const emailRecord = await db.emailOutbox.create({
+  const emailRecord = await client.emailOutbox.create({
     data: {
       inviteId,
       template: "CONFIRMATION",

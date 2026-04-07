@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { generateTokenPair, verifyToken } from "./tokens";
+import { generateTokenPair, hashToken } from "./tokens";
 import { queueVerificationEmail, processEmail } from "./email";
 import { ValidationError, NotFoundError } from "./errors";
 
@@ -57,24 +57,18 @@ export async function sendVerificationEmail(userId: string): Promise<void> {
 export async function verifyEmail(
   token: string
 ): Promise<{ success: boolean; email: string }> {
-  // Find users with verification tokens
-  const users = await db.user.findMany({
-    where: {
-      verificationTokenHash: { not: null },
-    },
+  // Hash the incoming token and look up directly by hash (O(1) instead of table scan)
+  const tokenHash = hashToken(token);
+
+  const user = await db.user.findFirst({
+    where: { verificationTokenHash: tokenHash },
     select: {
       id: true,
       email: true,
       emailVerified: true,
-      verificationTokenHash: true,
       verificationExpiresAt: true,
     },
   });
-
-  // Find matching user (using timing-safe comparison)
-  const user = users.find(
-    (u) => u.verificationTokenHash && verifyToken(token, u.verificationTokenHash)
-  );
 
   if (!user) {
     throw new ValidationError("Invalid or expired verification link");
