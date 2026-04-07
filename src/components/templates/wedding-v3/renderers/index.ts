@@ -18,6 +18,7 @@ import type {
   RSVPRendererId,
   FooterRendererId,
   DividerRendererId,
+  WeddingPartyRendererId,
   HeroRenderer,
   NavRenderer,
   FooterRenderer,
@@ -96,6 +97,7 @@ import { DramaticDarkFooter } from "./footer/DramaticDarkFooter";
 import { FestiveLayeredFooter } from "./footer/FestiveLayeredFooter";
 import { MetallicLineDivider } from "./divider/MetallicLineDivider";
 import { RhythmicPatternDivider } from "./divider/RhythmicPatternDivider";
+import { ScrapbookWeddingParty } from "./wedding-party/ScrapbookWeddingParty";
 
 // ---------------------------------------------------------------------------
 // V2 "cinematic" adapters — wrap existing V2 sections to match V3 contracts
@@ -211,12 +213,16 @@ export const detailsRenderer: DetailsRenderer = CinematicDetailsAdapter;
 export const faqRenderer: FAQRenderer = CinematicFAQAdapter;
 export const travelStayRenderer: TravelStayRenderer = CinematicTravelStayAdapter;
 export const registryRenderer: RegistryRenderer = CinematicRegistryAdapter;
-export const weddingPartyRenderer: WeddingPartyRenderer = CinematicWeddingPartyAdapter;
 export const attireRenderer: AttireRenderer = CinematicAttireAdapter;
 export const thingsToDoRenderer: ThingsToDoRenderer = CinematicThingsToDoAdapter;
 export const speakersRenderer: SpeakersRenderer = CinematicSpeakersAdapter;
 export const sponsorsRenderer: SponsorsRenderer = CinematicSponsorsAdapter;
 export const mapRenderer: MapRenderer = CinematicMapAdapter;
+
+export const weddingPartyRenderers: Record<WeddingPartyRendererId, WeddingPartyRenderer> = {
+  cinematic: CinematicWeddingPartyAdapter,
+  "scrapbook-flip": ScrapbookWeddingParty,
+};
 
 // ---------------------------------------------------------------------------
 // Lookup helpers
@@ -252,4 +258,8 @@ export function getFooterRenderer(id: FooterRendererId): FooterRenderer {
 
 export function getDividerRenderer(id: DividerRendererId): DividerRenderer {
   return dividerRenderers[id] || dividerRenderers.mountain;
+}
+
+export function getWeddingPartyRenderer(id: WeddingPartyRendererId | undefined): WeddingPartyRenderer {
+  return (id && weddingPartyRenderers[id]) || weddingPartyRenderers.cinematic;
 }

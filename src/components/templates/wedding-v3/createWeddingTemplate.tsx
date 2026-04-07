@@ -30,11 +30,11 @@ import {
   getRSVPRenderer,
   getFooterRenderer,
   getDividerRenderer,
+  getWeddingPartyRenderer,
   detailsRenderer as DetailsRenderer,
   faqRenderer as FAQRenderer,
   travelStayRenderer as TravelStayRenderer,
   registryRenderer as RegistryRenderer,
-  weddingPartyRenderer as WeddingPartyRenderer,
   attireRenderer as AttireRenderer,
   thingsToDoRenderer as ThingsToDoRenderer,
   speakersRenderer as SpeakersRenderer,
@@ -108,6 +108,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
   const ScheduleComponent = getScheduleRenderer(definition.scheduleRenderer);
   const StoryComponent = getStoryRenderer(definition.storyRenderer);
   const RSVPComponent = getRSVPRenderer(definition.rsvpRenderer);
+  const WeddingPartyComponent = getWeddingPartyRenderer(definition.weddingPartyRenderer);
 
   // Convert MotionPreset to AnimationProvider's MotionPresetConfig
   const motionConfig: MotionPresetConfig = {
@@ -227,7 +228,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
           ));
         case "weddingParty":
           return wrapWithChrome(wrapWithAnimation(
-            <WeddingPartyRenderer data={section.data} assets={assets} />
+            <WeddingPartyComponent data={section.data} assets={assets} />
           ));
         case "travelStay":
           return wrapWithChrome(wrapWithAnimation(

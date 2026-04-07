@@ -183,6 +183,10 @@ export type DividerRendererId =
   | "cursive-flourish"      // Intimate Note
   | "rhythmic-pattern";     // Celebration House
 
+export type WeddingPartyRendererId =
+  | "cinematic"             // existing V2 adapter (default)
+  | "scrapbook-flip";       // Celebration House — scrapbook photos with card flip
+
 // ---------------------------------------------------------------------------
 // Section Renderer Props — shared contract for all renderer variants
 // ---------------------------------------------------------------------------
@@ -295,6 +299,8 @@ export type TemplateDefinition = {
   rsvpRenderer: RSVPRendererId;
   footerRenderer: FooterRendererId;
   dividerRenderer: DividerRendererId;
+  /** Optional — defaults to "cinematic" (V2 adapter) when omitted */
+  weddingPartyRenderer?: WeddingPartyRendererId;
 
   // --- Motion ---
   motionPreset: MotionPreset;

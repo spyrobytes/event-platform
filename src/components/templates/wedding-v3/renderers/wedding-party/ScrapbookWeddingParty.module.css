@@ -1,0 +1,326 @@
+/* ===== Scrapbook Wedding Party — The Celebration House ===== */
+
+.section {
+  padding: var(--section-y, 96px) 0;
+}
+
+.container {
+  width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+
+.kicker {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent, #c48820);
+  margin-bottom: 12px;
+}
+
+.heading {
+  font-family: var(--serif);
+  font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--text, #362e28);
+}
+
+.description {
+  max-width: 56ch;
+  color: var(--text-2, #706458);
+  line-height: 1.75;
+  margin: 8px auto 0;
+}
+
+/* ===== Group divider ===== */
+.divider {
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent, #c48820) 0,
+    var(--accent, #c48820) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  opacity: 0.35;
+}
+
+.dividerLabel {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--stone, #9c9084);
+  flex-shrink: 0;
+}
+
+/* ===== Grid ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(20px, 3vw, 32px);
+}
+
+.gridSpaced {
+  margin-bottom: 48px;
+}
+
+.groupSpaced {
+  margin-top: 48px;
+}
+
+.specialGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(20px, 3vw, 32px);
+}
+
+/* ===== Flip card container ===== */
+.cardOuter {
+  perspective: 900px;
+  cursor: pointer;
+  outline: none;
+}
+
+.specialCardOuter {
+  width: 260px;
+  max-width: 100%;
+}
+
+.cardInner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cardOuter.flipped .cardInner {
+  transform: rotateY(180deg);
+}
+
+/* Straighten rotation when flipped for readability */
+.cardOuter.flipped {
+  transform: rotate(0deg) !important;
+}
+
+/* ===== Shared face styles ===== */
+.face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--r, 16px);
+  overflow: hidden;
+}
+
+/* ===== Front face — scrapbook photo ===== */
+.front {
+  background: var(--surface, #ffffff);
+  padding: clamp(8px, 1.5vw, 14px);
+  padding-bottom: clamp(32px, 4vw, 44px);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.4s ease;
+  position: relative;
+}
+
+.cardOuter:hover .front,
+.cardOuter:focus-visible .front {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.photoFrame {
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: calc(var(--r, 16px) - 4px);
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  display: block;
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.cardOuter:hover .photo {
+  transform: scale(1.04);
+}
+
+/* Monogram fallback when no photo */
+.monogram {
+  width: 100%;
+  height: 100%;
+  background: var(--cream, #f5ede0);
+  display: grid;
+  place-items: center;
+}
+
+.monogramLetter {
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 400;
+  color: var(--accent, #c48820);
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.frontName {
+  font-family: var(--serif);
+  font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+  font-weight: 500;
+  color: var(--text, #362e28);
+  text-align: center;
+  margin-top: clamp(8px, 1vw, 12px);
+  line-height: 1.3;
+}
+
+/* Flip hint icon */
+.flipHint {
+  position: absolute;
+  bottom: clamp(8px, 1vw, 12px);
+  right: clamp(10px, 1.5vw, 16px);
+  width: 20px;
+  height: 20px;
+  color: var(--stone, #9c9084);
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.cardOuter:hover .flipHint,
+.cardOuter:focus-visible .flipHint {
+  opacity: 0.7;
+}
+
+/* ===== Back face — editorial text ===== */
+.back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  background: var(--cream, #f5ede0);
+  padding: clamp(24px, 3vw, 36px) clamp(16px, 2vw, 28px);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.backName {
+  font-family: var(--serif);
+  font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+  font-weight: 500;
+  color: var(--text, #362e28);
+  line-height: 1.25;
+}
+
+.backRole {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent, #c48820);
+}
+
+.backBio {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.85rem);
+  color: var(--text-2, #706458);
+  line-height: 1.7;
+  margin-top: 4px;
+  max-width: 32ch;
+}
+
+/* Decorative accent line on back */
+.backAccent {
+  width: 32px;
+  height: 2px;
+  background: var(--accent, #c48820);
+  opacity: 0.4;
+  border-radius: 1px;
+  margin-top: 4px;
+}
+
+.returnHint {
+  position: absolute;
+  bottom: clamp(10px, 1.5vw, 14px);
+  right: clamp(10px, 1.5vw, 16px);
+  width: 18px;
+  height: 18px;
+  color: var(--stone, #9c9084);
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.cardOuter:hover .returnHint,
+.cardOuter:focus-visible .returnHint {
+  opacity: 0.7;
+}
+
+/* ===== Empty state ===== */
+.empty {
+  border: 2px dashed var(--border, #e8ddd0);
+  border-radius: var(--r-lg, 24px);
+  padding: 48px;
+  text-align: center;
+  color: var(--text-3, #9c9084);
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .cardInner {
+    transition-duration: 0.01ms;
+  }
+
+  .photo {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .grid {
+    grid-template-columns: 1fr;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .specialGrid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .specialCardOuter {
+    width: 100%;
+    max-width: 320px;
+  }
+}

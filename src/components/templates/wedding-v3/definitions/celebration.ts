@@ -27,6 +27,7 @@ export const CELEBRATION: TemplateDefinition = {
   rsvpRenderer: "stepper",
   footerRenderer: "festive-layered",
   dividerRenderer: "rhythmic-pattern",
+  weddingPartyRenderer: "scrapbook-flip",
 
   motionPreset: {
     revealType: "bounce",
