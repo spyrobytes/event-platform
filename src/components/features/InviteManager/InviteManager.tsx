@@ -31,7 +31,8 @@ type RsvpResponse = "YES" | "NO" | "MAYBE";
 
 type Invite = {
   id: string;
-  email: string;
+  email?: string | null;
+  phone?: string | null;
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
@@ -156,15 +157,15 @@ export function InviteManager({ eventId }: InviteManagerProps) {
     }
   };
 
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
+
   const handleCopyLink = async (invite: Invite) => {
-    // For invites that were just created, we have the token
-    // For existing invites, we need to regenerate or store the link differently
-    // For now, we'll show a message
     if (invite.token) {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
       const link = `${baseUrl}/rsvp/${invite.token}`;
       await navigator.clipboard.writeText(link);
-      alert("Link copied to clipboard!");
+      setCopiedInviteId(invite.id);
+      setTimeout(() => setCopiedInviteId(null), 3000);
     } else {
       alert("Link not available. The invite link was only shown when created.");
     }
@@ -373,6 +374,7 @@ export function InviteManager({ eventId }: InviteManagerProps) {
             <InviteTable
               invites={invites}
               onCopyLink={handleCopyLink}
+              copiedInviteId={copiedInviteId}
             />
           )}
         </CardContent>

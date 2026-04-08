@@ -17,10 +17,13 @@ type InvitationRSVPFormProps = {
   inviteToken: string;
   eventId: string;
   guestName?: string;
+  guestEmail?: string;
   plusOnesAllowed?: number;
   onSuccess?: () => void;
   showMaybeOption?: boolean;
   successMessage?: string;
+  /** When true, the email field is shown prominently (phone-only invites) */
+  needsEmail?: boolean;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -37,10 +40,12 @@ export function InvitationRSVPForm({
   inviteToken,
   eventId,
   guestName = "",
+  guestEmail = "",
   plusOnesAllowed = 0,
   onSuccess,
   showMaybeOption = true,
   successMessage,
+  needsEmail = false,
 }: InvitationRSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -95,7 +100,7 @@ export function InvitationRSVPForm({
       guestName,
       guestCount: 1,
       response: undefined as RsvpResponse | undefined,
-      guestEmail: "",
+      guestEmail: guestEmail || "",
       dietaryRestrictions: "",
       notes: "",
     },
@@ -253,6 +258,39 @@ export function InvitationRSVPForm({
             <p className="mt-1 text-sm text-red-600">{errors.guestName.message}</p>
           )}
         </div>
+
+        {/* Guest Email — prominent for phone-only invites */}
+        {(needsEmail || !guestEmail) && (
+          <div>
+            <label htmlFor="guestEmail" className={labelStyles}>
+              Your Email{" "}
+              {needsEmail ? (
+                <span className="text-[var(--inv-accent)]">*</span>
+              ) : (
+                <span className="text-[var(--inv-text-secondary)]">(optional)</span>
+              )}
+            </label>
+            <input
+              id="guestEmail"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="your@email.com"
+              className={inputStyles}
+              {...register("guestEmail")}
+              onFocus={() => handleFormInteraction("guestEmail")}
+              aria-invalid={!!errors.guestEmail}
+            />
+            {needsEmail && (
+              <p className="mt-1 text-xs text-[var(--inv-text-secondary)]">
+                Enter your email to receive confirmation and event updates
+              </p>
+            )}
+            {errors.guestEmail && (
+              <p className="mt-1 text-sm text-red-600">{errors.guestEmail.message}</p>
+            )}
+          </div>
+        )}
 
         {/* Guest Count (if plus ones allowed) */}
         {plusOnesAllowed > 0 && selectedResponse === "YES" && (

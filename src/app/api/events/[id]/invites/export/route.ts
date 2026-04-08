@@ -94,6 +94,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const headers = [
       "Name",
       "Email",
+      "Phone",
       "Invite Status",
       "RSVP Response",
       "Guest Count",
@@ -104,7 +105,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const rows = invites.map((invite) => [
       invite.name || invite.rsvp?.guestName || "",
-      invite.email,
+      invite.email || "",
+      invite.phone || "",
       invite.status,
       invite.rsvp?.response || "",
       invite.rsvp?.guestCount || "",

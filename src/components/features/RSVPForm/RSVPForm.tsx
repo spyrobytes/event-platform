@@ -21,11 +21,14 @@ type RSVPFormProps = {
   inviteToken?: string;
   eventId?: string;
   guestName?: string;
+  guestEmail?: string;
   plusOnesAllowed?: number;
   onSuccess?: () => void;
   showMaybeOption?: boolean;
   successMessage?: string;
   hideCard?: boolean;
+  /** When true, the email field is shown prominently (phone-only invites) */
+  needsEmail?: boolean;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -38,11 +41,13 @@ export function RSVPForm({
   inviteToken,
   eventId,
   guestName = "",
+  guestEmail = "",
   plusOnesAllowed = 0,
   onSuccess,
   showMaybeOption = true,
   successMessage,
   hideCard = false,
+  needsEmail = false,
 }: RSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -97,7 +102,7 @@ export function RSVPForm({
       guestName,
       guestCount: 1,
       response: undefined as RsvpResponse | undefined,
-      guestEmail: "",
+      guestEmail: guestEmail || "",
       dietaryRestrictions: "",
       notes: "",
     },
@@ -242,6 +247,33 @@ export function RSVPForm({
             <p className="text-sm text-destructive">{errors.guestName.message}</p>
           )}
         </div>
+
+        {/* Guest Email — prominent for phone-only invites, optional otherwise */}
+        {(needsEmail || !guestEmail) && (
+          <div className="space-y-2">
+            <Label htmlFor="guestEmail">
+              Your Email {needsEmail ? "*" : "(optional)"}
+            </Label>
+            <Input
+              id="guestEmail"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="your@email.com"
+              {...register("guestEmail")}
+              onFocus={() => handleFormInteraction("guestEmail")}
+              aria-invalid={!!errors.guestEmail}
+            />
+            {needsEmail && (
+              <p className="text-xs text-muted-foreground">
+                Enter your email to receive confirmation and event updates
+              </p>
+            )}
+            {errors.guestEmail && (
+              <p className="text-sm text-destructive">{errors.guestEmail.message}</p>
+            )}
+          </div>
+        )}
 
         {/* Guest Count (if plus ones allowed) */}
         {plusOnesAllowed > 0 && selectedResponse === "YES" && (

@@ -29,6 +29,7 @@ export function InviteForm({ onSubmit, isLoading = false }: InviteFormProps) {
     resolver: zodResolver(createInviteSchema),
     defaultValues: {
       email: "",
+      phone: "",
       name: "",
       plusOnesAllowed: 0,
     },
@@ -89,7 +90,7 @@ export function InviteForm({ onSubmit, isLoading = false }: InviteFormProps) {
       <CardHeader>
         <CardTitle>Send Invites</CardTitle>
         <CardDescription>
-          Invite guests to your event via email
+          Invite guests via email, or add their phone number and share the RSVP link directly
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -123,7 +124,16 @@ export function InviteForm({ onSubmit, isLoading = false }: InviteFormProps) {
           <form onSubmit={handleSubmit(handleSingleSubmit)} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Guest name"
+                  {...register("name")}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -135,14 +145,25 @@ export function InviteForm({ onSubmit, isLoading = false }: InviteFormProps) {
                   <p className="text-sm text-destructive">{errors.email.message}</p>
                 )}
               </div>
+            </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Name (optional)</Label>
+                <Label htmlFor="phone">Phone (optional)</Label>
                 <Input
-                  id="name"
-                  placeholder="Guest name"
-                  {...register("name")}
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="+14155551234"
+                  {...register("phone")}
+                  aria-invalid={!!errors.phone}
                 />
+                {errors.phone && (
+                  <p className="text-sm text-destructive">{errors.phone.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  E.164 format. For phone-only invites, copy and share the RSVP link directly.
+                </p>
               </div>
             </div>
 

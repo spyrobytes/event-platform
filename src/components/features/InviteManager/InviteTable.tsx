@@ -8,13 +8,15 @@ type RsvpResponse = "YES" | "NO" | "MAYBE";
 
 type Invite = {
   id: string;
-  email: string;
+  email?: string | null;
+  phone?: string | null;
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
   sentAt?: string | null;
   openedAt?: string | null;
   createdAt: string;
+  token?: string;
   rsvp?: {
     id: string;
     response: RsvpResponse;
@@ -28,6 +30,7 @@ type InviteTableProps = {
   invites: Invite[];
   onResend?: (invite: Invite) => void;
   onCopyLink?: (invite: Invite) => void;
+  copiedInviteId?: string | null;
 };
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> = {
@@ -45,7 +48,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink }: InviteTableProps) {
+export function InviteTable({ invites, onResend, onCopyLink, copiedInviteId }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -79,9 +82,14 @@ export function InviteTable({ invites, onResend, onCopyLink }: InviteTableProps)
                 <td className="px-4 py-3">
                   <div>
                     <p className="font-medium">
-                      {invite.name || invite.email.split("@")[0]}
+                      {invite.name || (invite.email ? invite.email.split("@")[0] : invite.phone)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{invite.email}</p>
+                    {invite.email && (
+                      <p className="text-xs text-muted-foreground">{invite.email}</p>
+                    )}
+                    {invite.phone && (
+                      <p className="text-xs text-muted-foreground">{invite.phone}</p>
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -116,14 +124,37 @@ export function InviteTable({ invites, onResend, onCopyLink }: InviteTableProps)
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
                     {onCopyLink && (
-                      <button
-                        onClick={() => onCopyLink(invite)}
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        Copy Link
-                      </button>
+                      copiedInviteId === invite.id ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-600 dark:text-green-400">
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </span>
+                      ) : invite.token && !invite.email ? (
+                        <button
+                          onClick={() => onCopyLink(invite)}
+                          className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.06a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.343 8.28" />
+                          </svg>
+                          Copy &amp; Share Link
+                        </button>
+                      ) : invite.token ? (
+                        <button
+                          onClick={() => onCopyLink(invite)}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Copy Link
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          —
+                        </span>
+                      )
                     )}
-                    {onResend && invite.status !== "RESPONDED" && (
+                    {onResend && invite.email && invite.status !== "RESPONDED" && (
                       <button
                         onClick={() => onResend(invite)}
                         className="text-xs text-primary hover:underline"

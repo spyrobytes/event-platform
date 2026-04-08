@@ -137,6 +137,9 @@ export async function GET(request: NextRequest) {
           // For now, we'll use a placeholder that the invite page can handle
           const rsvpUrl = `${BASE_URL}/rsvp/remind/${invite.id}`;
 
+          // Skip invites without an email address (phone-only)
+          if (!invite.email) continue;
+
           try {
             const emailId = await queueNoResponseReminderEmail(
               invite.id,

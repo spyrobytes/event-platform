@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        phone: true,
         name: true,
         status: true,
         plusOnesAllowed: true,
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
       invite: {
         id: invite.id,
         email: invite.email,
+        phone: invite.phone,
         name: invite.name,
         status: invite.status,
         plusOnesAllowed: invite.plusOnesAllowed,

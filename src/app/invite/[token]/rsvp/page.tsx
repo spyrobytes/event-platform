@@ -96,6 +96,14 @@ export default async function InviteRSVPPage({ params }: PageProps) {
   const { invite, invitationConfig } = result;
   const event = invite.event;
 
+  // Mark invite as opened if still pending/sent (guest accessed RSVP page)
+  if (invite.status === "PENDING" || invite.status === "SENT") {
+    await db.invite.update({
+      where: { id: invite.id },
+      data: { status: "OPENED", openedAt: new Date() },
+    });
+  }
+
   // Check if event is cancelled
   if (event.status === "CANCELLED") {
     redirect(`/invite/${token}`);
@@ -188,7 +196,9 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 inviteToken={token}
                 eventId={event.id}
                 guestName={invite.name || ""}
+                guestEmail={invite.email || ""}
                 plusOnesAllowed={invite.plusOnesAllowed}
+                needsEmail={!invite.email}
                 successMessage="Your response has been recorded. You'll receive a confirmation email shortly."
               />
             )}

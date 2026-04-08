@@ -126,15 +126,19 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Update invite status
+        // Update invite status + curate guest-provided email for phone-only invites
         await tx.invite.update({
           where: { id: invite.id },
-          data: { status: "RESPONDED" },
+          data: {
+            status: "RESPONDED",
+            ...(data.guestEmail && !invite.email && { email: data.guestEmail }),
+          },
         });
 
         // Queue confirmation email inside the transaction
         let queuedEmailId: string | null = null;
-        if (data.guestEmail || invite.email) {
+        const recipientEmail = data.guestEmail || invite.email;
+        if (recipientEmail) {
           const fullEvent = await tx.event.findUnique({
             where: { id: invite.event.id },
             select: {
@@ -154,7 +158,7 @@ export async function POST(request: NextRequest) {
 
             queuedEmailId = await queueConfirmationEmail(
               invite.id,
-              data.guestEmail || invite.email,
+              recipientEmail,
               {
                 guestName: data.guestName,
                 eventTitle: invite.event.title,

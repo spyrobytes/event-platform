@@ -42,6 +42,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         select: {
           id: true,
           email: true,
+          phone: true,
           name: true,
           status: true,
           plusOnesAllowed: true,
@@ -105,26 +106,37 @@ export async function POST(request: NextRequest, context: RouteContext) {
       // Bulk invite
       const data = bulkInviteSchema.parse(body);
 
-      // Check for duplicate emails within the request
-      const emails = data.invites.map((i) => i.email.toLowerCase());
-      const uniqueEmails = new Set(emails);
-      if (uniqueEmails.size !== emails.length) {
+      // Check for duplicate emails/phones within the request
+      const emails = data.invites.map((i) => i.email?.toLowerCase()).filter(Boolean) as string[];
+      const phones = data.invites.map((i) => i.phone).filter(Boolean) as string[];
+      if (new Set(emails).size !== emails.length) {
         return errorResponse("Duplicate emails in request", 400, "DUPLICATE_EMAILS");
       }
+      if (new Set(phones).size !== phones.length) {
+        return errorResponse("Duplicate phone numbers in request", 400, "DUPLICATE_PHONES");
+      }
 
-      // Check for existing invites
-      const existingInvites = await db.invite.findMany({
-        where: {
-          eventId,
-          email: { in: emails },
-        },
-        select: { email: true },
-      });
+      // Check for existing invites by email or phone
+      const existingByEmail = emails.length > 0
+        ? await db.invite.findMany({
+            where: { eventId, email: { in: emails } },
+            select: { email: true },
+          })
+        : [];
+      const existingByPhone = phones.length > 0
+        ? await db.invite.findMany({
+            where: { eventId, phone: { in: phones } },
+            select: { phone: true },
+          })
+        : [];
 
-      if (existingInvites.length > 0) {
-        const existingEmails = existingInvites.map((i) => i.email);
+      const conflicts: string[] = [
+        ...existingByEmail.map((i) => i.email!),
+        ...existingByPhone.map((i) => i.phone!),
+      ];
+      if (conflicts.length > 0) {
         throw new ConflictError(
-          `Invites already exist for: ${existingEmails.join(", ")}`
+          `Invites already exist for: ${conflicts.join(", ")}`
         );
       }
 
@@ -133,12 +145,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
         const { token, hash } = generateTokenPair();
         return {
           eventId,
-          email: invite.email.toLowerCase(),
+          email: invite.email?.toLowerCase() ?? null,
+          phone: invite.phone ?? null,
           name: invite.name,
           tokenHash: hash,
           plusOnesAllowed: invite.plusOnesAllowed ?? 0,
           expiresAt: invite.expiresAt,
-          // Store raw token temporarily for response (not saved to DB)
           _rawToken: token,
         };
       });
@@ -152,6 +164,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             select: {
               id: true,
               email: true,
+              phone: true,
               name: true,
               status: true,
               plusOnesAllowed: true,
@@ -167,47 +180,52 @@ export async function POST(request: NextRequest, context: RouteContext) {
         token: invitesData[index]._rawToken,
       }));
 
-      // Queue emails if sendImmediately is true
+      // Queue emails for invites that have an email address
+      let emailsQueued = 0;
       if (data.sendImmediately) {
-        const event = await db.event.findUnique({
-          where: { id: eventId },
-          select: {
-            title: true,
-            description: true,
-            startAt: true,
-            timezone: true,
-            venueName: true,
-            city: true,
-            creator: { select: { name: true, email: true } },
-          },
-        });
+        const invitesWithEmail = createdInvites
+          .map((invite, i) => ({ invite, token: invitesData[i]._rawToken }))
+          .filter((item) => !!item.invite.email);
 
-        if (event) {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
-          const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
-          const eventTime = format(new Date(event.startAt), "h:mm a");
-          const eventLocation = event.venueName || event.city || undefined;
-          const hostName = event.creator.name || event.creator.email;
+        if (invitesWithEmail.length > 0) {
+          const event = await db.event.findUnique({
+            where: { id: eventId },
+            select: {
+              title: true,
+              description: true,
+              startAt: true,
+              timezone: true,
+              venueName: true,
+              city: true,
+              creator: { select: { name: true, email: true } },
+            },
+          });
 
-          for (let i = 0; i < createdInvites.length; i++) {
-            const invite = createdInvites[i];
-            const token = invitesData[i]._rawToken;
+          if (event) {
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+            const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
+            const eventTime = format(new Date(event.startAt), "h:mm a");
+            const eventLocation = event.venueName || event.city || undefined;
+            const hostName = event.creator.name || event.creator.email;
 
-            const emailId = await queueInviteEmail(invite.id, invite.email, {
-              guestName: invite.name || undefined,
-              eventTitle: event.title,
-              eventDate,
-              eventTime,
-              eventLocation,
-              eventDescription: event.description || undefined,
-              hostName,
-              rsvpUrl: `${baseUrl}/rsvp/${token}`,
-            });
+            for (const { invite, token } of invitesWithEmail) {
+              const emailId = await queueInviteEmail(invite.id, invite.email!, {
+                guestName: invite.name || undefined,
+                eventTitle: event.title,
+                eventDate,
+                eventTime,
+                eventLocation,
+                eventDescription: event.description || undefined,
+                hostName,
+                rsvpUrl: `${baseUrl}/rsvp/${token}`,
+              });
 
-            // Process immediately
-            processEmail(emailId).catch((err) => {
-              console.error(`Failed to send invite email ${emailId}:`, err);
-            });
+              processEmail(emailId).catch((err) => {
+                console.error(`Failed to send invite email ${emailId}:`, err);
+              });
+
+              emailsQueued++;
+            }
           }
         }
       }
@@ -216,24 +234,32 @@ export async function POST(request: NextRequest, context: RouteContext) {
         {
           invites: invitesWithTokens,
           count: createdInvites.length,
-          emailsQueued: data.sendImmediately ? createdInvites.length : 0,
+          emailsQueued,
         },
         201
       );
     } else {
       // Single invite
       const data = createInviteSchema.parse(body);
-      const email = data.email.toLowerCase();
+      const email = data.email?.toLowerCase() ?? null;
+      const phone = data.phone ?? null;
 
-      // Check for existing invite
-      const existingInvite = await db.invite.findUnique({
-        where: {
-          eventId_email: { eventId, email },
-        },
-      });
-
-      if (existingInvite) {
-        throw new ConflictError("An invite already exists for this email");
+      // Check for existing invite by email or phone
+      if (email) {
+        const existingByEmail = await db.invite.findUnique({
+          where: { eventId_email: { eventId, email } },
+        });
+        if (existingByEmail) {
+          throw new ConflictError("An invite already exists for this email");
+        }
+      }
+      if (phone) {
+        const existingByPhone = await db.invite.findUnique({
+          where: { eventId_phone: { eventId, phone } },
+        });
+        if (existingByPhone) {
+          throw new ConflictError("An invite already exists for this phone number");
+        }
       }
 
       const { token, hash } = generateTokenPair();
@@ -242,6 +268,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         data: {
           eventId,
           email,
+          phone,
           name: data.name,
           tokenHash: hash,
           plusOnesAllowed: data.plusOnesAllowed ?? 0,
@@ -250,6 +277,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         select: {
           id: true,
           email: true,
+          phone: true,
           name: true,
           status: true,
           plusOnesAllowed: true,
@@ -257,11 +285,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
 
-      // Queue email if sendImmediately is true (from body, not schema)
+      // Queue email only if invite has an email address
       const sendImmediately = body.sendImmediately === true;
       let emailQueued = false;
 
-      if (sendImmediately) {
+      if (sendImmediately && email) {
         const event = await db.event.findUnique({
           where: { id: eventId },
           select: {
@@ -282,7 +310,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           const eventLocation = event.venueName || event.city || undefined;
           const hostName = event.creator.name || event.creator.email;
 
-          const emailId = await queueInviteEmail(invite.id, invite.email, {
+          const emailId = await queueInviteEmail(invite.id, email, {
             guestName: invite.name || undefined,
             eventTitle: event.title,
             eventDate,
@@ -293,7 +321,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
             rsvpUrl: `${baseUrl}/rsvp/${token}`,
           });
 
-          // Process immediately
           processEmail(emailId).catch((err) => {
             console.error(`Failed to send invite email ${emailId}:`, err);
           });

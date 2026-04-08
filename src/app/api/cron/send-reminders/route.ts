@@ -112,6 +112,9 @@ export async function GET(request: NextRequest) {
             .filter(Boolean)
             .join(", ") || undefined;
 
+          // Skip invites without an email address (phone-only)
+          if (!invite.email) continue;
+
           // Queue the reminder email
           await queueReminderEmail(invite.id, invite.email, {
             guestName: invite.name || invite.rsvp?.guestName || "Guest",

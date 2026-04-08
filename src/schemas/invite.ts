@@ -1,14 +1,35 @@
 import { z } from "zod";
 
+/** E.164 phone format: + followed by 1–15 digits */
+const e164Regex = /^\+[1-9]\d{1,14}$/;
+
 /**
- * Schema for creating a single invite
+ * Schema for creating a single invite.
+ * At least one of email or phone is required.
  */
-export const createInviteSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  name: z.string().max(200).optional(),
-  plusOnesAllowed: z.number().int().min(0).max(10).optional().default(0),
-  expiresAt: z.coerce.date().optional(),
-});
+export const createInviteSchema = z
+  .object({
+    email: z
+      .string()
+      .transform((v) => (v === "" ? undefined : v))
+      .pipe(z.string().email("Invalid email address").optional()),
+    phone: z
+      .string()
+      .transform((v) => (v === "" ? undefined : v))
+      .pipe(
+        z
+          .string()
+          .regex(e164Regex, "Phone must be E.164 format, e.g. +14155551234")
+          .optional()
+      ),
+    name: z.string().max(200).optional(),
+    plusOnesAllowed: z.number().int().min(0).max(10).optional().default(0),
+    expiresAt: z.coerce.date().optional(),
+  })
+  .refine((d) => !!d.email || !!d.phone, {
+    message: "Please provide an email address or phone number",
+    path: ["email"],
+  });
 
 export type CreateInviteInput = z.infer<typeof createInviteSchema>;
 

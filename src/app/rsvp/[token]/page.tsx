@@ -274,7 +274,9 @@ export default async function RSVPPage({ params }: PageProps) {
         <RSVPForm
           inviteToken={token}
           guestName={invite.name || ""}
+          guestEmail={invite.email || ""}
           plusOnesAllowed={invite.plusOnesAllowed}
+          needsEmail={!invite.email}
         />
       </div>
     </div>
