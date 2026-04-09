@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
@@ -52,6 +54,8 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
 };
 
 export function InviteTable({ invites, onResend, onCopyLink, onRevoke, copiedInviteId }: InviteTableProps) {
+  const [revokeTarget, setRevokeTarget] = useState<Invite | null>(null);
+
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -166,15 +170,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onRevoke, copiedInv
                     )}
                     {onRevoke && invite.status !== "REVOKED" && invite.status !== "EXPIRED" && (
                       <button
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              `Revoke the invite for ${invite.name || invite.email || invite.phone}? They will no longer be able to view or respond to the invitation.`
-                            )
-                          ) {
-                            onRevoke(invite);
-                          }
-                        }}
+                        onClick={() => setRevokeTarget(invite)}
                         className="text-xs text-destructive hover:underline"
                       >
                         Revoke
@@ -195,6 +191,27 @@ export function InviteTable({ invites, onResend, onCopyLink, onRevoke, copiedInv
           })}
         </tbody>
       </table>
+
+      {onRevoke && (
+        <ConfirmDialog
+          open={!!revokeTarget}
+          onCancel={() => setRevokeTarget(null)}
+          onConfirm={() => {
+            if (revokeTarget) {
+              onRevoke(revokeTarget);
+              setRevokeTarget(null);
+            }
+          }}
+          title="Revoke Invitation"
+          description={
+            revokeTarget
+              ? `Are you sure you want to revoke the invite for ${revokeTarget.name || revokeTarget.email || revokeTarget.phone}? They will no longer be able to view or respond to the invitation.`
+              : ""
+          }
+          confirmLabel="Revoke"
+          variant="destructive"
+        />
+      )}
     </div>
   );
 }
