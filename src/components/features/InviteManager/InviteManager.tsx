@@ -45,6 +45,7 @@ type Invite = {
     response: RsvpResponse;
     guestName: string;
     guestCount: number;
+    additionalGuestNames?: string[];
     respondedAt: string;
   } | null;
 };

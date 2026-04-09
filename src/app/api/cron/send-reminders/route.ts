@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
         invites: {
           where: {
             status: "RESPONDED",
+            unsubscribedAt: null,
           },
           include: {
             rsvp: true,
@@ -115,6 +116,19 @@ export async function GET(request: NextRequest) {
           // Skip invites without an email address (phone-only)
           if (!invite.email) continue;
 
+          // Derive unsubscribe URL from the original invite email payload
+          const originalEmail = await db.emailOutbox.findFirst({
+            where: { inviteId: invite.id, template: "INVITE" },
+            select: { payload: true },
+            orderBy: { createdAt: "asc" },
+          });
+          const rsvpToken = (
+            (originalEmail?.payload as Record<string, unknown>)?.rsvpUrl as string
+          )?.split("/rsvp/").pop();
+          const unsubscribeUrl = rsvpToken
+            ? `${baseUrl}/unsubscribe/${rsvpToken}`
+            : undefined;
+
           // Queue the reminder email
           await queueReminderEmail(invite.id, invite.email, {
             guestName: invite.name || invite.rsvp?.guestName || "Guest",
@@ -125,6 +139,7 @@ export async function GET(request: NextRequest) {
             hostName: event.creator.name || "Event Organizer",
             eventUrl: `${baseUrl}/events/${event.slug}`,
             guestCount: invite.rsvp?.guestCount || 1,
+            unsubscribeUrl,
           });
 
           remindersQueued++;

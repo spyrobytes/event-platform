@@ -22,6 +22,7 @@ type Invite = {
     response: RsvpResponse;
     guestName: string;
     guestCount: number;
+    additionalGuestNames?: string[];
     respondedAt: string;
   } | null;
 };
@@ -113,7 +114,14 @@ export function InviteTable({ invites, onResend, onCopyLink, copiedInviteId }: I
                 </td>
                 <td className="px-4 py-3">
                   {invite.rsvp ? (
-                    <span>{invite.rsvp.guestCount}</span>
+                    <div>
+                      <span>{invite.rsvp.guestCount}</span>
+                      {invite.rsvp.additionalGuestNames && invite.rsvp.additionalGuestNames.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {invite.rsvp.additionalGuestNames.join(", ")}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}

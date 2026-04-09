@@ -20,6 +20,8 @@ const SMTP_PORT = parseInt(process.env.SMTP_PORT || "1025", 10);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+
 // Detect email transport mode
 const isSmtpMode = !!SMTP_HOST;
 
@@ -134,6 +136,7 @@ type InviteEmailPayload = {
   eventDescription?: string;
   hostName: string;
   rsvpUrl: string;
+  unsubscribeUrl?: string;
 };
 
 type ConfirmationEmailPayload = {
@@ -146,6 +149,7 @@ type ConfirmationEmailPayload = {
   guestCount: number;
   hostName: string;
   portalUrl?: string;
+  unsubscribeUrl?: string;
 };
 
 type ReminderEmailPayload = {
@@ -157,6 +161,7 @@ type ReminderEmailPayload = {
   hostName: string;
   eventUrl: string;
   guestCount: number;
+  unsubscribeUrl?: string;
 };
 
 type VerificationEmailPayload = {
@@ -174,7 +179,15 @@ type NoResponseReminderEmailPayload = {
   rsvpUrl: string;
   rsvpDeadline?: string;
   reminderNumber: number;
+  unsubscribeUrl?: string;
 };
+
+/**
+ * Build an unsubscribe URL for an invite token.
+ */
+export function buildUnsubscribeUrl(rawToken: string): string {
+  return `${BASE_URL}/unsubscribe/${rawToken}`;
+}
 
 /**
  * Queue an invite email for sending

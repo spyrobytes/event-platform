@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { successResponse, handleApiError } from "@/lib/api-response";
 import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
-import { queueConfirmationEmail, processEmail } from "@/lib/email";
+import { queueConfirmationEmail, processEmail, buildUnsubscribeUrl } from "@/lib/email";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { buildPortalUrl } from "@/lib/guest-access";
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       const data = submitRsvpSchema.parse(body);
       const tokenHash = hashToken(inviteToken as string);
 
-      // Find the invite
+      // Find the invite (without capacity — that's checked under lock in the transaction)
       const invite = await db.invite.findUnique({
         where: { tokenHash },
         include: {
@@ -38,11 +38,6 @@ export async function POST(request: NextRequest) {
               status: true,
               maxAttendees: true,
               rsvpDeadline: true,
-              _count: {
-                select: {
-                  rsvps: { where: { response: "YES" } },
-                },
-              },
             },
           },
           rsvp: true,
@@ -75,24 +70,40 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check capacity for YES responses
-      if (data.response === "YES" && invite.event.maxAttendees) {
-        const currentAttendees = invite.event._count.rsvps;
-        const existingGuestCount = invite.rsvp?.guestCount || 0;
-        const newGuests = data.guestCount - existingGuestCount;
-
-        if (currentAttendees + newGuests > invite.event.maxAttendees) {
-          throw new ValidationError(
-            "Sorry, this event has reached its maximum capacity"
-          );
-        }
-      }
-
       // Build portal URL for emails and API response
       const portalUrl = buildPortalUrl(invite.event.slug, inviteToken as string);
 
-      // Atomic transaction: RSVP upsert + invite status + email outbox
+      // Atomic transaction: capacity check under lock + RSVP upsert + invite status + email outbox
       const { rsvp, emailId } = await db.$transaction(async (tx) => {
+        // Lock the event row to prevent concurrent capacity overflows
+        if (data.response === "YES" && invite.event.maxAttendees) {
+          const [lockedEvent] = await tx.$queryRaw<
+            { max_attendees: number | null }[]
+          >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
+
+          const maxAttendees = lockedEvent?.max_attendees;
+          if (maxAttendees) {
+            const [{ count: currentAttendees }] = await tx.$queryRaw<
+              { count: bigint }[]
+            >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
+
+            const existingGuestCount = invite.rsvp?.guestCount || 0;
+            const newGuests = data.guestCount - existingGuestCount;
+
+            if (Number(currentAttendees) + newGuests > maxAttendees) {
+              throw new ValidationError(
+                "Sorry, this event has reached its maximum capacity"
+              );
+            }
+          }
+        }
+
+        // Clear guest names if not attending or only 1 guest
+        const guestNames =
+          data.response === "YES" && data.guestCount > 1
+            ? data.additionalGuestNames
+            : [];
+
         // Create or update RSVP
         const rsvpResult = await tx.rSVP.upsert({
           where: {
@@ -105,6 +116,7 @@ export async function POST(request: NextRequest) {
             guestName: data.guestName,
             guestEmail: data.guestEmail,
             guestCount: data.guestCount,
+            additionalGuestNames: guestNames,
             dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
           },
@@ -113,6 +125,7 @@ export async function POST(request: NextRequest) {
             guestName: data.guestName,
             guestEmail: data.guestEmail,
             guestCount: data.guestCount,
+            additionalGuestNames: guestNames,
             dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
             updatedAt: new Date(),
@@ -122,6 +135,7 @@ export async function POST(request: NextRequest) {
             response: true,
             guestName: true,
             guestCount: true,
+            additionalGuestNames: true,
             respondedAt: true,
           },
         });
@@ -169,6 +183,7 @@ export async function POST(request: NextRequest) {
                 guestCount: data.guestCount || 1,
                 hostName,
                 portalUrl,
+                unsubscribeUrl: buildUnsubscribeUrl(inviteToken as string),
               },
               tx
             );
@@ -214,11 +229,6 @@ export async function POST(request: NextRequest) {
           visibility: true,
           maxAttendees: true,
           rsvpDeadline: true,
-          _count: {
-            select: {
-              rsvps: { where: { response: "YES" } },
-            },
-          },
         },
       });
 
@@ -240,53 +250,68 @@ export async function POST(request: NextRequest) {
         throw new ValidationError("The RSVP deadline for this event has passed");
       }
 
-      // Check capacity
-      if (data.response === "YES" && event.maxAttendees) {
-        if (event._count.rsvps + data.guestCount > event.maxAttendees) {
-          throw new ValidationError(
-            "Sorry, this event has reached its maximum capacity"
-          );
+      // Atomic transaction: capacity check under lock + RSVP upsert
+      const rsvp = await db.$transaction(async (tx) => {
+        // Check capacity under row lock to prevent overselling
+        if (data.response === "YES" && event.maxAttendees) {
+          await tx.$queryRaw`SELECT id FROM events WHERE id = ${event.id} FOR UPDATE`;
+
+          const [{ count: currentAttendees }] = await tx.$queryRaw<
+            { count: bigint }[]
+          >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${event.id} AND response = 'YES'`;
+
+          if (Number(currentAttendees) + data.guestCount > event.maxAttendees) {
+            throw new ValidationError(
+              "Sorry, this event has reached its maximum capacity"
+            );
+          }
         }
-      }
 
-      // Check for existing RSVP with same email
-      const existingRsvp = await db.rSVP.findFirst({
-        where: {
-          eventId: data.eventId,
-          guestEmail: data.guestEmail,
-        },
-      });
+        // Clear guest names if not attending or only 1 guest
+        const publicGuestNames =
+          data.response === "YES" && data.guestCount > 1
+            ? data.additionalGuestNames
+            : [];
 
-      let rsvp;
-      if (existingRsvp) {
-        // Update existing RSVP
-        rsvp = await db.rSVP.update({
-          where: { id: existingRsvp.id },
-          data: {
-            response: data.response,
-            guestName: data.guestName,
-            guestCount: data.guestCount,
-            dietaryRestrictions: data.dietaryRestrictions,
-            notes: data.notes,
-            updatedAt: new Date(),
-          },
-          select: {
-            id: true,
-            response: true,
-            guestName: true,
-            guestCount: true,
-            respondedAt: true,
+        // Check for existing RSVP with same email
+        const existingRsvp = await tx.rSVP.findFirst({
+          where: {
+            eventId: data.eventId,
+            guestEmail: data.guestEmail,
           },
         });
-      } else {
-        // Create new RSVP
-        rsvp = await db.rSVP.create({
+
+        if (existingRsvp) {
+          return tx.rSVP.update({
+            where: { id: existingRsvp.id },
+            data: {
+              response: data.response,
+              guestName: data.guestName,
+              guestCount: data.guestCount,
+              additionalGuestNames: publicGuestNames,
+              dietaryRestrictions: data.dietaryRestrictions,
+              notes: data.notes,
+              updatedAt: new Date(),
+            },
+            select: {
+              id: true,
+              response: true,
+              guestName: true,
+              guestCount: true,
+              additionalGuestNames: true,
+              respondedAt: true,
+            },
+          });
+        }
+
+        return tx.rSVP.create({
           data: {
             eventId: data.eventId,
             response: data.response,
             guestName: data.guestName,
             guestEmail: data.guestEmail,
             guestCount: data.guestCount,
+            additionalGuestNames: publicGuestNames,
             dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
           },
@@ -295,10 +320,11 @@ export async function POST(request: NextRequest) {
             response: true,
             guestName: true,
             guestCount: true,
+            additionalGuestNames: true,
             respondedAt: true,
           },
         });
-      }
+      });
 
       return successResponse({
         rsvp,

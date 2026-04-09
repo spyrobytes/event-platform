@@ -53,6 +53,7 @@ export function RSVPForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [additionalGuestNames, setAdditionalGuestNames] = useState<string[]>([]);
 
   // Analytics tracking refs
   const formStarted = useRef(false);
@@ -96,6 +97,7 @@ export function RSVPForm({
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm({
     resolver: zodResolver(submitRsvpSchema),
     defaultValues: {
@@ -103,10 +105,27 @@ export function RSVPForm({
       guestCount: 1,
       response: undefined as RsvpResponse | undefined,
       guestEmail: guestEmail || "",
+      additionalGuestNames: [] as string[],
       dietaryRestrictions: "",
       notes: "",
     },
   });
+
+  // Sync additionalGuestNames array length when guestCount changes
+  const updateGuestNameSlots = useCallback(
+    (count: number) => {
+      const needed = Math.max(0, count - 1);
+      setAdditionalGuestNames((prev) => {
+        const next = prev.slice(0, needed);
+        while (next.length < needed) next.push("");
+        setValue("additionalGuestNames", next);
+        return next;
+      });
+    },
+    [setValue]
+  );
+
+  const watchGuestCount = watch("guestCount");
 
   const onSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true);
@@ -116,6 +135,7 @@ export function RSVPForm({
       const body: Record<string, unknown> = {
         ...data,
         guestCount: data.guestCount || 1,
+        additionalGuestNames,
       };
 
       if (inviteToken) {
@@ -277,21 +297,68 @@ export function RSVPForm({
 
         {/* Guest Count (if plus ones allowed) */}
         {plusOnesAllowed > 0 && selectedResponse === "YES" && (
-          <div className="space-y-2">
-            <Label htmlFor="guestCount">Number of Guests (including yourself)</Label>
-            <Input
-              id="guestCount"
-              type="number"
-              min={1}
-              max={plusOnesAllowed + 1}
-              {...register("guestCount", { valueAsNumber: true })}
-              onFocus={() => handleFormInteraction("guestCount")}
-            />
-            <p className="text-xs text-muted-foreground">
-              You can bring up to {plusOnesAllowed} additional guest{plusOnesAllowed > 1 ? "s" : ""}
-            </p>
-            {errors.guestCount && (
-              <p className="text-sm text-destructive">{errors.guestCount.message}</p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="guestCount">Number of Guests (including yourself)</Label>
+              <Input
+                id="guestCount"
+                type="number"
+                min={1}
+                max={plusOnesAllowed + 1}
+                {...register("guestCount", {
+                  valueAsNumber: true,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    updateGuestNameSlots(Number(e.target.value) || 1);
+                  },
+                })}
+                onFocus={() => handleFormInteraction("guestCount")}
+              />
+              <p className="text-xs text-muted-foreground">
+                You can bring up to {plusOnesAllowed} additional guest{plusOnesAllowed > 1 ? "s" : ""}
+              </p>
+              {errors.guestCount && (
+                <p className="text-sm text-destructive">{errors.guestCount.message}</p>
+              )}
+            </div>
+
+            {/* Additional Guest Names */}
+            {(watchGuestCount ?? 1) > 1 && (
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Names of Additional Guests *</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Required for reception planning and seating arrangements
+                  </p>
+                </div>
+                {additionalGuestNames.map((name, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <Input
+                      placeholder={`Guest ${idx + 2} full name`}
+                      value={name}
+                      onChange={(e) => {
+                        handleFormInteraction(`additionalGuestName_${idx}`);
+                        setAdditionalGuestNames((prev) => {
+                          const next = [...prev];
+                          next[idx] = e.target.value;
+                          setValue("additionalGuestNames", next);
+                          return next;
+                        });
+                      }}
+                      aria-label={`Guest ${idx + 2} name`}
+                    />
+                    {name.trim() === "" && errors.additionalGuestNames && (
+                      <p className="text-sm text-destructive">Guest name is required</p>
+                    )}
+                  </div>
+                ))}
+                {errors.additionalGuestNames && (
+                  <p className="text-sm text-destructive">
+                    {typeof errors.additionalGuestNames.message === "string"
+                      ? errors.additionalGuestNames.message
+                      : "Please provide names for all additional guests"}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}

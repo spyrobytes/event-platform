@@ -163,9 +163,10 @@ model Invite {
   plusOnesAllowed Int          @default(0) @map("plus_ones_allowed")
   status          InviteStatus @default(PENDING)
 
-  expiresAt DateTime? @map("expires_at")
-  sentAt    DateTime? @map("sent_at")
-  openedAt  DateTime? @map("opened_at")
+  expiresAt      DateTime? @map("expires_at")
+  sentAt         DateTime? @map("sent_at")
+  openedAt       DateTime? @map("opened_at")
+  unsubscribedAt DateTime? @map("unsubscribed_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -195,12 +196,13 @@ model RSVP {
   inviteId String? @unique @map("invite_id")
   eventId  String  @map("event_id")
 
-  response   RSVPResponse
-  guestName  String       @map("guest_name")
-  guestEmail String?      @map("guest_email")
-  guestCount          Int     @default(1) @map("guest_count")
-  notes               String?
-  dietaryRestrictions String? @map("dietary_restrictions")
+  response             RSVPResponse
+  guestName            String       @map("guest_name")
+  guestEmail           String?      @map("guest_email")
+  guestCount           Int          @default(1) @map("guest_count")
+  additionalGuestNames String[]     @default([]) @map("additional_guest_names")
+  notes                String?
+  dietaryRestrictions  String?      @map("dietary_restrictions")
 
   respondedAt DateTime @default(now()) @map("responded_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

@@ -52,6 +52,7 @@ export function InvitationRSVPForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
+  const [additionalGuestNames, setAdditionalGuestNames] = useState<string[]>([]);
 
   // Analytics tracking refs
   const formStarted = useRef(false);
@@ -94,6 +95,7 @@ export function InvitationRSVPForm({
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm({
     resolver: zodResolver(submitRsvpSchema),
     defaultValues: {
@@ -101,10 +103,27 @@ export function InvitationRSVPForm({
       guestCount: 1,
       response: undefined as RsvpResponse | undefined,
       guestEmail: guestEmail || "",
+      additionalGuestNames: [] as string[],
       dietaryRestrictions: "",
       notes: "",
     },
   });
+
+  const watchGuestCount = watch("guestCount");
+
+  // Sync additionalGuestNames array length when guestCount changes
+  const updateGuestNameSlots = useCallback(
+    (count: number) => {
+      const needed = Math.max(0, count - 1);
+      setAdditionalGuestNames((prev) => {
+        const next = prev.slice(0, needed);
+        while (next.length < needed) next.push("");
+        setValue("additionalGuestNames", next);
+        return next;
+      });
+    },
+    [setValue]
+  );
 
   const onSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true);
@@ -117,6 +136,7 @@ export function InvitationRSVPForm({
         body: JSON.stringify({
           ...data,
           guestCount: data.guestCount || 1,
+          additionalGuestNames,
           inviteToken,
         }),
       });
@@ -294,24 +314,73 @@ export function InvitationRSVPForm({
 
         {/* Guest Count (if plus ones allowed) */}
         {plusOnesAllowed > 0 && selectedResponse === "YES" && (
-          <div>
-            <label htmlFor="guestCount" className={labelStyles}>
-              Number of Guests (including yourself)
-            </label>
-            <input
-              id="guestCount"
-              type="number"
-              min={1}
-              max={plusOnesAllowed + 1}
-              className={inputStyles}
-              {...register("guestCount", { valueAsNumber: true })}
-              onFocus={() => handleFormInteraction("guestCount")}
-            />
-            <p className="mt-1 text-xs text-[var(--inv-text-secondary)]">
-              You can bring up to {plusOnesAllowed} additional guest{plusOnesAllowed > 1 ? "s" : ""}
-            </p>
-            {errors.guestCount && (
-              <p className="mt-1 text-sm text-red-600">{errors.guestCount.message}</p>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="guestCount" className={labelStyles}>
+                Number of Guests (including yourself)
+              </label>
+              <input
+                id="guestCount"
+                type="number"
+                min={1}
+                max={plusOnesAllowed + 1}
+                className={inputStyles}
+                {...register("guestCount", {
+                  valueAsNumber: true,
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    updateGuestNameSlots(Number(e.target.value) || 1);
+                  },
+                })}
+                onFocus={() => handleFormInteraction("guestCount")}
+              />
+              <p className="mt-1 text-xs text-[var(--inv-text-secondary)]">
+                You can bring up to {plusOnesAllowed} additional guest{plusOnesAllowed > 1 ? "s" : ""}
+              </p>
+              {errors.guestCount && (
+                <p className="mt-1 text-sm text-red-600">{errors.guestCount.message}</p>
+              )}
+            </div>
+
+            {/* Additional Guest Names */}
+            {(watchGuestCount ?? 1) > 1 && (
+              <div className="space-y-3">
+                <label className={labelStyles}>
+                  Names of Additional Guests <span className="text-[var(--inv-accent)]">*</span>
+                </label>
+                <p className="text-xs text-[var(--inv-text-secondary)] -mt-2">
+                  Required for reception planning and seating arrangements
+                </p>
+                {additionalGuestNames.map((name, idx) => (
+                  <div key={idx}>
+                    <input
+                      type="text"
+                      placeholder={`Guest ${idx + 2} full name`}
+                      value={name}
+                      onChange={(e) => {
+                        handleFormInteraction(`additionalGuestName_${idx}`);
+                        setAdditionalGuestNames((prev) => {
+                          const next = [...prev];
+                          next[idx] = e.target.value;
+                          setValue("additionalGuestNames", next);
+                          return next;
+                        });
+                      }}
+                      className={inputStyles}
+                      aria-label={`Guest ${idx + 2} name`}
+                    />
+                    {name.trim() === "" && errors.additionalGuestNames && (
+                      <p className="mt-1 text-sm text-red-600">Guest name is required</p>
+                    )}
+                  </div>
+                ))}
+                {errors.additionalGuestNames && (
+                  <p className="text-sm text-red-600">
+                    {typeof errors.additionalGuestNames.message === "string"
+                      ? errors.additionalGuestNames.message
+                      : "Please provide names for all additional guests"}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}

@@ -6,7 +6,7 @@ import { requireEventOwner } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
-import { queueInviteEmail, processEmail } from "@/lib/email";
+import { queueInviteEmail, processEmail, buildUnsubscribeUrl } from "@/lib/email";
 import { ConflictError } from "@/lib/errors";
 
 type RouteContext = {
@@ -56,6 +56,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
               response: true,
               guestName: true,
               guestCount: true,
+              additionalGuestNames: true,
               respondedAt: true,
             },
           },
@@ -218,6 +219,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 eventDescription: event.description || undefined,
                 hostName,
                 rsvpUrl: `${baseUrl}/rsvp/${token}`,
+                unsubscribeUrl: buildUnsubscribeUrl(token),
               });
 
               processEmail(emailId).catch((err) => {
@@ -319,6 +321,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             eventDescription: event.description || undefined,
             hostName,
             rsvpUrl: `${baseUrl}/rsvp/${token}`,
+            unsubscribeUrl: buildUnsubscribeUrl(token),
           });
 
           processEmail(emailId).catch((err) => {

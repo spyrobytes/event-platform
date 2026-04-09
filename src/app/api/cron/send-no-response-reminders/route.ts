@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
           eventId: event.id,
           status: { in: ["SENT", "OPENED"] },
           sentAt: { not: null },
+          unsubscribedAt: null,
           rsvp: null, // No response yet
         },
         select: {
@@ -132,13 +133,30 @@ export async function GET(request: NextRequest) {
         if (sentRemindersCount < expectedReminderNumber) {
           const reminderNumber = sentRemindersCount + 1;
 
-          // Generate RSVP URL (we need to reconstruct from tokenHash)
-          // Note: In production, you'd want to store/regenerate tokens more securely
-          // For now, we'll use a placeholder that the invite page can handle
-          const rsvpUrl = `${BASE_URL}/rsvp/remind/${invite.id}`;
-
           // Skip invites without an email address (phone-only)
           if (!invite.email) continue;
+
+          // Retrieve the RSVP URL from the original INVITE email payload
+          const originalEmail = await db.emailOutbox.findFirst({
+            where: {
+              inviteId: invite.id,
+              template: "INVITE",
+            },
+            select: { payload: true },
+            orderBy: { createdAt: "asc" },
+          });
+
+          const originalPayload = originalEmail?.payload as Record<string, unknown> | null;
+          const rsvpUrl = (originalPayload?.rsvpUrl as string) || null;
+
+          if (!rsvpUrl) {
+            console.warn(`No RSVP URL found for invite ${invite.id}, skipping reminder`);
+            continue;
+          }
+
+          // Derive unsubscribe URL from the RSVP URL token
+          const rsvpToken = rsvpUrl.split("/rsvp/").pop();
+          const unsubscribeUrl = rsvpToken ? `${BASE_URL}/unsubscribe/${rsvpToken}` : undefined;
 
           try {
             const emailId = await queueNoResponseReminderEmail(
@@ -154,6 +172,7 @@ export async function GET(request: NextRequest) {
                 rsvpUrl,
                 rsvpDeadline,
                 reminderNumber,
+                unsubscribeUrl,
               }
             );
 
