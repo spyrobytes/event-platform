@@ -86,6 +86,7 @@ export async function generateMetadata({
 
 export default async function InviteRSVPPage({ params }: PageProps) {
   const { token } = await params;
+  const inviteRef = hashToken(token).substring(0, 16);
 
   const result = await getInviteForRSVP(token);
 
@@ -142,7 +143,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
       typographyPair={typographyPair}
       textDirection={textDirection}
     >
-      <PageViewTracker eventId={event.id} source="rsvp_page" />
+      <PageViewTracker eventId={event.id} source="rsvp_page" inviteRef={inviteRef} />
 
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         {/* Back to invitation link */}
@@ -199,6 +200,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 guestEmail={invite.email || ""}
                 plusOnesAllowed={invite.plusOnesAllowed}
                 needsEmail={!invite.email}
+                inviteRef={inviteRef}
                 successMessage="Your response has been recorded. You'll receive a confirmation email shortly."
               />
             )}

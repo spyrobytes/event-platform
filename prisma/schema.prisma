@@ -167,6 +167,7 @@ model Invite {
   sentAt         DateTime? @map("sent_at")
   openedAt       DateTime? @map("opened_at")
   unsubscribedAt DateTime? @map("unsubscribed_at")
+  revokedAt      DateTime? @map("revoked_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -189,6 +190,7 @@ enum InviteStatus {
   RESPONDED // RSVP submitted
   BOUNCED   // Delivery failed
   EXPIRED   // Past expiry date
+  REVOKED   // Manually revoked by organizer
 }
 
 model RSVP {
@@ -416,11 +418,13 @@ model AnalyticsEvent {
   eventId   String   @map("event_id")
   type      String   // page_view, rsvp_form_started, rsvp_form_abandoned, section_viewed
   sessionId String   @map("session_id") // Anonymous session identifier
+  inviteRef String?  @map("invite_ref") // First 16 chars of tokenHash for attribution
   data      Json?    // Flexible payload (source, field, sectionId, etc.)
   timestamp DateTime @default(now())
 
   @@index([eventId, type])
   @@index([eventId, timestamp])
   @@index([sessionId])
+  @@index([inviteRef])
   @@map("analytics_events")
 }

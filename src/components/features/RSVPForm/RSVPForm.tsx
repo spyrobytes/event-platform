@@ -29,6 +29,8 @@ type RSVPFormProps = {
   hideCard?: boolean;
   /** When true, the email field is shown prominently (phone-only invites) */
   needsEmail?: boolean;
+  /** For analytics attribution — first 16 chars of tokenHash */
+  inviteRef?: string;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -48,6 +50,7 @@ export function RSVPForm({
   successMessage,
   hideCard = false,
   needsEmail = false,
+  inviteRef,
 }: RSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -66,7 +69,7 @@ export function RSVPForm({
       lastInteractedField.current = fieldName;
       if (!formStarted.current && eventId) {
         formStarted.current = true;
-        trackFormStarted(eventId);
+        trackFormStarted(eventId, inviteRef);
       }
     },
     [eventId]
@@ -78,7 +81,7 @@ export function RSVPForm({
 
     const handleBeforeUnload = () => {
       if (formStarted.current && !formSubmitted.current) {
-        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined);
+        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined, inviteRef);
       }
     };
 
@@ -87,7 +90,7 @@ export function RSVPForm({
       window.removeEventListener("beforeunload", handleBeforeUnload);
       // Also track abandonment on unmount (SPA navigation)
       if (formStarted.current && !formSubmitted.current) {
-        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined);
+        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined, inviteRef);
       }
     };
   }, [eventId]);
@@ -162,7 +165,7 @@ export function RSVPForm({
 
       // Track successful submission
       if (eventId && data.response) {
-        trackFormSubmitted(eventId, String(data.response));
+        trackFormSubmitted(eventId, String(data.response), inviteRef);
       }
 
       setSuccess(true);

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       ...(query.status && { status: query.status }),
     };
 
-    const [invites, total] = await Promise.all([
+    const [invites, total, statusCounts, attendingCount] = await Promise.all([
       db.invite.findMany({
         where,
         select: {
@@ -66,7 +66,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
         skip: query.offset,
       }),
       db.invite.count({ where }),
+      // Unfiltered status counts for stats cards
+      db.invite.groupBy({
+        by: ["status"],
+        where: { eventId },
+        _count: { _all: true },
+      }),
+      db.rSVP.count({
+        where: { eventId, response: "YES" },
+      }),
     ]);
+
+    // Build stats from groupBy result
+    const statsMap: Record<string, number> = {};
+    let statsTotal = 0;
+    for (const group of statusCounts) {
+      statsMap[group.status] = group._count._all;
+      statsTotal += group._count._all;
+    }
 
     return successResponse({
       invites,
@@ -75,6 +92,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
         limit: query.limit,
         offset: query.offset,
         hasMore: query.offset + invites.length < total,
+      },
+      stats: {
+        total: statsTotal,
+        pending: statsMap["PENDING"] || 0,
+        sent: statsMap["SENT"] || 0,
+        opened: statsMap["OPENED"] || 0,
+        responded: statsMap["RESPONDED"] || 0,
+        attending: attendingCount,
       },
     });
   } catch (error) {

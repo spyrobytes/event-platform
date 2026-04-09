@@ -20,6 +20,7 @@ export type TrackEventData = {
   eventId: string;
   type: AnalyticsEventType;
   data?: Record<string, unknown>;
+  inviteRef?: string;
 };
 
 // =============================================================================
@@ -70,6 +71,7 @@ export async function trackEvent({
   eventId,
   type,
   data,
+  inviteRef,
 }: TrackEventData): Promise<void> {
   if (typeof window === "undefined") {
     return; // No tracking on server
@@ -84,6 +86,7 @@ export async function trackEvent({
       type,
       sessionId,
       data,
+      ...(inviteRef && { inviteRef }),
     });
 
     // Try sendBeacon first (works during page unload)
@@ -113,22 +116,28 @@ export async function trackEvent({
  */
 export function trackPageView(
   eventId: string,
-  source?: string
+  source?: string,
+  inviteRef?: string
 ): Promise<void> {
   return trackEvent({
     eventId,
     type: "page_view",
     data: source ? { source } : undefined,
+    inviteRef,
   });
 }
 
 /**
  * Track RSVP form interaction start
  */
-export function trackFormStarted(eventId: string): Promise<void> {
+export function trackFormStarted(
+  eventId: string,
+  inviteRef?: string
+): Promise<void> {
   return trackEvent({
     eventId,
     type: "rsvp_form_started",
+    inviteRef,
   });
 }
 
@@ -137,12 +146,14 @@ export function trackFormStarted(eventId: string): Promise<void> {
  */
 export function trackFormAbandoned(
   eventId: string,
-  lastField?: string
+  lastField?: string,
+  inviteRef?: string
 ): Promise<void> {
   return trackEvent({
     eventId,
     type: "rsvp_form_abandoned",
     data: lastField ? { lastField } : undefined,
+    inviteRef,
   });
 }
 
@@ -151,12 +162,14 @@ export function trackFormAbandoned(
  */
 export function trackFormSubmitted(
   eventId: string,
-  response: string
+  response: string,
+  inviteRef?: string
 ): Promise<void> {
   return trackEvent({
     eventId,
     type: "rsvp_form_submitted",
     data: { response },
+    inviteRef,
   });
 }
 

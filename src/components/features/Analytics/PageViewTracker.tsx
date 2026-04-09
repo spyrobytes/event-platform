@@ -6,6 +6,7 @@ import { trackPageView } from "@/lib/tracking";
 type PageViewTrackerProps = {
   eventId: string;
   source?: string;
+  inviteRef?: string;
 };
 
 /**
@@ -19,7 +20,7 @@ type PageViewTrackerProps = {
  * <PageViewTracker eventId={event.id} source="direct" />
  * ```
  */
-export function PageViewTracker({ eventId, source }: PageViewTrackerProps) {
+export function PageViewTracker({ eventId, source, inviteRef }: PageViewTrackerProps) {
   const tracked = useRef(false);
 
   useEffect(() => {
@@ -27,8 +28,8 @@ export function PageViewTracker({ eventId, source }: PageViewTrackerProps) {
     if (tracked.current) return;
     tracked.current = true;
 
-    trackPageView(eventId, source);
-  }, [eventId, source]);
+    trackPageView(eventId, source, inviteRef);
+  }, [eventId, source, inviteRef]);
 
   // Render nothing - this is a tracking-only component
   return null;

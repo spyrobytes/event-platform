@@ -89,6 +89,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function RSVPPage({ params }: PageProps) {
   const { token } = await params;
+  const inviteRef = hashToken(token).substring(0, 16);
 
   let invite;
   try {
@@ -131,6 +132,20 @@ export default async function RSVPPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold">Invitation Expired</h1>
           <p className="text-muted-foreground">
             This invitation has expired and is no longer valid.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if invite has been revoked
+  if (invite.status === "REVOKED") {
+    return (
+      <div className="container mx-auto max-w-2xl px-4 py-16">
+        <div className="text-center space-y-4">
+          <h1 className="text-3xl font-bold">Invitation No Longer Valid</h1>
+          <p className="text-muted-foreground">
+            This invitation is no longer valid. Please contact the event organizer for assistance.
           </p>
         </div>
       </div>
@@ -221,7 +236,7 @@ export default async function RSVPPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageViewTracker eventId={event.id} source="rsvp_page" />
+      <PageViewTracker eventId={event.id} source="rsvp_page" inviteRef={inviteRef} />
       {/* Event Header */}
       {event.coverImageUrl && (
         <div className="relative h-64 w-full">
@@ -277,6 +292,7 @@ export default async function RSVPPage({ params }: PageProps) {
           guestEmail={invite.email || ""}
           plusOnesAllowed={invite.plusOnesAllowed}
           needsEmail={!invite.email}
+          inviteRef={inviteRef}
         />
       </div>
     </div>

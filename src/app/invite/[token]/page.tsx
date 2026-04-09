@@ -119,6 +119,7 @@ export async function generateMetadata({
 
 export default async function InvitationPage({ params }: PageProps) {
   const { token } = await params;
+  const inviteRef = hashToken(token).substring(0, 16);
 
   const result = await getInviteWithConfig(token);
 
@@ -145,6 +146,15 @@ export default async function InvitationPage({ params }: PageProps) {
   ) {
     return (
       <ExpiredInviteView
+        eventTitle={invitationConfig?.coupleDisplayName || event.title}
+      />
+    );
+  }
+
+  // Check if invite has been revoked
+  if (invite.status === "REVOKED") {
+    return (
+      <InvalidInviteView
         eventTitle={invitationConfig?.coupleDisplayName || event.title}
       />
     );
@@ -366,7 +376,7 @@ export default async function InvitationPage({ params }: PageProps) {
       typographyPair={typographyPair}
       textDirection={textDirection}
     >
-      <PageViewTracker eventId={event.id} source="invitation_page" />
+      <PageViewTracker eventId={event.id} source="invitation_page" inviteRef={inviteRef} />
 
       {renderTemplate()}
 
@@ -422,6 +432,40 @@ function CancelledEventView({ eventTitle }: { eventTitle: string }) {
         <p className="text-muted-foreground">
           Unfortunately, <strong>{eventTitle}</strong> has been cancelled. We
           apologize for any inconvenience.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * View shown when invite has been revoked
+ */
+function InvalidInviteView({ eventTitle }: { eventTitle: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+      <div className="text-center max-w-md space-y-4">
+        <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+          <svg
+            className="w-8 h-8 text-destructive"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+            />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-foreground">
+          Invitation No Longer Valid
+        </h1>
+        <p className="text-muted-foreground">
+          Your invitation to <strong>{eventTitle}</strong> is no longer valid. Please
+          contact the event organizer for assistance.
         </p>
       </div>
     </div>

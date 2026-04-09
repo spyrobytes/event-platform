@@ -86,6 +86,11 @@ export async function GET(request: NextRequest) {
       throw new NotFoundError("This invite has expired");
     }
 
+    // Check if invite has been revoked
+    if (invite.status === "REVOKED") {
+      throw new NotFoundError("This invitation is no longer valid");
+    }
+
     // Check if event is still valid
     if (invite.event.status === "CANCELLED") {
       return errorResponse("This event has been cancelled", 400, "EVENT_CANCELLED");

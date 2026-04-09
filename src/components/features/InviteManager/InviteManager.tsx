@@ -26,7 +26,7 @@ type EmailStats = {
   bounced: number;
 };
 
-type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED";
+type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
 type Invite = {
@@ -54,6 +54,24 @@ type InviteManagerProps = {
   eventId: string;
 };
 
+const PAGE_SIZE = 50;
+
+type PaginationInfo = {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
+
+type InviteStats = {
+  total: number;
+  pending: number;
+  sent: number;
+  opened: number;
+  responded: number;
+  attending: number;
+};
+
 export function InviteManager({ eventId }: InviteManagerProps) {
   const { getIdToken } = useAuthContext();
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -64,15 +82,20 @@ export function InviteManager({ eventId }: InviteManagerProps) {
   const [sendEmails, setSendEmails] = useState(true);
   const [exportFilter, setExportFilter] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [serverStats, setServerStats] = useState<InviteStats | null>(null);
 
-  const fetchInvites = useCallback(async () => {
+  const fetchInvites = useCallback(async (pageNum: number = 0) => {
     try {
       const token = await getIdToken();
       if (!token) return;
 
-      const response = await fetch(`/api/events/${eventId}/invites`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const offset = pageNum * PAGE_SIZE;
+      const response = await fetch(
+        `/api/events/${eventId}/invites?limit=${PAGE_SIZE}&offset=${offset}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch invites");
@@ -80,12 +103,22 @@ export function InviteManager({ eventId }: InviteManagerProps) {
 
       const data = await response.json();
       setInvites(data.data.invites);
+      setPagination(data.data.pagination);
+      if (data.data.stats) {
+        setServerStats(data.data.stats);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invites");
     } finally {
       setLoading(false);
     }
   }, [eventId, getIdToken]);
+
+  const goToPage = useCallback((newPage: number) => {
+    setPage(newPage);
+    setLoading(true);
+    fetchInvites(newPage);
+  }, [fetchInvites]);
 
   const fetchEmailStats = useCallback(async () => {
     try {
@@ -106,7 +139,7 @@ export function InviteManager({ eventId }: InviteManagerProps) {
   }, [eventId, getIdToken]);
 
   useEffect(() => {
-    fetchInvites();
+    fetchInvites(0);
     fetchEmailStats();
   }, [fetchInvites, fetchEmailStats]);
 
@@ -140,12 +173,23 @@ export function InviteManager({ eventId }: InviteManagerProps) {
 
       const result = await response.json();
 
-      // Add new invites to the list
-      if (Array.isArray(data)) {
-        setInvites((prev) => [...result.data.invites, ...prev]);
-      } else {
-        setInvites((prev) => [result.data, ...prev]);
+      // Add new invites to the current page if on page 0
+      const newCount = Array.isArray(data) ? data.length : 1;
+      if (page === 0) {
+        if (Array.isArray(data)) {
+          setInvites((prev) => [...result.data.invites, ...prev].slice(0, PAGE_SIZE));
+        } else {
+          setInvites((prev) => [result.data, ...prev].slice(0, PAGE_SIZE));
+        }
       }
+
+      // Optimistically update stats
+      setServerStats((prev) =>
+        prev ? { ...prev, total: prev.total + newCount, pending: prev.pending + newCount } : prev
+      );
+      setPagination((prev) =>
+        prev ? { ...prev, total: prev.total + newCount, hasMore: prev.total + newCount > (page + 1) * PAGE_SIZE } : prev
+      );
 
       // Refresh email stats if emails were sent
       if (sendEmails) {
@@ -169,6 +213,34 @@ export function InviteManager({ eventId }: InviteManagerProps) {
       setTimeout(() => setCopiedInviteId(null), 3000);
     } else {
       alert("Link not available. The invite link was only shown when created.");
+    }
+  };
+
+  const handleRevoke = async (invite: Invite) => {
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `/api/events/${eventId}/invites/${invite.id}/revoke`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to revoke invite");
+      }
+
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === invite.id ? { ...i, status: "REVOKED" as InviteStatus } : i
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to revoke invite");
     }
   };
 
@@ -211,8 +283,7 @@ export function InviteManager({ eventId }: InviteManagerProps) {
     }
   };
 
-  // Calculate stats
-  const stats = {
+  const stats = serverStats ?? {
     total: invites.length,
     pending: invites.filter((i) => i.status === "PENDING").length,
     sent: invites.filter((i) => i.status === "SENT").length,
@@ -372,11 +443,39 @@ export function InviteManager({ eventId }: InviteManagerProps) {
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
           ) : (
-            <InviteTable
-              invites={invites}
-              onCopyLink={handleCopyLink}
-              copiedInviteId={copiedInviteId}
-            />
+            <>
+              <InviteTable
+                invites={invites}
+                onCopyLink={handleCopyLink}
+                onRevoke={handleRevoke}
+                copiedInviteId={copiedInviteId}
+              />
+              {pagination && pagination.total > PAGE_SIZE && (
+                <div className="flex items-center justify-between border-t pt-4 mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {pagination.offset + 1}&ndash;{Math.min(pagination.offset + invites.length, pagination.total)} of {pagination.total} invites
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(page - 1)}
+                      disabled={page === 0}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(page + 1)}
+                      disabled={!pagination.hasMore}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

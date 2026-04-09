@@ -53,6 +53,11 @@ export async function POST(request: NextRequest) {
         throw new ValidationError("This invite has expired");
       }
 
+      // Check if invite has been revoked
+      if (invite.status === "REVOKED") {
+        throw new ValidationError("This invitation is no longer valid");
+      }
+
       // Check if event is valid
       if (invite.event.status === "CANCELLED") {
         throw new ValidationError("This event has been cancelled");

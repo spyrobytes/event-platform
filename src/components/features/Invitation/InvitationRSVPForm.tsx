@@ -24,6 +24,8 @@ type InvitationRSVPFormProps = {
   successMessage?: string;
   /** When true, the email field is shown prominently (phone-only invites) */
   needsEmail?: boolean;
+  /** For analytics attribution — first 16 chars of tokenHash */
+  inviteRef?: string;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -46,6 +48,7 @@ export function InvitationRSVPForm({
   showMaybeOption = true,
   successMessage,
   needsEmail = false,
+  inviteRef,
 }: InvitationRSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -65,7 +68,7 @@ export function InvitationRSVPForm({
       lastInteractedField.current = fieldName;
       if (!formStarted.current && eventId) {
         formStarted.current = true;
-        trackFormStarted(eventId);
+        trackFormStarted(eventId, inviteRef);
       }
     },
     [eventId]
@@ -77,7 +80,7 @@ export function InvitationRSVPForm({
 
     const handleBeforeUnload = () => {
       if (formStarted.current && !formSubmitted.current) {
-        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined);
+        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined, inviteRef);
       }
     };
 
@@ -85,7 +88,7 @@ export function InvitationRSVPForm({
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (formStarted.current && !formSubmitted.current) {
-        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined);
+        trackFormAbandoned(eventId, lastInteractedField.current ?? undefined, inviteRef);
       }
     };
   }, [eventId]);
@@ -154,7 +157,7 @@ export function InvitationRSVPForm({
       formSubmitted.current = true;
 
       if (eventId && data.response) {
-        trackFormSubmitted(eventId, String(data.response));
+        trackFormSubmitted(eventId, String(data.response), inviteRef);
       }
 
       setSuccess(true);

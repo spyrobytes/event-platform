@@ -3,7 +3,7 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED";
+type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
 type Invite = {
@@ -31,6 +31,7 @@ type InviteTableProps = {
   invites: Invite[];
   onResend?: (invite: Invite) => void;
   onCopyLink?: (invite: Invite) => void;
+  onRevoke?: (invite: Invite) => void;
   copiedInviteId?: string | null;
 };
 
@@ -41,6 +42,7 @@ const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> 
   RESPONDED: { label: "Responded", className: "bg-green-500/20 text-green-600 dark:text-green-400" },
   BOUNCED: { label: "Bounced", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
   EXPIRED: { label: "Expired", className: "bg-surface-3 text-foreground" },
+  REVOKED: { label: "Revoked", className: "bg-red-500/20 text-red-600 dark:text-red-400" },
 };
 
 const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }> = {
@@ -49,7 +51,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink, copiedInviteId }: InviteTableProps) {
+export function InviteTable({ invites, onResend, onCopyLink, onRevoke, copiedInviteId }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -162,7 +164,23 @@ export function InviteTable({ invites, onResend, onCopyLink, copiedInviteId }: I
                         </span>
                       )
                     )}
-                    {onResend && invite.email && invite.status !== "RESPONDED" && (
+                    {onRevoke && invite.status !== "REVOKED" && invite.status !== "EXPIRED" && (
+                      <button
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Revoke the invite for ${invite.name || invite.email || invite.phone}? They will no longer be able to view or respond to the invitation.`
+                            )
+                          ) {
+                            onRevoke(invite);
+                          }
+                        }}
+                        className="text-xs text-destructive hover:underline"
+                      >
+                        Revoke
+                      </button>
+                    )}
+                    {onResend && invite.email && invite.status !== "RESPONDED" && invite.status !== "REVOKED" && (
                       <button
                         onClick={() => onResend(invite)}
                         className="text-xs text-primary hover:underline"

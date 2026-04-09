@@ -21,6 +21,7 @@ const trackEventSchema = z.object({
   eventId: z.string().min(1, "Event ID is required"),
   type: z.enum(VALID_EVENT_TYPES),
   sessionId: z.string().min(1, "Session ID is required"),
+  inviteRef: z.string().max(16).optional(),
   data: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
@@ -34,7 +35,7 @@ const trackEventSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, type, sessionId, data } = trackEventSchema.parse(body);
+    const { eventId, type, sessionId, inviteRef, data } = trackEventSchema.parse(body);
 
     // Verify event exists and is published (prevent tracking for non-existent events)
     const event = await db.event.findUnique({
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
         eventId,
         type,
         sessionId,
+        inviteRef: inviteRef ?? undefined,
         data: data ? (data as object) : undefined,
       },
     });

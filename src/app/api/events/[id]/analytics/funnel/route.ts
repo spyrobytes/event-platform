@@ -50,31 +50,38 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Check if extended funnel is requested
     const url = new URL(request.url);
     const forceExtended = url.searchParams.get("extended") === "true";
+    const inviteRef = url.searchParams.get("inviteRef");
 
-    // Get basic funnel counts in parallel
-    const [totalInvited, totalOpened, totalResponded] = await Promise.all([
-      // Stage 1: Total invites
-      db.invite.count({
-        where: { eventId },
-      }),
+    // Build analytics filter (optionally scoped to a single invite)
+    const analyticsWhere = inviteRef
+      ? { eventId, inviteRef }
+      : { eventId };
 
-      // Stage 2: Invites that were opened
-      db.invite.count({
-        where: {
-          eventId,
-          openedAt: { not: null },
-        },
-      }),
+    let totalInvited: number;
+    let totalOpened: number;
+    let totalResponded: number;
 
-      // Stage 5: Total RSVPs (any response)
-      db.rSVP.count({
-        where: { eventId },
-      }),
-    ]);
+    if (inviteRef) {
+      // Per-invite drill-down: look up the single invite by tokenHash prefix
+      const invite = await db.invite.findFirst({
+        where: { eventId, tokenHash: { startsWith: inviteRef } },
+        select: { openedAt: true, rsvp: { select: { id: true } } },
+      });
+      totalInvited = invite ? 1 : 0;
+      totalOpened = invite?.openedAt ? 1 : 0;
+      totalResponded = invite?.rsvp ? 1 : 0;
+    } else {
+      // Aggregate funnel counts
+      [totalInvited, totalOpened, totalResponded] = await Promise.all([
+        db.invite.count({ where: { eventId } }),
+        db.invite.count({ where: { eventId, openedAt: { not: null } } }),
+        db.rSVP.count({ where: { eventId } }),
+      ]);
+    }
 
     // Check if we have any tracking data for extended funnel
     const hasTrackingData = await db.analyticsEvent.findFirst({
-      where: { eventId },
+      where: analyticsWhere,
       select: { id: true },
     });
 
@@ -82,22 +89,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (hasTrackingData || forceExtended) {
       // Get extended funnel counts (unique sessions for page views and form starts)
       const [pageViewSessions, formStartSessions] = await Promise.all([
-        // Stage 3: Unique sessions that viewed the page
         db.analyticsEvent.groupBy({
           by: ["sessionId"],
-          where: {
-            eventId,
-            type: "page_view",
-          },
+          where: { ...analyticsWhere, type: "page_view" },
         }),
-
-        // Stage 4: Unique sessions that started the form
         db.analyticsEvent.groupBy({
           by: ["sessionId"],
-          where: {
-            eventId,
-            type: "rsvp_form_started",
-          },
+          where: { ...analyticsWhere, type: "rsvp_form_started" },
         }),
       ]);
 
