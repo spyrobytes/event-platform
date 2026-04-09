@@ -218,6 +218,7 @@ describe("submitRsvpSchema", () => {
       response: "YES",
       guestName: "John Doe",
       guestCount: 3,
+      additionalGuestNames: ["Jane Doe", "Bob Doe"],
     };
     const result = submitRsvpSchema.safeParse(validRsvp);
     expect(result.success).toBe(true);
