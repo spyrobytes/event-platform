@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ThemePicker, TypographyPicker } from "@/components/features/Invitation";
 import { ImageAssetPicker } from "@/components/features/ImageAssetPicker";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -139,6 +140,7 @@ export default function InvitationConfigPage() {
 
   // Track if form has been modified
   const [isDirty, setIsDirty] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
   // Fetch event and config
   useEffect(() => {
@@ -307,10 +309,32 @@ export default function InvitationConfigPage() {
       setConfig(result.data);
       setIsDirty(false);
       setSuccessMessage("Configuration saved successfully");
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openPreview = () => {
+    window.open(`/invite/preview/${params.id}`, "_blank");
+  };
+
+  const handlePreview = () => {
+    if (isDirty) {
+      setShowPreviewDialog(true);
+    } else {
+      openPreview();
+    }
+  };
+
+  const handleSaveAndPreview = async () => {
+    setShowPreviewDialog(false);
+    const saved = await handleSave();
+    if (saved) {
+      openPreview();
     }
   };
 
@@ -424,9 +448,9 @@ export default function InvitationConfigPage() {
         </div>
         <div className="flex items-center gap-2">
           {config && (
-            <Link href={`/invite/preview/${params.id}`} target="_blank">
-              <Button variant="outline">Preview</Button>
-            </Link>
+            <Button variant="outline" onClick={handlePreview}>
+              Preview
+            </Button>
           )}
           <Link href={`/dashboard/events/${params.id}`}>
             <Button variant="outline">Back to Event</Button>
@@ -1181,6 +1205,16 @@ export default function InvitationConfigPage() {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showPreviewDialog}
+        onConfirm={handleSaveAndPreview}
+        onCancel={() => setShowPreviewDialog(false)}
+        title="Unsaved Changes"
+        description="You have unsaved changes that won't appear in the preview. Would you like to save first?"
+        confirmLabel="Save & Preview"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }
