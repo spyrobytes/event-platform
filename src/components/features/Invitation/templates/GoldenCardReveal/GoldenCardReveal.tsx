@@ -603,7 +603,7 @@ export function GoldenCardReveal({
 
               {/* FRONT FACE (Revealed) */}
               <span className={cn(styles.cardFace, styles.cardFront)}>
-                <span className={styles.invitationContent}>
+                <span className={cn(styles.invitationContent, isTraditional && styles.traditionalLayout)}>
                   <InvitationHeader
                     data={data}
                     inline

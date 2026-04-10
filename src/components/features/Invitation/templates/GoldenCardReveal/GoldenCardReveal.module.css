@@ -453,13 +453,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
+  gap: 0.15rem;
+  margin-bottom: 0.25rem;
 }
 
 .familiesLabel {
   font-family: var(--inv-font-body, "Montserrat", sans-serif);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 3px;
@@ -468,24 +468,40 @@
 
 .familyNames {
   font-family: var(--inv-font-script, "Cormorant Garamond", serif);
-  font-size: clamp(0.85rem, 3vw, 1.1rem);
+  font-size: clamp(0.75rem, 2.5vw, 0.95rem);
   font-weight: 400;
   color: var(--gcr-text-primary);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .familyNames span {
-  margin: 0 0.25em;
+  margin: 0 0.2em;
   font-style: italic;
 }
 
 .familyInviteText {
   font-family: var(--inv-font-body, "Montserrat", sans-serif);
-  font-size: 0.55rem;
+  font-size: 0.5rem;
   font-weight: 400;
   font-style: italic;
   letter-spacing: 1.5px;
   color: var(--gcr-text-accent);
+}
+
+/* Tighten card spacing when traditional header is present */
+.traditionalLayout .coupleNames {
+  font-size: clamp(1.3rem, 5vw, 1.8rem);
+  margin-bottom: 0.25rem;
+}
+
+.traditionalLayout .eventDetails {
+  margin: 0.35rem 0;
+}
+
+.traditionalLayout .invitationPhoto {
+  width: 80px;
+  height: 80px;
+  margin: 0.5rem 0;
 }
 
 .coupleNames {
