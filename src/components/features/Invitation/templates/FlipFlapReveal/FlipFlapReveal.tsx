@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { getFlipFlapThemeTokens } from "@/lib/invitation-themes";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { FlipFlapRevealProps, ConfettiPiece, CardState } from "./types";
+import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./FlipFlapReveal.module.css";
 
 /**
@@ -263,8 +264,8 @@ export function FlipFlapReveal({
   // Extract data
   const coupleNames = useMemo(() => getCoupleNames(data), [data]);
   const monogram = useMemo(() => getMonogram(data), [data]);
-  const headerText = data.headerText || "Together with their families";
-  const eventTypeText = data.eventTypeText || "Request the pleasure of your company";
+  const isTraditional = data.headerMode === "traditional";
+  const eventTypeText = isTraditional ? null : (data.eventTypeText || "Request the pleasure of your company");
   const formattedDate = useMemo(
     () => formatEventDate(data.eventDate, "en-US"),
     [data.eventDate]
@@ -444,7 +445,14 @@ export function FlipFlapReveal({
           {/* Inner Content (revealed when flap opens) */}
           <div className={styles.cardContent}>
             <div className={styles.contentInner}>
-              <p className={styles.invitationHeader}>{headerText}</p>
+              <InvitationHeader
+                data={data}
+                headerTextClassName={styles.invitationHeader}
+                traditionalClassName={styles.traditionalHeader}
+                familiesLabelClassName={styles.familiesLabel}
+                familyNamesClassName={styles.familyNames}
+                familyInviteClassName={styles.familyInviteText}
+              />
 
               <h1 className={styles.coupleNames}>
                 {coupleNames.partner1}
@@ -454,7 +462,9 @@ export function FlipFlapReveal({
 
               <div className={styles.divider} aria-hidden="true" />
 
-              <p className={styles.invitationHeader}>{eventTypeText}</p>
+              {eventTypeText && (
+                <p className={styles.invitationHeader}>{eventTypeText}</p>
+              )}
 
               <div className={styles.eventDetails}>
                 <p className={styles.eventDate}>{formattedDate}</p>

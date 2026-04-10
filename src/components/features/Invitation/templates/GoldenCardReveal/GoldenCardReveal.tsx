@@ -13,6 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getGoldenCardThemeTokens } from "@/lib/invitation-themes";
+import { InvitationHeader } from "../../InvitationHeader";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { GoldenCardRevealProps, ConfettiShape, CardState } from "./types";
 import styles from "./GoldenCardReveal.module.css";
@@ -198,8 +199,8 @@ export function GoldenCardReveal({
   // Extract data
   const coupleNames = useMemo(() => getCoupleNames(data), [data]);
   const monogram = useMemo(() => getMonogram(data), [data]);
-  const headerText = data.headerText || "Together with their families";
-  const eventTypeText = data.eventTypeText || "Invite you to celebrate their marriage";
+  const isTraditional = data.headerMode === "traditional";
+  const eventTypeText = isTraditional ? null : (data.eventTypeText || "Invite you to celebrate their marriage");
 
   // [Fix #7] Defensively coerce eventDate — it may arrive as a string from JSON
   const formattedDate = useMemo(() => {
@@ -603,9 +604,15 @@ export function GoldenCardReveal({
               {/* FRONT FACE (Revealed) */}
               <span className={cn(styles.cardFace, styles.cardFront)}>
                 <span className={styles.invitationContent}>
-                  <span className={styles.invitationHeader}>
-                    {headerText}
-                  </span>
+                  <InvitationHeader
+                    data={data}
+                    inline
+                    headerTextClassName={styles.invitationHeader}
+                    traditionalClassName={styles.traditionalHeader}
+                    familiesLabelClassName={styles.familiesLabel}
+                    familyNamesClassName={styles.familyNames}
+                    familyInviteClassName={styles.familyInviteText}
+                  />
 
                   <h1 className={styles.coupleNames}>
                     {coupleNames.partner1}
@@ -617,9 +624,11 @@ export function GoldenCardReveal({
                     )}
                   </h1>
 
-                  <span className={styles.eventTypeText}>
-                    {eventTypeText}
-                  </span>
+                  {eventTypeText && (
+                    <span className={styles.eventTypeText}>
+                      {eventTypeText}
+                    </span>
+                  )}
 
                   {data.heroImageUrl && (
                     <Image

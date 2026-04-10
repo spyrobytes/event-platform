@@ -3,6 +3,7 @@ export { InvitationShell } from "./InvitationShell";
 
 // Content components
 export { InvitationCard } from "./InvitationCard";
+export { InvitationHeader } from "./InvitationHeader";
 export { InviteeGreeting } from "./InviteeGreeting";
 export { ReplayButton } from "./ReplayButton";
 export { InvitationRSVPForm } from "./InvitationRSVPForm";

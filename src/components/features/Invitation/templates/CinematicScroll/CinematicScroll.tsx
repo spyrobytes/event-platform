@@ -6,6 +6,7 @@ import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./CinematicScroll.module.css";
 
 type CinematicScrollProps = {
@@ -206,11 +207,15 @@ export function CinematicScroll({
               )}
             </p>
           )}
-          {data.headerText && (
-            <p className={styles.headerText}>
-              {truncateWithEllipsis(data.headerText, CONTENT_LIMITS.headerText.max)}
-            </p>
-          )}
+          <InvitationHeader
+            data={data}
+            modernDefault={null}
+            headerTextClassName={styles.headerText}
+            traditionalClassName={styles.traditionalHeader}
+            familiesLabelClassName={styles.familiesLabel}
+            familyNamesClassName={styles.familyNames}
+            familyInviteClassName={styles.familyInviteText}
+          />
           <h1 className={styles.coupleNames}>
             {data.person1Name && data.person2Name ? (
               <>
@@ -225,11 +230,13 @@ export function CinematicScroll({
               )
             )}
           </h1>
-          <p className={styles.inviteText}>
-            {data.eventTypeText
-              ? truncateWithEllipsis(data.eventTypeText, CONTENT_LIMITS.eventTypeText.max)
-              : "Invite you to celebrate"}
-          </p>
+          {data.headerMode !== "traditional" && (
+            <p className={styles.inviteText}>
+              {data.eventTypeText
+                ? truncateWithEllipsis(data.eventTypeText, CONTENT_LIMITS.eventTypeText.max)
+                : "Invite you to celebrate"}
+            </p>
+          )}
           <div className={styles.divider} aria-hidden="true" />
 
           {/* Hero image */}

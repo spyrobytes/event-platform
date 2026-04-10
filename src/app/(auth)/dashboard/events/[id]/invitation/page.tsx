@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +111,10 @@ export default function InvitationConfigPage() {
   const [person1Name, setPerson1Name] = useState("");
   const [person2Name, setPerson2Name] = useState("");
   const [headerText, setHeaderText] = useState("");
+  const [headerMode, setHeaderMode] = useState<"modern" | "traditional">("modern");
+  const [person1FamilyName, setPerson1FamilyName] = useState("");
+  const [person2FamilyName, setPerson2FamilyName] = useState("");
+  const [familyInviteText, setFamilyInviteText] = useState("");
   const [eventTypeText, setEventTypeText] = useState("");
   const [monogram, setMonogram] = useState("");
   const [customMessage, setCustomMessage] = useState("");
@@ -179,6 +184,10 @@ export default function InvitationConfigPage() {
             setPerson1Name(configData.data.person1Name || "");
             setPerson2Name(configData.data.person2Name || "");
             setHeaderText(configData.data.headerText || "");
+            setHeaderMode(configData.data.headerMode === "traditional" ? "traditional" : "modern");
+            setPerson1FamilyName(configData.data.person1FamilyName || "");
+            setPerson2FamilyName(configData.data.person2FamilyName || "");
+            setFamilyInviteText(configData.data.familyInviteText || "");
             setEventTypeText(configData.data.eventTypeText || "");
             setMonogram(configData.data.monogram || "");
             setCustomMessage(configData.data.customMessage || "");
@@ -261,6 +270,10 @@ export default function InvitationConfigPage() {
           person1Name: person1Name || undefined,
           person2Name: person2Name || undefined,
           headerText: headerText || undefined,
+          headerMode,
+          person1FamilyName: person1FamilyName || undefined,
+          person2FamilyName: person2FamilyName || undefined,
+          familyInviteText: familyInviteText || undefined,
           eventTypeText: eventTypeText || undefined,
           monogram: monogram || undefined,
           customMessage: customMessage || undefined,
@@ -339,6 +352,10 @@ export default function InvitationConfigPage() {
       setPerson1Name("");
       setPerson2Name("");
       setHeaderText("");
+      setHeaderMode("modern");
+      setPerson1FamilyName("");
+      setPerson2FamilyName("");
+      setFamilyInviteText("");
       setEventTypeText("");
       setMonogram("");
       setCustomMessage("");
@@ -539,7 +556,7 @@ export default function InvitationConfigPage() {
                     </p>
                   </div>
                 )}
-                {supports("headerText") && (
+                {supports("headerText") && !supports("headerMode") && (
                   <div className="space-y-3">
                     <Label htmlFor="headerText">
                       Header Text{" "}
@@ -560,7 +577,117 @@ export default function InvitationConfigPage() {
                     </p>
                   </div>
                 )}
-                {supports("eventTypeText") && (
+                {supports("headerMode") && (
+                  <>
+                    <div className="space-y-3">
+                      <Label>Header Style</Label>
+                      <div className="flex gap-3">
+                        {(["modern", "traditional"] as const).map((mode) => {
+                          const isSelected = headerMode === mode;
+                          return (
+                            <button
+                              key={mode}
+                              type="button"
+                              className={cn(
+                                "flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
+                                isSelected
+                                  ? "border-accent bg-accent/5 text-foreground"
+                                  : "border-border hover:border-accent/50 bg-surface text-muted-foreground"
+                              )}
+                              onClick={() => handleFieldChange(setHeaderMode)(mode)}
+                            >
+                              {mode === "modern" ? "Modern" : "Traditional"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {headerMode === "modern"
+                          ? "Single header line above couple names (e.g., \"Together with their families\")"
+                          : "Family names displayed above couple names, honoring both families"}
+                      </p>
+                    </div>
+                    {headerMode === "modern" && (
+                      <div className="space-y-3">
+                        <Label htmlFor="headerText">
+                          Header Text{" "}
+                          <span className="text-muted-foreground">(optional)</span>
+                        </Label>
+                        <Input
+                          id="headerText"
+                          value={headerText}
+                          onChange={(e) =>
+                            handleFieldChange(setHeaderText)(e.target.value)
+                          }
+                          placeholder="Together with their families"
+                          maxLength={CONTENT_LIMITS.headerText.max}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {headerText.length}/{CONTENT_LIMITS.headerText.max} characters.
+                          Appears above couple names.
+                        </p>
+                      </div>
+                    )}
+                    {headerMode === "traditional" && (
+                      <>
+                        <div className="space-y-3">
+                          <Label htmlFor="person1FamilyName">
+                            Family Name (Person 1)
+                          </Label>
+                          <Input
+                            id="person1FamilyName"
+                            value={person1FamilyName}
+                            onChange={(e) =>
+                              handleFieldChange(setPerson1FamilyName)(e.target.value)
+                            }
+                            placeholder="Mr. & Mrs. Williams"
+                            maxLength={CONTENT_LIMITS.familyName.max}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {person1FamilyName.length}/{CONTENT_LIMITS.familyName.max} characters
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          <Label htmlFor="person2FamilyName">
+                            Family Name (Person 2)
+                          </Label>
+                          <Input
+                            id="person2FamilyName"
+                            value={person2FamilyName}
+                            onChange={(e) =>
+                              handleFieldChange(setPerson2FamilyName)(e.target.value)
+                            }
+                            placeholder="Mr. & Mrs. Smith"
+                            maxLength={CONTENT_LIMITS.familyName.max}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {person2FamilyName.length}/{CONTENT_LIMITS.familyName.max} characters
+                          </p>
+                        </div>
+                        <div className="space-y-3">
+                          <Label htmlFor="familyInviteText">
+                            Invite Line{" "}
+                            <span className="text-muted-foreground">(optional)</span>
+                          </Label>
+                          <Input
+                            id="familyInviteText"
+                            value={familyInviteText}
+                            onChange={(e) =>
+                              handleFieldChange(setFamilyInviteText)(e.target.value)
+                            }
+                            placeholder="invite you to the wedding of their children"
+                            maxLength={CONTENT_LIMITS.familyInviteText.max}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {familyInviteText.length}/{CONTENT_LIMITS.familyInviteText.max} characters.
+                            Appears between family names and couple names.
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+                {supports("eventTypeText") && !(supports("headerMode") && headerMode === "traditional") && (
                   <div className="space-y-3">
                     <Label htmlFor="eventTypeText">
                       Event Type Text{" "}

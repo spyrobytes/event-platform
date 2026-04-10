@@ -210,6 +210,10 @@ export default async function InvitationPage({ params }: PageProps) {
     person1Name: invitationConfig?.person1Name || undefined,
     person2Name: invitationConfig?.person2Name || undefined,
     headerText: invitationConfig?.headerText || undefined,
+    headerMode: invitationConfig?.headerMode === "traditional" ? "traditional" : undefined,
+    person1FamilyName: invitationConfig?.person1FamilyName || undefined,
+    person2FamilyName: invitationConfig?.person2FamilyName || undefined,
+    familyInviteText: invitationConfig?.familyInviteText || undefined,
     eventTypeText: invitationConfig?.eventTypeText || undefined,
     monogram: invitationConfig?.monogram || undefined,
     // Wedding Storybook extended fields

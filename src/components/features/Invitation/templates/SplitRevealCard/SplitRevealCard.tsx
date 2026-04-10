@@ -6,6 +6,7 @@ import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./SplitRevealCard.module.css";
 
 // =============================================================================
@@ -163,8 +164,8 @@ export function SplitRevealCard({
   const monogram = data.monogram || generateMonogram(person1, person2);
 
   // Customizable text with defaults
-  const headerText = data.headerText || "Together with their families";
-  const eventTypeText = data.eventTypeText || "Request the pleasure of your company";
+  const isTraditional = data.headerMode === "traditional";
+  const eventTypeText = isTraditional ? null : (data.eventTypeText || "Request the pleasure of your company");
 
   // Format date for display
   const formattedDate = new Intl.DateTimeFormat("en-US", {
@@ -306,7 +307,14 @@ export function SplitRevealCard({
             )}
 
             {/* Header */}
-            <p className={styles.header}>{headerText}</p>
+            <InvitationHeader
+              data={data}
+              headerTextClassName={styles.header}
+              traditionalClassName={styles.traditionalHeader}
+              familiesLabelClassName={styles.familiesLabel}
+              familyNamesClassName={styles.familyNames}
+              familyInviteClassName={styles.familyInviteText}
+            />
 
             {/* Couple Names */}
             <h1 className={styles.names}>
@@ -320,7 +328,9 @@ export function SplitRevealCard({
             </h1>
 
             {/* Event Type */}
-            <p className={styles.eventType}>{eventTypeText}</p>
+            {eventTypeText && (
+              <p className={styles.eventType}>{eventTypeText}</p>
+            )}
 
             {/* Divider */}
             <div className={styles.divider} aria-hidden="true" />

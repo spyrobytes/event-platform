@@ -165,6 +165,10 @@ export type TemplateField =
   | "person1Name"
   | "person2Name"
   | "headerText"
+  | "headerMode"
+  | "person1FamilyName"
+  | "person2FamilyName"
+  | "familyInviteText"
   | "eventTypeText"
   | "monogram"
   | "customMessage"
@@ -179,12 +183,12 @@ export type TemplateField =
 export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>> = {
   ENVELOPE_REVEAL:     new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode"]),
   ENVELOPE_REVEAL_V2:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode"]),
-  SPLIT_REVEAL:        new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode"]),
-  LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
-  CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode"]),
+  SPLIT_REVEAL:        new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode"]),
+  LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "customMessage", "dressCode"]),
+  CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode"]),
   TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
-  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl"]),
-  FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "heroImageUrl"]),
+  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl"]),
+  FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl"]),
   WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "monogram", "dressCode", "storybookFields"]),
 };
 

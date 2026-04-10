@@ -6,6 +6,7 @@ import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./LayeredUnfold.module.css";
 
 // ---------------------------------------------------------------------------
@@ -396,11 +397,15 @@ export function LayeredUnfold({
                 )}
               </p>
             )}
-            {data.headerText && (
-              <p className={styles.headerText}>
-                {truncateWithEllipsis(data.headerText, CONTENT_LIMITS.headerText.max)}
-              </p>
-            )}
+            <InvitationHeader
+              data={data}
+              modernDefault={null}
+              headerTextClassName={styles.headerText}
+              traditionalClassName={styles.traditionalHeader}
+              familiesLabelClassName={styles.familiesLabel}
+              familyNamesClassName={styles.familyNames}
+              familyInviteClassName={styles.familyInviteText}
+            />
             <h1 className={styles.coupleNames}>
               {data.person1Name && data.person2Name ? (
                 <>
@@ -415,12 +420,14 @@ export function LayeredUnfold({
                 )
               )}
             </h1>
-            <p className={styles.eventTitle}>
-              {truncateWithEllipsis(
-                data.eventTypeText || data.eventTitle,
-                CONTENT_LIMITS.eventTypeText.max
-              )}
-            </p>
+            {data.headerMode !== "traditional" && (
+              <p className={styles.eventTitle}>
+                {truncateWithEllipsis(
+                  data.eventTypeText || data.eventTitle,
+                  CONTENT_LIMITS.eventTypeText.max
+                )}
+              </p>
+            )}
             <div className={styles.divider} aria-hidden="true" />
           </div>
         </div>

@@ -43,6 +43,10 @@ type InvitationConfigData = {
   person1Name: string | null;
   person2Name: string | null;
   headerText: string | null;
+  headerMode: string;
+  person1FamilyName: string | null;
+  person2FamilyName: string | null;
+  familyInviteText: string | null;
   eventTypeText: string | null;
   monogram: string | null;
   customMessage: string | null;
@@ -184,6 +188,10 @@ export default function InvitationPreviewPage() {
     person1Name: config.person1Name || undefined,
     person2Name: config.person2Name || undefined,
     headerText: config.headerText || undefined,
+    headerMode: config.headerMode === "traditional" ? "traditional" : undefined,
+    person1FamilyName: config.person1FamilyName || undefined,
+    person2FamilyName: config.person2FamilyName || undefined,
+    familyInviteText: config.familyInviteText || undefined,
     eventTypeText: config.eventTypeText || undefined,
     monogram: config.monogram || undefined,
     // Wedding Storybook extended fields

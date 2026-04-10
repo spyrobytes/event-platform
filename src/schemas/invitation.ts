@@ -28,6 +28,8 @@ export const TYPOGRAPHY_PAIRS = ["classic", "modern", "traditional"] as const;
 
 export const TEXT_DIRECTIONS = ["LTR", "RTL"] as const;
 
+export const HEADER_MODES = ["modern", "traditional"] as const;
+
 // =============================================================================
 // CONTENT CONSTRAINTS
 // =============================================================================
@@ -47,6 +49,8 @@ export const CONTENT_LIMITS = {
   dressCode: { max: 30, recommended: 20 },
   customMessage: { max: 200, recommended: 150, maxLines: 4 },
   headerText: { max: 60, recommended: 40 },
+  familyName: { max: 80, recommended: 50 },
+  familyInviteText: { max: 120, recommended: 80 },
   eventTypeText: { max: 80, recommended: 60 },
   monogram: { max: 10 },
   storyHeading: { max: 60, recommended: 30 },
@@ -104,6 +108,11 @@ export const invitationConfigSchema = z.object({
   person2Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
   // Customizable invitation wording
   headerText: z.string().max(CONTENT_LIMITS.headerText.max).optional(),
+  headerMode: z.enum(HEADER_MODES).default("modern"),
+  // Traditional header fields (family names displayed above couple names)
+  person1FamilyName: z.string().max(CONTENT_LIMITS.familyName.max).optional(),
+  person2FamilyName: z.string().max(CONTENT_LIMITS.familyName.max).optional(),
+  familyInviteText: z.string().max(CONTENT_LIMITS.familyInviteText.max).optional(),
   eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
   monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
   customMessage: z.string().max(CONTENT_LIMITS.customMessage.max).optional(),
@@ -170,6 +179,10 @@ export const invitationDataSchema = z.object({
   person1Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
   person2Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
   headerText: z.string().max(CONTENT_LIMITS.headerText.max).optional(),
+  headerMode: z.enum(HEADER_MODES).optional(),
+  person1FamilyName: z.string().max(CONTENT_LIMITS.familyName.max).optional(),
+  person2FamilyName: z.string().max(CONTENT_LIMITS.familyName.max).optional(),
+  familyInviteText: z.string().max(CONTENT_LIMITS.familyInviteText.max).optional(),
   eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
   monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
   // Wedding Storybook extended fields
