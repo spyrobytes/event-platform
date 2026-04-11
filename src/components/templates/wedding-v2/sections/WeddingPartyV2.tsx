@@ -2,6 +2,7 @@
 
 import type { MediaAsset } from "@prisma/client";
 import type { PartySide } from "@/schemas/event-page";
+import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 import styles from "./WeddingPartyV2.module.css";
 
 type PartyMember = {
@@ -20,20 +21,6 @@ type WeddingPartyV2Props = {
   };
   assets: MediaAsset[];
 };
-
-/** Role keywords that place a member into the "Special Roles" group */
-const SPECIAL_ROLE_KEYWORDS = [
-  "flower girl",
-  "ring bearer",
-  "page boy",
-  "junior bridesmaid",
-  "junior groomsman",
-];
-
-function isSpecialRole(role: string): boolean {
-  const lower = role.toLowerCase();
-  return SPECIAL_ROLE_KEYWORDS.some((kw) => lower.includes(kw));
-}
 
 /**
  * Wedding Party V2
@@ -56,17 +43,14 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
     return asset?.publicUrl || null;
   };
 
-  // Partition members: special roles auto-detected by keyword, rest by side
+  // Partition members: special roles first, then bride/groom based on
+  // explicit `side` with role-keyword inference as the fallback.
   const specialMembers = members.filter((m) => isSpecialRole(m.role));
   const regularMembers = members.filter((m) => !isSpecialRole(m.role));
-  const bridesSide = regularMembers.filter((m) => m.side === "bride");
-  const groomsSide = regularMembers.filter((m) => m.side === "groom");
-  const others = regularMembers.filter((m) => !m.side || m.side === "other");
+  const bridesSide = regularMembers.filter((m) => getEffectiveSide(m) === "bride");
+  const groomsSide = regularMembers.filter((m) => getEffectiveSide(m) === "groom");
+  const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
   const hasSides = bridesSide.length > 0 || groomsSide.length > 0;
-
-  // Label for the "other" group — "Special Roles" when no keyword-detected
-  // specials exist (backward compat), "Others" when specials have their own section
-  const othersLabel = specialMembers.length > 0 ? "Others" : "Special Roles";
 
   const renderDivider = (label: string) => (
     <div className={styles.divider}>
@@ -167,7 +151,7 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
         {/* Others with divider (when sides exist) */}
         {hasSides && others.length > 0 && (
           <div className={styles.groupSpaced}>
-            {renderDivider(othersLabel)}
+            {renderDivider("Others")}
             <div className={styles.grid}>
               {others.map((m, i) => renderCard(m, i))}
             </div>

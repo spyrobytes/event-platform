@@ -1423,7 +1423,6 @@ export default function PageEditorPage() {
                 data={section.data}
                 assets={pageData?.assets || []}
                 onChange={(data) => updateSectionData(index, data)}
-                templateId={templateId}
               />
             )}
             {section.type === "attire" && (

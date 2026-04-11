@@ -20,7 +20,6 @@ type WeddingPartyEditorProps = {
   data: WeddingPartySection["data"];
   assets: Asset[];
   onChange: (data: WeddingPartySection["data"]) => void;
-  templateId?: string;
 };
 
 /**
@@ -31,14 +30,12 @@ export function WeddingPartyEditor({
   data,
   assets,
   onChange,
-  templateId,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   // Party member photos: prefer portraits; fall back to gallery for legacy assets
   const partyAssets = assets.filter((a) =>
     a.tags.some((t) => t === "portrait" || t === "gallery")
   );
-  const isV2 = templateId === "wedding_v2";
 
   const addMember = useCallback(() => {
     if (members.length >= 16) return;
@@ -111,9 +108,9 @@ export function WeddingPartyEditor({
       <div className="space-y-2">
         <Label>Party Members</Label>
         <p className="text-xs text-muted-foreground">
-          {isV2
-            ? "Assign each member to a side for grouping in the cinematic layout"
-            : "Tip: Use roles like \"Maid of Honor\", \"Best Man\", \"Bridesmaid\", \"Groomsman\" to auto-group by side"}
+          Tip: Use roles like &ldquo;Maid of Honor&rdquo;, &ldquo;Best Man&rdquo;,
+          &ldquo;Bridesmaid&rdquo;, &ldquo;Groomsman&rdquo; to auto-group by
+          side, or pick a side below to override.
         </p>
 
         {members.length === 0 ? (
@@ -169,7 +166,7 @@ export function WeddingPartyEditor({
                 </div>
 
                 <div className="space-y-4">
-                  <div className={`grid gap-4 ${isV2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+                  <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor={`member-name-${index}`}>Name</Label>
                       <Input
@@ -196,25 +193,23 @@ export function WeddingPartyEditor({
                       />
                     </div>
 
-                    {isV2 && (
-                      <div className="space-y-2">
-                        <Label htmlFor={`member-side-${index}`}>Side</Label>
-                        <Select
-                          id={`member-side-${index}`}
-                          value={member.side || ""}
-                          onChange={(e) =>
-                            updateMember(index, {
-                              side: (e.target.value || undefined) as PartySide | undefined,
-                            })
-                          }
-                        >
-                          <option value="">Unassigned</option>
-                          <option value="bride">Bride&apos;s Side</option>
-                          <option value="groom">Groom&apos;s Side</option>
-                          <option value="other">Other / Shared</option>
-                        </Select>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor={`member-side-${index}`}>Side</Label>
+                      <Select
+                        id={`member-side-${index}`}
+                        value={member.side || ""}
+                        onChange={(e) =>
+                          updateMember(index, {
+                            side: (e.target.value || undefined) as PartySide | undefined,
+                          })
+                        }
+                      >
+                        <option value="">Auto (from role)</option>
+                        <option value="bride">Bride&apos;s Side</option>
+                        <option value="groom">Groom&apos;s Side</option>
+                        <option value="other">Other / Shared</option>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

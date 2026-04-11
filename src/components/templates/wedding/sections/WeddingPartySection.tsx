@@ -1,11 +1,14 @@
 import { SectionWrapper, SectionTitle } from "../../shared";
 import type { MediaAsset } from "@prisma/client";
+import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
+import type { PartySide } from "@/schemas/event-page";
 
 type PartyMember = {
   name: string;
   role: string;
   bio?: string;
   imageAssetId?: string;
+  side?: PartySide;
 };
 
 type WeddingPartySectionProps = {
@@ -38,24 +41,13 @@ export function WeddingPartySection({
     return asset?.publicUrl || null;
   };
 
-  // Split into bride's side and groom's side based on role keywords
-  const bridesSide = members.filter(
-    (m) =>
-      m.role.toLowerCase().includes("bridesmaid") ||
-      m.role.toLowerCase().includes("maid") ||
-      m.role.toLowerCase().includes("bride")
-  );
-
-  const groomsSide = members.filter(
-    (m) =>
-      m.role.toLowerCase().includes("groomsman") ||
-      m.role.toLowerCase().includes("best man") ||
-      m.role.toLowerCase().includes("groom")
-  );
-
-  const others = members.filter(
-    (m) => !bridesSide.includes(m) && !groomsSide.includes(m)
-  );
+  // Partition: special roles first, then bride/groom using explicit `side`
+  // with role-keyword inference as the fallback. See lib/wedding-party-roles.ts.
+  const specialMembers = members.filter((m) => isSpecialRole(m.role));
+  const regularMembers = members.filter((m) => !isSpecialRole(m.role));
+  const bridesSide = regularMembers.filter((m) => getEffectiveSide(m) === "bride");
+  const groomsSide = regularMembers.filter((m) => getEffectiveSide(m) === "groom");
+  const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
 
   const renderMember = (member: PartyMember, index: number) => {
     const imageUrl = getAssetUrl(member.imageAssetId);
@@ -153,8 +145,23 @@ export function WeddingPartySection({
               </div>
             </div>
 
-            {/* Others (flower girl, ring bearer, etc.) */}
+            {/* Others — regular members not placed on either side */}
             {others.length > 0 && (
+              <div>
+                <h3
+                  className="mb-6 text-center text-lg font-medium"
+                  style={{ color: primaryColor }}
+                >
+                  Others
+                </h3>
+                <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4">
+                  {others.map(renderMember)}
+                </div>
+              </div>
+            )}
+
+            {/* Special Roles — only actual special-keyword matches */}
+            {specialMembers.length > 0 && (
               <div>
                 <h3
                   className="mb-6 text-center text-lg font-medium"
@@ -163,7 +170,7 @@ export function WeddingPartySection({
                   Special Roles
                 </h3>
                 <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4">
-                  {others.map(renderMember)}
+                  {specialMembers.map(renderMember)}
                 </div>
               </div>
             )}

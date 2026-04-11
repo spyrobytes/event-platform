@@ -16,6 +16,7 @@ import type { SectionRendererProps } from "../../types";
 import type { WeddingPartySection } from "@/schemas/event-page";
 import type { PartySide } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
+import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 import styles from "./ScrapbookWeddingParty.module.css";
 
 // Same rotation set as ScrapbookCollage gallery for visual cohesion
@@ -28,19 +29,6 @@ type PartyMember = {
   imageAssetId?: string;
   side?: PartySide;
 };
-
-const SPECIAL_ROLE_KEYWORDS = [
-  "flower girl",
-  "ring bearer",
-  "page boy",
-  "junior bridesmaid",
-  "junior groomsman",
-];
-
-function isSpecialRole(role: string): boolean {
-  const lower = role.toLowerCase();
-  return SPECIAL_ROLE_KEYWORDS.some((kw) => lower.includes(kw));
-}
 
 function getAssetUrl(assetId: string | undefined, assets: MediaAsset[]): string | null {
   if (!assetId) return null;
@@ -181,14 +169,14 @@ export function ScrapbookWeddingParty({
   const kickerText = "Wedding Party";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  // Partition members: special roles auto-detected, rest by side
+  // Partition members: special roles first, then bride/groom based on
+  // explicit `side` with role-keyword inference as the fallback.
   const specialMembers = members.filter((m) => isSpecialRole(m.role));
   const regularMembers = members.filter((m) => !isSpecialRole(m.role));
-  const bridesSide = regularMembers.filter((m) => m.side === "bride");
-  const groomsSide = regularMembers.filter((m) => m.side === "groom");
-  const others = regularMembers.filter((m) => !m.side || m.side === "other");
+  const bridesSide = regularMembers.filter((m) => getEffectiveSide(m) === "bride");
+  const groomsSide = regularMembers.filter((m) => getEffectiveSide(m) === "groom");
+  const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
   const hasSides = bridesSide.length > 0 || groomsSide.length > 0;
-  const othersLabel = specialMembers.length > 0 ? "Others" : "Special Roles";
 
   const renderDivider = (label: string) => (
     <div className={styles.divider}>
@@ -258,7 +246,7 @@ export function ScrapbookWeddingParty({
         {/* Others (when sides exist) */}
         {hasSides && others.length > 0 && (
           <div className={styles.groupSpaced}>
-            {renderDivider(othersLabel)}
+            {renderDivider("Others")}
             <div className={styles.grid}>
               {renderCards(others, runningOffset)}
               {void (runningOffset += others.length)}
