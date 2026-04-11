@@ -41,8 +41,8 @@ export function SpeakersEditor({
   onChange,
   maxSpeakers = 12,
 }: SpeakersEditorProps) {
-  // Filter to speaker assets
-  const speakerAssets = assets.filter((a) => a.kind === "SPEAKER");
+  // Filter to gallery assets (Media Library is shared; see RegistryEditor for the same pattern)
+  const speakerAssets = assets.filter((a) => a.kind === "GALLERY");
 
   const updateField = useCallback(
     <K extends keyof SpeakersSection["data"]>(field: K, value: SpeakersSection["data"][K]) => {
@@ -250,7 +250,7 @@ export function SpeakersEditor({
                   <Label>Photo <span className="text-muted-foreground">(optional)</span></Label>
                   {speakerAssets.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No speaker photos uploaded. Upload images in the media section with type &quot;Speaker&quot;.
+                      No images in your Media Library yet. Upload images in the Media Library below.
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
@@ -266,27 +266,52 @@ export function SpeakersEditor({
                       >
                         None
                       </button>
-                      {speakerAssets.map((asset) => (
-                        <button
-                          key={asset.id}
-                          type="button"
-                          onClick={() => updateSpeaker(index, { imageAssetId: asset.id })}
-                          className={cn(
-                            "relative h-16 w-16 overflow-hidden rounded-lg border-2",
-                            speaker.imageAssetId === asset.id
-                              ? "border-primary"
-                              : "border-muted hover:border-muted-foreground"
-                          )}
-                        >
-                          {asset.publicUrl && (
-                            <img
-                              src={asset.publicUrl}
-                              alt={asset.alt || "Speaker photo"}
-                              className="h-full w-full object-cover"
-                            />
-                          )}
-                        </button>
-                      ))}
+                      {speakerAssets.map((asset) => {
+                        const isSelected = speaker.imageAssetId === asset.id;
+                        return (
+                          <button
+                            key={asset.id}
+                            type="button"
+                            onClick={() => updateSpeaker(index, { imageAssetId: asset.id })}
+                            aria-pressed={isSelected}
+                            title={asset.alt || "Select photo"}
+                            className={cn(
+                              "relative h-16 w-16 overflow-hidden rounded-lg border-2 transition-all",
+                              isSelected
+                                ? "border-primary ring-2 ring-primary/30"
+                                : "border-muted hover:border-muted-foreground"
+                            )}
+                          >
+                            {asset.publicUrl && (
+                              <img
+                                src={asset.publicUrl}
+                                alt={asset.alt || "Speaker photo"}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                            {isSelected && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                              >
+                                <svg
+                                  className="h-3 w-3"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={3}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

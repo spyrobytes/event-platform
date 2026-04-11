@@ -43,8 +43,8 @@ export function SponsorsEditor({
   onChange,
   maxSponsors = 20,
 }: SponsorsEditorProps) {
-  // Filter to sponsor/logo assets
-  const sponsorAssets = assets.filter((a) => a.kind === "SPONSOR");
+  // Filter to gallery assets (Media Library is shared; see RegistryEditor for the same pattern)
+  const sponsorAssets = assets.filter((a) => a.kind === "GALLERY");
 
   const updateField = useCallback(
     <K extends keyof SponsorsSection["data"]>(field: K, value: SponsorsSection["data"][K]) => {
@@ -264,7 +264,7 @@ export function SponsorsEditor({
                   <Label>Logo <span className="text-muted-foreground">(optional)</span></Label>
                   {sponsorAssets.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No sponsor logos uploaded. Upload images in the media section with type &quot;Sponsor&quot;.
+                      No images in your Media Library yet. Upload images in the Media Library below.
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
@@ -280,27 +280,52 @@ export function SponsorsEditor({
                       >
                         None
                       </button>
-                      {sponsorAssets.map((asset) => (
-                        <button
-                          key={asset.id}
-                          type="button"
-                          onClick={() => updateSponsor(index, { logoAssetId: asset.id })}
-                          className={cn(
-                            "relative h-16 w-24 overflow-hidden rounded-lg border-2 bg-white p-1",
-                            sponsor.logoAssetId === asset.id
-                              ? "border-primary"
-                              : "border-muted hover:border-muted-foreground"
-                          )}
-                        >
-                          {asset.publicUrl && (
-                            <img
-                              src={asset.publicUrl}
-                              alt={asset.alt || "Sponsor logo"}
-                              className="h-full w-full object-contain p-1"
-                            />
-                          )}
-                        </button>
-                      ))}
+                      {sponsorAssets.map((asset) => {
+                        const isSelected = sponsor.logoAssetId === asset.id;
+                        return (
+                          <button
+                            key={asset.id}
+                            type="button"
+                            onClick={() => updateSponsor(index, { logoAssetId: asset.id })}
+                            aria-pressed={isSelected}
+                            title={asset.alt || "Select logo"}
+                            className={cn(
+                              "relative h-16 w-24 overflow-hidden rounded-lg border-2 bg-white p-1 transition-all",
+                              isSelected
+                                ? "border-primary ring-2 ring-primary/30"
+                                : "border-muted hover:border-muted-foreground"
+                            )}
+                          >
+                            {asset.publicUrl && (
+                              <img
+                                src={asset.publicUrl}
+                                alt={asset.alt || "Sponsor logo"}
+                                className="h-full w-full object-contain p-1"
+                              />
+                            )}
+                            {isSelected && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                              >
+                                <svg
+                                  className="h-3 w-3"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={3}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
