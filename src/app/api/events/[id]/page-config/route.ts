@@ -57,6 +57,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           select: {
             id: true,
             kind: true,
+            tags: true,
             publicUrl: true,
             width: true,
             height: true,

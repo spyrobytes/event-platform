@@ -12,10 +12,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import {
+  MEDIA_TAGS,
+  MEDIA_TAG_LABELS,
+  MEDIA_TAG_HINTS,
+  type MediaTag,
+} from "@/lib/media-tags";
 
 type Asset = {
   id: string;
   kind: string;
+  tags: string[];
   publicUrl: string | null;
   width: number | null;
   height: number | null;
@@ -27,6 +34,7 @@ type MediaUploadCardProps = {
   assets: Asset[];
   onAssetUploaded: (newAsset: Asset) => void;
   onAssetDeleted: (assetId: string) => void;
+  onAssetUpdated?: (updatedAsset: Asset) => void;
   getIdToken: () => Promise<string | null>;
   maxAssets?: number;
 };
@@ -39,20 +47,88 @@ export function MediaUploadCard({
   assets,
   onAssetUploaded,
   onAssetDeleted,
+  onAssetUpdated,
   getIdToken,
   maxAssets = 20,
 }: MediaUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedKind, setSelectedKind] = useState<"HERO" | "GALLERY">("HERO");
+  const [selectedTags, setSelectedTags] = useState<MediaTag[]>(["gallery"]);
   const [altText, setAltText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [editingTags, setEditingTags] = useState<MediaTag[]>([]);
+  const [savingEdit, setSavingEdit] = useState(false);
 
-  const heroAssets = assets.filter((a) => a.kind === "HERO");
-  const galleryAssets = assets.filter((a) => a.kind === "GALLERY");
+  // Grid grouping uses tags, not kind. Hero = tagged "hero"; gallery = everything else.
+  const heroAssets = assets.filter((a) => a.tags.includes("hero"));
+  const galleryAssets = assets.filter((a) => !a.tags.includes("hero"));
   const isAtMaxAssets = assets.length >= maxAssets;
+
+  const toggleSelectedTag = useCallback((tag: MediaTag) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }, []);
+
+  const toggleEditingTag = useCallback((tag: MediaTag) => {
+    setEditingTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  }, []);
+
+  const startEditingAsset = useCallback((asset: Asset) => {
+    setEditingAssetId(asset.id);
+    // Pre-select tags that are valid MediaTag values. Unknown tags (shouldn't happen) are dropped.
+    setEditingTags(asset.tags.filter((t): t is MediaTag => (MEDIA_TAGS as readonly string[]).includes(t)));
+  }, []);
+
+  const cancelEditingAsset = useCallback(() => {
+    setEditingAssetId(null);
+    setEditingTags([]);
+  }, []);
+
+  const handleSaveTags = useCallback(async () => {
+    if (!editingAssetId || editingTags.length === 0) {
+      setError("Select at least one tag.");
+      return;
+    }
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch(`/api/events/${eventId}/media`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ assetId: editingAssetId, tags: editingTags }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update tags");
+
+      onAssetUpdated?.({
+        id: data.data.id,
+        kind: data.data.kind,
+        tags: data.data.tags,
+        publicUrl: data.data.publicUrl,
+        width: data.data.width,
+        height: data.data.height,
+        alt: data.data.alt,
+      });
+      setEditingAssetId(null);
+      setEditingTags([]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update tags");
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [editingAssetId, editingTags, eventId, getIdToken, onAssetUpdated]);
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -93,6 +169,10 @@ export function MediaUploadCard({
       setError("Please provide alt text for accessibility.");
       return;
     }
+    if (selectedTags.length === 0) {
+      setError("Select at least one tag so the image can be used somewhere.");
+      return;
+    }
 
     setError(null);
     setUploading(true);
@@ -106,7 +186,7 @@ export function MediaUploadCard({
 
       const formData = new FormData();
       formData.append("file", selectedFile);
-      formData.append("kind", selectedKind);
+      formData.append("tags", JSON.stringify(selectedTags));
       formData.append("alt", altText.trim());
 
       const response = await fetch(`/api/events/${eventId}/media`, {
@@ -121,10 +201,11 @@ export function MediaUploadCard({
         throw new Error(data.error || "Failed to upload image");
       }
 
-      // API returns { data: { id, publicUrl, width, height, kind } }
+      // API returns { data: { id, publicUrl, width, height, kind, tags } }
       const newAsset: Asset = {
         id: data.data.id,
         kind: data.data.kind,
+        tags: data.data.tags ?? [],
         publicUrl: data.data.publicUrl,
         width: data.data.width,
         height: data.data.height,
@@ -144,7 +225,7 @@ export function MediaUploadCard({
     } finally {
       setUploading(false);
     }
-  }, [selectedFile, altText, selectedKind, eventId, getIdToken, onAssetUploaded]);
+  }, [selectedFile, altText, selectedTags, eventId, getIdToken, onAssetUploaded]);
 
   const handleDelete = useCallback(
     async (assetId: string) => {
@@ -209,19 +290,38 @@ export function MediaUploadCard({
         <div className="space-y-4 rounded-lg border p-4">
           <h4 className="text-sm font-medium">Upload New Image</h4>
 
-          {/* Image type selection */}
+          {/* Tag selection — one image can carry multiple roles */}
           <div className="space-y-2">
-            <Label htmlFor="imageKind">Image Type</Label>
-            <select
-              id="imageKind"
-              value={selectedKind}
-              onChange={(e) => setSelectedKind(e.target.value as "HERO" | "GALLERY")}
-              disabled={uploading || isAtMaxAssets}
-              className="flex h-10 w-full max-w-xs rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="HERO">Hero Image (background for hero section)</option>
-              <option value="GALLERY">Gallery Image (for photo gallery)</option>
-            </select>
+            <Label>
+              Tags <span className="text-destructive">*</span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Choose where this image can be used. You can select more than one.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {MEDIA_TAGS.map((tag) => {
+                const active = selectedTags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleSelectedTag(tag)}
+                    disabled={uploading || isAtMaxAssets}
+                    aria-pressed={active}
+                    title={MEDIA_TAG_HINTS[tag]}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-input bg-background hover:bg-muted",
+                      (uploading || isAtMaxAssets) && "cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    {MEDIA_TAG_LABELS[tag]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Alt text */}
@@ -279,37 +379,20 @@ export function MediaUploadCard({
             <h4 className="text-sm font-medium">Hero Images ({heroAssets.length})</h4>
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
               {heroAssets.map((asset) => (
-                <div
+                <AssetThumbnail
                   key={asset.id}
-                  className="group relative aspect-video overflow-hidden rounded-lg border bg-muted"
-                >
-                  {asset.publicUrl && (
-                    <img
-                      src={asset.publicUrl}
-                      alt={asset.alt || "Hero image"}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                  {/* Delete button overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(asset.id)}
-                      disabled={deleting === asset.id}
-                      className={cn(
-                        "rounded-full bg-red-500 p-2 text-white opacity-0 transition-all hover:bg-red-600 group-hover:opacity-100",
-                        deleting === asset.id && "cursor-wait opacity-100"
-                      )}
-                      aria-label={`Delete ${asset.alt || "hero image"}`}
-                    >
-                      {deleting === asset.id ? (
-                        <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        <span className="text-lg leading-none">&times;</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  asset={asset}
+                  aspect="video"
+                  deleting={deleting === asset.id}
+                  editingOpen={editingAssetId === asset.id}
+                  editingTags={editingTags}
+                  savingEdit={savingEdit}
+                  onDelete={() => handleDelete(asset.id)}
+                  onStartEdit={() => startEditingAsset(asset)}
+                  onCancelEdit={cancelEditingAsset}
+                  onToggleTag={toggleEditingTag}
+                  onSaveTags={handleSaveTags}
+                />
               ))}
             </div>
           </div>
@@ -321,37 +404,20 @@ export function MediaUploadCard({
             <h4 className="text-sm font-medium">Gallery Images ({galleryAssets.length})</h4>
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
               {galleryAssets.map((asset) => (
-                <div
+                <AssetThumbnail
                   key={asset.id}
-                  className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
-                >
-                  {asset.publicUrl && (
-                    <img
-                      src={asset.publicUrl}
-                      alt={asset.alt || "Gallery image"}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                  {/* Delete button overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(asset.id)}
-                      disabled={deleting === asset.id}
-                      className={cn(
-                        "rounded-full bg-red-500 p-2 text-white opacity-0 transition-all hover:bg-red-600 group-hover:opacity-100",
-                        deleting === asset.id && "cursor-wait opacity-100"
-                      )}
-                      aria-label={`Delete ${asset.alt || "gallery image"}`}
-                    >
-                      {deleting === asset.id ? (
-                        <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      ) : (
-                        <span className="text-lg leading-none">&times;</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  asset={asset}
+                  aspect="square"
+                  deleting={deleting === asset.id}
+                  editingOpen={editingAssetId === asset.id}
+                  editingTags={editingTags}
+                  savingEdit={savingEdit}
+                  onDelete={() => handleDelete(asset.id)}
+                  onStartEdit={() => startEditingAsset(asset)}
+                  onCancelEdit={cancelEditingAsset}
+                  onToggleTag={toggleEditingTag}
+                  onSaveTags={handleSaveTags}
+                />
               ))}
             </div>
           </div>
@@ -370,5 +436,141 @@ export function MediaUploadCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+type AssetThumbnailProps = {
+  asset: Asset;
+  aspect: "video" | "square";
+  deleting: boolean;
+  editingOpen: boolean;
+  editingTags: MediaTag[];
+  savingEdit: boolean;
+  onDelete: () => void;
+  onStartEdit: () => void;
+  onCancelEdit: () => void;
+  onToggleTag: (tag: MediaTag) => void;
+  onSaveTags: () => void;
+};
+
+function AssetThumbnail({
+  asset,
+  aspect,
+  deleting,
+  editingOpen,
+  editingTags,
+  savingEdit,
+  onDelete,
+  onStartEdit,
+  onCancelEdit,
+  onToggleTag,
+  onSaveTags,
+}: AssetThumbnailProps) {
+  return (
+    <div className="space-y-1.5">
+      <div
+        className={cn(
+          "group relative overflow-hidden rounded-lg border bg-muted",
+          aspect === "video" ? "aspect-video" : "aspect-square"
+        )}
+      >
+        {asset.publicUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={asset.publicUrl}
+            alt={asset.alt || "Media asset"}
+            className="h-full w-full object-cover"
+          />
+        )}
+
+        {/* Hover action bar */}
+        <div className="absolute inset-0 flex items-end justify-between gap-1 bg-gradient-to-t from-black/70 via-black/10 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            onClick={onStartEdit}
+            className="rounded-md bg-white/90 px-2 py-1 text-xs font-medium text-black shadow-sm hover:bg-white"
+            aria-label={`Edit tags for ${asset.alt || "image"}`}
+          >
+            Edit tags
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className={cn(
+              "rounded-full bg-red-500 p-1.5 text-white transition-colors hover:bg-red-600",
+              deleting && "cursor-wait"
+            )}
+            aria-label={`Delete ${asset.alt || "image"}`}
+          >
+            {deleting ? (
+              <span className="block h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <span className="block h-3 w-3 text-sm leading-none">&times;</span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Tag badges */}
+      {!editingOpen && asset.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {asset.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+            >
+              {(MEDIA_TAG_LABELS as Record<string, string>)[tag] ?? tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Inline tag editor */}
+      {editingOpen && (
+        <div className="space-y-2 rounded-md border bg-card p-2">
+          <div className="flex flex-wrap gap-1">
+            {MEDIA_TAGS.map((tag) => {
+              const active = editingTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => onToggleTag(tag)}
+                  disabled={savingEdit}
+                  aria-pressed={active}
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[10px] transition-colors",
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-background hover:bg-muted"
+                  )}
+                >
+                  {MEDIA_TAG_LABELS[tag]}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex justify-end gap-1">
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              disabled={savingEdit}
+              className="rounded-md border border-input bg-background px-2 py-0.5 text-[11px] hover:bg-muted"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSaveTags}
+              disabled={savingEdit || editingTags.length === 0}
+              className="rounded-md bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              {savingEdit ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

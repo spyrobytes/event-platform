@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 type Asset = {
   id: string;
   kind: string;
+  tags: string[];
   publicUrl: string | null;
   width: number | null;
   height: number | null;
@@ -43,8 +44,10 @@ export function SponsorsEditor({
   onChange,
   maxSponsors = 20,
 }: SponsorsEditorProps) {
-  // Filter to gallery assets (Media Library is shared; see RegistryEditor for the same pattern)
-  const sponsorAssets = assets.filter((a) => a.kind === "GALLERY");
+  // Sponsor logos: prefer logo-tagged; fall back to gallery for legacy assets
+  const sponsorAssets = assets.filter((a) =>
+    a.tags.some((t) => t === "logo" || t === "gallery")
+  );
 
   const updateField = useCallback(
     <K extends keyof SponsorsSection["data"]>(field: K, value: SponsorsSection["data"][K]) => {

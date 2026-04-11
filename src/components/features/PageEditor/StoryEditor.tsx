@@ -11,6 +11,7 @@ import type { StorySection, Milestone } from "@/schemas/event-page";
 type Asset = {
   id: string;
   kind: string;
+  tags: string[];
   publicUrl: string | null;
   alt: string;
 };
@@ -27,7 +28,10 @@ type StoryEditorProps = {
  * Allows couples to share how they met
  */
 export function StoryEditor({ data, assets, onChange, templateId }: StoryEditorProps) {
-  const galleryAssets = assets.filter((a) => a.kind === "GALLERY");
+  // Story panels accept story-tagged or gallery-tagged photos
+  const galleryAssets = assets.filter((a) =>
+    a.tags.some((t) => t === "story" || t === "gallery")
+  );
   const isSplitLayout = data.layout === "split";
   const isV2 = templateId === "wedding_v2";
   const isTimelineLayout = data.layout === "timeline";

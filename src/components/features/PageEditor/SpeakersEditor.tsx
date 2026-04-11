@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 type Asset = {
   id: string;
   kind: string;
+  tags: string[];
   publicUrl: string | null;
   width: number | null;
   height: number | null;
@@ -41,8 +42,10 @@ export function SpeakersEditor({
   onChange,
   maxSpeakers = 12,
 }: SpeakersEditorProps) {
-  // Filter to gallery assets (Media Library is shared; see RegistryEditor for the same pattern)
-  const speakerAssets = assets.filter((a) => a.kind === "GALLERY");
+  // Speaker photos: prefer portraits; fall back to gallery for legacy assets
+  const speakerAssets = assets.filter((a) =>
+    a.tags.some((t) => t === "portrait" || t === "gallery")
+  );
 
   const updateField = useCallback(
     <K extends keyof SpeakersSection["data"]>(field: K, value: SpeakersSection["data"][K]) => {

@@ -11,6 +11,7 @@ import type { WeddingPartySection, PartyMember, PartySide } from "@/schemas/even
 type Asset = {
   id: string;
   kind: string;
+  tags: string[];
   publicUrl: string | null;
   alt: string;
 };
@@ -33,7 +34,10 @@ export function WeddingPartyEditor({
   templateId,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
-  const partyAssets = assets.filter((a) => a.kind === "GALLERY");
+  // Party member photos: prefer portraits; fall back to gallery for legacy assets
+  const partyAssets = assets.filter((a) =>
+    a.tags.some((t) => t === "portrait" || t === "gallery")
+  );
   const isV2 = templateId === "wedding_v2";
 
   const addMember = useCallback(() => {

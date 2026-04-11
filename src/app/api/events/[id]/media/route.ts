@@ -11,9 +11,17 @@ import {
   ensureBucket,
 } from "@/lib/supabase-storage";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { MEDIA_TAGS, deriveKindFromTags, type MediaTag } from "@/lib/media-tags";
 
 const deleteAssetSchema = z.object({
   assetId: z.string().min(1),
+});
+
+const tagSchema = z.enum(MEDIA_TAGS);
+
+const patchAssetSchema = z.object({
+  assetId: z.string().min(1),
+  tags: z.array(tagSchema).min(1),
 });
 
 // Rate limit: max uploads per event
@@ -29,7 +37,10 @@ type RouteContext = {
  *
  * Expects multipart/form-data with:
  * - file: The image file
- * - kind: "HERO" | "GALLERY"
+ * - tags: JSON-encoded array of MediaTag values (e.g. ["gallery","portrait"]).
+ *   Optional for backward compatibility — if omitted, derived from `kind`.
+ * - kind: "HERO" | "GALLERY" (legacy; optional if `tags` is provided).
+ *   Used for storage-path routing. Derived from tags if not sent.
  * - alt: Optional alt text
  */
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -62,16 +73,32 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // 4. Parse form data
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const kind = formData.get("kind") as string | null;
+    const rawKind = formData.get("kind") as string | null;
+    const rawTags = formData.get("tags") as string | null;
     const alt = (formData.get("alt") as string) || "";
 
     if (!file) {
       return errorResponse("No file provided", 400);
     }
 
-    if (!kind || !["HERO", "GALLERY"].includes(kind)) {
-      return errorResponse("Invalid asset kind. Must be HERO or GALLERY", 400);
+    // Parse and validate tags. `tags` is the preferred input; `kind` is kept
+    // for backward compatibility and will be derived from tags if not sent.
+    let tags: MediaTag[] = [];
+    if (rawTags) {
+      try {
+        const parsed = JSON.parse(rawTags);
+        tags = z.array(tagSchema).min(1).parse(parsed);
+      } catch {
+        return errorResponse("Invalid tags. Must be a JSON array of known tag names.", 400);
+      }
+    } else if (rawKind && ["HERO", "GALLERY"].includes(rawKind)) {
+      // Backfill from legacy `kind` field
+      tags = [rawKind === "HERO" ? "hero" : "gallery"];
+    } else {
+      return errorResponse("Must provide either `tags` or a valid `kind`", 400);
     }
+
+    const kind = deriveKindFromTags(tags);
 
     // 5. Convert file to buffer and validate
     const arrayBuffer = await file.arrayBuffer();
@@ -115,7 +142,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       data: {
         eventId,
         ownerUserId: user.id,
-        kind: kind as "HERO" | "GALLERY",
+        kind,
+        tags,
         bucket: BUCKETS.eventAssets,
         path: storagePath,
         publicUrl: uploadResult.publicUrl,
@@ -134,6 +162,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         width: asset.width,
         height: asset.height,
         kind: asset.kind,
+        tags: asset.tags,
       },
       201
     );
@@ -163,12 +192,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return errorResponse("Event not found or access denied", 404);
     }
 
-    // 3. Fetch assets
+    // 3. Fetch assets (optionally filtered by tag via ?tag=<name>)
+    const tagFilter = request.nextUrl.searchParams.get("tag");
     const assets = await db.mediaAsset.findMany({
-      where: { eventId },
+      where: {
+        eventId,
+        ...(tagFilter ? { tags: { has: tagFilter } } : {}),
+      },
       select: {
         id: true,
         kind: true,
+        tags: true,
         publicUrl: true,
         width: true,
         height: true,
@@ -181,6 +215,69 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return successResponse({ assets });
   } catch (error) {
     console.error("Media list error:", error);
+    return errorResponse("Internal server error", 500);
+  }
+}
+
+/**
+ * PATCH /api/events/[id]/media
+ * Update tags on an existing asset.
+ * Body: { assetId: string, tags: MediaTag[] }
+ */
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  try {
+    // 1. Authenticate
+    const user = await verifyAuth(request);
+    if (!user) {
+      return errorResponse("Unauthorized", 401);
+    }
+
+    const { id: eventId } = await context.params;
+
+    // 2. Verify user can modify event assets
+    const uploadCheck = await canUploadMedia(eventId, user.id);
+    if (!uploadCheck.allowed) {
+      return errorResponse(uploadCheck.reason || "Not allowed", 403);
+    }
+
+    // 3. Parse and validate body
+    const body = await request.json();
+    const { assetId, tags } = patchAssetSchema.parse(body);
+
+    // 4. Verify asset belongs to this event
+    const existing = await db.mediaAsset.findFirst({
+      where: { id: assetId, eventId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return errorResponse("Asset not found", 404);
+    }
+
+    // 5. Update tags + derive kind from the new tag set so the storage-path
+    //    bucket stays consistent with how the asset is classified.
+    const updated = await db.mediaAsset.update({
+      where: { id: assetId },
+      data: {
+        tags,
+        kind: deriveKindFromTags(tags),
+      },
+      select: {
+        id: true,
+        kind: true,
+        tags: true,
+        publicUrl: true,
+        width: true,
+        height: true,
+        alt: true,
+      },
+    });
+
+    return successResponse(updated);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return errorResponse("Invalid request body", 400);
+    }
+    console.error("Media patch error:", error);
     return errorResponse("Internal server error", 500);
   }
 }

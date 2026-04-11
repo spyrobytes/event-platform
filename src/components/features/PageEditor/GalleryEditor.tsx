@@ -11,6 +11,7 @@ import type { GallerySection } from "@/schemas/event-page";
 type Asset = {
   id: string;
   kind: string;
+  tags: string[];
   publicUrl: string | null;
   width: number | null;
   height: number | null;
@@ -45,8 +46,8 @@ export function GalleryEditor({
 }: GalleryEditorProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
-  // Filter to only gallery assets
-  const galleryAssets = assets.filter((a) => a.kind === "GALLERY");
+  // Filter to only gallery-tagged assets
+  const galleryAssets = assets.filter((a) => a.tags.includes("gallery"));
 
   // Get current items (from new items array or legacy assetIds)
   const currentItems: GalleryItem[] = data.items && data.items.length > 0

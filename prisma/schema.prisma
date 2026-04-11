@@ -14,11 +14,11 @@ datasource db {
 // =============================================================================
 
 model User {
-  id          String   @id @default(cuid())
-  firebaseUid String   @unique @map("firebase_uid")
-  email       String   @unique
+  id          String  @id @default(cuid())
+  firebaseUid String  @unique @map("firebase_uid")
+  email       String  @unique
   name        String?
-  avatarUrl   String?  @map("avatar_url")
+  avatarUrl   String? @map("avatar_url")
 
   // Email verification
   emailVerified         Boolean   @default(false) @map("email_verified")
@@ -74,9 +74,9 @@ enum MemberRole {
 // =============================================================================
 
 model Event {
-  id             String          @id @default(cuid())
-  organizationId String?         @map("organization_id")
-  creatorId      String          @map("creator_id")
+  id             String  @id @default(cuid())
+  organizationId String? @map("organization_id")
+  creatorId      String  @map("creator_id")
 
   title       String
   slug        String  @unique
@@ -101,7 +101,7 @@ model Event {
 
   // RSVP settings
   rsvpDeadline    DateTime? @map("rsvp_deadline")
-  reminderDays    Int?      @map("reminder_days")      // Days after invite to remind
+  reminderDays    Int?      @map("reminder_days") // Days after invite to remind
   reminderEnabled Boolean   @default(false) @map("reminder_enabled")
 
   // Custom page configuration
@@ -118,8 +118,8 @@ model Event {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  creator          User              @relation(fields: [creatorId], references: [id])
+  organization     Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  creator          User               @relation(fields: [creatorId], references: [id])
   invites          Invite[]
   rsvps            RSVP[]
   mediaAssets      MediaAsset[]
@@ -135,9 +135,9 @@ model Event {
 }
 
 enum EventVisibility {
-  PUBLIC   // Listed in discovery, SEO indexed
+  PUBLIC // Listed in discovery, SEO indexed
   UNLISTED // Accessible via direct link only
-  PRIVATE  // Invite-only, requires token
+  PRIVATE // Invite-only, requires token
 }
 
 enum EventStatus {
@@ -184,13 +184,13 @@ model Invite {
 }
 
 enum InviteStatus {
-  PENDING   // Created, not sent
-  SENT      // Email delivered
-  OPENED    // Link clicked
+  PENDING // Created, not sent
+  SENT // Email delivered
+  OPENED // Link clicked
   RESPONDED // RSVP submitted
-  BOUNCED   // Delivery failed
-  EXPIRED   // Past expiry date
-  REVOKED   // Manually revoked by organizer
+  BOUNCED // Delivery failed
+  EXPIRED // Past expiry date
+  REVOKED // Manually revoked by organizer
 }
 
 model RSVP {
@@ -299,6 +299,10 @@ model MediaAsset {
   eventId     String    @map("event_id")
   ownerUserId String    @map("owner_user_id")
   kind        AssetKind
+  // Semantic tags describing how this asset can be used across sections.
+  // See src/lib/media-tags.ts for the vocabulary. Decoupled from `kind`,
+  // which stays as the storage-path bucket ("hero" or "gallery").
+  tags        String[]  @default([])
   bucket      String
   path        String
   publicUrl   String?   @map("public_url")
@@ -313,6 +317,7 @@ model MediaAsset {
 
   @@index([eventId, kind])
   @@index([ownerUserId])
+  @@index([tags], type: Gin)
   @@map("media_assets")
 }
 
@@ -422,10 +427,10 @@ enum TextDirection {
 model AnalyticsEvent {
   id        String   @id @default(cuid())
   eventId   String   @map("event_id")
-  type      String   // page_view, rsvp_form_started, rsvp_form_abandoned, section_viewed
+  type      String // page_view, rsvp_form_started, rsvp_form_abandoned, section_viewed
   sessionId String   @map("session_id") // Anonymous session identifier
   inviteRef String?  @map("invite_ref") // First 16 chars of tokenHash for attribution
-  data      Json?    // Flexible payload (source, field, sectionId, etc.)
+  data      Json? // Flexible payload (source, field, sectionId, etc.)
   timestamp DateTime @default(now())
 
   @@index([eventId, type])

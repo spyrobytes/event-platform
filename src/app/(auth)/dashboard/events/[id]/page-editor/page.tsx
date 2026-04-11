@@ -75,6 +75,7 @@ type PageConfigResponse = {
   assets: Array<{
     id: string;
     kind: string;
+    tags: string[];
     publicUrl: string | null;
     width: number | null;
     height: number | null;
@@ -449,6 +450,7 @@ export default function PageEditorPage() {
     (newAsset: {
       id: string;
       kind: string;
+      tags: string[];
       publicUrl: string | null;
       width: number | null;
       height: number | null;
@@ -459,6 +461,30 @@ export default function PageEditorPage() {
           ? {
               ...prev,
               assets: [...prev.assets, newAsset],
+            }
+          : null
+      );
+    },
+    []
+  );
+
+  const handleAssetUpdated = useCallback(
+    (updatedAsset: {
+      id: string;
+      kind: string;
+      tags: string[];
+      publicUrl: string | null;
+      width: number | null;
+      height: number | null;
+      alt: string;
+    }) => {
+      setPageData((prev) =>
+        prev
+          ? {
+              ...prev,
+              assets: prev.assets.map((a) =>
+                a.id === updatedAsset.id ? updatedAsset : a
+              ),
             }
           : null
       );
@@ -915,7 +941,7 @@ export default function PageEditorPage() {
           <div className="space-y-2">
             <Label>Hero Image</Label>
             <p className="text-xs text-muted-foreground">
-              {pageData?.assets?.filter((a) => a.kind === "HERO").length
+              {pageData?.assets?.filter((a) => a.tags?.includes("hero")).length
                 ? "Click an image to select it as your hero background"
                 : "Upload a hero image in the Media Library below to use it here"}
             </p>
@@ -930,7 +956,7 @@ export default function PageEditorPage() {
                 </p>
               ) : null;
             })()}
-            {pageData?.assets?.filter((a) => a.kind === "HERO").length ? (
+            {pageData?.assets?.filter((a) => a.tags?.includes("hero")).length ? (
               <div className="grid grid-cols-4 gap-2">
                 <button
                   type="button"
@@ -950,7 +976,7 @@ export default function PageEditorPage() {
                   </div>
                 </button>
                 {pageData.assets
-                  .filter((a) => a.kind === "HERO")
+                  .filter((a) => a.tags?.includes("hero"))
                   .map((asset) => (
                     <button
                       key={asset.id}
@@ -997,7 +1023,7 @@ export default function PageEditorPage() {
               <p className="text-xs text-muted-foreground">
                 A portrait photo that floats over the hero background. Works best with a close-up of the couple.
               </p>
-              {pageData?.assets?.filter((a) => a.kind === "HERO").length ? (
+              {pageData?.assets?.filter((a) => a.tags?.includes("hero")).length ? (
                 <div className="flex gap-2 flex-wrap">
                   <button
                     type="button"
@@ -1013,7 +1039,7 @@ export default function PageEditorPage() {
                       <span className="text-[9px]">None</span>
                     </div>
                   </button>
-                  {pageData.assets.filter((a) => a.kind === "HERO").map((asset) => (
+                  {pageData.assets.filter((a) => a.tags?.includes("hero") || a.tags?.includes("portrait")).map((asset) => (
                     <button
                       key={asset.id}
                       type="button"
@@ -1056,6 +1082,7 @@ export default function PageEditorPage() {
         assets={pageData?.assets || []}
         onAssetUploaded={handleAssetUploaded}
         onAssetDeleted={handleAssetDeleted}
+        onAssetUpdated={handleAssetUpdated}
         getIdToken={getIdToken}
       />
 
