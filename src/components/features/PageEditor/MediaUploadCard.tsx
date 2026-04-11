@@ -530,7 +530,7 @@ function AssetThumbnail({
           {asset.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+              className="rounded-full border border-foreground/20 bg-foreground/10 px-2 py-0.5 text-[10px] font-medium text-foreground"
             >
               {(MEDIA_TAG_LABELS as Record<string, string>)[tag] ?? tag}
             </span>
