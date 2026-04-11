@@ -265,29 +265,49 @@ export function WeddingPartyEditor({
                             {member.imageAssetId ? "Clear" : "None"}
                           </div>
                         </button>
-                        {partyAssets.map((asset) => (
-                          <button
-                            key={asset.id}
-                            type="button"
-                            onClick={() =>
-                              updateMember(index, { imageAssetId: asset.id })
-                            }
-                            className={`h-16 w-16 overflow-hidden rounded border-2 transition-all ${
-                              member.imageAssetId === asset.id
-                                ? "border-primary ring-2 ring-primary/20"
-                                : "border-muted hover:border-muted-foreground"
-                            }`}
-                            title={asset.alt || "Select photo"}
-                          >
-                            {asset.publicUrl && (
-                              <img
-                                src={asset.publicUrl}
-                                alt={asset.alt}
-                                className="h-full w-full object-cover"
-                              />
-                            )}
-                          </button>
-                        ))}
+                        {partyAssets.map((asset) => {
+                          const isSelected = member.imageAssetId === asset.id;
+                          return (
+                            <button
+                              key={asset.id}
+                              type="button"
+                              onClick={() =>
+                                updateMember(index, { imageAssetId: asset.id })
+                              }
+                              aria-pressed={isSelected}
+                              className={`relative h-16 w-16 overflow-hidden rounded border-2 transition-all ${
+                                isSelected
+                                  ? "border-primary ring-2 ring-primary/30"
+                                  : "border-muted hover:border-muted-foreground"
+                              }`}
+                              title={asset.alt || "Select photo"}
+                            >
+                              {asset.publicUrl && (
+                                <img
+                                  src={asset.publicUrl}
+                                  alt={asset.alt}
+                                  className="h-full w-full object-cover"
+                                />
+                              )}
+                              {isSelected && (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                                >
+                                  <svg
+                                    className="h-3 w-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={3}
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">

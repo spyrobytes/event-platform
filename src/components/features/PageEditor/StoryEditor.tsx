@@ -166,27 +166,47 @@ export function StoryEditor({ data, assets, onChange, templateId }: StoryEditorP
                   {data.imageAssetId ? "Clear" : "None"}
                 </div>
               </button>
-              {galleryAssets.map((asset) => (
-                <button
-                  key={asset.id}
-                  type="button"
-                  onClick={() => onChange({ ...data, imageAssetId: asset.id })}
-                  className={`h-20 w-20 overflow-hidden rounded border-2 transition-all ${
-                    data.imageAssetId === asset.id
-                      ? "border-primary ring-2 ring-primary/20"
-                      : "border-muted hover:border-muted-foreground"
-                  }`}
-                  title={asset.alt || "Select image"}
-                >
-                  {asset.publicUrl && (
-                    <img
-                      src={asset.publicUrl}
-                      alt={asset.alt}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </button>
-              ))}
+              {galleryAssets.map((asset) => {
+                const isSelected = data.imageAssetId === asset.id;
+                return (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    onClick={() => onChange({ ...data, imageAssetId: asset.id })}
+                    aria-pressed={isSelected}
+                    className={`relative h-20 w-20 overflow-hidden rounded border-2 transition-all ${
+                      isSelected
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-muted hover:border-muted-foreground"
+                    }`}
+                    title={asset.alt || "Select image"}
+                  >
+                    {asset.publicUrl && (
+                      <img
+                        src={asset.publicUrl}
+                        alt={asset.alt}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                    {isSelected && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                      >
+                        <svg
+                          className="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed p-4 text-center">
@@ -333,29 +353,49 @@ export function StoryEditor({ data, assets, onChange, templateId }: StoryEditorP
                               {milestone.imageAssetId ? "Clear" : "None"}
                             </div>
                           </button>
-                          {galleryAssets.map((asset) => (
-                            <button
-                              key={asset.id}
-                              type="button"
-                              onClick={() =>
-                                updateMilestone(index, { imageAssetId: asset.id })
-                              }
-                              className={`h-16 w-16 overflow-hidden rounded border-2 transition-all ${
-                                milestone.imageAssetId === asset.id
-                                  ? "border-primary ring-2 ring-primary/20"
-                                  : "border-muted hover:border-muted-foreground"
-                              }`}
-                              title={asset.alt || "Select image"}
-                            >
-                              {asset.publicUrl && (
-                                <img
-                                  src={asset.publicUrl}
-                                  alt={asset.alt}
-                                  className="h-full w-full object-cover"
-                                />
-                              )}
-                            </button>
-                          ))}
+                          {galleryAssets.map((asset) => {
+                            const isSelected = milestone.imageAssetId === asset.id;
+                            return (
+                              <button
+                                key={asset.id}
+                                type="button"
+                                onClick={() =>
+                                  updateMilestone(index, { imageAssetId: asset.id })
+                                }
+                                aria-pressed={isSelected}
+                                className={`relative h-16 w-16 overflow-hidden rounded border-2 transition-all ${
+                                  isSelected
+                                    ? "border-primary ring-2 ring-primary/30"
+                                    : "border-muted hover:border-muted-foreground"
+                                }`}
+                                title={asset.alt || "Select image"}
+                              >
+                                {asset.publicUrl && (
+                                  <img
+                                    src={asset.publicUrl}
+                                    alt={asset.alt}
+                                    className="h-full w-full object-cover"
+                                  />
+                                )}
+                                {isSelected && (
+                                  <span
+                                    aria-hidden="true"
+                                    className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                                  >
+                                    <svg
+                                      className="h-2.5 w-2.5"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                      strokeWidth={3}
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground">

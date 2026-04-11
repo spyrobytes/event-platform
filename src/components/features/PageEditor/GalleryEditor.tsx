@@ -293,6 +293,15 @@ export function GalleryEditor({
                 <div className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   {index + 1}
                 </div>
+                {/* Selected checkmark badge (matches other section pickers) */}
+                <span
+                  aria-hidden="true"
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
                 {/* Annotation indicator */}
                 {(item.caption || item.title || item.moment) && (
                   <div className="absolute bottom-1 left-1 rounded-full bg-primary/90 p-1 text-primary-foreground">
