@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TemplateSelector, getDefaultTemplateId } from "@/components/features";
+import { CoverImagePicker } from "@/components/features/CoverImagePicker";
 import { createEventSchema, type CreateEventInput, type TemplateId } from "@/schemas/event";
 
 type EventFormMode = "create" | "edit";
@@ -20,6 +21,10 @@ type EventFormProps = {
   onSubmit: (data: CreateEventInput) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
+  /** Event ID — required to enable cover image upload / library in edit mode. */
+  eventId?: string;
+  /** Firebase ID token getter — required to enable cover image upload / library. */
+  getIdToken?: () => Promise<string | null>;
 };
 
 const VISIBILITY_OPTIONS = [
@@ -42,8 +47,8 @@ const COMMON_TIMEZONES = [
   { value: "Australia/Sydney", label: "Sydney (AEST)" },
 ] as const;
 
-function formatDateTimeLocal(date: Date | undefined): string {
-  if (!date) return "";
+function formatDateTimeLocal(date: Date | undefined): string | undefined {
+  if (!date) return undefined;
   return format(date, "yyyy-MM-dd'T'HH:mm");
 }
 
@@ -53,13 +58,15 @@ export function EventForm({
   onSubmit,
   onCancel,
   isLoading = false,
+  eventId,
+  getIdToken,
 }: EventFormProps) {
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema) as never,
     defaultValues: {
@@ -74,17 +81,39 @@ export function EventForm({
       maxAttendees: defaultValues?.maxAttendees,
       coverImageUrl: defaultValues?.coverImageUrl ?? "",
       templateId: defaultValues?.templateId ?? getDefaultTemplateId(),
-      rsvpDeadline: defaultValues?.rsvpDeadline,
       reminderDays: defaultValues?.reminderDays,
       reminderEnabled: defaultValues?.reminderEnabled ?? false,
-      ...defaultValues,
+      // Date fields are stored in RHF state as formatted strings so they
+      // render correctly in <input type="datetime-local">. The setValueAs
+      // option on each register() call coerces them back to Date on submit.
+      // Casts are needed because CreateEventInput types these as Date.
+      startAt: formatDateTimeLocal(defaultValues?.startAt) as unknown as Date,
+      endAt: formatDateTimeLocal(defaultValues?.endAt) as unknown as Date,
+      rsvpDeadline: formatDateTimeLocal(defaultValues?.rsvpDeadline) as unknown as Date,
     },
   });
+
+  // Normalize datetime-local values to `string | undefined` in form state.
+  //
+  // Keeping values as strings (matching the form's string defaults) is critical
+  // for isDirty tracking: RHF applies setValueAs to defaultValues during
+  // register(), so if this function returned a Date, the post-transform form
+  // state would differ from the raw default string and the form would appear
+  // dirty on mount. Strings stay idempotent here; zodResolver's z.coerce.date()
+  // converts to Date at submit time. Empty string -> undefined so optional
+  // cleared fields don't fail z.coerce.date() with Invalid Date.
+  const dateFieldOptions = {
+    setValueAs: (v: unknown): string | undefined => {
+      if (typeof v !== "string" || v === "") return undefined;
+      return v;
+    },
+  };
 
   const visibility = watch("visibility");
   const timezone = watch("timezone");
   const templateId = watch("templateId");
   const reminderEnabled = watch("reminderEnabled");
+  const coverImageUrl = watch("coverImageUrl");
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
@@ -170,13 +199,18 @@ export function EventForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="coverImageUrl">Cover Image URL</Label>
-            <Input
-              id="coverImageUrl"
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              {...register("coverImageUrl")}
-              aria-invalid={!!errors.coverImageUrl}
+            <Label>Cover Image</Label>
+            <CoverImagePicker
+              eventId={eventId}
+              value={coverImageUrl ?? ""}
+              onChange={(url) =>
+                setValue("coverImageUrl", url, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              getIdToken={getIdToken}
+              disabled={isLoading}
             />
             {errors.coverImageUrl && (
               <p className="text-sm text-destructive">{errors.coverImageUrl.message}</p>
@@ -199,8 +233,7 @@ export function EventForm({
               <Input
                 id="startAt"
                 type="datetime-local"
-                defaultValue={formatDateTimeLocal(defaultValues?.startAt)}
-                {...register("startAt")}
+                {...register("startAt", dateFieldOptions)}
                 aria-invalid={!!errors.startAt}
               />
               {errors.startAt && (
@@ -213,8 +246,7 @@ export function EventForm({
               <Input
                 id="endAt"
                 type="datetime-local"
-                defaultValue={formatDateTimeLocal(defaultValues?.endAt)}
-                {...register("endAt")}
+                {...register("endAt", dateFieldOptions)}
                 aria-invalid={!!errors.endAt}
               />
               {errors.endAt && (
@@ -343,8 +375,7 @@ export function EventForm({
             <Input
               id="rsvpDeadline"
               type="datetime-local"
-              defaultValue={formatDateTimeLocal(defaultValues?.rsvpDeadline)}
-              {...register("rsvpDeadline")}
+              {...register("rsvpDeadline", dateFieldOptions)}
               aria-invalid={!!errors.rsvpDeadline}
             />
             <p className="text-sm text-muted-foreground">
@@ -407,7 +438,7 @@ export function EventForm({
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading || (mode === "edit" && !isDirty)}>
           {isLoading
             ? mode === "create"
               ? "Creating..."

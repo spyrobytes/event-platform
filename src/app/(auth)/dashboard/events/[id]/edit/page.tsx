@@ -24,6 +24,9 @@ type EventDetail = {
   status: string;
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   maxAttendees?: number | null;
+  rsvpDeadline?: string | null;
+  reminderDays?: number | null;
+  reminderEnabled?: boolean | null;
 };
 
 export default function EditEventPage() {
@@ -142,6 +145,9 @@ export default function EditEventPage() {
     visibility: event.visibility,
     maxAttendees: event.maxAttendees ?? undefined,
     coverImageUrl: event.coverImageUrl ?? undefined,
+    rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : undefined,
+    reminderDays: event.reminderDays ?? undefined,
+    reminderEnabled: event.reminderEnabled ?? false,
   };
 
   return (
@@ -165,6 +171,8 @@ export default function EditEventPage() {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isLoading={isSubmitting}
+        eventId={event.id}
+        getIdToken={getIdToken}
       />
     </div>
   );
