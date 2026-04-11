@@ -310,13 +310,25 @@ export function MediaUploadCard({
                     aria-pressed={active}
                     title={MEDIA_TAG_HINTS[tag]}
                     className={cn(
-                      "rounded-full border px-3 py-1 text-xs transition-colors",
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
                       active
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input bg-background hover:bg-muted",
+                        ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/30 shadow-sm"
+                        : "border-input bg-background text-muted-foreground hover:border-muted-foreground hover:bg-muted hover:text-foreground",
                       (uploading || isAtMaxAssets) && "cursor-not-allowed opacity-50"
                     )}
                   >
+                    {active && (
+                      <svg
+                        aria-hidden="true"
+                        className="h-3 w-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
                     {MEDIA_TAG_LABELS[tag]}
                   </button>
                 );
@@ -540,12 +552,24 @@ function AssetThumbnail({
                   disabled={savingEdit}
                   aria-pressed={active}
                   className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px] transition-colors",
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-all",
                     active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input bg-background hover:bg-muted"
+                      ? "border-primary bg-primary text-primary-foreground ring-1 ring-primary/30 shadow-sm"
+                      : "border-input bg-background text-muted-foreground hover:border-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
+                  {active && (
+                    <svg
+                      aria-hidden="true"
+                      className="h-2.5 w-2.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                   {MEDIA_TAG_LABELS[tag]}
                 </button>
               );
