@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import {
   MEDIA_TAGS,
@@ -49,7 +50,7 @@ export function MediaUploadCard({
   onAssetDeleted,
   onAssetUpdated,
   getIdToken,
-  maxAssets = 20,
+  maxAssets = 30,
 }: MediaUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTags, setSelectedTags] = useState<MediaTag[]>(["gallery"]);
@@ -61,6 +62,7 @@ export function MediaUploadCard({
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [editingTags, setEditingTags] = useState<MediaTag[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Asset | null>(null);
 
   // Grid grouping uses tags, not kind. Hero = tagged "hero"; gallery = everything else.
   const heroAssets = assets.filter((a) => a.tags.includes("hero"));
@@ -399,7 +401,7 @@ export function MediaUploadCard({
                   editingOpen={editingAssetId === asset.id}
                   editingTags={editingTags}
                   savingEdit={savingEdit}
-                  onDelete={() => handleDelete(asset.id)}
+                  onDelete={() => setDeleteTarget(asset)}
                   onStartEdit={() => startEditingAsset(asset)}
                   onCancelEdit={cancelEditingAsset}
                   onToggleTag={toggleEditingTag}
@@ -424,7 +426,7 @@ export function MediaUploadCard({
                   editingOpen={editingAssetId === asset.id}
                   editingTags={editingTags}
                   savingEdit={savingEdit}
-                  onDelete={() => handleDelete(asset.id)}
+                  onDelete={() => setDeleteTarget(asset)}
                   onStartEdit={() => startEditingAsset(asset)}
                   onCancelEdit={cancelEditingAsset}
                   onToggleTag={toggleEditingTag}
@@ -447,6 +449,24 @@ export function MediaUploadCard({
           </div>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          const target = deleteTarget;
+          setDeleteTarget(null);
+          if (target) handleDelete(target.id);
+        }}
+        title="Delete image?"
+        description={
+          deleteTarget
+            ? `This will permanently remove "${deleteTarget.alt || "this image"}" from your Media Library. Any section that currently uses it will lose the reference. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        variant="destructive"
+      />
     </Card>
   );
 }

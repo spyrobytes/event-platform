@@ -37,6 +37,7 @@ import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
+import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
 import { isAccessibleColor } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
 import type {
@@ -503,30 +504,11 @@ export default function PageEditorPage() {
           : null
       );
 
-      // Clean up config references
-      setConfig((prev) => {
-        if (!prev) return prev;
-        const updatedHero =
-          prev.hero.heroImageAssetId === assetId
-            ? { ...prev.hero, heroImageAssetId: undefined }
-            : prev.hero;
-        const updatedSections = prev.sections.map((section) => {
-          if (section.type === "gallery") {
-            const newAssetIds = (section.data.assetIds || []).filter((id) => id !== assetId);
-            const newItems = (section.data.items || []).filter((item) => item.assetId !== assetId);
-            return {
-              ...section,
-              data: {
-                ...section.data,
-                assetIds: newAssetIds,
-                items: newItems,
-              },
-            };
-          }
-          return section;
-        });
-        return { ...prev, hero: updatedHero, sections: updatedSections };
-      });
+      // Clean up every reference to this asset across the config. The server
+      // does the same cleanup transactionally in DELETE /api/events/[id]/media,
+      // so this is purely for instant visual feedback — after the next fetch
+      // the two states are guaranteed to agree.
+      setConfig((prev) => (prev ? stripAssetRefsFromConfig(prev, assetId) : prev));
       setHasChanges(true);
     },
     []
@@ -1039,34 +1021,41 @@ export default function PageEditorPage() {
                       <span className="text-[9px]">None</span>
                     </div>
                   </button>
-                  {pageData.assets.filter((a) => a.tags?.includes("hero") || a.tags?.includes("portrait")).map((asset) => (
-                    <button
-                      key={asset.id}
-                      type="button"
-                      onClick={() => updateHero({ couplePhotoAssetId: asset.id })}
-                      className={`group relative h-16 w-16 overflow-hidden rounded-full border-2 transition-all ${
-                        config.hero.couplePhotoAssetId === asset.id
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-muted hover:border-muted-foreground"
-                      }`}
-                      title={asset.alt || "Select as couple photo"}
-                    >
-                      {asset.publicUrl && (
-                        <img
-                          src={asset.publicUrl}
-                          alt={asset.alt || ""}
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                      {config.hero.couplePhotoAssetId === asset.id && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-primary/30">
-                          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {pageData.assets.filter((a) => a.tags?.includes("hero") || a.tags?.includes("portrait")).map((asset) => {
+                    const isSelected = config.hero.couplePhotoAssetId === asset.id;
+                    return (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        onClick={() => updateHero({ couplePhotoAssetId: asset.id })}
+                        aria-pressed={isSelected}
+                        className={`group relative h-16 w-16 overflow-hidden rounded-full border-2 transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/30"
+                            : "border-muted hover:border-muted-foreground"
+                        }`}
+                        title={asset.alt || "Select as couple photo"}
+                      >
+                        {asset.publicUrl && (
+                          <img
+                            src={asset.publicUrl}
+                            alt={asset.alt || ""}
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                        {isSelected && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground italic">Upload hero images first to select a couple photo</p>

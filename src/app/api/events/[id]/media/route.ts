@@ -12,6 +12,8 @@ import {
 } from "@/lib/supabase-storage";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { MEDIA_TAGS, deriveKindFromTags, type MediaTag } from "@/lib/media-tags";
+import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
+import { validateAndMigrate } from "@/lib/config-migrations";
 
 const deleteAssetSchema = z.object({
   assetId: z.string().min(1),
@@ -25,7 +27,7 @@ const patchAssetSchema = z.object({
 });
 
 // Rate limit: max uploads per event
-const MAX_ASSETS_PER_EVENT = 20;
+const MAX_ASSETS_PER_EVENT = 30;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -319,15 +321,40 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return errorResponse("Asset not found", 404);
     }
 
-    // 5. Delete from storage (best effort - don't fail if storage delete fails)
+    // 5. Transactionally: strip references from the event's pageConfig, then
+    //    delete the asset row. This guarantees the DB never ends up with a
+    //    deleted asset still referenced from pageConfig, regardless of what
+    //    the client does afterward.
+    await db.$transaction(async (tx) => {
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { pageConfig: true },
+      });
+
+      if (event?.pageConfig) {
+        try {
+          const currentConfig = validateAndMigrate(event.pageConfig);
+          const cleanedConfig = stripAssetRefsFromConfig(currentConfig, assetId);
+          await tx.event.update({
+            where: { id: eventId },
+            data: { pageConfig: cleanedConfig },
+          });
+        } catch (err) {
+          // If the existing config is malformed, don't block the delete.
+          // The asset row still goes away; a subsequent page-config load
+          // will reconstitute from defaults.
+          console.error("pageConfig cleanup skipped (invalid config):", err);
+        }
+      }
+
+      await tx.mediaAsset.delete({ where: { id: assetId } });
+    });
+
+    // 6. Delete from storage (best effort — outside the transaction because
+    //    it's a separate system and failure shouldn't roll back the DB work).
     const { deleteFile } = await import("@/lib/supabase-storage");
     await deleteFile(asset.bucket, asset.path).catch((err) => {
       console.error("Failed to delete file from storage:", err);
-    });
-
-    // 6. Delete database record
-    await db.mediaAsset.delete({
-      where: { id: assetId },
     });
 
     return successResponse({ deleted: true });
