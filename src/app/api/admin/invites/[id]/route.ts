@@ -8,11 +8,12 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 const updateSchema = z.object({
   status: z.enum(["REVOKED"]).optional(),
+  extendDays: z.number().int().min(1).max(365).optional(),
 });
 
 /**
  * PATCH /api/admin/invites/[id]
- * Update an invite (currently: revoke only).
+ * Update an invite: revoke or extend expiry.
  */
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
@@ -37,6 +38,21 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         where: { id },
         data: { status: "REVOKED" },
       });
+      return successResponse({ invite: updated });
+    }
+
+    if (result.data.extendDays) {
+      const baseDate = invite.expiresAt && invite.expiresAt > new Date()
+        ? invite.expiresAt
+        : new Date();
+      const newExpiry = new Date(baseDate.getTime() + result.data.extendDays * 24 * 60 * 60 * 1000);
+
+      const data: { expiresAt: Date; status?: "PENDING" | "SENT" | "CLAIMED" } = { expiresAt: newExpiry };
+      if (invite.status === "EXPIRED") {
+        data.status = invite.claimedById ? "CLAIMED" : "PENDING";
+      }
+
+      const updated = await db.launchInvite.update({ where: { id }, data });
       return successResponse({ invite: updated });
     }
 

@@ -35,7 +35,7 @@ export default function AdminInvitesPage() {
   const [generating, setGenerating] = useState(false);
   const [genCount, setGenCount] = useState(1);
   const [genEmail, setGenEmail] = useState("");
-  const [genExpiry, setGenExpiry] = useState(30);
+  const [genExpiry, setGenExpiry] = useState(180);
   const [copied, setCopied] = useState<string | null>(null);
 
   const fetchInvites = useCallback(async () => {
@@ -95,6 +95,28 @@ export default function AdminInvitesPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status: "REVOKED" }),
+      });
+      await fetchInvites();
+    } catch {
+      // silent
+    }
+  };
+
+  const handleExtend = async (id: string) => {
+    const input = prompt("Extend by how many days?", "90");
+    if (!input) return;
+    const days = parseInt(input, 10);
+    if (isNaN(days) || days < 1) return;
+
+    try {
+      const token = await getIdToken();
+      await fetch(`/api/admin/invites/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ extendDays: days }),
       });
       await fetchInvites();
     } catch {
@@ -262,6 +284,16 @@ export default function AdminInvitesPage() {
                           >
                             Link
                           </Button>
+                          {invite.expiresAt && invite.status !== "REVOKED" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleExtend(invite.id)}
+                              className="h-7 text-xs"
+                            >
+                              Extend
+                            </Button>
+                          )}
                           {(invite.status === "PENDING" || invite.status === "SENT") && (
                             <Button
                               variant="ghost"
