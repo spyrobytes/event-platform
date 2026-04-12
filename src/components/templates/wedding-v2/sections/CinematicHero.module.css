@@ -5,6 +5,8 @@
   display: flex;
   align-items: flex-end;
   overflow: hidden;
+  /* Reserve space for the fixed Topbar so heroTextWithPhoto never tucks behind it */
+  padding-top: var(--topbar-h, 70px);
 }
 
 /* Background image */
