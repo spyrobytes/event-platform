@@ -28,6 +28,8 @@ export const GRAND_LUXE: TemplateDefinition = {
   footerRenderer: "dramatic-dark",
   dividerRenderer: "metallic-line",
 
+  supportsSocialLinks: true,
+
   motionPreset: {
     revealType: "mask-reveal",
     duration: 700,

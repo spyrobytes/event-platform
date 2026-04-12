@@ -373,6 +373,7 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
               coupleNames={hero.coupleNames}
               dateText={dateText}
               sections={navSections}
+              socialLinks={config.socialLinks}
             />
           </article>
 

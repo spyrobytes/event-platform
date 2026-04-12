@@ -32,9 +32,11 @@ import {
   AttireEditor,
   ThingsToDoEditor,
   RegistryEditor,
+  SocialLinksEditor,
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
+import { templateSupportsSocialLinks } from "@/components/templates";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -44,6 +46,7 @@ import type {
   EventPageConfigV1,
   Section,
   ChromeConfig,
+  SocialLink,
 } from "@/schemas/event-page";
 
 const GENERIC_SECTIONS: Section["type"][] = [
@@ -237,6 +240,14 @@ export default function PageEditorPage() {
     setConfig((prev) => {
       if (!prev) return prev;
       return { ...prev, chrome: { ...prev.chrome, ...updates } };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const updateSocialLinks = useCallback((socialLinks: SocialLink[] | undefined) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      return { ...prev, socialLinks };
     });
     setHasChanges(true);
   }, []);
@@ -773,6 +784,25 @@ export default function PageEditorPage() {
           </Card>
         );
       })()}
+
+      {/* Social Links — only for templates that opt in (Premium feature) */}
+      {config && templateSupportsSocialLinks(templateId) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Social Links</CardTitle>
+            <CardDescription>
+              Show icon links to your social profiles in the footer of your
+              wedding page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SocialLinksEditor
+              value={config.socialLinks}
+              onChange={updateSocialLinks}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Theme Section — hidden when a V2 variant is selected (variant controls theme) */}
       {!(templateId === "wedding_v2" && config.variantId) && (

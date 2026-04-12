@@ -45,4 +45,5 @@ export {
   AttireEditor,
   ThingsToDoEditor,
   RegistryEditor,
+  SocialLinksEditor,
 } from "./PageEditor";

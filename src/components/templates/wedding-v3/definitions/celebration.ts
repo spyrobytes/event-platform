@@ -29,6 +29,8 @@ export const CELEBRATION: TemplateDefinition = {
   dividerRenderer: "rhythmic-pattern",
   weddingPartyRenderer: "scrapbook-flip",
 
+  supportsSocialLinks: true,
+
   motionPreset: {
     revealType: "bounce",
     duration: 500,

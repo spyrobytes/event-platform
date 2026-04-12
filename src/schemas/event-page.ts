@@ -535,6 +535,35 @@ export type HeroStyle = z.infer<typeof heroStyleSchema>;
 export type StoryLayout = z.infer<typeof storyLayoutSchema>;
 
 // =============================================================================
+// SOCIAL LINKS (opt-in per template — Premium feature)
+// =============================================================================
+
+export const SOCIAL_PLATFORMS = [
+  "facebook",
+  "instagram",
+  "youtube",
+  "tiktok",
+  "x",
+  "pinterest",
+  "website",
+] as const;
+
+export const socialPlatformSchema = z.enum(SOCIAL_PLATFORMS);
+
+export const socialLinkSchema = z.object({
+  platform: socialPlatformSchema,
+  url: z.string().url("Must be a valid URL"),
+  label: z.string().max(40, "Label must be 40 characters or less").optional(),
+});
+
+export const socialLinksSchema = z
+  .array(socialLinkSchema)
+  .max(8, "Maximum 8 social links allowed");
+
+export type SocialPlatform = z.infer<typeof socialPlatformSchema>;
+export type SocialLink = z.infer<typeof socialLinkSchema>;
+
+// =============================================================================
 // FULL PAGE CONFIG
 // =============================================================================
 
@@ -554,6 +583,8 @@ export const eventPageConfigV1Schema = z.object({
   sections: z.array(sectionSchema).max(12, "Maximum 12 sections allowed"),
   // V2 chrome settings
   chrome: chromeConfigSchema.optional(),
+  // Optional social media links — shown in footer on templates that opt in
+  socialLinks: socialLinksSchema.optional(),
 });
 
 export type EventPageConfigV1 = z.infer<typeof eventPageConfigV1Schema>;

@@ -16,3 +16,4 @@ export { WeddingPartyEditor } from "./WeddingPartyEditor";
 export { AttireEditor } from "./AttireEditor";
 export { ThingsToDoEditor } from "./ThingsToDoEditor";
 export { RegistryEditor } from "./RegistryEditor";
+export { SocialLinksEditor } from "./SocialLinksEditor";

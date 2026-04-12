@@ -8,12 +8,14 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { SocialIconRow } from "../../../shared";
 
 export function FestiveLayeredFooter({
   monogram,
   coupleNames,
   dateText,
   sections,
+  socialLinks,
 }: FooterRendererProps) {
   return (
     <footer
@@ -106,6 +108,15 @@ export function FestiveLayeredFooter({
             ))}
           </nav>
         )}
+
+        <SocialIconRow
+          links={socialLinks}
+          size={20}
+          gap={14}
+          color="var(--text-2, #786f65)"
+          hoverColor="var(--accent, #7a8c72)"
+          style={{ marginBottom: "clamp(20px, 2.5vw, 28px)" }}
+        />
 
         <p style={{ fontFamily: "var(--sans)", fontSize: "0.65rem", color: "var(--text-3, #a69e93)" }}>
           Powered by Events Fixer

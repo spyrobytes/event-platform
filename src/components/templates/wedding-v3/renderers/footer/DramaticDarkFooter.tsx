@@ -8,12 +8,14 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { SocialIconRow } from "../../../shared";
 
 export function DramaticDarkFooter({
   monogram,
   coupleNames,
   dateText,
   sections,
+  socialLinks,
 }: FooterRendererProps) {
   return (
     <footer
@@ -60,6 +62,15 @@ export function DramaticDarkFooter({
             ))}
           </nav>
         )}
+
+        <SocialIconRow
+          links={socialLinks}
+          size={18}
+          gap={12}
+          color="rgba(255,255,255,0.45)"
+          hoverColor="var(--accent, #c5a55a)"
+          style={{ marginBottom: "clamp(20px, 2.5vw, 28px)" }}
+        />
 
         <p style={{ fontFamily: "var(--sans)", fontSize: "0.62rem", color: "rgba(255,255,255,0.2)" }}>
           Powered by Events Fixer

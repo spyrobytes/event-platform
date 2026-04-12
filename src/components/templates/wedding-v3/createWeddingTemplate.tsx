@@ -125,6 +125,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
   function WeddingTemplate({ config, assets, eventId, temporal }: TemplateProps) {
     const { theme, hero, sections } = config;
     const primaryColor = theme.primaryColor;
+    const socialLinks = definition.supportsSocialLinks ? config.socialLinks : undefined;
 
     // Generate tokens from the definition's theme pack
     const cssVars = getV3CSSVariables(defaultThemePack, primaryColor, definition.motionPreset);
@@ -349,6 +350,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 coupleNames={hero.coupleNames}
                 dateText={dateText}
                 sections={navSections}
+                socialLinks={socialLinks}
               />
             </article>
 

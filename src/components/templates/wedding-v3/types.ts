@@ -25,6 +25,7 @@ import type {
   AttireSection,
   ThingsToDoSection,
   RegistrySection,
+  SocialLink,
 } from "@/schemas/event-page";
 import type { V2FontPair, V2PaletteOverrides, V2GlassTokens } from "../wedding-v2/tokens";
 
@@ -230,6 +231,8 @@ export type FooterRendererProps = {
   coupleNames?: string;
   dateText: string;
   sections: { id: string; label: string }[];
+  /** Optional social links — only passed when the definition opts in via supportsSocialLinks */
+  socialLinks?: SocialLink[];
 };
 
 /** Divider props */
@@ -322,4 +325,11 @@ export type TemplateDefinition = {
 
   /** Optional tip shown to organizers about hero image selection */
   heroImageTip?: string;
+
+  /**
+   * Whether this template renders optional social links in its footer.
+   * When true, the factory passes `config.socialLinks` through to the
+   * footer renderer. When false/undefined, the prop is never populated.
+   */
+  supportsSocialLinks?: boolean;
 };

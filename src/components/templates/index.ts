@@ -75,6 +75,21 @@ export const TEMPLATES: Record<string, TemplateComponent> = {
 };
 
 /**
+ * Templates that render optional social media links in their footer.
+ * Capability-flag approach (no billing tier yet) — acts as a Premium gate
+ * during invitation phase; V1 templates are excluded by design.
+ */
+export const TEMPLATES_WITH_SOCIAL_LINKS: ReadonlySet<string> = new Set([
+  "wedding_v2",
+  "wedding_grand_luxe",
+  "wedding_celebration",
+]);
+
+export function templateSupportsSocialLinks(templateId: string): boolean {
+  return TEMPLATES_WITH_SOCIAL_LINKS.has(templateId);
+}
+
+/**
  * Get a template component by ID
  * Returns undefined if template not found
  */

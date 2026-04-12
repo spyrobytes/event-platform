@@ -1,3 +1,6 @@
+import type { SocialLink } from "@/schemas/event-page";
+import { SocialIconRow } from "../shared";
+
 type NavSection = {
   id: string;
   label: string;
@@ -8,6 +11,7 @@ type WeddingV2FooterProps = {
   coupleNames?: string;
   dateText?: string;
   sections?: NavSection[];
+  socialLinks?: SocialLink[];
 };
 
 /**
@@ -21,6 +25,7 @@ export function WeddingV2Footer({
   coupleNames,
   dateText,
   sections = [],
+  socialLinks,
 }: WeddingV2FooterProps) {
   return (
     <footer
@@ -96,6 +101,16 @@ export function WeddingV2Footer({
             {dateText}
           </div>
         )}
+
+        {/* Social links */}
+        <SocialIconRow
+          links={socialLinks}
+          size={20}
+          gap={14}
+          color="var(--text-2, #786f65)"
+          hoverColor="var(--accent, #7a8c72)"
+          style={{ marginBottom: 20 }}
+        />
 
         {/* Footer nav links */}
         {sections.length > 0 && (
