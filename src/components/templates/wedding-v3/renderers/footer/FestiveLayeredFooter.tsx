@@ -18,13 +18,34 @@ export function FestiveLayeredFooter({
   return (
     <footer
       style={{
+        position: "relative",
         background: "var(--cream, #f0ebe3)",
-        padding: "clamp(56px, 7vw, 88px) 0 clamp(24px, 3vw, 40px)",
+        padding: "clamp(140px, 16vw, 220px) 0 clamp(24px, 3vw, 40px)",
         textAlign: "center",
+        overflow: "hidden",
+        isolation: "isolate",
       }}
     >
       <div
+        aria-hidden="true"
         style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "clamp(120px, 14vw, 200px)",
+          backgroundImage: "url(/templates/celebration/footer-triangles.svg)",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "top center",
+          backgroundSize: "100% 100%",
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      />
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
           width: "min(var(--max, 1140px), 100% - 2 * var(--pad, 40px))",
           margin: "0 auto",
         }}

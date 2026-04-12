@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="250" preserveAspectRatio="none" viewBox="0 0 1440 250">
+  <g mask="url(&quot;#a&quot;)" fill="none">
+    <path d="M27 250 277 0h129L156 250zm246.6 0 250-250h264l-250 250z" fill="url(#b)"/>
+    <path d="m486.2 250 250-250h309l-250 250z" fill="url(#b)"/>
+    <path d="m716.8 250 250-250h208.5l-250 250z" fill="url(#b)"/>
+    <path d="M1422 250 1172 0H987.5l250 250zm-236.6 0L935.4 0h-252l250 250z" fill="url(#c)"/>
+    <path d="M934.8 250 684.8 0h-279l250 250z" fill="url(#c)"/>
+    <path d="M709.2 250 459.2 0h-282l250 250z" fill="url(#c)"/>
+    <path d="M1243.282 250 1440 53.282V250z" fill="url(#b)"/>
+    <path d="M0 250h196.718L0 53.282z" fill="url(#c)"/>
+  </g>
+  <defs>
+    <linearGradient x1="0%" y1="100%" x2="100%" y2="0%" id="b">
+      <stop stop-color="#38DDD3" offset="0"/>
+      <stop stop-opacity="0" stop-color="#ce009f)" offset=".66"/>
+    </linearGradient>
+    <linearGradient x1="100%" y1="100%" x2="0%" y2="0%" id="c">
+      <stop stop-color="#ce009f" offset="0"/>
+      <stop stop-opacity="0" stop-color="#38DDD3" offset=".66"/>
+    </linearGradient>
+    <mask id="a">
+      <path fill="#fff" d="M0 0h1440v250H0z"/>
+    </mask>
+  </defs>
+</svg>
