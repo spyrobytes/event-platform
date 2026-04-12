@@ -80,7 +80,7 @@
 }
 .brandDate {
   font-size: var(--sm, 0.85rem);
-  color: var(--text-3, #a69e93);
+  color: var(--text-2, #786f65);
 }
 
 /* Nav links */
