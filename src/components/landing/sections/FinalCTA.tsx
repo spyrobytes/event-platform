@@ -87,7 +87,7 @@ export function FinalCTA() {
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <ButtonLink
-                href="/login"
+                href="/join"
                 variant="secondary"
                 className="px-6 py-3 text-base"
               >

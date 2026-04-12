@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteCode = searchParams.get("invite") || "";
   const { signUp, isAuthenticated, loading: authLoading } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,9 +20,15 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirect to /join if no invite code during invitational phase
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated && !inviteCode) {
+      router.replace("/join");
+    }
+  }, [authLoading, isAuthenticated, inviteCode, router]);
+
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      // Redirect authenticated users to verify-email (AuthGuard will handle further routing)
       router.replace("/verify-email");
     }
   }, [authLoading, isAuthenticated, router]);
@@ -47,6 +55,18 @@ export default function SignupPage() {
 
       // Get token from the returned user (not from hook state which may not be updated yet)
       const token = await firebaseUser.getIdToken();
+
+      // Claim invite code (non-blocking — if it fails the guard will catch it later)
+      if (inviteCode) {
+        await fetch("/api/launch-invites/claim", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ code: inviteCode }),
+        });
+      }
 
       // Send verification email
       await fetch("/api/auth/resend-verification", {

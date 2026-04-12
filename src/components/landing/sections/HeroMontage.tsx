@@ -69,7 +69,7 @@ export function HeroMontage() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <ButtonLink href="/login" variant="primary" ariaLabel="Create your free event">
+            <ButtonLink href="/join" variant="primary" ariaLabel="Create your free event">
               Create Your Free Event
             </ButtonLink>
 

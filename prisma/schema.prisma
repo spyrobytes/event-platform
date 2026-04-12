@@ -26,11 +26,15 @@ model User {
   verificationTokenHash String?   @unique @map("verification_token_hash")
   verificationExpiresAt DateTime? @map("verification_expires_at")
 
+  // Platform admin flag (invitational phase)
+  isAdmin Boolean @default(false) @map("is_admin")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organizations OrganizationMember[]
-  events        Event[]
+  organizations  OrganizationMember[]
+  events         Event[]
+  claimedInvites LaunchInvite[]
 
   @@map("users")
 }
@@ -438,4 +442,46 @@ model AnalyticsEvent {
   @@index([sessionId])
   @@index([inviteRef])
   @@map("analytics_events")
+}
+
+// =============================================================================
+// INVITATIONAL LAUNCH
+// =============================================================================
+
+model LaunchInvite {
+  id            String             @id @default(cuid())
+  code          String             @unique
+  email         String?
+  status        LaunchInviteStatus @default(PENDING)
+  usesRemaining Int                @default(1) @map("uses_remaining")
+  expiresAt     DateTime?          @map("expires_at")
+
+  claimedById String?   @map("claimed_by_id")
+  claimedBy   User?     @relation(fields: [claimedById], references: [id])
+  claimedAt   DateTime? @map("claimed_at")
+
+  sentAt    DateTime? @map("sent_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([code])
+  @@index([email])
+  @@index([status])
+  @@map("launch_invites")
+}
+
+enum LaunchInviteStatus {
+  PENDING
+  SENT
+  CLAIMED
+  REVOKED
+  EXPIRED
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist")
 }

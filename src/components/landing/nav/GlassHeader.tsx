@@ -27,7 +27,7 @@ const DEFAULT_LINKS: NavLink[] = [
 export function GlassHeader({
   brand = { label: "EventFXr", href: "/" },
   links = DEFAULT_LINKS,
-  cta = { label: "Get Started", href: "/login" },
+  cta = { label: "Get Started", href: "/join" },
   scrollThreshold = 32,
 }: GlassHeaderProps) {
   const scrolled = useScrollThreshold(scrollThreshold);
