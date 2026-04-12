@@ -35,6 +35,10 @@ import {
   MapV2,
 } from "./sections";
 
+// V3 scrapbook renderers (used by scrapbook_edition variant)
+import { ScrapbookCollage } from "../wedding-v3/renderers/gallery/ScrapbookCollage";
+import { ScrapbookWeddingParty } from "../wedding-v3/renderers/wedding-party/ScrapbookWeddingParty";
+
 // V2 tokens + variants + footer + global styles
 import { getV2CSSVariables, getV2GlassVariables, getV2FontUrl, v2TokensToInline } from "./tokens";
 import { getV2Variant } from "./variants";
@@ -232,15 +236,23 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
           <TimelineStory data={section.data} assets={assets} />
         ));
 
-      case "gallery":
+      case "gallery": {
+        const GalleryComp = variant?.galleryRenderer === "scrapbook"
+          ? ScrapbookCollage
+          : MasonryGallery;
         return wrapWithChrome(wrapWithAnimation(
-          <MasonryGallery data={section.data} assets={assets} />
+          <GalleryComp data={section.data} assets={assets} />
         ));
+      }
 
-      case "weddingParty":
+      case "weddingParty": {
+        const PartyComp = variant?.weddingPartyRenderer === "scrapbook"
+          ? ScrapbookWeddingParty
+          : WeddingPartyV2;
         return wrapWithChrome(wrapWithAnimation(
-          <WeddingPartyV2 data={section.data} assets={assets} />
+          <PartyComp data={section.data} assets={assets} />
         ));
+      }
 
       case "travelStay":
         return wrapWithChrome(wrapWithAnimation(

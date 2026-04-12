@@ -85,7 +85,7 @@ export function V2VariantPicker({
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {/* "Original" card — resets to no variant (light mode) */}
         <button
           type="button"

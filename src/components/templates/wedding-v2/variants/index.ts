@@ -1,9 +1,10 @@
 import type { V2VariantConfig, V2VariantId } from "./types";
 
-// Active dark skins
+// Active skins
 import { midnightGold } from "./midnight-gold";
 import { emeraldIvory } from "./emerald-ivory";
 import { plumBlush } from "./plum-blush";
+import { scrapbookEdition } from "./scrapbook-edition";
 
 // Legacy variants — kept for backward compatibility with existing events
 import { gardenRomance } from "./garden-romance";
@@ -23,10 +24,11 @@ import { citrusGrove } from "./citrus-grove";
  * continue to render correctly. The picker only shows CURATED_SKINS.
  */
 export const V2_VARIANTS: Record<V2VariantId, V2VariantConfig> = {
-  // Active dark skins
+  // Active skins
   midnight_gold: midnightGold,
   emerald_ivory: emeraldIvory,
   plum_blush: plumBlush,
+  scrapbook_edition: scrapbookEdition,
   // Legacy (still renderable, hidden from picker)
   garden_romance: gardenRomance,
   black_tie: blackTie,
@@ -46,6 +48,7 @@ export const V2_VARIANTS: Record<V2VariantId, V2VariantConfig> = {
  * Legacy variants are not shown for new events.
  */
 export const CURATED_SKINS: V2VariantConfig[] = [
+  scrapbookEdition,
   midnightGold,
   emeraldIvory,
   plumBlush,

@@ -5,6 +5,7 @@ export type V2VariantId =
   | "midnight_gold"
   | "emerald_ivory"
   | "plum_blush"
+  | "scrapbook_edition"
   // Legacy IDs — kept for backward compatibility with existing events
   | "garden_romance"
   | "black_tie"
@@ -17,6 +18,9 @@ export type V2VariantId =
   | "desert_sun"
   | "forest_floor"
   | "citrus_grove";
+
+export type V2GalleryRendererOverride = "default" | "scrapbook";
+export type V2WeddingPartyRendererOverride = "default" | "scrapbook";
 
 export type V2VariantCategory = "classic" | "modern" | "romantic" | "earthy" | "bold";
 
@@ -47,4 +51,8 @@ export type V2VariantConfig = {
   accentSwatches: V2CuratedSwatch[];
   scrollProgressGradient?: string;
   thumbnail?: string;
+  /** Override gallery section renderer (default: V2 MasonryGallery) */
+  galleryRenderer?: V2GalleryRendererOverride;
+  /** Override wedding party section renderer (default: V2 WeddingPartyV2) */
+  weddingPartyRenderer?: V2WeddingPartyRendererOverride;
 };
