@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner } from "@/lib/authorization";
+import { requireEventOwner, assertCanPublish } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { publishEventSchema } from "@/schemas/event";
 import { NotFoundError, ValidationError } from "@/lib/errors";
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(id, user.id);
+    assertCanPublish(user);
 
     // Get current event to validate
     const currentEvent = await db.event.findUnique({

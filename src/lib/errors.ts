@@ -36,9 +36,29 @@ export class UnauthorizedError extends AppError {
  * Forbidden error (403)
  */
 export class ForbiddenError extends AppError {
-  constructor(message: string = "Forbidden") {
-    super(message, "FORBIDDEN", 403);
+  constructor(message: string = "Forbidden", code: string = "FORBIDDEN") {
+    super(message, code, 403);
     this.name = "ForbiddenError";
+  }
+}
+
+/**
+ * Account suspended error (403) — organizer cannot perform mutations
+ */
+export class AccountSuspendedError extends ForbiddenError {
+  constructor(message: string = "Account suspended — contact support") {
+    super(message, "ACCOUNT_SUSPENDED");
+    this.name = "AccountSuspendedError";
+  }
+}
+
+/**
+ * Account under review error (403) — organizer cannot publish or send invites
+ */
+export class AccountUnderReviewError extends ForbiddenError {
+  constructor(message: string = "Account under review — publishing disabled") {
+    super(message, "ACCOUNT_UNDER_REVIEW");
+    this.name = "AccountUnderReviewError";
   }
 }
 

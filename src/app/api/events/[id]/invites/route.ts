@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { format } from "date-fns";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner } from "@/lib/authorization";
+import { requireEventOwner, assertCanPublish } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
@@ -122,6 +122,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(eventId, user.id);
+    assertCanPublish(user);
 
     const body = await request.json();
 

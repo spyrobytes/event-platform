@@ -1,5 +1,36 @@
+import type { User } from "@prisma/client";
 import { db } from "./db";
-import { NotFoundError, ForbiddenError } from "./errors";
+import { NotFoundError, ForbiddenError, AccountSuspendedError, AccountUnderReviewError } from "./errors";
+
+// =============================================================================
+// ORGANIZER STATUS ASSERTIONS
+// =============================================================================
+
+/**
+ * Blocks SUSPENDED users from any mutation (create, edit, delete, upload).
+ * Call in POST/PATCH/DELETE handlers after verifyAuth.
+ * BANNED users never reach this — blocked at verifyAuth (Layer 1).
+ */
+export function assertCanMutate(user: User): void {
+  if (user.status === "SUSPENDED") {
+    throw new AccountSuspendedError();
+  }
+}
+
+/**
+ * Blocks SUSPENDED and UNDER_REVIEW users from publishing events and sending invites.
+ * Stricter than assertCanMutate — use for public-facing actions.
+ */
+export function assertCanPublish(user: User): void {
+  assertCanMutate(user);
+  if (user.status === "UNDER_REVIEW") {
+    throw new AccountUnderReviewError();
+  }
+}
+
+// =============================================================================
+// EVENT & ORGANIZATION OWNERSHIP
+// =============================================================================
 
 /**
  * Checks if the user is the owner of the event or has admin access via organization

@@ -10,7 +10,7 @@ let firebaseApp: App;
 // Check if running with emulator
 const isEmulatorMode = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 
-function getFirebaseAdmin(): App {
+export function getFirebaseAdmin(): App {
   if (firebaseApp) return firebaseApp;
 
   if (getApps().length > 0) {
@@ -118,6 +118,11 @@ export async function verifyAuth(request: NextRequest): Promise<User | null> {
           },
         });
       }
+    }
+
+    // Layer 1: BANNED users are treated as unauthenticated
+    if (user.status === "BANNED") {
+      return null;
     }
 
     return user;

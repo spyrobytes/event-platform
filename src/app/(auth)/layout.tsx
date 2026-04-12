@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { AuthGuard } from "@/components/auth";
@@ -63,11 +63,58 @@ function DashboardNav() {
   );
 }
 
+function StatusBanner() {
+  const { getIdToken, loading, isAuthenticated } = useAuthContext();
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+
+    let cancelled = false;
+    const fetchStatus = async () => {
+      try {
+        const token = await getIdToken();
+        if (!token || cancelled) return;
+        const res = await fetch("/api/launch-invites/invite-status", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok && !cancelled) {
+          const { data } = await res.json();
+          setStatus(data.organizerStatus ?? null);
+        }
+      } catch {
+        // Non-critical — banner just won't show
+      }
+    };
+    fetchStatus();
+    return () => { cancelled = true; };
+  }, [loading, isAuthenticated, getIdToken]);
+
+  if (status === "SUSPENDED") {
+    return (
+      <div className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-sm text-destructive">
+        Your account has been suspended. You have read-only access to your dashboard. Contact support for more information.
+      </div>
+    );
+  }
+
+  if (status === "UNDER_REVIEW") {
+    return (
+      <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-800 dark:text-amber-300">
+        Your account is under review. You can continue creating events, but publishing is temporarily disabled.
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background">
         <DashboardNav />
+        <StatusBanner />
         <main className="container py-6">{children}</main>
       </div>
     </AuthGuard>

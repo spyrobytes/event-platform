@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-auth";
-import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
+import { successResponse, errorResponse, handleApiError, parsePagination } from "@/lib/api-response";
 import { generateInviteCode } from "@/lib/invite-codes";
 
 /**
@@ -14,16 +14,23 @@ export async function GET(request: NextRequest) {
     const adminOrRes = await requireAdmin(request);
     if (adminOrRes instanceof Response) return adminOrRes;
 
-    const invites = await db.launchInvite.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        claimedBy: {
-          select: { id: true, email: true, name: true, createdAt: true },
-        },
-      },
-    });
+    const { skip, take, page, limit } = parsePagination(request);
 
-    return successResponse({ invites });
+    const [invites, total] = await Promise.all([
+      db.launchInvite.findMany({
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+        include: {
+          claimedBy: {
+            select: { id: true, email: true, name: true, createdAt: true },
+          },
+        },
+      }),
+      db.launchInvite.count(),
+    ]);
+
+    return successResponse({ invites, pagination: { page, limit, total } });
   } catch (error) {
     return handleApiError(error);
   }

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-auth";
-import { successResponse, handleApiError } from "@/lib/api-response";
+import { successResponse, handleApiError, parsePagination } from "@/lib/api-response";
 
 /**
  * GET /api/admin/events
@@ -12,22 +12,29 @@ export async function GET(request: NextRequest) {
     const adminOrRes = await requireAdmin(request);
     if (adminOrRes instanceof Response) return adminOrRes;
 
-    const events = await db.event.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        templateId: true,
-        publishedAt: true,
-        startAt: true,
-        createdAt: true,
-        creator: {
-          select: { id: true, email: true, name: true },
+    const { skip, take, page, limit } = parsePagination(request);
+
+    const [events, total] = await Promise.all([
+      db.event.findMany({
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          templateId: true,
+          publishedAt: true,
+          startAt: true,
+          createdAt: true,
+          creator: {
+            select: { id: true, email: true, name: true },
+          },
+          _count: { select: { invites: true } },
         },
-        _count: { select: { invites: true } },
-      },
-    });
+      }),
+      db.event.count(),
+    ]);
 
     const result = events.map((e) => ({
       id: e.id,
@@ -42,7 +49,7 @@ export async function GET(request: NextRequest) {
       createdAt: e.createdAt,
     }));
 
-    return successResponse({ events: result });
+    return successResponse({ events: result, pagination: { page, limit, total } });
   } catch (error) {
     return handleApiError(error);
   }

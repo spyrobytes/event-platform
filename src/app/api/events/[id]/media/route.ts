@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { verifyAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canUploadMedia } from "@/lib/authorization";
+import { canUploadMedia, assertCanMutate } from "@/lib/authorization";
 import { validateUploadedImage, optimizeImage } from "@/lib/media-validation";
 import {
   uploadFile,
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const { id: eventId } = await context.params;
+    assertCanMutate(user);
 
     // 2. Check upload permissions (includes ownership verification)
     const uploadCheck = await canUploadMedia(eventId, user.id);
@@ -235,6 +236,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const { id: eventId } = await context.params;
+    assertCanMutate(user);
 
     // 2. Verify user can modify event assets
     const uploadCheck = await canUploadMedia(eventId, user.id);
@@ -298,6 +300,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     const { id: eventId } = await context.params;
+    assertCanMutate(user);
 
     // 2. Verify user can modify event assets
     const uploadCheck = await canUploadMedia(eventId, user.id);

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
+import { assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createEventSchema, eventQuerySchema } from "@/schemas/event";
 import { generateUniqueSlug } from "@/lib/utils";
@@ -85,6 +86,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
     }
+    assertCanMutate(user);
 
     const body = await request.json();
     const data = createEventSchema.parse(body);

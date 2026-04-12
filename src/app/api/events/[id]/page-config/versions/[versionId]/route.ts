@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { canModifyPageConfig } from "@/lib/authorization";
+import { canModifyPageConfig, assertCanMutate } from "@/lib/authorization";
 import {
   successResponse,
   handleApiError,
@@ -76,6 +76,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { id: eventId, versionId } = await context.params;
 
+    assertCanMutate(user);
     const canModify = await canModifyPageConfig(eventId, user.id);
     if (!canModify) {
       return errorResponse("Event not found or access denied", 403);

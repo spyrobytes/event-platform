@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { verifyEventOwnership, canModifyPageConfig } from "@/lib/authorization";
+import { verifyEventOwnership, canModifyPageConfig, assertCanMutate } from "@/lib/authorization";
 import {
   successResponse,
   handleApiError,
@@ -109,6 +109,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const { id: eventId } = await context.params;
 
+    assertCanMutate(user);
     const canModify = await canModifyPageConfig(eventId, user.id);
     if (!canModify) {
       return errorResponse("Event not found or access denied", 403);
@@ -176,6 +177,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { id: eventId } = await context.params;
 
+    assertCanMutate(user);
     const hasAccess = await verifyEventOwnership(eventId, user.id);
     if (!hasAccess) {
       return errorResponse("Event not found or access denied", 404);

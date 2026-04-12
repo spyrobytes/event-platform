@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // Admins bypass invite check
     if (user.isAdmin) {
-      return successResponse({ hasInvite: true, isAdmin: true });
+      return successResponse({ hasInvite: true, isAdmin: true, organizerStatus: user.status });
     }
 
     const claimedInvite = await db.launchInvite.findFirst({
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     return successResponse({
       hasInvite: !!claimedInvite,
       isAdmin: false,
+      organizerStatus: user.status,
     });
   } catch (error) {
     return handleApiError(error);

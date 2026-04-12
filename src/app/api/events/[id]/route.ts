@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner } from "@/lib/authorization";
+import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { updateEventSchema } from "@/schemas/event";
 import { NotFoundError } from "@/lib/errors";
@@ -69,6 +69,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(id, user.id);
+    assertCanMutate(user);
 
     const body = await request.json();
     const data = updateEventSchema.parse(body);
@@ -116,6 +117,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(id, user.id);
+    assertCanMutate(user);
 
     await db.event.delete({ where: { id } });
 

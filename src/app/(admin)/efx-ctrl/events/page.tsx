@@ -22,9 +22,11 @@ export default function AdminEventsPage() {
   const { getIdToken } = useAuthContext();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
+      setError(null);
       const token = await getIdToken();
       const res = await fetch("/api/admin/events", {
         headers: { Authorization: `Bearer ${token}` },
@@ -32,9 +34,11 @@ export default function AdminEventsPage() {
       if (res.ok) {
         const { data } = await res.json();
         setEvents(data.events);
+      } else {
+        setError("Failed to load events");
       }
     } catch {
-      // silent
+      setError("Failed to load events");
     } finally {
       setLoading(false);
     }
@@ -45,9 +49,10 @@ export default function AdminEventsPage() {
   const handleUnpublish = async (eventId: string) => {
     if (!confirm("Unpublish this event? It will no longer be visible to the public.")) return;
 
+    setError(null);
     try {
       const token = await getIdToken();
-      await fetch(`/api/admin/events/${eventId}`, {
+      const res = await fetch(`/api/admin/events/${eventId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -55,9 +60,14 @@ export default function AdminEventsPage() {
         },
         body: JSON.stringify({ action: "unpublish" }),
       });
-      await fetchEvents();
+      if (res.ok) {
+        await fetchEvents();
+      } else {
+        const body = await res.json().catch(() => null);
+        setError(body?.error || "Failed to unpublish event");
+      }
     } catch {
-      // silent
+      setError("Failed to unpublish event");
     }
   };
 
@@ -76,6 +86,12 @@ export default function AdminEventsPage() {
           {drafts.length} draft{drafts.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       <Card>
         <CardHeader>

@@ -42,6 +42,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     if (result.data.extendDays) {
+      if (invite.status === "REVOKED") {
+        return errorResponse("Cannot extend a revoked invite", 400);
+      }
+
       const baseDate = invite.expiresAt && invite.expiresAt > new Date()
         ? invite.expiresAt
         : new Date();

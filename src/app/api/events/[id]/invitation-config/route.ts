@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner } from "@/lib/authorization";
+import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
 import {
   successResponse,
   handleApiError,
@@ -56,6 +56,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(eventId, user.id);
+    assertCanMutate(user);
 
     // Verify event exists
     const event = await db.event.findUnique({
@@ -133,6 +134,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(eventId, user.id);
+    assertCanMutate(user);
 
     // Check if config exists
     const existing = await db.invitationConfig.findUnique({

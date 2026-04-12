@@ -7,8 +7,7 @@ import { successResponse, errorResponse, handleApiError } from "@/lib/api-respon
 type RouteContext = { params: Promise<{ id: string }> };
 
 const actionSchema = z.object({
-  action: z.enum(["unpublish", "warn"]),
-  reason: z.string().max(500).optional(),
+  action: z.enum(["unpublish"]),
 });
 
 /**
@@ -45,8 +44,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return successResponse({ unpublished: true });
     }
 
-    // "warn" — for now just acknowledge; email integration can be added later
-    return successResponse({ warned: true, reason: result.data.reason });
+    return errorResponse("Unknown action", 400);
   } catch (error) {
     return handleApiError(error);
   }

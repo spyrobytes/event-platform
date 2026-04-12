@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner } from "@/lib/authorization";
+import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { generateUniqueSlug } from "@/lib/utils";
 import { NotFoundError } from "@/lib/errors";
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await requireEventOwner(id, user.id);
+    assertCanMutate(user);
 
     // Fetch the original event
     const originalEvent = await db.event.findUnique({

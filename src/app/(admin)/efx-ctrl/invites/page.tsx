@@ -37,9 +37,11 @@ export default function AdminInvitesPage() {
   const [genEmail, setGenEmail] = useState("");
   const [genExpiry, setGenExpiry] = useState(180);
   const [copied, setCopied] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchInvites = useCallback(async () => {
     try {
+      setError(null);
       const token = await getIdToken();
       const res = await fetch("/api/admin/invites", {
         headers: { Authorization: `Bearer ${token}` },
@@ -47,9 +49,11 @@ export default function AdminInvitesPage() {
       if (res.ok) {
         const { data } = await res.json();
         setInvites(data.invites);
+      } else {
+        setError("Failed to load invites");
       }
     } catch {
-      // silent
+      setError("Failed to load invites");
     } finally {
       setLoading(false);
     }
@@ -59,6 +63,7 @@ export default function AdminInvitesPage() {
 
   const handleGenerate = async () => {
     setGenerating(true);
+    setError(null);
     try {
       const token = await getIdToken();
       const res = await fetch("/api/admin/invites", {
@@ -77,18 +82,22 @@ export default function AdminInvitesPage() {
       if (res.ok) {
         setGenEmail("");
         await fetchInvites();
+      } else {
+        const body = await res.json().catch(() => null);
+        setError(body?.error || "Failed to generate invites");
       }
     } catch {
-      // silent
+      setError("Failed to generate invites");
     } finally {
       setGenerating(false);
     }
   };
 
   const handleRevoke = async (id: string) => {
+    setError(null);
     try {
       const token = await getIdToken();
-      await fetch(`/api/admin/invites/${id}`, {
+      const res = await fetch(`/api/admin/invites/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -96,9 +105,14 @@ export default function AdminInvitesPage() {
         },
         body: JSON.stringify({ status: "REVOKED" }),
       });
-      await fetchInvites();
+      if (res.ok) {
+        await fetchInvites();
+      } else {
+        const body = await res.json().catch(() => null);
+        setError(body?.error || "Failed to revoke invite");
+      }
     } catch {
-      // silent
+      setError("Failed to revoke invite");
     }
   };
 
@@ -108,9 +122,10 @@ export default function AdminInvitesPage() {
     const days = parseInt(input, 10);
     if (isNaN(days) || days < 1) return;
 
+    setError(null);
     try {
       const token = await getIdToken();
-      await fetch(`/api/admin/invites/${id}`, {
+      const res = await fetch(`/api/admin/invites/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -118,9 +133,14 @@ export default function AdminInvitesPage() {
         },
         body: JSON.stringify({ extendDays: days }),
       });
-      await fetchInvites();
+      if (res.ok) {
+        await fetchInvites();
+      } else {
+        const body = await res.json().catch(() => null);
+        setError(body?.error || "Failed to extend invite");
+      }
     } catch {
-      // silent
+      setError("Failed to extend invite");
     }
   };
 
@@ -152,6 +172,12 @@ export default function AdminInvitesPage() {
           Generate and manage invite codes for the invitational launch.
         </p>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-4">

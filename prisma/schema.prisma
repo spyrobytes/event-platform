@@ -29,6 +29,11 @@ model User {
   // Platform admin flag (invitational phase)
   isAdmin Boolean @default(false) @map("is_admin")
 
+  // Organizer moderation status
+  status          OrganizerStatus @default(ACTIVE) @map("status")
+  statusReason    String?         @map("status_reason")
+  statusChangedAt DateTime?       @map("status_changed_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -71,6 +76,13 @@ enum MemberRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+enum OrganizerStatus {
+  ACTIVE
+  UNDER_REVIEW
+  SUSPENDED
+  BANNED
 }
 
 // =============================================================================
