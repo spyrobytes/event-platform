@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Invite = {
   id: string;
@@ -38,6 +39,7 @@ export default function AdminInvitesPage() {
   const [genExpiry, setGenExpiry] = useState(180);
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<Invite | null>(null);
 
   const fetchInvites = useCallback(async () => {
     try {
@@ -93,7 +95,11 @@ export default function AdminInvitesPage() {
     }
   };
 
-  const handleRevoke = async (id: string) => {
+  const executeRevoke = async () => {
+    if (!revokeTarget) return;
+    const id = revokeTarget.id;
+    setRevokeTarget(null);
+
     setError(null);
     try {
       const token = await getIdToken();
@@ -272,7 +278,7 @@ export default function AdminInvitesPage() {
                   {invites.map((invite) => (
                     <tr key={invite.id} className="border-b last:border-0">
                       <td className="py-3 pr-4">
-                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                        <code className="rounded bg-foreground/10 px-1.5 py-0.5 text-xs font-mono text-foreground">
                           {invite.code}
                         </code>
                       </td>
@@ -324,7 +330,7 @@ export default function AdminInvitesPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRevoke(invite.id)}
+                              onClick={() => setRevokeTarget(invite)}
                               className="h-7 text-xs text-destructive hover:text-destructive"
                             >
                               Revoke
@@ -340,6 +346,16 @@ export default function AdminInvitesPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!revokeTarget}
+        onCancel={() => setRevokeTarget(null)}
+        onConfirm={executeRevoke}
+        variant="destructive"
+        title="Revoke invite"
+        description={`Revoke invite code ${revokeTarget?.code || ""}? This cannot be undone. ${revokeTarget?.email ? `The invite was assigned to ${revokeTarget.email}.` : ""}`}
+        confirmLabel="Revoke"
+      />
     </div>
   );
 }

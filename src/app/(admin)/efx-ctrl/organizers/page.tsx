@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type OrganizerStatus = "ACTIVE" | "UNDER_REVIEW" | "SUSPENDED" | "BANNED";
 
@@ -40,11 +41,18 @@ const STATUS_ACTIONS: { label: string; status: OrganizerStatus; confirm: string;
   { label: "Restore", status: "ACTIVE", confirm: "Restore this organizer to active status?", needsReason: false },
 ];
 
+type PendingAction = {
+  orgId: string;
+  orgEmail: string;
+  action: typeof STATUS_ACTIONS[number];
+};
+
 export default function AdminOrganizersPage() {
   const { getIdToken } = useAuthContext();
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const fetchOrganizers = useCallback(async () => {
     try {
@@ -68,14 +76,10 @@ export default function AdminOrganizersPage() {
 
   useEffect(() => { fetchOrganizers(); }, [fetchOrganizers]);
 
-  const handleStatusChange = async (orgId: string, newStatus: OrganizerStatus, confirmMsg: string, needsReason: boolean) => {
-    if (!confirm(confirmMsg)) return;
-
-    let reason: string | undefined;
-    if (needsReason) {
-      const input = prompt("Reason (optional):");
-      if (input) reason = input;
-    }
+  const executeStatusChange = async (reason?: string) => {
+    if (!pendingAction) return;
+    const { orgId, action } = pendingAction;
+    setPendingAction(null);
 
     setError(null);
     try {
@@ -86,7 +90,7 @@ export default function AdminOrganizersPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: newStatus, reason }),
+        body: JSON.stringify({ status: action.status, reason: reason || undefined }),
       });
       if (res.ok) {
         await fetchOrganizers();
@@ -174,7 +178,7 @@ export default function AdminOrganizersPage() {
                       <td className="py-3 pr-4">{org.eventCount}</td>
                       <td className="py-3 pr-4">
                         {org.inviteCode ? (
-                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                          <code className="rounded bg-foreground/10 px-1.5 py-0.5 text-xs font-mono text-foreground">
                             {org.inviteCode}
                           </code>
                         ) : (
@@ -191,7 +195,7 @@ export default function AdminOrganizersPage() {
                               key={action.status}
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleStatusChange(org.id, action.status, action.confirm, action.needsReason)}
+                              onClick={() => setPendingAction({ orgId: org.id, orgEmail: org.email, action })}
                               className={`h-7 text-xs ${
                                 action.status === "BANNED" || action.status === "SUSPENDED"
                                   ? "text-destructive hover:text-destructive"
@@ -211,6 +215,25 @@ export default function AdminOrganizersPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={executeStatusChange}
+        variant={
+          pendingAction?.action.status === "BANNED" || pendingAction?.action.status === "SUSPENDED"
+            ? "destructive"
+            : "default"
+        }
+        title={`${pendingAction?.action.label || ""} organizer`}
+        description={`${pendingAction?.action.confirm || ""} This affects ${pendingAction?.orgEmail || "this user"}.`}
+        confirmLabel={pendingAction?.action.label || "Confirm"}
+        reasonInput={
+          pendingAction?.action.needsReason
+            ? { label: "Reason (optional)", placeholder: "Why is this action being taken?" }
+            : undefined
+        }
+      />
     </div>
   );
 }

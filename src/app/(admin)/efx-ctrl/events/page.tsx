@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type EventItem = {
   id: string;
@@ -23,6 +24,7 @@ export default function AdminEventsPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unpublishTarget, setUnpublishTarget] = useState<EventItem | null>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -46,8 +48,10 @@ export default function AdminEventsPage() {
 
   useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
-  const handleUnpublish = async (eventId: string) => {
-    if (!confirm("Unpublish this event? It will no longer be visible to the public.")) return;
+  const executeUnpublish = async () => {
+    if (!unpublishTarget) return;
+    const eventId = unpublishTarget.id;
+    setUnpublishTarget(null);
 
     setError(null);
     try {
@@ -124,9 +128,13 @@ export default function AdminEventsPage() {
                         {event.organizer.email}
                       </td>
                       <td className="py-3 pr-4">
-                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                          {event.templateId || "none"}
-                        </code>
+                        {event.templateId ? (
+                          <code className="rounded bg-foreground/10 px-1.5 py-0.5 text-xs font-mono text-foreground">
+                            {event.templateId}
+                          </code>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">none</span>
+                        )}
                       </td>
                       <td className="py-3 pr-4">
                         {event.isPublished ? (
@@ -143,14 +151,14 @@ export default function AdminEventsPage() {
                       <td className="py-3 pr-4 text-muted-foreground">
                         {event.startAt
                           ? new Date(event.startAt).toLocaleDateString()
-                          : "—"}
+                          : "\u2014"}
                       </td>
                       <td className="py-3">
                         {event.isPublished && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleUnpublish(event.id)}
+                            onClick={() => setUnpublishTarget(event)}
                             className="h-7 text-xs text-destructive hover:text-destructive"
                           >
                             Unpublish
@@ -165,6 +173,16 @@ export default function AdminEventsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!unpublishTarget}
+        onCancel={() => setUnpublishTarget(null)}
+        onConfirm={executeUnpublish}
+        variant="destructive"
+        title="Unpublish event"
+        description={`"${unpublishTarget?.title}" will no longer be visible to the public. The organizer can re-publish it later.`}
+        confirmLabel="Unpublish"
+      />
     </div>
   );
 }
