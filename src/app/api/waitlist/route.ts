@@ -6,6 +6,7 @@ import { successResponse, errorResponse, handleApiError } from "@/lib/api-respon
 const waitlistSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   source: z.string().max(50).optional(),
+  website: z.string().max(200).optional(),
 });
 
 /**
@@ -19,6 +20,11 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return errorResponse(result.error.issues[0].message, 400);
+    }
+
+    // Honeypot: if the hidden "website" field has a value, silently reject
+    if (result.data.website) {
+      return successResponse({ joined: true });
     }
 
     const { email, source } = result.data;

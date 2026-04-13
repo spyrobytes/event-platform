@@ -20,6 +20,7 @@ export default function JoinPage() {
   const [view, setView] = useState<ViewState>(codeFromUrl ? "invite" : "choose");
   const [inviteCode, setInviteCode] = useState(codeFromUrl);
   const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +70,7 @@ export default function JoinPage() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: waitlistEmail, source: "join_page" }),
+        body: JSON.stringify({ email: waitlistEmail, source: "join_page", website }),
       });
 
       const data = await res.json();
@@ -151,7 +152,7 @@ export default function JoinPage() {
 
           {/* Waitlist form */}
           {view === "waitlist" && (
-            <form onSubmit={handleWaitlist} className="space-y-4">
+            <form onSubmit={handleWaitlist} className="relative space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="waitlist-email">Email Address</Label>
                 <Input
@@ -165,6 +166,20 @@ export default function JoinPage() {
                   }}
                   required
                   autoFocus
+                />
+              </div>
+
+              {/* Honeypot — hidden from real users */}
+              <div className="absolute opacity-0 h-0 overflow-hidden" aria-hidden="true" tabIndex={-1}>
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWebsite(e.target.value)}
+                  autoComplete="off"
+                  tabIndex={-1}
                 />
               </div>
 
@@ -182,7 +197,7 @@ export default function JoinPage() {
                 <button
                   type="button"
                   onClick={() => { setView("waitlist"); setError(null); setSuccess(null); }}
-                  className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                  className="cursor-pointer text-foreground underline underline-offset-4 hover:text-foreground/80"
                 >
                   Join the waitlist
                 </button>
@@ -193,7 +208,7 @@ export default function JoinPage() {
                 <button
                   type="button"
                   onClick={() => { setView("invite"); setError(null); setSuccess(null); }}
-                  className="text-foreground underline underline-offset-4 hover:text-foreground/80"
+                  className="cursor-pointer text-foreground underline underline-offset-4 hover:text-foreground/80"
                 >
                   Enter it here
                 </button>

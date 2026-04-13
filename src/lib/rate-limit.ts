@@ -106,6 +106,9 @@ export const RATE_LIMITS = {
 
   // Invite lookup: 15 requests per minute per IP
   inviteLookup: { limit: 15, windowSeconds: 60 },
+
+  // Waitlist signup: 5 requests per 24 hours per IP
+  waitlist: { limit: 5, windowSeconds: 86400 },
 } as const;
 
 /**

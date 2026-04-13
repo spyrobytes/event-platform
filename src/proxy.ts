@@ -24,6 +24,9 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/api/rsvp")) {
     rateLimitConfig = RATE_LIMITS.rsvp;
     rateLimitKey = "rsvp";
+  } else if (pathname.startsWith("/api/waitlist")) {
+    rateLimitConfig = RATE_LIMITS.waitlist;
+    rateLimitKey = "waitlist";
   } else if (pathname.startsWith("/api/analytics/track")) {
     rateLimitConfig = RATE_LIMITS.analytics;
     rateLimitKey = "analytics";
