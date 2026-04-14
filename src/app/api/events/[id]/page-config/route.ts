@@ -16,6 +16,24 @@ import { revalidateEventPage } from "@/lib/revalidation";
 import { eventPageConfigV1Schema } from "@/schemas/event-page";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 
+/** Keep only the most recent N versions per event, delete the rest. */
+const MAX_VERSIONS_PER_EVENT = 10;
+
+async function pruneOldVersions(eventId: string) {
+  const versions = await db.eventPageVersion.findMany({
+    where: { eventId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+    skip: MAX_VERSIONS_PER_EVENT,
+  });
+
+  if (versions.length > 0) {
+    await db.eventPageVersion.deleteMany({
+      where: { id: { in: versions.map((v) => v.id) } },
+    });
+  }
+}
+
 const pageConfigActionSchema = z.object({
   action: z.enum(["publish", "unpublish"]),
 });
@@ -129,7 +147,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const validatedConfig: EventPageConfigV1 = parseResult.data;
 
-    // Save version history
+    // Save version history and prune old versions
     await db.eventPageVersion.create({
       data: {
         eventId,
@@ -138,6 +156,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         createdBy: user.id,
       },
     });
+    await pruneOldVersions(eventId);
 
     // Update event and get slug for revalidation
     const updatedEvent = await db.event.update({

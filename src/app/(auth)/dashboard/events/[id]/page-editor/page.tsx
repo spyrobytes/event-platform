@@ -650,6 +650,7 @@ export default function PageEditorPage() {
       {/* Version History */}
       <VersionHistory
         eventId={params.id}
+        getIdToken={getIdToken}
         onPreview={handleVersionPreview}
         onCancelPreview={handleCancelVersionPreview}
         onRollback={handleVersionRollback}

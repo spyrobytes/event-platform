@@ -18,6 +18,7 @@ type Version = {
 type VersionHistoryProps = {
   eventId: string;
   currentVersionId?: string;
+  getIdToken: () => Promise<string | null>;
   onRollback: (config: unknown) => void;
   onPreview: (config: unknown) => void;
   onCancelPreview: () => void;
@@ -30,6 +31,7 @@ type VersionHistoryProps = {
  */
 export function VersionHistory({
   eventId,
+  getIdToken,
   onRollback,
   onPreview,
   onCancelPreview,
@@ -47,7 +49,12 @@ export function VersionHistory({
     setError(null);
 
     try {
-      const response = await fetch(`/api/events/${eventId}/page-config/versions`);
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(`/api/events/${eventId}/page-config/versions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch versions");
       }
@@ -58,7 +65,7 @@ export function VersionHistory({
     } finally {
       setIsLoading(false);
     }
-  }, [eventId]);
+  }, [eventId, getIdToken]);
 
   const handleOpen = useCallback(() => {
     setIsOpen(true);
@@ -76,8 +83,12 @@ export function VersionHistory({
   const handlePreview = useCallback(
     async (versionId: string) => {
       try {
+        const token = await getIdToken();
+        if (!token) throw new Error("Not authenticated");
+
         const response = await fetch(
-          `/api/events/${eventId}/page-config/versions/${versionId}`
+          `/api/events/${eventId}/page-config/versions/${versionId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!response.ok) {
           throw new Error("Failed to fetch version");
@@ -89,7 +100,7 @@ export function VersionHistory({
         setError(err instanceof Error ? err.message : "Failed to preview version");
       }
     },
-    [eventId, onPreview]
+    [eventId, getIdToken, onPreview]
   );
 
   const handleRollback = useCallback(async () => {
@@ -97,9 +108,15 @@ export function VersionHistory({
 
     setIsRollingBack(true);
     try {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
       const response = await fetch(
         `/api/events/${eventId}/page-config/versions/${selectedVersion}`,
-        { method: "POST" }
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       if (!response.ok) {
         throw new Error("Failed to rollback");
@@ -108,14 +125,13 @@ export function VersionHistory({
       onRollback(data.data.config);
       setSelectedVersion(null);
       setIsOpen(false);
-      // Refresh versions after rollback
       fetchVersions();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to rollback");
     } finally {
       setIsRollingBack(false);
     }
-  }, [eventId, selectedVersion, onRollback, fetchVersions]);
+  }, [eventId, getIdToken, selectedVersion, onRollback, fetchVersions]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

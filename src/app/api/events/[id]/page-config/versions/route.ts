@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const versions = await db.eventPageVersion.findMany({
       where: { eventId },
       orderBy: { createdAt: "desc" },
-      take: 50, // Limit to last 50 versions
+      take: 10, // Match MAX_VERSIONS_PER_EVENT rotation cap
       select: {
         id: true,
         configVersion: true,

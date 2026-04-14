@@ -11,6 +11,24 @@ import { revalidateEventPage } from "@/lib/revalidation";
 import { eventPageConfigV1Schema } from "@/schemas/event-page";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 
+/** Keep only the most recent N versions per event, delete the rest. */
+const MAX_VERSIONS_PER_EVENT = 10;
+
+async function pruneOldVersions(eventId: string) {
+  const versions = await db.eventPageVersion.findMany({
+    where: { eventId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+    skip: MAX_VERSIONS_PER_EVENT,
+  });
+
+  if (versions.length > 0) {
+    await db.eventPageVersion.deleteMany({
+      where: { id: { in: versions.map((v) => v.id) } },
+    });
+  }
+}
+
 type RouteContext = {
   params: Promise<{ id: string; versionId: string }>;
 };
@@ -115,6 +133,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         createdBy: user.id,
       },
     });
+    await pruneOldVersions(eventId);
 
     // Update the event with the rolled-back config
     const updatedEvent = await db.event.update({
