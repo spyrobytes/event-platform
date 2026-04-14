@@ -32,10 +32,9 @@ export function WeddingPartyEditor({
   onChange,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
-  // Party member photos: prefer portraits; fall back to gallery for legacy assets
-  const partyAssets = assets.filter((a) =>
-    a.tags.some((t) => t === "portrait" || t === "gallery")
-  );
+  // Party member photos: portraits only. Couple photos live under the "couple"
+  // tag so they don't bleed into party-member selection.
+  const partyAssets = assets.filter((a) => a.tags.includes("portrait"));
 
   const addMember = useCallback(() => {
     if (members.length >= 16) return;

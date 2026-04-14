@@ -1052,7 +1052,7 @@ export default function PageEditorPage() {
                       <span className="text-[9px]">None</span>
                     </div>
                   </button>
-                  {pageData.assets.filter((a) => a.tags?.includes("hero") || a.tags?.includes("portrait")).map((asset) => {
+                  {pageData.assets.filter((a) => a.tags?.includes("couple")).map((asset) => {
                     const isSelected = config.hero.couplePhotoAssetId === asset.id;
                     return (
                       <button

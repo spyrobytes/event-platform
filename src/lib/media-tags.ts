@@ -11,6 +11,7 @@ export const MEDIA_TAGS = [
   "hero",     // Landscape, hero-suitable (event cover / page header)
   "gallery",  // Public photo gallery
   "portrait", // Face-centered (wedding party, speakers)
+  "couple",   // Couple photo for wedding hero / invitation
   "logo",     // Logos for sponsors / registry — transparency-friendly
   "story",    // Story milestones / editorial blocks
 ] as const;
@@ -24,6 +25,7 @@ export const MEDIA_TAG_LABELS: Record<MediaTag, string> = {
   hero: "Hero",
   gallery: "Gallery",
   portrait: "Portrait",
+  couple: "Couple",
   logo: "Logo",
   story: "Story",
 };
@@ -34,7 +36,8 @@ export const MEDIA_TAG_LABELS: Record<MediaTag, string> = {
 export const MEDIA_TAG_HINTS: Record<MediaTag, string> = {
   hero: "Cover / page header (landscape recommended)",
   gallery: "Public photo gallery",
-  portrait: "People photos (wedding party, speakers)",
+  portrait: "Individual people (wedding party, speakers)",
+  couple: "Couple photo for wedding hero / invitation",
   logo: "Sponsor / registry logos",
   story: "Our Story milestones",
 };
