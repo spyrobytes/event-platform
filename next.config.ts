@@ -56,10 +56,14 @@ const nextConfig: NextConfig = {
   // and images are already server-side optimized to WebP by sharp.
   images: {
     ...(process.env.NODE_ENV === "development" ? { unoptimized: true } : {}),
+    loader: "custom",
+    loaderFile: "./src/lib/images/supabase-loader.ts",
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: new URL(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co"
+        ).hostname,
       },
     ],
     formats: ["image/avif", "image/webp"],

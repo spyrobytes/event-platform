@@ -14,6 +14,7 @@
  * On mobile: stacks vertically with image on top (60svh).
  */
 
+import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import styles from "./AsymmetricHero.module.css";
@@ -60,10 +61,13 @@ export function AsymmetricHero({
       {/* Left: Image panel */}
       <div className={styles.imagePanel}>
         {heroAsset?.publicUrl ? (
-          <img
+          <EventImage
             src={heroAsset.publicUrl}
             alt=""
-            loading="eager"
+            fill
+            sizes="100vw"
+            priority
+            blurDataURL={heroAsset.blurDataUrl}
           />
         ) : (
           <div className={styles.imageFallback} aria-hidden="true" />

@@ -603,7 +603,7 @@ export const PAGE_CONFIG_LIMITS = {
   heroTitleLength: 80,
   heroSubtitleLength: 120,
   maxFileSizeBytes: 5 * 1024 * 1024, // 5MB
-  maxAssetsPerEvent: 50,
+  maxAssetsPerEvent: 30,
 } as const;
 
 // =============================================================================

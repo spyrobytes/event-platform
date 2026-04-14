@@ -58,6 +58,7 @@ async function getEventBySlug(slug: string, hasGuestToken: boolean) {
           width: true,
           height: true,
           alt: true,
+          blurDataUrl: true,
         },
       },
     },
@@ -246,6 +247,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     width: number | null;
     height: number | null;
     alt: string;
+    blurDataUrl: string | null;
   }) => ({
     ...asset,
     eventId: event.id,

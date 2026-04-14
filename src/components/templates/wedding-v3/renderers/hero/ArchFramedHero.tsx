@@ -10,6 +10,7 @@
  */
 
 import { useCallback } from "react";
+import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import styles from "./ArchFramedHero.module.css";
@@ -151,7 +152,14 @@ export function ArchFramedHero({
         <div className={styles.archContainer}>
           <div className={styles.archMask}>
             {heroAsset?.publicUrl ? (
-              <img src={heroAsset.publicUrl} alt="" loading="eager" />
+              <EventImage
+                src={heroAsset.publicUrl}
+                alt=""
+                fill
+                sizes="100vw"
+                priority
+                blurDataURL={heroAsset.blurDataUrl}
+              />
             ) : (
               <div className={styles.archFallback} aria-hidden="true" />
             )}

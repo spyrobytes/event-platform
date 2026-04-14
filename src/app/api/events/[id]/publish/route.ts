@@ -5,6 +5,7 @@ import { requireEventOwner, assertCanPublish } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { publishEventSchema } from "@/schemas/event";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import { revalidateEventPage } from "@/lib/revalidation";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -78,6 +79,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         endAt: true,
       },
     });
+
+    await revalidateEventPage(event.slug);
 
     return successResponse(event);
   } catch (error) {

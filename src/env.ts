@@ -69,6 +69,9 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: z
     .string()
     .min(1, "NEXT_PUBLIC_FIREBASE_PROJECT_ID is required"),
+  NEXT_PUBLIC_SUPABASE_URL: z
+    .string()
+    .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
 });
 
 // Combined schema

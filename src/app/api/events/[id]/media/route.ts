@@ -3,7 +3,7 @@ import { z } from "zod";
 import { verifyAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canUploadMedia, assertCanMutate } from "@/lib/authorization";
-import { validateUploadedImage, optimizeImage } from "@/lib/media-validation";
+import { validateUploadedImage, optimizeImage, generateBlurDataUrl } from "@/lib/media-validation";
 import {
   uploadFile,
   BUCKETS,
@@ -14,6 +14,8 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 import { MEDIA_TAGS, deriveKindFromTags, type MediaTag } from "@/lib/media-tags";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
 import { validateAndMigrate } from "@/lib/config-migrations";
+import { revalidateEventPage } from "@/lib/revalidation";
+import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 
 const deleteAssetSchema = z.object({
   assetId: z.string().min(1),
@@ -26,8 +28,7 @@ const patchAssetSchema = z.object({
   tags: z.array(tagSchema).min(1),
 });
 
-// Rate limit: max uploads per event
-const MAX_ASSETS_PER_EVENT = 30;
+const MAX_ASSETS_PER_EVENT = PAGE_CONFIG_LIMITS.maxAssetsPerEvent;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -115,6 +116,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // 6. Optimize image (convert to WebP, resize if needed)
     const optimized = await optimizeImage(buffer);
 
+    // 6b. Generate blur placeholder for lazy-loading
+    const blurDataUrl = await generateBlurDataUrl(optimized.buffer);
+
     // 7. Generate unique filename and path
     const timestamp = Date.now();
     const filename = `${timestamp}.webp`;
@@ -155,8 +159,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
         width: optimized.width,
         height: optimized.height,
         alt,
+        blurDataUrl,
       },
     });
+
+    // Revalidate public page if event is published
+    const event = await db.event.findUnique({
+      where: { id: eventId },
+      select: { slug: true, status: true },
+    });
+    if (event?.status === "PUBLISHED") {
+      await revalidateEventPage(event.slug);
+    }
 
     return successResponse(
       {
@@ -166,6 +180,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         height: asset.height,
         kind: asset.kind,
         tags: asset.tags,
+        blurDataUrl: asset.blurDataUrl,
       },
       201
     );
@@ -359,6 +374,15 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     await deleteFile(asset.bucket, asset.path).catch((err) => {
       console.error("Failed to delete file from storage:", err);
     });
+
+    // Revalidate public page if event is published
+    const eventForReval = await db.event.findUnique({
+      where: { id: eventId },
+      select: { slug: true, status: true },
+    });
+    if (eventForReval?.status === "PUBLISHED") {
+      await revalidateEventPage(eventForReval.slug);
+    }
 
     return successResponse({ deleted: true });
   } catch (error) {

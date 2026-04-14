@@ -17,6 +17,7 @@ import { useState, useCallback, useMemo } from "react";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./MagazineGrid.module.css";
 
 export function MagazineGrid({
@@ -30,13 +31,14 @@ export function MagazineGrid({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl };
+        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
       })
       .filter(Boolean) as Array<{
         assetId: string;
         caption?: string;
         title?: string;
         url: string;
+        blurDataUrl?: string | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -108,12 +110,14 @@ export function MagazineGrid({
 
           {/* Right: Featured image */}
           <div className={styles.featured}>
-            <img
+            <EventImage
               key={current?.assetId}
-              src={current?.url}
+              src={current?.url ?? ""}
               alt={captionText}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className={styles.featuredImg}
-              loading="lazy"
+              blurDataURL={current?.blurDataUrl}
             />
           </div>
         </div>
@@ -130,10 +134,12 @@ export function MagazineGrid({
               aria-selected={i === activeIndex}
               role="option"
             >
-              <img
+              <EventImage
                 src={item.url}
                 alt=""
-                loading="lazy"
+                fill
+                sizes="(max-width: 768px) 33vw, 25vw"
+                blurDataURL={item.blurDataUrl}
               />
             </button>
           ))}

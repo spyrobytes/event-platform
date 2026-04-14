@@ -327,6 +327,7 @@ model MediaAsset {
   width       Int?
   height      Int?
   alt         String    @default("")
+  blurDataUrl String?   @map("blur_data_url")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)

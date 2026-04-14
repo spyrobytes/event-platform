@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 
 // Slight rotation angles for scrapbook feel
 const ROTATIONS = ["-2deg", "1.5deg", "-1deg", "2.5deg", "-1.5deg", "1deg", "-2.5deg", "0.5deg"];
@@ -22,6 +23,7 @@ type ResolvedItem = {
   caption?: string;
   title?: string;
   url: string;
+  blurDataUrl?: string | null;
 };
 
 export function ScrapbookCollage({
@@ -35,7 +37,7 @@ export function ScrapbookCollage({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { assetId: item.assetId, caption: item.caption, title: item.title, url: asset.publicUrl };
+        return { assetId: item.assetId, caption: item.caption, title: item.title, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
       })
       .filter(Boolean) as ResolvedItem[];
   }, [normalized.items, assets]);
@@ -138,13 +140,16 @@ export function ScrapbookCollage({
                     aspectRatio: "1 / 1",
                     overflow: "hidden",
                     borderRadius: "calc(var(--r, 16px) - 4px)",
+                    position: "relative",
                   }}
                 >
-                  <img
+                  <EventImage
                     src={item.url}
                     alt={item.caption || item.title || ""}
-                    loading="lazy"
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 33vw"
+                    style={{ objectFit: "cover" }}
+                    blurDataURL={item.blurDataUrl}
                   />
                 </div>
                 {(item.caption || item.title) && (

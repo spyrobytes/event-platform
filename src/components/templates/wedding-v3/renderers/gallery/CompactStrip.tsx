@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./CompactStrip.module.css";
 
 export function CompactStrip({
@@ -26,13 +27,14 @@ export function CompactStrip({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl };
+        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
       })
       .filter(Boolean) as Array<{
         assetId: string;
         caption?: string;
         title?: string;
         url: string;
+        blurDataUrl?: string | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -82,10 +84,12 @@ export function CompactStrip({
               onClick={() => setLightboxIndex(i)}
               aria-label={`View photo ${i + 1}`}
             >
-              <img
+              <EventImage
                 src={item.url}
                 alt={item.caption || item.title || ""}
-                loading="lazy"
+                fill
+                sizes="(max-width: 768px) 33vw, 25vw"
+                blurDataURL={item.blurDataUrl}
               />
             </button>
           ))}

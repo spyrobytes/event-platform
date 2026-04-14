@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./SoftMasonry.module.css";
 
 export function SoftMasonry({
@@ -26,13 +27,14 @@ export function SoftMasonry({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl };
+        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
       })
       .filter(Boolean) as Array<{
         assetId: string;
         caption?: string;
         title?: string;
         url: string;
+        blurDataUrl?: string | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -89,12 +91,16 @@ export function SoftMasonry({
               onClick={() => setLightboxIndex(i)}
               aria-label={`View photo ${i + 1}`}
             >
-              <img
-                src={item.url}
-                alt={item.caption || item.title || ""}
-                loading="lazy"
-                className={styles.frameImg}
-              />
+              <div className={styles.frameImgWrap}>
+                <EventImage
+                  src={item.url}
+                  alt={item.caption || item.title || ""}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                  className={styles.frameImg}
+                  blurDataURL={item.blurDataUrl}
+                />
+              </div>
               {(item.caption || item.title) && (
                 <p className={styles.caption}>
                   {item.caption || item.title}

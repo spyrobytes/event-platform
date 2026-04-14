@@ -9,6 +9,7 @@
  * Like opening a luxury envelope with all the details inside.
  */
 
+import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import styles from "./CenteredInvitationHero.module.css";
@@ -52,7 +53,14 @@ export function CenteredInvitationHero({
       {/* Background image */}
       {heroAsset?.publicUrl ? (
         <div className={styles.bgImage}>
-          <img src={heroAsset.publicUrl} alt="" loading="eager" />
+          <EventImage
+            src={heroAsset.publicUrl}
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            blurDataURL={heroAsset.blurDataUrl}
+          />
         </div>
       ) : (
         <div className={styles.bgFallback} aria-hidden="true" />

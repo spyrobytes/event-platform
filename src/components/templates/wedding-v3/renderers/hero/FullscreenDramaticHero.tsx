@@ -9,6 +9,7 @@
  * the viewport. The hero that makes an entrance.
  */
 
+import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import styles from "./FullscreenDramaticHero.module.css";
@@ -55,7 +56,14 @@ export function FullscreenDramaticHero({
     <section className={styles.hero} aria-label="Event hero" id="top">
       {heroAsset?.publicUrl ? (
         <div className={styles.bgImage}>
-          <img src={heroAsset.publicUrl} alt="" loading="eager" />
+          <EventImage
+            src={heroAsset.publicUrl}
+            alt=""
+            fill
+            sizes="100vw"
+            priority
+            blurDataURL={heroAsset.blurDataUrl}
+          />
         </div>
       ) : (
         <div className={styles.bgFallback} aria-hidden="true" />
@@ -64,10 +72,13 @@ export function FullscreenDramaticHero({
       {/* Couple portrait — top left */}
       {couplePhotoAsset?.publicUrl && (
         <div className={styles.couplePhoto}>
-          <img
+          <EventImage
             src={couplePhotoAsset.publicUrl}
             alt={coupleNames || "Couple"}
-            loading="eager"
+            fill
+            sizes="100vw"
+            priority
+            blurDataURL={couplePhotoAsset.blurDataUrl}
           />
         </div>
       )}

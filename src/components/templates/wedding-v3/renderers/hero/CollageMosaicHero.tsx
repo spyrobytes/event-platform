@@ -12,6 +12,7 @@
  * - Event dates card (schedule summary)
  */
 
+import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import styles from "./CollageMosaicHero.module.css";
@@ -81,10 +82,13 @@ export function CollageMosaicHero({
       {/* Background image */}
       {hasImage ? (
         <div className={styles.bgImage} aria-hidden="true">
-          <img
+          <EventImage
             src={heroAsset!.publicUrl!}
             alt=""
-            loading="eager"
+            fill
+            sizes="100vw"
+            priority
+            blurDataURL={heroAsset!.blurDataUrl}
           />
         </div>
       ) : (
@@ -96,10 +100,13 @@ export function CollageMosaicHero({
         {/* Couple photo — uses dedicated couple photo asset */}
         {hasCouplePhoto && (
           <div className={styles.couplePhoto}>
-            <img
+            <EventImage
               src={couplePhotoAsset!.publicUrl!}
               alt={coupleNames || title || ""}
-              loading="eager"
+              fill
+              sizes="100vw"
+              priority
+              blurDataURL={couplePhotoAsset!.blurDataUrl}
             />
           </div>
         )}

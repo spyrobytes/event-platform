@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import { EventImage } from "@/components/media/EventImage";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -21,6 +21,7 @@ type ResolvedItem = {
   moment?: string;
   url: string;
   alt: string;
+  blurDataUrl: string | null;
 };
 
 /** Grid span class cycling pattern for masonry mode */
@@ -66,6 +67,7 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
             ...item,
             url: asset.publicUrl,
             alt: asset.alt || item.caption || item.title || "Gallery image",
+            blurDataUrl: asset?.blurDataUrl ?? null,
           };
         })
         .filter(Boolean) as ResolvedItem[],
@@ -218,7 +220,7 @@ function GalleryItem({
   showCaption,
   onOpen,
 }: {
-  item: { url: string; alt: string; caption?: string; title?: string };
+  item: { url: string; alt: string; caption?: string; title?: string; blurDataUrl?: string | null };
   index: number;
   spanClass?: string;
   showCaption: boolean;
@@ -261,12 +263,13 @@ function GalleryItem({
       onClick={onOpen}
       aria-label={`View photo: ${captionText || `Photo ${index + 1}`}`}
     >
-      <Image
+      <EventImage
         src={item.url}
         alt={item.alt}
         fill
         sizes="(max-width: 700px) 100vw, 50vw"
         loading={index > 2 ? "lazy" : undefined}
+        blurDataURL={item.blurDataUrl}
       />
       {showCaption && captionText && (
         <div className={styles.overlay}>
@@ -560,12 +563,13 @@ function Slideshow({
             )}
             aria-hidden={i !== current}
           >
-            <Image
+            <EventImage
               src={img.url}
               alt={img.alt}
               fill
               sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
               priority={i === 0}
+              blurDataURL={img.blurDataUrl}
             />
           </div>
         ))}
@@ -737,12 +741,13 @@ function Carousel({
               onClick={() => onOpen(i)}
               aria-label={`View photo: ${captionText || `Photo ${i + 1}`}`}
             >
-              <Image
+              <EventImage
                 src={item.url}
                 alt={item.alt}
                 fill
                 sizes="(max-width: 700px) 75vw, 420px"
                 loading={i > 2 ? "lazy" : undefined}
+                blurDataURL={item.blurDataUrl}
               />
               {showCaptions && captionText && (
                 <div className={styles.carouselCaption}>

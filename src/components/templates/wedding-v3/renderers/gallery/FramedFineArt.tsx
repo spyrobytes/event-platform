@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./FramedFineArt.module.css";
 
 export function FramedFineArt({
@@ -27,13 +28,14 @@ export function FramedFineArt({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl };
+        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
       })
       .filter(Boolean) as Array<{
         assetId: string;
         caption?: string;
         title?: string;
         url: string;
+        blurDataUrl?: string | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -89,10 +91,12 @@ export function FramedFineArt({
                 className={styles.imageWrap}
                 style={{ aspectRatio: i % 3 === 0 ? "4 / 5" : "3 / 4" }}
               >
-                <img
+                <EventImage
                   src={item.url}
                   alt={item.caption || item.title || ""}
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                  blurDataURL={item.blurDataUrl}
                 />
               </div>
               {(item.caption || item.title) && (

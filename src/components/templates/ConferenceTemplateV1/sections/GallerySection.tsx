@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SectionWrapper, SectionTitle } from "../../shared";
+import { EventImage } from "@/components/media/EventImage";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection as GallerySectionType } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -241,10 +242,13 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
           className="group relative aspect-[4/3] overflow-hidden rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2"
           style={{ "--tw-ring-color": primaryColor } as React.CSSProperties}
         >
-          <img
+          <EventImage
             src={item.asset.publicUrl || ""}
             alt={item.asset.alt || item.title || `Gallery image ${index + 1}`}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            blurDataURL={item.asset.blurDataUrl}
           />
           <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/30">
             {showCaptions && (item.caption || item.title) ? (
@@ -314,10 +318,13 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
             className="group relative aspect-[4/3] w-80 flex-shrink-0 overflow-hidden rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{ "--tw-ring-color": primaryColor } as React.CSSProperties}
           >
-            <img
+            <EventImage
               src={item.asset.publicUrl || ""}
               alt={item.asset.alt || item.title || `Gallery image ${index + 1}`}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              fill
+              sizes="(max-width: 700px) 75vw, 420px"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              blurDataURL={item.asset.blurDataUrl}
             />
             <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
             {showCaptions && (item.caption || item.title) && (
@@ -351,13 +358,16 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
           key={item.asset.id}
           type="button"
           onClick={() => openLightbox(index)}
-          className="group relative mb-4 block w-full overflow-hidden rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2"
+          className="group relative mb-4 block aspect-[3/4] w-full overflow-hidden rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2"
           style={{ "--tw-ring-color": primaryColor } as React.CSSProperties}
         >
-          <img
+          <EventImage
             src={item.asset.publicUrl || ""}
             alt={item.asset.alt || item.title || `Gallery image ${index + 1}`}
-            className="w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            sizes="(max-width: 768px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            blurDataURL={item.asset.blurDataUrl}
           />
           <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
           {showCaptions && (item.caption || item.title) && (
@@ -386,10 +396,13 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
         <div
           className={`absolute inset-0 flex items-center justify-center ${getTransitionClass(true)}`}
         >
-          <img
+          <EventImage
             src={currentSlideItem?.asset.publicUrl || ""}
             alt={currentSlideItem?.asset.alt || currentSlideItem?.title || `Slide ${currentSlide + 1}`}
-            className="h-full w-full object-contain"
+            fill
+            sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
+            className="object-contain"
+            blurDataURL={currentSlideItem?.asset.blurDataUrl}
           />
         </div>
 

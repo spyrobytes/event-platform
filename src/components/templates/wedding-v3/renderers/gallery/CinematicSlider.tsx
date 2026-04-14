@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./CinematicSlider.module.css";
 
 export function CinematicSlider({
@@ -27,13 +28,14 @@ export function CinematicSlider({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl };
+        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
       })
       .filter(Boolean) as Array<{
       assetId: string;
       caption?: string;
       title?: string;
       url: string;
+      blurDataUrl?: string | null;
     }>;
   }, [normalized.items, assets]);
 
@@ -220,12 +222,14 @@ export function CinematicSlider({
               onClick={() => handleSlideClick(i)}
               aria-label={`View photo ${i + 1}`}
             >
-              <img
+              <EventImage
                 src={item.url}
                 alt={item.caption || item.title || ""}
-                loading="lazy"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className={styles.slideImg}
                 draggable={false}
+                blurDataURL={item.blurDataUrl}
               />
               {(item.caption || item.title) && (
                 <div className={styles.caption}>

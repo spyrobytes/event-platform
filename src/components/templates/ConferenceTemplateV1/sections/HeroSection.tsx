@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { EventImage } from "@/components/media/EventImage";
 import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -31,10 +32,14 @@ export function HeroSection({ config, heroAsset, primaryColor }: HeroSectionProp
     >
       {/* Background Image or Gradient */}
       {heroAsset?.publicUrl ? (
-        <img
+        <EventImage
           src={heroAsset.publicUrl}
           alt={heroAsset.alt || config.title}
-          className="absolute inset-0 h-full w-full object-cover"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          blurDataURL={heroAsset.blurDataUrl}
         />
       ) : (
         <div

@@ -141,6 +141,19 @@ export async function generateThumbnail(
 }
 
 /**
+ * Generates a tiny blur placeholder (data URI) for use with next/image placeholder="blur".
+ * Resizes to ~10px wide and encodes as base64 WebP.
+ */
+export async function generateBlurDataUrl(buffer: Buffer): Promise<string> {
+  const tiny = await sharp(buffer)
+    .resize(10, undefined, { fit: "inside" })
+    .webp({ quality: 20 })
+    .toBuffer();
+
+  return `data:image/webp;base64,${tiny.toString("base64")}`;
+}
+
+/**
  * Gets basic image info without full validation
  * Useful for quick checks
  */
