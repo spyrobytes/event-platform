@@ -44,10 +44,8 @@ export function SponsorsEditor({
   onChange,
   maxSponsors = 20,
 }: SponsorsEditorProps) {
-  // Sponsor logos: prefer logo-tagged; fall back to gallery for legacy assets
-  const sponsorAssets = assets.filter((a) =>
-    a.tags.some((t) => t === "logo" || t === "gallery")
-  );
+  // Sponsor logos: logo-tagged only. Gallery images don't belong here.
+  const sponsorAssets = assets.filter((a) => a.tags.includes("logo"));
 
   const updateField = useCallback(
     <K extends keyof SponsorsSection["data"]>(field: K, value: SponsorsSection["data"][K]) => {

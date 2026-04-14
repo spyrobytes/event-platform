@@ -25,10 +25,8 @@ type RegistryEditorProps = {
  */
 export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) {
   const items = data.items || [];
-  // Registry logos: prefer logo-tagged; fall back to gallery for legacy assets
-  const logoAssets = assets.filter((a) =>
-    a.tags.some((t) => t === "logo" || t === "gallery")
-  );
+  // Registry logos: logo-tagged only. Gallery images don't belong here.
+  const logoAssets = assets.filter((a) => a.tags.includes("logo"));
 
   const addItem = useCallback(() => {
     if (items.length >= 6) return;
