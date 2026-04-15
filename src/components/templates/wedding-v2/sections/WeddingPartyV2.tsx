@@ -3,6 +3,7 @@
 import type { MediaAsset } from "@prisma/client";
 import type { PartySide } from "@/schemas/event-page";
 import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./WeddingPartyV2.module.css";
 
 type PartyMember = {
@@ -37,10 +38,9 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
   const kickerText = "Wedding Party";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  const getAssetUrl = (assetId?: string): string | null => {
+  const getAsset = (assetId?: string) => {
     if (!assetId) return null;
-    const asset = assets.find((a) => a.id === assetId);
-    return asset?.publicUrl || null;
+    return assets.find((a) => a.id === assetId) ?? null;
   };
 
   // Partition members: special roles first, then bride/groom based on
@@ -61,7 +61,9 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
   );
 
   const renderCard = (member: PartyMember, index: number, isSpecial = false) => {
-    const imageUrl = getAssetUrl(member.imageAssetId);
+    const imageAsset = getAsset(member.imageAssetId);
+    const imageUrl = imageAsset?.publicUrl ?? null;
+    const imageBlur = imageAsset?.blurDataUrl ?? null;
     const cardClass = isSpecial
       ? `${styles.card} ${styles.specialCard}`
       : styles.card;
@@ -72,10 +74,13 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
         <div className={styles.photoArea}>
           <div className={styles.photoFrame}>
             {imageUrl ? (
-              <img
+              <EventImage
                 src={imageUrl}
                 alt={member.name}
+                fill
+                sizes="(max-width: 500px) 100vw, (max-width: 800px) 50vw, 33vw"
                 loading="lazy"
+                blurDataURL={imageBlur}
                 className={styles.photo}
               />
             ) : (
