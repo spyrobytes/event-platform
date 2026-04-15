@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
-import { hashToken } from "@/lib/tokens";
 import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
 import { summarizeClaims } from "@/lib/registry-claims";
-import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
-import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
+import { filterSectionsByVisibility } from "@/lib/guest-access";
+import {
+  getEventBySlug,
+  resolveGuestAccess,
+  loadAndMigrateConfig,
+} from "@/lib/event-page-loader";
 import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
@@ -28,117 +31,6 @@ type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ tk?: string }>;
 };
-
-/**
- * Fetch event data by slug.
- * For PRIVATE events, returns the event only if a guest token is present.
- */
-async function getEventBySlug(slug: string, hasGuestToken: boolean) {
-  const event = await db.event.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      startAt: true,
-      endAt: true,
-      timezone: true,
-      venueName: true,
-      city: true,
-      status: true,
-      visibility: true,
-      pageConfig: true,
-      templateId: true,
-      publishedAt: true,
-      rsvpDeadline: true,
-      mediaAssets: {
-        select: {
-          id: true,
-          kind: true,
-          publicUrl: true,
-          width: true,
-          height: true,
-          alt: true,
-          blurDataUrl: true,
-        },
-      },
-    },
-  });
-
-  if (!event) {
-    return null;
-  }
-
-  // Must be published
-  if (!event.publishedAt) {
-    return null;
-  }
-
-  // Cancelled events are not accessible
-  if (event.status === "CANCELLED") {
-    return null;
-  }
-
-  // PRIVATE events are only accessible with a guest token
-  if (event.visibility === "PRIVATE" && !hasGuestToken) {
-    return null;
-  }
-
-  return event;
-}
-
-/**
- * Resolve guest access level by validating the invite token against the event.
- * Returns `tokenInvalid: true` when a token was provided but didn't match a
- * valid invite, so the UI can show a helpful message.
- */
-async function resolveGuestAccess(
-  tk: string | undefined,
-  eventId: string
-): Promise<{
-  accessLevel: AccessLevel;
-  guestName: string | null;
-  rsvpToken: string | null;
-  tokenInvalid: boolean;
-  inviteId: string | null;
-}> {
-  if (!tk) {
-    return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: false, inviteId: null };
-  }
-
-  const tokenHash = hashToken(tk);
-  const invite = await db.invite.findFirst({
-    where: {
-      tokenHash,
-      eventId,
-      // Allow any status except EXPIRED and BOUNCED — guests can view
-      // details before deciding to attend (PENDING/SENT/OPENED/RESPONDED).
-      status: { notIn: ["EXPIRED", "BOUNCED"] },
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gte: new Date() } },
-      ],
-    },
-    select: { id: true, name: true },
-  });
-
-  if (invite) {
-    return {
-      accessLevel: "guest",
-      guestName: invite.name || "Guest",
-      rsvpToken: tk,
-      tokenInvalid: false,
-      inviteId: invite.id,
-    };
-  }
-
-  // Token was present but invalid/expired — fall back to public view
-  console.warn("[guest-access] invalid token", {
-    eventId,
-    tokenPrefix: tk.slice(0, 8),
-  });
-  return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: true, inviteId: null };
-}
 
 /**
  * Generate metadata for SEO.
@@ -226,33 +118,10 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
   const resolvedTemplateId = templateId in TEMPLATES ? templateId : DEFAULT_TEMPLATE_ID;
 
-  // Validate and migrate config if needed
-  let config: EventPageConfigV1;
-  if (event.pageConfig) {
-    try {
-      config = validateAndMigrate(event.pageConfig);
-      // If the migration mutated the config (e.g. lazy-backfilled stable
-      // uuids onto registry items that predate PR 1), persist the result so
-      // subsequent reads — including the claim POST endpoint — observe the
-      // same ids. Without this, random uuids get regenerated on every read
-      // and guest claims fail lookup with a confusing 404. Fire-and-forget:
-      // the page render shouldn't block on the write.
-      if (JSON.stringify(event.pageConfig) !== JSON.stringify(config)) {
-        db.event
-          .update({
-            where: { id: event.id },
-            data: { pageConfig: config as unknown as object },
-          })
-          .catch((err) =>
-            console.error("[page-config-migrate] failed to persist", err)
-          );
-      }
-    } catch {
-      config = createMinimalConfig(event.title);
-    }
-  } else {
-    config = createMinimalConfig(event.title);
-  }
+  const config: EventPageConfigV1 = loadAndMigrateConfig(event.pageConfig, {
+    eventId: event.id,
+    eventTitle: event.title,
+  });
 
   // Filter sections by visibility BEFORE passing to template
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
@@ -323,9 +192,11 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         config={filteredConfig}
         assets={assets}
         eventId={event.id}
+        eventSlug={slug}
         temporal={temporal}
         registryClaims={registryClaims}
         canClaim={accessLevel === "guest"}
+        registryMode="preview"
       />
     </>
   );

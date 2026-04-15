@@ -139,14 +139,16 @@ export function CinematicTravelStayAdapter({ data }: SectionRendererProps<Travel
   return <TravelStayV2 data={data} />;
 }
 
-export function CinematicRegistryAdapter({ data, assets, eventId, registryClaims, canClaim }: SectionRendererProps<RegistrySectionType["data"]>) {
+export function CinematicRegistryAdapter({ data, assets, eventId, eventSlug, registryClaims, canClaim, registryMode }: SectionRendererProps<RegistrySectionType["data"]>) {
   return (
     <RegistrySection
       data={data}
       assets={assets}
       eventId={eventId}
+      eventSlug={eventSlug}
       claims={registryClaims}
       canClaim={canClaim}
+      mode={registryMode}
     />
   );
 }

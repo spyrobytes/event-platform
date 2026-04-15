@@ -50,6 +50,9 @@ export type TemplateProps = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
   eventId?: string;
+  /** Event slug — forwarded into the registry section so it can build the
+   * "View full registry" CTA href in preview mode. */
+  eventSlug?: string;
   /** Temporal data for time-aware rendering */
   temporal?: TemporalData;
   /** Map of registry itemId → claim summary (only present if the viewer is
@@ -58,6 +61,10 @@ export type TemplateProps = {
   /** True when the current viewer can submit claim mutations (i.e. arrived
    * via a valid invite token). */
   canClaim?: boolean;
+  /** Registry rendering mode:
+   * - "preview" (main event page): first 4 items + "View full registry" CTA.
+   * - "full" (default, /e/[slug]/registry + organizer preview): all items. */
+  registryMode?: "preview" | "full";
 };
 
 /**

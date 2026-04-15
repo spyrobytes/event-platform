@@ -87,6 +87,26 @@ export function summarizeClaims(params: {
 }
 
 /**
+ * Deterministically pick the first `cap` items for the preview grid on the
+ * main event page. Featured items come first (in authored order), remaining
+ * items fill the rest (also in authored order). No randomness — stable across
+ * SSR/CSR and across renders so the preview doesn't flicker.
+ */
+export function pickPreviewItems<T extends { featured?: boolean }>(
+  items: readonly T[],
+  cap: number
+): T[] {
+  if (cap <= 0) return [];
+  const featured: T[] = [];
+  const rest: T[] = [];
+  for (const item of items) {
+    if (item.featured === true) featured.push(item);
+    else rest.push(item);
+  }
+  return [...featured, ...rest].slice(0, cap);
+}
+
+/**
  * Retry a serializable transaction once on a Postgres serialization failure
  * (SQLSTATE 40001). Protects the claim-create path from losing a race when
  * two guests claim the last unit of an item simultaneously.

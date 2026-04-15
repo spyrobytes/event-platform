@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MediaAsset } from "@prisma/client";
 import type { RegistrySection as RegistrySectionData } from "@/schemas/event-page";
+import { pickPreviewItems } from "@/lib/registry-claims";
 
 type ClaimSummary = {
   itemId: string;
@@ -16,12 +17,19 @@ type RegistrySectionProps = {
   data: RegistrySectionData["data"];
   assets: MediaAsset[];
   eventId?: string;
+  /** Event slug — used to build the "View full registry" CTA in preview mode. */
+  eventSlug?: string;
   /** Server-computed per-item claim summaries. Present when the viewer
    * is a verified guest; undefined for public visitors. */
   claims?: Record<string, ClaimSummary>;
   /** True when the viewer arrived via a valid invite token. */
   canClaim?: boolean;
+  /** "preview" renders the first 4 items + CTA on the main event page;
+   *  "full" renders all items grouped by category on /e/[slug]/registry. */
+  mode?: "preview" | "full";
 };
+
+const PREVIEW_CAP = 4;
 
 /**
  * Registry Section — POC-parity rewrite
@@ -30,7 +38,7 @@ type RegistrySectionProps = {
  * Primary card uses gold gradient button. Notes with border-top separator.
  * Phase 2: claim/unclaim UI lights up for guests with a valid invite token.
  */
-export function RegistrySection({ data, assets, eventId, claims, canClaim }: RegistrySectionProps) {
+export function RegistrySection({ data, assets, eventId, eventSlug, claims, canClaim, mode = "full" }: RegistrySectionProps) {
   const { heading = "Gift Registry", description, items } = data;
   const kickerText = "Gift Registry";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
@@ -158,29 +166,45 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
           )}
         </div>
 
-        {/* Group items by category, preserving first-occurrence order.
-            Uncategorized items collect into a final "Everything else" bucket,
-            but only if there are also categorized items — otherwise we render
-            a flat grid without any heading (original behavior). */}
+        {/* Group items by category for "full" mode; render a flat preview
+            bucket (featured-first, capped) for "preview" mode. The per-card
+            JSX below is identical in both modes. */}
         {(() => {
-          const UNCATEGORIZED = "__uncategorized__";
-          const order: string[] = [];
-          const buckets = new Map<string, typeof items>();
-          for (const item of items) {
-            const key = item.category?.trim() || UNCATEGORIZED;
-            if (!buckets.has(key)) {
-              buckets.set(key, []);
-              order.push(key);
+          type Group = {
+            key: string;
+            label: string;
+            showHeading: boolean;
+            bucketItems: typeof items;
+          };
+          let groups: Group[];
+          if (mode === "preview") {
+            const previewItems = pickPreviewItems(items, PREVIEW_CAP);
+            groups = [{
+              key: "__preview__",
+              label: "",
+              showHeading: false,
+              bucketItems: previewItems,
+            }];
+          } else {
+            const UNCATEGORIZED = "__uncategorized__";
+            const order: string[] = [];
+            const buckets = new Map<string, typeof items>();
+            for (const item of items) {
+              const key = item.category?.trim() || UNCATEGORIZED;
+              if (!buckets.has(key)) {
+                buckets.set(key, []);
+                order.push(key);
+              }
+              buckets.get(key)!.push(item);
             }
-            buckets.get(key)!.push(item);
+            const hasAnyCategorized = order.some((k) => k !== UNCATEGORIZED);
+            groups = order.map((key) => ({
+              key,
+              label: key === UNCATEGORIZED ? "Everything else" : key,
+              showHeading: hasAnyCategorized,
+              bucketItems: buckets.get(key)!,
+            }));
           }
-          const hasAnyCategorized = order.some((k) => k !== UNCATEGORIZED);
-          const groups = order.map((key) => ({
-            key,
-            label: key === UNCATEGORIZED ? "Everything else" : key,
-            showHeading: hasAnyCategorized,
-            bucketItems: buckets.get(key)!,
-          }));
           return groups.map((group) => (
             <div key={group.key} style={{ marginBottom: 40 }}>
               {group.showHeading && (
@@ -522,6 +546,32 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
             </div>
           ));
         })()}
+
+        {mode === "preview" && items.length > PREVIEW_CAP && eventSlug && (
+          <div style={{ textAlign: "center", marginTop: 28 }}>
+            <a
+              href={`/e/${eventSlug}/registry${inviteToken ? `?tk=${encodeURIComponent(inviteToken)}` : ""}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                fontFamily: "var(--sans)",
+                fontSize: "var(--sm, 0.85rem)",
+                fontWeight: 600,
+                letterSpacing: ".02em",
+                padding: "12px 26px",
+                borderRadius: 999,
+                textDecoration: "none",
+                background: "transparent",
+                color: "var(--accent, #7a8c72)",
+                border: "1px solid var(--accent, #7a8c72)",
+                transition: "all var(--transition, 0.3s ease)",
+              }}
+            >
+              View full registry ({items.length - PREVIEW_CAP} more) →
+            </a>
+          </div>
+        )}
 
         {items.length === 0 && (
           <div style={{

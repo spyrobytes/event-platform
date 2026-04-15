@@ -197,6 +197,9 @@ export type SectionRendererProps<TData> = {
   data: TData;
   assets: MediaAsset[];
   eventId?: string;
+  /** Event slug; needed by the registry adapter to build the "View full
+   * registry" CTA href in preview mode. Other adapters ignore it. */
+  eventSlug?: string;
   /** Passed through from the public page for sections that support guest
    * mutations (currently: registry claims). Optional because not every
    * renderer needs them. */
@@ -207,6 +210,8 @@ export type SectionRendererProps<TData> = {
     myClaimQuantity: number;
   }>;
   canClaim?: boolean;
+  /** Registry rendering mode — ignored by non-registry adapters. */
+  registryMode?: "preview" | "full";
 };
 
 /** Hero has a special contract */
