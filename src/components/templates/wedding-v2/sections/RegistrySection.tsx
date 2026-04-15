@@ -192,7 +192,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
                   gap: "var(--gap, 20px)",
                 }}
               >
