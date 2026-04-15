@@ -302,7 +302,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     <>
       <PageViewTracker eventId={event.id} source="event_page" />
       {tokenInvalid && <InvalidTokenBanner />}
-      {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} />}
+      {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} eventSlug={slug} />}
       <Template
         config={filteredConfig}
         assets={assets}

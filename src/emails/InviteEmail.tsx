@@ -84,6 +84,12 @@ export function InviteEmail({
             <Text style={text}>
               Click the button above to let us know if you can make it!
             </Text>
+
+            <Text style={keepLinkNote}>
+              <strong>Keep this email.</strong> The link above is personal to
+              you — it&apos;s how you RSVP, claim gifts from the registry, and
+              revisit the event page.
+            </Text>
           </Section>
 
           <Hr style={hr} />
@@ -144,6 +150,17 @@ const text = {
   fontSize: "16px",
   lineHeight: "26px",
   color: "#484848",
+};
+
+const keepLinkNote = {
+  fontSize: "14px",
+  lineHeight: "22px",
+  color: "#525252",
+  backgroundColor: "#fffbeb",
+  border: "1px solid #fde68a",
+  borderRadius: "6px",
+  padding: "12px 16px",
+  margin: "16px 0 0 0",
 };
 
 const eventCard = {
