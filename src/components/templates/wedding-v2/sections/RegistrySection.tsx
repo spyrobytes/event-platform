@@ -63,14 +63,54 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
           )}
         </div>
 
-        {/* Registry grid — auto-fills 1–4 columns based on viewport (minmax 260px).
-            Cards stay compact; 24 items fit across 6 rows on a wide display. */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: "var(--gap, 20px)",
-        }}>
-          {items.map((item, index) => {
+        {/* Group items by category, preserving first-occurrence order.
+            Uncategorized items collect into a final "Everything else" bucket,
+            but only if there are also categorized items — otherwise we render
+            a flat grid without any heading (original behavior). */}
+        {(() => {
+          const UNCATEGORIZED = "__uncategorized__";
+          const order: string[] = [];
+          const buckets = new Map<string, typeof items>();
+          for (const item of items) {
+            const key = item.category?.trim() || UNCATEGORIZED;
+            if (!buckets.has(key)) {
+              buckets.set(key, []);
+              order.push(key);
+            }
+            buckets.get(key)!.push(item);
+          }
+          const hasAnyCategorized = order.some((k) => k !== UNCATEGORIZED);
+          const groups = order.map((key) => ({
+            key,
+            label: key === UNCATEGORIZED ? "Everything else" : key,
+            showHeading: hasAnyCategorized,
+            bucketItems: buckets.get(key)!,
+          }));
+          return groups.map((group) => (
+            <div key={group.key} style={{ marginBottom: 40 }}>
+              {group.showHeading && (
+                <h3
+                  style={{
+                    fontFamily: "var(--sans)",
+                    fontSize: "var(--sm, 0.85rem)",
+                    fontWeight: 600,
+                    letterSpacing: ".14em",
+                    textTransform: "uppercase" as const,
+                    color: "var(--accent, #7a8c72)",
+                    marginBottom: 16,
+                  }}
+                >
+                  {group.label}
+                </h3>
+              )}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                  gap: "var(--gap, 20px)",
+                }}
+              >
+                {group.bucketItems.map((item) => {
             const itemType = item.type ?? "link";
             const isFund = itemType === "fund";
             const logoUrl = getAssetUrl(item.logoAssetId);
@@ -78,11 +118,12 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
             const hasLink = !!item.url && item.url.length > 0;
             const isFeatured = !!item.featured;
             const isClaimed = !!item.purchased;
+            const quantity = item.quantity ?? 1;
             const ctaLabel = isFund ? "Contribute" : "View Registry";
 
             return (
               <div
-                key={index}
+                key={item.id}
                 style={{
                   position: "relative",
                   background: "var(--surface, #ffffff)",
@@ -208,7 +249,7 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                     {item.name}
                   </h3>
 
-                  {item.amountLabel && (
+                  {(item.amountLabel || (!isFund && quantity > 1)) && (
                     <p style={{
                       fontFamily: "var(--sans)",
                       fontSize: ".95rem",
@@ -217,6 +258,8 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                       marginBottom: 6,
                     }}>
                       {item.amountLabel}
+                      {item.amountLabel && !isFund && quantity > 1 ? " · " : ""}
+                      {!isFund && quantity > 1 ? `Qty ${quantity}` : ""}
                     </p>
                   )}
 
@@ -275,8 +318,11 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                 )}
               </div>
             );
-          })}
-        </div>
+                })}
+              </div>
+            </div>
+          ));
+        })()}
 
         {items.length === 0 && (
           <div style={{

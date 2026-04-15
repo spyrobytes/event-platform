@@ -458,11 +458,20 @@ export const thingsToDoSectionSchema = z.object({
 // funds ("fund"). Defaults to "link" for backward compatibility with items
 // created before the field existed. See RegistryEditor + RegistrySection for
 // how the two types render (CTA label, field visibility).
+//
+// `id` is a stable per-item identifier (UUID). Required by Phase 2 guest
+// claims so a claim can reference an item that survives reorders/edits.
+// Existing items missing `id` get one backfilled lazily during migration
+// (see migratePageConfig in src/lib/config-migrations.ts). The value is a
+// plain non-empty string so either UUID or CUID work without schema churn.
 export const registryItemSchema = z.object({
+  id: z.string().min(1, "Registry item id is required"),
   type: z.enum(["link", "fund"]).default("link"),
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
   url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   amountLabel: z.string().max(40, "Amount must be 40 characters or less").optional(),
+  category: z.string().max(40, "Category must be 40 characters or less").optional(),
+  quantity: z.number().int().min(1).max(99).default(1),
   logoAssetId: z.string().cuid().optional(),
   imageAssetId: z.string().cuid().optional(),
   description: z.string().max(200, "Description must be 200 characters or less").optional(),

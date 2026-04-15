@@ -18,6 +18,47 @@ export const CURRENT_SCHEMA_VERSION = 1;
 type UnknownConfig = Record<string, unknown>;
 
 /**
+ * Backfills stable ids on registry items that lack one. Registry items were
+ * originally indexed by array position; Phase 2 guest claims need an id that
+ * survives reorders/edits. Assignment is idempotent — items with an existing
+ * id pass through unchanged. The new id persists on the next save.
+ */
+function backfillRegistryItemIds(config: UnknownConfig): UnknownConfig {
+  const sections = config.sections;
+  if (!Array.isArray(sections)) return config;
+
+  let mutated = false;
+  const newSections = sections.map((section) => {
+    if (
+      !section ||
+      typeof section !== "object" ||
+      (section as { type?: unknown }).type !== "registry"
+    ) {
+      return section;
+    }
+    const data = (section as { data?: { items?: unknown } }).data;
+    const items = data?.items;
+    if (!Array.isArray(items)) return section;
+
+    let sectionMutated = false;
+    const newItems = items.map((item) => {
+      if (!item || typeof item !== "object") return item;
+      const existingId = (item as { id?: unknown }).id;
+      if (typeof existingId === "string" && existingId.length > 0) return item;
+      sectionMutated = true;
+      mutated = true;
+      return { ...(item as object), id: crypto.randomUUID() };
+    });
+
+    if (!sectionMutated) return section;
+    return { ...(section as object), data: { ...data, items: newItems } };
+  });
+
+  if (!mutated) return config;
+  return { ...config, sections: newSections };
+}
+
+/**
  * Migrates a page config to the latest schema version
  * Throws if config cannot be migrated
  */
@@ -25,9 +66,12 @@ export function migratePageConfig(config: UnknownConfig): EventPageConfigV1 {
   const version = (config.schemaVersion as number) || 1;
 
   switch (version) {
-    case 1:
-      // Already at latest version
-      return config as unknown as EventPageConfigV1;
+    case 1: {
+      // Already at latest version. Run idempotent structural backfills that
+      // don't warrant a version bump (e.g. stable ids on JSON array items).
+      const backfilled = backfillRegistryItemIds(config);
+      return backfilled as unknown as EventPageConfigV1;
+    }
 
     // Future versions would be handled here:
     // case 2:

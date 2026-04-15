@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,17 +25,48 @@ type RegistryEditorProps = {
 };
 
 export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) {
-  const items = data.items || [];
+  const items = useMemo(() => data.items || [], [data.items]);
   // Logos = brand marks (Amazon, Crate & Barrel). Gift photos live under the
   // dedicated "gift" tag so gallery/portrait images don't leak into this picker.
-  const logoAssets = assets.filter((a) => a.tags.includes("logo"));
-  const imageAssets = assets.filter((a) => a.tags.includes("gift"));
+  const logoAssets = useMemo(
+    () => assets.filter((a) => a.tags.includes("logo")),
+    [assets]
+  );
+  const imageAssets = useMemo(
+    () => assets.filter((a) => a.tags.includes("gift")),
+    [assets]
+  );
+
+  // Category suggestions surface recurring values the organizer has already
+  // used; also seed with common wedding-registry buckets so an empty registry
+  // still offers a useful starting list.
+  const categorySuggestions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            "Kitchen",
+            "Home",
+            "Bedroom",
+            "Outdoor",
+            "Experiences",
+            "Honeymoon",
+            "Charity",
+            ...items.map((i) => i.category).filter((c): c is string => !!c),
+          ].map((c) => c.trim())
+        )
+      ),
+    [items]
+  );
 
   const addItem = useCallback(() => {
     if (items.length >= MAX_ITEMS) return;
     onChange({
       ...data,
-      items: [...items, { type: "link", name: "" }],
+      items: [
+        ...items,
+        { id: crypto.randomUUID(), type: "link", name: "", quantity: 1 },
+      ],
     });
   }, [data, items, onChange]);
 
@@ -213,6 +244,44 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
                     placeholder="Note, e.g., Ships internationally (optional)"
                     maxLength={200}
                   />
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        Category (optional)
+                      </Label>
+                      <Input
+                        value={item.category || ""}
+                        onChange={(e) =>
+                          updateItem(index, { category: e.target.value || undefined })
+                        }
+                        list={`registry-categories-${index}`}
+                        placeholder="e.g., Kitchen, Honeymoon"
+                        maxLength={40}
+                      />
+                      <datalist id={`registry-categories-${index}`}>
+                        {categorySuggestions.map((c) => (
+                          <option key={c} value={c} />
+                        ))}
+                      </datalist>
+                    </div>
+                    {itemType === "link" && (
+                      <div className="w-24 space-y-1">
+                        <Label className="text-xs text-muted-foreground">Qty</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={99}
+                          value={item.quantity ?? 1}
+                          onChange={(e) => {
+                            const n = parseInt(e.target.value, 10);
+                            updateItem(index, {
+                              quantity: Number.isFinite(n) && n >= 1 ? n : 1,
+                            });
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Button
                   type="button"
