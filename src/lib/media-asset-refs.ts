@@ -20,6 +20,7 @@ import type { EventPageConfigV1 } from "@/schemas/event-page";
  *   - sections[story].milestones[].imageAssetId  (timeline layout)
  *   - sections[weddingParty].members[].imageAssetId
  *   - sections[registry].items[].logoAssetId
+ *   - sections[registry].items[].imageAssetId
  *
  * The input is never mutated.
  */
@@ -84,9 +85,13 @@ export function stripAssetRefsFromConfig(
       }
 
       case "registry": {
-        const newItems = section.data.items.map((item) =>
-          item.logoAssetId === assetId ? { ...item, logoAssetId: undefined } : item
-        );
+        const newItems = section.data.items.map((item) => {
+          const logoCleared =
+            item.logoAssetId === assetId ? { ...item, logoAssetId: undefined } : item;
+          return logoCleared.imageAssetId === assetId
+            ? { ...logoCleared, imageAssetId: undefined }
+            : logoCleared;
+        });
         return { ...section, data: { ...section.data, items: newItems } };
       }
 

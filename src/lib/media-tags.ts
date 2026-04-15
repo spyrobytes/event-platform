@@ -12,6 +12,7 @@ export const MEDIA_TAGS = [
   "gallery",  // Public photo gallery
   "portrait", // Face-centered (wedding party, speakers)
   "couple",   // Couple photo for wedding hero / invitation
+  "gift",     // Registry item / gift product photos
   "logo",     // Logos for sponsors / registry — transparency-friendly
   "story",    // Story milestones / editorial blocks
 ] as const;
@@ -26,6 +27,7 @@ export const MEDIA_TAG_LABELS: Record<MediaTag, string> = {
   gallery: "Gallery",
   portrait: "Portrait",
   couple: "Couple",
+  gift: "Gift",
   logo: "Logo",
   story: "Story",
 };
@@ -38,6 +40,7 @@ export const MEDIA_TAG_HINTS: Record<MediaTag, string> = {
   gallery: "Public photo gallery",
   portrait: "Individual people (wedding party, speakers)",
   couple: "Couple photo for wedding hero / invitation",
+  gift: "Gift / registry item product photo",
   logo: "Sponsor / registry logos",
   story: "Our Story milestones",
 };

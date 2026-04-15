@@ -8,6 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { RegistrySection } from "@/schemas/event-page";
 
+const MAX_ITEMS = 24;
+
+type RegistryItem = RegistrySection["data"]["items"][number];
+type RegistryItemType = NonNullable<RegistryItem["type"]>;
+
 type RegistryEditorProps = {
   data: RegistrySection["data"];
   assets: Array<{
@@ -19,25 +24,23 @@ type RegistryEditorProps = {
   onChange: (data: RegistrySection["data"]) => void;
 };
 
-/**
- * Editor for Gift Registry section
- * Allows managing registry items with names, URLs, and logos
- */
 export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) {
   const items = data.items || [];
-  // Registry logos: logo-tagged only. Gallery images don't belong here.
+  // Logos = brand marks (Amazon, Crate & Barrel). Gift photos live under the
+  // dedicated "gift" tag so gallery/portrait images don't leak into this picker.
   const logoAssets = assets.filter((a) => a.tags.includes("logo"));
+  const imageAssets = assets.filter((a) => a.tags.includes("gift"));
 
   const addItem = useCallback(() => {
-    if (items.length >= 6) return;
+    if (items.length >= MAX_ITEMS) return;
     onChange({
       ...data,
-      items: [...items, { name: "" }],
+      items: [...items, { type: "link", name: "" }],
     });
   }, [data, items, onChange]);
 
   const updateItem = useCallback(
-    (index: number, updates: Partial<(typeof items)[number]>) => {
+    (index: number, updates: Partial<RegistryItem>) => {
       const newItems = [...items];
       newItems[index] = { ...newItems[index], ...updates };
       onChange({ ...data, items: newItems });
@@ -53,6 +56,21 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
       });
     },
     [data, items, onChange]
+  );
+
+  const setFeatured = useCallback(
+    (index: number, checked: boolean) => {
+      if (checked) {
+        const newItems = items.map((it, i) => ({
+          ...it,
+          featured: i === index ? true : undefined,
+        }));
+        onChange({ ...data, items: newItems });
+      } else {
+        updateItem(index, { featured: undefined });
+      }
+    },
+    [data, items, onChange, updateItem]
   );
 
   return (
@@ -80,129 +98,279 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
         />
       </div>
 
-      {/* Registry Items */}
       <div className="space-y-3">
         <Label>Registry Items</Label>
-        {items.map((item, index) => (
-          <div key={index} className="rounded-lg border p-3 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={!!item.featured}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      const newItems = items.map((it, i) => ({
-                        ...it,
-                        featured: i === index ? true : undefined,
-                      }));
-                      onChange({ ...data, items: newItems });
-                    } else {
-                      updateItem(index, { featured: undefined });
-                    }
-                  }}
-                  className="rounded"
-                />
-                <span className="text-muted-foreground">Featured (gold CTA button)</span>
-              </label>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="flex-1 space-y-2">
-                <Input
-                  value={item.name}
-                  onChange={(e) => updateItem(index, { name: e.target.value })}
-                  placeholder="e.g., Amazon, Crate & Barrel"
-                  maxLength={100}
-                />
-                <Input
-                  value={item.url || ""}
-                  onChange={(e) => updateItem(index, { url: e.target.value || undefined })}
-                  placeholder="https://registry-url.com (optional)"
-                  type="url"
-                />
-                {item.url && (() => { try { new URL(item.url); return false; } catch { return true; } })() && (
-                  <p className="text-xs text-amber-600">Please enter a valid URL (e.g., https://...)</p>
-                )}
-                <Input
-                  value={item.description || ""}
-                  onChange={(e) => updateItem(index, { description: e.target.value || undefined })}
-                  placeholder="Brief description (optional)"
-                  maxLength={200}
-                />
-                <Input
-                  value={item.note || ""}
-                  onChange={(e) => updateItem(index, { note: e.target.value || undefined })}
-                  placeholder="Note, e.g., Ships internationally (optional)"
-                  maxLength={200}
-                />
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeItem(index)}
-                className="mt-1 h-8 w-8 p-0 text-destructive hover:text-destructive"
-                aria-label="Remove registry item"
-              >
-                ×
-              </Button>
-            </div>
+        {items.map((item, index) => {
+          const itemType: RegistryItemType = item.type ?? "link";
+          const urlLabel = itemType === "fund" ? "Payment link" : "Registry URL";
+          const urlPlaceholder =
+            itemType === "fund"
+              ? "https://venmo.com/... or PayPal.me link"
+              : "https://registry-url.com";
+          const amountPlaceholder =
+            itemType === "fund" ? "Goal: $5,000 (optional)" : "$250 (optional)";
+          const invalidUrl =
+            !!item.url &&
+            (() => {
+              try {
+                new URL(item.url!);
+                return false;
+              } catch {
+                return true;
+              }
+            })();
 
-            {/* Logo Picker */}
-            {logoAssets.length > 0 && (
-              <div className="space-y-1">
-                <Label className="text-xs">Logo (optional)</Label>
-                <div className="flex flex-wrap gap-1.5">
+          return (
+            <div key={index} className="rounded-lg border p-3 space-y-3">
+              {/* Type toggle */}
+              <div className="flex items-center gap-2 w-fit">
+                {(["link", "fund"] as const).map((t) => (
                   <button
+                    key={t}
                     type="button"
-                    onClick={() => updateItem(index, { logoAssetId: undefined })}
+                    onClick={() => updateItem(index, { type: t })}
                     className={cn(
-                      "h-10 w-10 rounded border-2 p-0.5 transition-all text-xs",
-                      !item.logoAssetId
-                        ? "border-primary bg-primary/10"
-                        : "border-muted hover:border-muted-foreground"
+                      "px-3 py-1.5 rounded-md border-2 text-xs font-medium transition-colors",
+                      itemType === t
+                        ? "border-accent bg-accent/5 text-foreground"
+                        : "border-border bg-surface text-foreground hover:border-accent/50"
                     )}
-                    title={item.logoAssetId ? "Clear logo" : "No logo"}
                   >
-                    <span className="text-muted-foreground">—</span>
+                    {t === "link" ? "Registry link" : "Cash fund"}
                   </button>
-                  {logoAssets.map((asset) => (
+                ))}
+              </div>
+
+              {/* Flags */}
+              <div className="flex items-center gap-4 text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!item.featured}
+                    onChange={(e) => setFeatured(index, e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-muted-foreground">Featured (gold CTA)</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!item.purchased}
+                    onChange={(e) =>
+                      updateItem(index, { purchased: e.target.checked || undefined })
+                    }
+                    className="rounded"
+                  />
+                  <span className="text-muted-foreground">Claimed (hides CTA)</span>
+                </label>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <div className="flex-1 space-y-2">
+                  <Input
+                    value={item.name}
+                    onChange={(e) => updateItem(index, { name: e.target.value })}
+                    placeholder={
+                      itemType === "fund"
+                        ? "e.g., Honeymoon Fund"
+                        : "e.g., Amazon, Crate & Barrel"
+                    }
+                    maxLength={100}
+                  />
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{urlLabel}</Label>
+                    <Input
+                      value={item.url || ""}
+                      onChange={(e) => updateItem(index, { url: e.target.value || undefined })}
+                      placeholder={urlPlaceholder}
+                      type="url"
+                    />
+                    {invalidUrl && (
+                      <p className="text-xs text-amber-600">
+                        Please enter a valid URL (e.g., https://...)
+                      </p>
+                    )}
+                  </div>
+                  <Input
+                    value={item.amountLabel || ""}
+                    onChange={(e) =>
+                      updateItem(index, { amountLabel: e.target.value || undefined })
+                    }
+                    placeholder={amountPlaceholder}
+                    maxLength={40}
+                  />
+                  <Input
+                    value={item.description || ""}
+                    onChange={(e) =>
+                      updateItem(index, { description: e.target.value || undefined })
+                    }
+                    placeholder="Brief description (optional)"
+                    maxLength={200}
+                  />
+                  <Input
+                    value={item.note || ""}
+                    onChange={(e) => updateItem(index, { note: e.target.value || undefined })}
+                    placeholder="Note, e.g., Ships internationally (optional)"
+                    maxLength={200}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeItem(index)}
+                  className="mt-1 h-8 w-8 p-0 text-destructive hover:text-destructive"
+                  aria-label="Remove registry item"
+                >
+                  ×
+                </Button>
+              </div>
+
+              {/* Image picker (gift product photo) */}
+              {imageAssets.length > 0 ? (
+                <div className="space-y-1">
+                  <Label className="text-xs">Gift photo (optional)</Label>
+                  <div className="flex flex-wrap gap-1.5">
                     <button
-                      key={asset.id}
                       type="button"
-                      onClick={() => updateItem(index, { logoAssetId: asset.id })}
+                      onClick={() => updateItem(index, { imageAssetId: undefined })}
                       className={cn(
-                        "h-10 w-10 overflow-hidden rounded border-2 transition-all",
-                        item.logoAssetId === asset.id
-                          ? "border-primary ring-2 ring-primary/20"
+                        "h-12 w-12 rounded border-2 p-0.5 transition-all text-xs",
+                        !item.imageAssetId
+                          ? "border-primary bg-primary/10"
                           : "border-muted hover:border-muted-foreground"
                       )}
-                      title="Select logo"
+                      title={item.imageAssetId ? "Clear photo" : "No photo"}
                     >
-                      {asset.publicUrl && (
-                        <img
-                          src={asset.publicUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      )}
+                      <span className="text-muted-foreground">—</span>
                     </button>
-                  ))}
+                    {imageAssets.map((asset) => {
+                      const isSelected = item.imageAssetId === asset.id;
+                      return (
+                        <button
+                          key={asset.id}
+                          type="button"
+                          onClick={() => updateItem(index, { imageAssetId: asset.id })}
+                          aria-pressed={isSelected}
+                          className={cn(
+                            "relative h-12 w-12 overflow-hidden rounded border-2 transition-all",
+                            isSelected
+                              ? "border-primary ring-2 ring-primary/30"
+                              : "border-muted hover:border-muted-foreground"
+                          )}
+                          title="Select photo"
+                        >
+                          {asset.publicUrl && (
+                            <img
+                              src={asset.publicUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                          {isSelected && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                            >
+                              <svg
+                                className="h-2.5 w-2.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  To attach a gift photo, upload an image in the media library and
+                  tag it <span className="font-mono">gift</span>.
+                </p>
+              )}
+
+              {/* Logo picker (brand mark) */}
+              {logoAssets.length > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Brand logo (optional)</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => updateItem(index, { logoAssetId: undefined })}
+                      className={cn(
+                        "h-10 w-10 rounded border-2 p-0.5 transition-all text-xs",
+                        !item.logoAssetId
+                          ? "border-primary bg-primary/10"
+                          : "border-muted hover:border-muted-foreground"
+                      )}
+                      title={item.logoAssetId ? "Clear logo" : "No logo"}
+                    >
+                      <span className="text-muted-foreground">—</span>
+                    </button>
+                    {logoAssets.map((asset) => {
+                      const isSelected = item.logoAssetId === asset.id;
+                      return (
+                        <button
+                          key={asset.id}
+                          type="button"
+                          onClick={() => updateItem(index, { logoAssetId: asset.id })}
+                          aria-pressed={isSelected}
+                          className={cn(
+                            "relative h-10 w-10 overflow-hidden rounded border-2 transition-all",
+                            isSelected
+                              ? "border-primary ring-2 ring-primary/30"
+                              : "border-muted hover:border-muted-foreground"
+                          )}
+                          title="Select logo"
+                        >
+                          {asset.publicUrl && (
+                            <img
+                              src={asset.publicUrl}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                          {isSelected && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                            >
+                              <svg
+                                className="h-2.5 w-2.5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={addItem}
-          disabled={items.length >= 6}
+          disabled={items.length >= MAX_ITEMS}
         >
-          + Add Registry
-          {items.length >= 6 && " (max 6)"}
+          + Add Registry Item
+          {items.length >= MAX_ITEMS && ` (max ${MAX_ITEMS})`}
         </Button>
       </div>
     </div>

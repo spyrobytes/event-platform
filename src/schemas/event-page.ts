@@ -454,19 +454,27 @@ export const thingsToDoSectionSchema = z.object({
 });
 
 // Registry Section - Gift registry (V2)
+// `type` distinguishes external retailer links ("link") from cash / honeymoon
+// funds ("fund"). Defaults to "link" for backward compatibility with items
+// created before the field existed. See RegistryEditor + RegistrySection for
+// how the two types render (CTA label, field visibility).
 export const registryItemSchema = z.object({
+  type: z.enum(["link", "fund"]).default("link"),
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
   url: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  amountLabel: z.string().max(40, "Amount must be 40 characters or less").optional(),
   logoAssetId: z.string().cuid().optional(),
+  imageAssetId: z.string().cuid().optional(),
   description: z.string().max(200, "Description must be 200 characters or less").optional(),
   note: z.string().max(200, "Note must be 200 characters or less").optional(),
   featured: z.boolean().optional(),
+  purchased: z.boolean().optional(),
 });
 
 export const registrySectionDataSchema = z.object({
   heading: z.string().max(60, "Heading must be 60 characters or less").default("Gift Registry"),
   description: z.string().max(300, "Description must be 300 characters or less").optional(),
-  items: z.array(registryItemSchema).max(6, "Maximum 6 registry items allowed"),
+  items: z.array(registryItemSchema).max(24, "Maximum 24 registry items allowed"),
 });
 
 export const registrySectionSchema = z.object({

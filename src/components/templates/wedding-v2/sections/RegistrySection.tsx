@@ -63,31 +63,37 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
           )}
         </div>
 
-        {/* Registry grid */}
+        {/* Registry grid — auto-fills 1–4 columns based on viewport (minmax 260px).
+            Cards stay compact; 24 items fit across 6 rows on a wide display. */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
+          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
           gap: "var(--gap, 20px)",
         }}>
           {items.map((item, index) => {
+            const itemType = item.type ?? "link";
+            const isFund = itemType === "fund";
             const logoUrl = getAssetUrl(item.logoAssetId);
-            const hasLink = item.url && item.url.length > 0;
-            const hasFeatured = items.some((i) => i.featured);
-            const isPrimary = hasFeatured ? !!item.featured : index === 0;
+            const imageUrl = getAssetUrl(item.imageAssetId);
+            const hasLink = !!item.url && item.url.length > 0;
+            const isFeatured = !!item.featured;
+            const isClaimed = !!item.purchased;
+            const ctaLabel = isFund ? "Contribute" : "View Registry";
 
             return (
               <div
                 key={index}
                 style={{
+                  position: "relative",
                   background: "var(--surface, #ffffff)",
                   border: "1px solid var(--border, #e8e1d6)",
                   borderRadius: "var(--r-lg, 24px)",
-                  padding: "clamp(24px, 3vw, 32px)",
+                  padding: "clamp(20px, 2vw, 24px)",
                   boxShadow: "var(--shadow)",
                   display: "flex",
                   flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: 20,
+                  gap: 6,
+                  opacity: isClaimed ? 0.7 : 1,
                   transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
                 }}
                 onMouseEnter={(e) => {
@@ -99,28 +105,97 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                   e.currentTarget.style.boxShadow = "var(--shadow)";
                 }}
               >
-                <div>
-                  {/* Icon */}
-                  <div style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: "rgba(122, 140, 114, 0.08)",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "var(--accent, #7a8c72)",
-                    marginBottom: 4,
-                  }}>
-                    {logoUrl ? (
-                      <img src={logoUrl} alt={item.name} style={{ width: 24, height: 24, objectFit: "contain" }} />
-                    ) : (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={24} height={24}>
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M2 12h20" />
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                      </svg>
-                    )}
-                  </div>
+                {isClaimed && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: 16,
+                      right: 16,
+                      background: "var(--accent, #7a8c72)",
+                      color: "#fff",
+                      fontFamily: "var(--sans)",
+                      fontSize: ".7rem",
+                      fontWeight: 600,
+                      letterSpacing: ".12em",
+                      textTransform: "uppercase" as const,
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    Claimed
+                  </span>
+                )}
+
+                {imageUrl ? (
+                    <div
+                      style={{
+                        width: 96,
+                        height: 96,
+                        borderRadius: 12,
+                        overflow: "hidden",
+                        background: "var(--cream, #faf6ef)",
+                        marginBottom: 14,
+                        position: "relative",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={item.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      {logoUrl && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 4,
+                            left: 4,
+                            width: 24,
+                            height: 24,
+                            borderRadius: 7,
+                            background: "#fff",
+                            display: "grid",
+                            placeItems: "center",
+                            boxShadow: "0 1px 4px rgba(0,0,0,.2)",
+                          }}
+                        >
+                          <img
+                            src={logoUrl}
+                            alt=""
+                            style={{ width: 16, height: 16, objectFit: "contain" }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: 14,
+                        background: "rgba(122, 140, 114, 0.08)",
+                        display: "grid",
+                        placeItems: "center",
+                        color: "var(--accent, #7a8c72)",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {logoUrl ? (
+                        <img src={logoUrl} alt={item.name} style={{ width: 24, height: 24, objectFit: "contain" }} />
+                      ) : isFund ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={24} height={24}>
+                          <path d="M12 1v22" />
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={24} height={24}>
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M2 12h20" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
 
                   <h3 style={{
                     fontFamily: "var(--cursive, var(--serif))",
@@ -128,68 +203,76 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                     fontWeight: 400,
                     lineHeight: 1.15,
                     color: "var(--night, #1e1b17)",
-                    marginBottom: 6,
+                    marginBottom: item.amountLabel ? 2 : 6,
                   }}>
                     {item.name}
                   </h3>
 
-                  {item.description && (
-                    <p style={{ color: "var(--text-2, #786f65)", fontSize: "var(--sm, 0.85rem)", lineHeight: 1.6 }}>
-                      {item.description}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  {hasLink && (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                        fontFamily: "var(--sans)",
-                        fontSize: "var(--sm, 0.85rem)",
-                        fontWeight: 600,
-                        letterSpacing: ".02em",
-                        padding: "12px 26px",
-                        borderRadius: 999,
-                        textDecoration: "none",
-                        whiteSpace: "nowrap" as const,
-                        transition: "all var(--transition, 0.3s ease)",
-                        ...(isPrimary
-                          ? {
-                              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
-                              color: "#fff",
-                              border: "1px solid var(--gold, #c5a55a)",
-                            }
-                          : {
-                              background: "transparent",
-                              color: "var(--charcoal, #3d3830)",
-                              border: "1px solid var(--sand, #d4cabb)",
-                            }),
-                      }}
-                    >
-                      {isPrimary ? "Contribute" : "View Registry"}
-                    </a>
-                  )}
-
-                  {item.note && (
+                  {item.amountLabel && (
                     <p style={{
-                      fontSize: ".82rem",
-                      color: "var(--stone, #a69e93)",
-                      fontStyle: "italic",
-                      paddingTop: 12,
-                      borderTop: "1px solid var(--border, #e8e1d6)",
-                      marginTop: hasLink ? 12 : 0,
+                      fontFamily: "var(--sans)",
+                      fontSize: ".95rem",
+                      fontWeight: 600,
+                      color: "var(--accent, #7a8c72)",
+                      marginBottom: 6,
                     }}>
-                      {item.note}
+                      {item.amountLabel}
                     </p>
                   )}
-                </div>
+
+                {item.description && (
+                  <p style={{ color: "var(--text-2, #786f65)", fontSize: "var(--sm, 0.85rem)", lineHeight: 1.6 }}>
+                    {item.description}
+                  </p>
+                )}
+
+                {item.note && (
+                  <p style={{
+                    fontSize: ".82rem",
+                    color: "var(--stone, #a69e93)",
+                    fontStyle: "italic",
+                  }}>
+                    {item.note}
+                  </p>
+                )}
+
+                {hasLink && !isClaimed && (
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      fontFamily: "var(--sans)",
+                      fontSize: "var(--sm, 0.85rem)",
+                      fontWeight: 600,
+                      letterSpacing: ".02em",
+                      padding: "12px 26px",
+                      borderRadius: 999,
+                      textDecoration: "none",
+                      whiteSpace: "nowrap" as const,
+                      transition: "all var(--transition, 0.3s ease)",
+                      marginTop: "auto",
+                      alignSelf: "flex-start",
+                      ...(isFeatured
+                        ? {
+                            background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
+                            color: "#fff",
+                            border: "1px solid var(--gold, #c5a55a)",
+                          }
+                        : {
+                            background: "transparent",
+                            color: "var(--charcoal, #3d3830)",
+                            border: "1px solid var(--sand, #d4cabb)",
+                          }),
+                    }}
+                  >
+                    {ctaLabel}
+                  </a>
+                )}
               </div>
             );
           })}
@@ -208,13 +291,6 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
         )}
       </div>
 
-      <style>{`
-        @media (max-width: 700px) {
-          #registry [style*="grid-template-columns: repeat(2"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }
