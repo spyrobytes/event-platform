@@ -45,13 +45,24 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
   const searchParams = useSearchParams();
   const inviteToken = searchParams?.get("tk") ?? null;
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
-  const [claimError, setClaimError] = useState<string | null>(null);
+  // Error keyed by itemId so the message appears on the card the user just
+  // clicked, not off-screen at the section heading.
+  const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
   const [, startTransition] = useTransition();
   const showClaimUI = canClaim && !!eventId && !!inviteToken;
 
+  function setItemError(itemId: string, message: string | null) {
+    setClaimErrors((prev) => {
+      const next = { ...prev };
+      if (message) next[itemId] = message;
+      else delete next[itemId];
+      return next;
+    });
+  }
+
   async function handleClaim(itemId: string, quantityRemaining: number) {
     if (!eventId || !inviteToken) return;
-    setClaimError(null);
+    setItemError(itemId, null);
     setBusyItemId(itemId);
     try {
       const res = await fetch(`/api/events/${eventId}/registry/claims`, {
@@ -69,7 +80,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
       }
       startTransition(() => router.refresh());
     } catch (err) {
-      setClaimError(err instanceof Error ? err.message : "Claim failed");
+      setItemError(itemId, err instanceof Error ? err.message : "Claim failed");
     } finally {
       setBusyItemId(null);
     }
@@ -77,7 +88,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
 
   async function handleUnclaim(itemId: string, claimId: string) {
     if (!eventId || !inviteToken) return;
-    setClaimError(null);
+    setItemError(itemId, null);
     setBusyItemId(itemId);
     try {
       const res = await fetch(
@@ -94,7 +105,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
       }
       startTransition(() => router.refresh());
     } catch (err) {
-      setClaimError(err instanceof Error ? err.message : "Unclaim failed");
+      setItemError(itemId, err instanceof Error ? err.message : "Unclaim failed");
     } finally {
       setBusyItemId(null);
     }
@@ -134,16 +145,6 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
           {description && (
             <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
               {description}
-            </p>
-          )}
-          {claimError && (
-            <p role="alert" style={{
-              marginTop: 12,
-              color: "var(--warning, #b45309)",
-              fontFamily: "var(--sans)",
-              fontSize: "var(--sm, 0.85rem)",
-            }}>
-              {claimError}
             </p>
           )}
         </div>
@@ -493,6 +494,17 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
                     </span>
                   )}
                 </div>
+
+                {claimErrors[item.id] && (
+                  <p role="alert" style={{
+                    marginTop: 8,
+                    color: "var(--warning, #b45309)",
+                    fontFamily: "var(--sans)",
+                    fontSize: ".78rem",
+                  }}>
+                    {claimErrors[item.id]}
+                  </p>
+                )}
               </div>
             );
                 })}

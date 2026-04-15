@@ -94,6 +94,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (fullEvent.pageConfig) {
       try {
         config = validateAndMigrate(fullEvent.pageConfig);
+        // Persist if lazy-backfill assigned new registry item uuids; see
+        // companion write in src/app/e/[slug]/page.tsx for the same reason.
+        if (JSON.stringify(fullEvent.pageConfig) !== JSON.stringify(config)) {
+          await db.event.update({
+            where: { id: eventId },
+            data: { pageConfig: config as unknown as object },
+          });
+        }
       } catch {
         // If validation fails, create a minimal config
         config = createMinimalConfig(fullEvent.title);

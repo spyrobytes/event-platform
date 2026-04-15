@@ -231,6 +231,22 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   if (event.pageConfig) {
     try {
       config = validateAndMigrate(event.pageConfig);
+      // If the migration mutated the config (e.g. lazy-backfilled stable
+      // uuids onto registry items that predate PR 1), persist the result so
+      // subsequent reads — including the claim POST endpoint — observe the
+      // same ids. Without this, random uuids get regenerated on every read
+      // and guest claims fail lookup with a confusing 404. Fire-and-forget:
+      // the page render shouldn't block on the write.
+      if (JSON.stringify(event.pageConfig) !== JSON.stringify(config)) {
+        db.event
+          .update({
+            where: { id: event.id },
+            data: { pageConfig: config as unknown as object },
+          })
+          .catch((err) =>
+            console.error("[page-config-migrate] failed to persist", err)
+          );
+      }
     } catch {
       config = createMinimalConfig(event.title);
     }

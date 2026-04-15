@@ -56,7 +56,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // item post-claim); we surface those as "Unknown item" rather than fail.
     const itemMeta = new Map<
       string,
-      { name: string; category: string | null; amountLabel: string | null }
+      {
+        name: string;
+        category: string | null;
+        amountLabel: string | null;
+        quantity: number;
+      }
     >();
     if (event?.pageConfig) {
       try {
@@ -68,6 +73,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
               name: item.name,
               category: item.category ?? null,
               amountLabel: item.amountLabel ?? null,
+              quantity: item.quantity ?? 1,
             });
           }
         }
@@ -82,6 +88,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       itemName: itemMeta.get(c.itemId)?.name ?? "Unknown item",
       itemCategory: itemMeta.get(c.itemId)?.category ?? null,
       itemAmountLabel: itemMeta.get(c.itemId)?.amountLabel ?? null,
+      itemQuantity: itemMeta.get(c.itemId)?.quantity ?? 1,
       quantity: c.quantity,
       claimedAt: c.claimedAt,
       thankYouSentAt: c.thankYouSentAt,

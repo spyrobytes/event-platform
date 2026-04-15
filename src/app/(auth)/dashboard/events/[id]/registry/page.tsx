@@ -14,6 +14,7 @@ type ClaimRow = {
   itemName: string;
   itemCategory: string | null;
   itemAmountLabel: string | null;
+  itemQuantity: number;
   quantity: number;
   claimedAt: string;
   thankYouSentAt: string | null;
@@ -106,10 +107,47 @@ export default function RegistryThanksPage() {
     [params.id, getIdToken, load]
   );
 
+  // Per-item rollup: for items with quantity > 1 the organizer needs to see
+  // "X of Y claimed" at a glance. Group claims by itemId, preserving the
+  // server's claimedAt-desc order so the most recent activity stays on top.
+  const itemGroups = useMemo(() => {
+    type Group = {
+      itemId: string;
+      itemName: string;
+      itemCategory: string | null;
+      itemAmountLabel: string | null;
+      itemQuantity: number;
+      claimedQuantity: number;
+      claims: ClaimRow[];
+    };
+    const order: string[] = [];
+    const groups = new Map<string, Group>();
+    for (const c of claims) {
+      let g = groups.get(c.itemId);
+      if (!g) {
+        g = {
+          itemId: c.itemId,
+          itemName: c.itemName,
+          itemCategory: c.itemCategory,
+          itemAmountLabel: c.itemAmountLabel,
+          itemQuantity: c.itemQuantity,
+          claimedQuantity: 0,
+          claims: [],
+        };
+        groups.set(c.itemId, g);
+        order.push(c.itemId);
+      }
+      g.claimedQuantity += c.quantity;
+      g.claims.push(c);
+    }
+    return order.map((id) => groups.get(id)!);
+  }, [claims]);
+
   const summary = useMemo(() => {
-    const total = claims.length;
-    const thanked = claims.filter((c) => c.thankYouSentAt).length;
-    return { total, thanked, pending: total - thanked };
+    const totalClaims = claims.length;
+    const thankYousSent = claims.filter((c) => c.thankYouSentAt).length;
+    const thankYousDue = totalClaims - thankYousSent;
+    return { totalClaims, thankYousSent, thankYousDue };
   }, [claims]);
 
   if (loading) {
@@ -151,9 +189,13 @@ export default function RegistryThanksPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total claims" value={summary.total} />
-        <StatCard label="Thank-yous sent" value={summary.thanked} />
-        <StatCard label="Pending" value={summary.pending} emphasize={summary.pending > 0} />
+        <StatCard label="Claims received" value={summary.totalClaims} />
+        <StatCard label="Thank-yous sent" value={summary.thankYousSent} />
+        <StatCard
+          label="Thank-yous due"
+          value={summary.thankYousDue}
+          emphasize={summary.thankYousDue > 0}
+        />
       </div>
 
       {error && (
@@ -173,63 +215,95 @@ export default function RegistryThanksPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Item</th>
-                <th className="px-4 py-3 font-medium">Guest</th>
+                <th className="px-4 py-3 font-medium">Item / Guest</th>
                 <th className="px-4 py-3 font-medium">Claimed</th>
                 <th className="px-4 py-3 font-medium">Qty</th>
                 <th className="px-4 py-3 font-medium">Thank-you</th>
               </tr>
             </thead>
             <tbody>
-              {claims.map((c) => {
-                const sent = !!c.thankYouSentAt;
-                const busy = pendingId === c.id;
+              {itemGroups.map((group) => {
+                const remaining = Math.max(
+                  0,
+                  group.itemQuantity - group.claimedQuantity
+                );
+                const fullyClaimed = remaining === 0;
                 return (
-                  <tr key={c.id} className="border-t">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{c.itemName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {[c.itemCategory, c.itemAmountLabel].filter(Boolean).join(" · ") ||
-                          "—"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div>{c.guestName || "Guest"}</div>
-                      {c.guestEmail && (
-                        <a
-                          href={`mailto:${c.guestEmail}`}
-                          className="text-xs text-muted-foreground hover:underline"
+                  <FragmentRows key={group.itemId}>
+                    <tr className="border-t bg-muted/30">
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{group.itemName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {[group.itemCategory, group.itemAmountLabel]
+                            .filter(Boolean)
+                            .join(" · ") || "—"}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5" colSpan={3}>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                            fullyClaimed
+                              ? "bg-accent/15 text-accent"
+                              : "bg-foreground/10 text-foreground"
+                          )}
                         >
-                          {c.guestEmail}
-                        </a>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {format(new Date(c.claimedAt), "MMM d, yyyy")}
-                    </td>
-                    <td className="px-4 py-3">{c.quantity}</td>
-                    <td className="px-4 py-3">
-                      <label
-                        className={cn(
-                          "inline-flex cursor-pointer items-center gap-2",
-                          busy && "opacity-60"
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={sent}
-                          disabled={busy}
-                          onChange={(e) => toggleThankYou(c.id, e.target.checked)}
-                          className="rounded"
-                        />
-                        <span className="text-xs">
-                          {sent && c.thankYouSentAt
-                            ? `Sent ${format(new Date(c.thankYouSentAt), "MMM d")}`
-                            : "Mark sent"}
+                          {group.claimedQuantity} of {group.itemQuantity} claimed
+                          {!fullyClaimed && (
+                            <span className="font-normal text-foreground/70">
+                              · {remaining} remaining
+                            </span>
+                          )}
                         </span>
-                      </label>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {group.claims.map((c) => {
+                      const sent = !!c.thankYouSentAt;
+                      const busy = pendingId === c.id;
+                      return (
+                        <tr key={c.id} className="border-t">
+                          <td className="px-4 py-3 pl-8">
+                            <div>{c.guestName || "Guest"}</div>
+                            {c.guestEmail && (
+                              <a
+                                href={`mailto:${c.guestEmail}`}
+                                className="text-xs text-muted-foreground hover:underline"
+                              >
+                                {c.guestEmail}
+                              </a>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {format(new Date(c.claimedAt), "MMM d, yyyy")}
+                          </td>
+                          <td className="px-4 py-3">{c.quantity}</td>
+                          <td className="px-4 py-3">
+                            <label
+                              className={cn(
+                                "inline-flex cursor-pointer items-center gap-2",
+                                busy && "opacity-60"
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={sent}
+                                disabled={busy}
+                                onChange={(e) =>
+                                  toggleThankYou(c.id, e.target.checked)
+                                }
+                                className="rounded"
+                              />
+                              <span className="text-xs">
+                                {sent && c.thankYouSentAt
+                                  ? `Sent ${format(new Date(c.thankYouSentAt), "MMM d")}`
+                                  : "Mark sent"}
+                              </span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </FragmentRows>
                 );
               })}
             </tbody>
@@ -238,6 +312,12 @@ export default function RegistryThanksPage() {
       )}
     </div>
   );
+}
+
+// Lightweight wrapper so we can group <tr> rows under one logical key without
+// introducing an extra DOM node (table rendering breaks on <div> children).
+function FragmentRows({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 function StatCard({
