@@ -44,10 +44,19 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams?.get("tk") ?? null;
-  const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  const [busyItems, setBusyItems] = useState<Set<string>>(() => new Set());
   // Error keyed by itemId so the message appears on the card the user just
   // clicked, not off-screen at the section heading.
   const [claimErrors, setClaimErrors] = useState<Record<string, string>>({});
+
+  function markBusy(itemId: string, busy: boolean) {
+    setBusyItems((prev) => {
+      const next = new Set(prev);
+      if (busy) next.add(itemId);
+      else next.delete(itemId);
+      return next;
+    });
+  }
   const [, startTransition] = useTransition();
   const showClaimUI = canClaim && !!eventId && !!inviteToken;
 
@@ -60,10 +69,10 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
     });
   }
 
-  async function handleClaim(itemId: string, quantityRemaining: number) {
+  async function handleClaim(itemId: string) {
     if (!eventId || !inviteToken) return;
     setItemError(itemId, null);
-    setBusyItemId(itemId);
+    markBusy(itemId, true);
     try {
       const res = await fetch(`/api/events/${eventId}/registry/claims`, {
         method: "POST",
@@ -71,7 +80,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
         body: JSON.stringify({
           inviteToken,
           itemId,
-          quantity: Math.max(1, Math.min(1, quantityRemaining)),
+          quantity: 1,
         }),
       });
       if (!res.ok) {
@@ -82,14 +91,14 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
     } catch (err) {
       setItemError(itemId, err instanceof Error ? err.message : "Claim failed");
     } finally {
-      setBusyItemId(null);
+      markBusy(itemId, false);
     }
   }
 
   async function handleUnclaim(itemId: string, claimId: string) {
     if (!eventId || !inviteToken) return;
     setItemError(itemId, null);
-    setBusyItemId(itemId);
+    markBusy(itemId, true);
     try {
       const res = await fetch(
         `/api/events/${eventId}/registry/claims/${claimId}`,
@@ -107,7 +116,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
     } catch (err) {
       setItemError(itemId, err instanceof Error ? err.message : "Unclaim failed");
     } finally {
-      setBusyItemId(null);
+      markBusy(itemId, false);
     }
   }
 
@@ -217,7 +226,7 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
             const totalClaimed = othersQty + myClaimQty;
             const remaining = Math.max(0, quantity - totalClaimed);
             const showClaimControls = showClaimUI && !isFund && !isClaimed;
-            const isBusy = busyItemId === item.id;
+            const isBusy = busyItems.has(item.id);
 
             return (
               <div
@@ -462,8 +471,9 @@ export function RegistrySection({ data, assets, eventId, claims, canClaim }: Reg
                   {showClaimControls && !myClaimId && remaining > 0 && (
                     <button
                       type="button"
-                      onClick={() => handleClaim(item.id, remaining)}
+                      onClick={() => handleClaim(item.id)}
                       disabled={isBusy}
+                      aria-label={`Claim ${item.name}`}
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
