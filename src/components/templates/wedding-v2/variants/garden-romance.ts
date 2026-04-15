@@ -33,5 +33,4 @@ export const gardenRomance: V2VariantConfig = {
     { hex: "#6b7f62", label: "Moss" },
     { hex: "#91a088", label: "Eucalyptus" },
   ],
-  thumbnail: "/variants/garden_romance-thumb.jpg",
 };

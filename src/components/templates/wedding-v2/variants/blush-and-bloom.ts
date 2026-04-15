@@ -57,5 +57,4 @@ export const blushAndBloom: V2VariantConfig = {
     { hex: "#b5837c", label: "Blush" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #d8b0aa, #c4918a, #c4a078)",
-  thumbnail: "/variants/blush_and_bloom-thumb.jpg",
 };

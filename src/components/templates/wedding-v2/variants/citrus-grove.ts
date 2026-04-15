@@ -57,5 +57,4 @@ export const citrusGrove: V2VariantConfig = {
     { hex: "#c49030", label: "Amber" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #e0a050, #d08030, #5a7040)",
-  thumbnail: "/variants/citrus_grove-thumb.jpg",
 };

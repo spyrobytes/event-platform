@@ -57,5 +57,4 @@ export const lavenderMist: V2VariantConfig = {
     { hex: "#7a6a98", label: "Amethyst" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #a99ec0, #8b7aaa, #d0c8dc)",
-  thumbnail: "/variants/lavender_mist-thumb.jpg",
 };

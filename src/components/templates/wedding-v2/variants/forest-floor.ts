@@ -57,5 +57,4 @@ export const forestFloor: V2VariantConfig = {
     { hex: "#a8903a", label: "Amber" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #6a8862, #4a6842, #a8903a)",
-  thumbnail: "/variants/forest_floor-thumb.jpg",
 };

@@ -57,5 +57,4 @@ export const oldWorld: V2VariantConfig = {
     { hex: "#7a4a2a", label: "Sienna" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #6e2c2c, #8b3a3a, #b8963a)",
-  thumbnail: "/variants/old_world-thumb.jpg",
 };

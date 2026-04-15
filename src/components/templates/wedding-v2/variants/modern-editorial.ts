@@ -57,5 +57,4 @@ export const modernEditorial: V2VariantConfig = {
     { hex: "#1c1917", label: "Ink" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #d6d3d1, #292524, #d6d3d1)",
-  thumbnail: "/variants/modern_editorial-thumb.jpg",
 };

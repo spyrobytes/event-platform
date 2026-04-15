@@ -57,5 +57,4 @@ export const desertSun: V2VariantConfig = {
     { hex: "#b06030", label: "Adobe" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #d89060, #c2703a, #c4a868)",
-  thumbnail: "/variants/desert_sun-thumb.jpg",
 };

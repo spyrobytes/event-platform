@@ -57,5 +57,4 @@ export const midnightGold: V2VariantConfig = {
     { hex: "#e8d5b7", label: "Ivory Gold" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #9e7e3a, #c5a55a, #ddc07a)",
-  thumbnail: "/variants/midnight_gold-thumb.jpg",
 };

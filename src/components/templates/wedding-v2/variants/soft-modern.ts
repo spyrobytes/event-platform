@@ -57,5 +57,4 @@ export const softModern: V2VariantConfig = {
     { hex: "#d4a8a2", label: "Petal" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #dbb0aa, #c9918a, #c4a872)",
-  thumbnail: "/variants/soft_modern-thumb.jpg",
 };

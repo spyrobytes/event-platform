@@ -56,5 +56,4 @@ export const mono: V2VariantConfig = {
     { hex: "#000000", label: "Pure Black" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #e0e0e0, #212121, #e0e0e0)",
-  thumbnail: "/variants/mono-thumb.jpg",
 };

@@ -57,5 +57,4 @@ export const blackTie: V2VariantConfig = {
     { hex: "#ddc07a", label: "Light Gold" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #9e7e3a, #c5a55a, #ddc07a)",
-  thumbnail: "/variants/black_tie-thumb.jpg",
 };
