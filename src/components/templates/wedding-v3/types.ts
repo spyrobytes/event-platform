@@ -196,6 +196,17 @@ export type WeddingPartyRendererId =
 export type SectionRendererProps<TData> = {
   data: TData;
   assets: MediaAsset[];
+  eventId?: string;
+  /** Passed through from the public page for sections that support guest
+   * mutations (currently: registry claims). Optional because not every
+   * renderer needs them. */
+  registryClaims?: Record<string, {
+    itemId: string;
+    claimedByOthers: number;
+    myClaimId: string | null;
+    myClaimQuantity: number;
+  }>;
+  canClaim?: boolean;
 };
 
 /** Hero has a special contract */

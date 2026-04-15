@@ -1,11 +1,26 @@
 "use client";
 
+import { useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { MediaAsset } from "@prisma/client";
 import type { RegistrySection as RegistrySectionData } from "@/schemas/event-page";
+
+type ClaimSummary = {
+  itemId: string;
+  claimedByOthers: number;
+  myClaimId: string | null;
+  myClaimQuantity: number;
+};
 
 type RegistrySectionProps = {
   data: RegistrySectionData["data"];
   assets: MediaAsset[];
+  eventId?: string;
+  /** Server-computed per-item claim summaries. Present when the viewer
+   * is a verified guest; undefined for public visitors. */
+  claims?: Record<string, ClaimSummary>;
+  /** True when the viewer arrived via a valid invite token. */
+  canClaim?: boolean;
 };
 
 /**
@@ -13,8 +28,9 @@ type RegistrySectionProps = {
  *
  * Cards with icon area, title, description, CTA button.
  * Primary card uses gold gradient button. Notes with border-top separator.
+ * Phase 2: claim/unclaim UI lights up for guests with a valid invite token.
  */
-export function RegistrySection({ data, assets }: RegistrySectionProps) {
+export function RegistrySection({ data, assets, eventId, claims, canClaim }: RegistrySectionProps) {
   const { heading = "Gift Registry", description, items } = data;
   const kickerText = "Gift Registry";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
@@ -24,6 +40,65 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
     const asset = assets.find((a) => a.id === assetId);
     return asset?.publicUrl || null;
   };
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams?.get("tk") ?? null;
+  const [busyItemId, setBusyItemId] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const showClaimUI = canClaim && !!eventId && !!inviteToken;
+
+  async function handleClaim(itemId: string, quantityRemaining: number) {
+    if (!eventId || !inviteToken) return;
+    setClaimError(null);
+    setBusyItemId(itemId);
+    try {
+      const res = await fetch(`/api/events/${eventId}/registry/claims`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inviteToken,
+          itemId,
+          quantity: Math.max(1, Math.min(1, quantityRemaining)),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Claim failed");
+      }
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "Claim failed");
+    } finally {
+      setBusyItemId(null);
+    }
+  }
+
+  async function handleUnclaim(itemId: string, claimId: string) {
+    if (!eventId || !inviteToken) return;
+    setClaimError(null);
+    setBusyItemId(itemId);
+    try {
+      const res = await fetch(
+        `/api/events/${eventId}/registry/claims/${claimId}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ inviteToken }),
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Unclaim failed");
+      }
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "Unclaim failed");
+    } finally {
+      setBusyItemId(null);
+    }
+  }
 
   return (
     <section
@@ -59,6 +134,16 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
           {description && (
             <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
               {description}
+            </p>
+          )}
+          {claimError && (
+            <p role="alert" style={{
+              marginTop: 12,
+              color: "var(--warning, #b45309)",
+              fontFamily: "var(--sans)",
+              fontSize: "var(--sm, 0.85rem)",
+            }}>
+              {claimError}
             </p>
           )}
         </div>
@@ -120,6 +205,18 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
             const isClaimed = !!item.purchased;
             const quantity = item.quantity ?? 1;
             const ctaLabel = isFund ? "Contribute" : "View Registry";
+
+            // Guest-claim state. Funds aren't claimable (ongoing contributions,
+            // not one-off purchases), and the organizer's `purchased` toggle
+            // short-circuits everything.
+            const summary = claims?.[item.id];
+            const othersQty = summary?.claimedByOthers ?? 0;
+            const myClaimId = summary?.myClaimId ?? null;
+            const myClaimQty = summary?.myClaimQuantity ?? 0;
+            const totalClaimed = othersQty + myClaimQty;
+            const remaining = Math.max(0, quantity - totalClaimed);
+            const showClaimControls = showClaimUI && !isFund && !isClaimed;
+            const isBusy = busyItemId === item.id;
 
             return (
               <div
@@ -279,43 +376,123 @@ export function RegistrySection({ data, assets }: RegistrySectionProps) {
                   </p>
                 )}
 
-                {hasLink && !isClaimed && (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      fontFamily: "var(--sans)",
-                      fontSize: "var(--sm, 0.85rem)",
-                      fontWeight: 600,
-                      letterSpacing: ".02em",
-                      padding: "12px 26px",
-                      borderRadius: 999,
-                      textDecoration: "none",
-                      whiteSpace: "nowrap" as const,
-                      transition: "all var(--transition, 0.3s ease)",
-                      marginTop: "auto",
-                      alignSelf: "flex-start",
-                      ...(isFeatured
-                        ? {
-                            background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
-                            color: "#fff",
-                            border: "1px solid var(--gold, #c5a55a)",
-                          }
-                        : {
-                            background: "transparent",
-                            color: "var(--charcoal, #3d3830)",
-                            border: "1px solid var(--sand, #d4cabb)",
-                          }),
-                    }}
-                  >
-                    {ctaLabel}
-                  </a>
+                {showClaimControls && totalClaimed > 0 && quantity > 1 && (
+                  <p style={{
+                    fontFamily: "var(--sans)",
+                    fontSize: ".8rem",
+                    color: "var(--stone, #a69e93)",
+                  }}>
+                    {totalClaimed} of {quantity} claimed
+                  </p>
                 )}
+
+                <div style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap" as const,
+                  alignItems: "center",
+                  marginTop: "auto",
+                }}>
+                  {hasLink && !isClaimed && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        fontFamily: "var(--sans)",
+                        fontSize: "var(--sm, 0.85rem)",
+                        fontWeight: 600,
+                        letterSpacing: ".02em",
+                        padding: "12px 26px",
+                        borderRadius: 999,
+                        textDecoration: "none",
+                        whiteSpace: "nowrap" as const,
+                        transition: "all var(--transition, 0.3s ease)",
+                        ...(isFeatured
+                          ? {
+                              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
+                              color: "#fff",
+                              border: "1px solid var(--gold, #c5a55a)",
+                            }
+                          : {
+                              background: "transparent",
+                              color: "var(--charcoal, #3d3830)",
+                              border: "1px solid var(--sand, #d4cabb)",
+                            }),
+                      }}
+                    >
+                      {ctaLabel}
+                    </a>
+                  )}
+
+                  {showClaimControls && myClaimId && (
+                    <button
+                      type="button"
+                      onClick={() => handleUnclaim(item.id, myClaimId)}
+                      disabled={isBusy}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontFamily: "var(--sans)",
+                        fontSize: "var(--sm, 0.85rem)",
+                        fontWeight: 600,
+                        padding: "12px 22px",
+                        borderRadius: 999,
+                        background: "var(--accent, #7a8c72)",
+                        color: "#fff",
+                        border: "1px solid var(--accent, #7a8c72)",
+                        cursor: isBusy ? "wait" : "pointer",
+                        opacity: isBusy ? 0.7 : 1,
+                      }}
+                      aria-label="Unclaim this gift"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={14} height={14}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      Claimed
+                    </button>
+                  )}
+
+                  {showClaimControls && !myClaimId && remaining > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleClaim(item.id, remaining)}
+                      disabled={isBusy}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        fontFamily: "var(--sans)",
+                        fontSize: "var(--sm, 0.85rem)",
+                        fontWeight: 600,
+                        padding: "12px 22px",
+                        borderRadius: 999,
+                        background: "transparent",
+                        color: "var(--accent, #7a8c72)",
+                        border: "1px solid var(--accent, #7a8c72)",
+                        cursor: isBusy ? "wait" : "pointer",
+                        opacity: isBusy ? 0.7 : 1,
+                      }}
+                    >
+                      {isBusy ? "…" : "Claim"}
+                    </button>
+                  )}
+
+                  {showClaimControls && !myClaimId && remaining === 0 && (
+                    <span style={{
+                      fontFamily: "var(--sans)",
+                      fontSize: ".82rem",
+                      color: "var(--stone, #a69e93)",
+                      fontStyle: "italic",
+                    }}>
+                      Fully claimed
+                    </span>
+                  )}
+                </div>
               </div>
             );
                 })}

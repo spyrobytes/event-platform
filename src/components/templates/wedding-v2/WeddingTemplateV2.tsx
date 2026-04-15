@@ -53,6 +53,13 @@ type WeddingTemplateV2Props = {
   assets: MediaAsset[];
   eventId?: string;
   temporal?: TemporalData;
+  registryClaims?: Record<string, {
+    itemId: string;
+    claimedByOthers: number;
+    myClaimId: string | null;
+    myClaimQuantity: number;
+  }>;
+  canClaim?: boolean;
 };
 
 const V2_LABEL_OVERRIDES: Record<string, string> = {
@@ -99,7 +106,7 @@ function getSectionId(type: string): string {
  * - Full footer with monogram, nav, credits
  * - User-configurable accent color, font pair, and chrome toggles
  */
-export function WeddingTemplateV2({ config, assets, eventId, temporal }: WeddingTemplateV2Props) {
+export function WeddingTemplateV2({ config, assets, eventId, temporal, registryClaims, canClaim }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
   // Resolve variant (if set)
@@ -261,7 +268,13 @@ export function WeddingTemplateV2({ config, assets, eventId, temporal }: Wedding
 
       case "registry":
         return wrapWithChrome(wrapWithAnimation(
-          <RegistrySection data={section.data} assets={assets} />
+          <RegistrySection
+            data={section.data}
+            assets={assets}
+            eventId={eventId}
+            claims={registryClaims}
+            canClaim={canClaim}
+          />
         ));
 
       case "schedule":

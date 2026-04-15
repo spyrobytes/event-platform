@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
-import { TEMPLATES, type TemporalData } from "@/components/templates";
+import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
+import { summarizeClaims } from "@/lib/registry-claims";
 import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
 import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
 import { PageViewTracker } from "@/components/features/Analytics";
@@ -99,9 +100,10 @@ async function resolveGuestAccess(
   guestName: string | null;
   rsvpToken: string | null;
   tokenInvalid: boolean;
+  inviteId: string | null;
 }> {
   if (!tk) {
-    return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: false };
+    return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: false, inviteId: null };
   }
 
   const tokenHash = hashToken(tk);
@@ -126,6 +128,7 @@ async function resolveGuestAccess(
       guestName: invite.name || "Guest",
       rsvpToken: tk,
       tokenInvalid: false,
+      inviteId: invite.id,
     };
   }
 
@@ -134,7 +137,7 @@ async function resolveGuestAccess(
     eventId,
     tokenPrefix: tk.slice(0, 8),
   });
-  return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: true };
+  return { accessLevel: "public", guestName: null, rsvpToken: null, tokenInvalid: true, inviteId: null };
 }
 
 /**
@@ -217,7 +220,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   }
 
   // Resolve guest access level
-  const { accessLevel, guestName, tokenInvalid } = await resolveGuestAccess(tk, event.id);
+  const { accessLevel, guestName, tokenInvalid, inviteId } = await resolveGuestAccess(tk, event.id);
 
   // Resolve template ID with fallback
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
@@ -270,12 +273,44 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   // Use direct component reference from TEMPLATES to satisfy static component rules
   const Template = TEMPLATES[resolvedTemplateId];
 
+  // Registry claims — only fetched when the viewer has a valid invite token,
+  // since claims are guest-only. Organizer claims (source=ORGANIZER) are
+  // skipped because the item-level `purchased` flag already drives rendering.
+  let registryClaims: Record<string, RegistryClaimSummaryDTO> | undefined;
+  if (accessLevel === "guest") {
+    const hasRegistry = filteredSections.some((s) => s.type === "registry");
+    if (hasRegistry) {
+      const claims = await db.registryClaim.findMany({
+        where: { eventId: event.id, source: "GUEST" },
+        select: {
+          id: true,
+          itemId: true,
+          inviteId: true,
+          quantity: true,
+          source: true,
+        },
+      });
+      const summary = summarizeClaims({
+        allClaims: claims.map((c) => ({ ...c, source: c.source as "GUEST" | "ORGANIZER" })),
+        myInviteId: inviteId,
+      });
+      registryClaims = Object.fromEntries(summary);
+    }
+  }
+
   return (
     <>
       <PageViewTracker eventId={event.id} source="event_page" />
       {tokenInvalid && <InvalidTokenBanner />}
       {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} />}
-      <Template config={filteredConfig} assets={assets} eventId={event.id} temporal={temporal} />
+      <Template
+        config={filteredConfig}
+        assets={assets}
+        eventId={event.id}
+        temporal={temporal}
+        registryClaims={registryClaims}
+        canClaim={accessLevel === "guest"}
+      />
     </>
   );
 }

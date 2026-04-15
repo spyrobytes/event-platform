@@ -32,6 +32,18 @@ export type TemporalData = {
 };
 
 /**
+ * Per-item snapshot of registry claim state, computed server-side and
+ * serialized through as a plain object so client components can hydrate.
+ * See src/lib/registry-claims.ts for how this is built.
+ */
+export type RegistryClaimSummaryDTO = {
+  itemId: string;
+  claimedByOthers: number;
+  myClaimId: string | null;
+  myClaimQuantity: number;
+};
+
+/**
  * Props that all template components must accept
  */
 export type TemplateProps = {
@@ -40,6 +52,12 @@ export type TemplateProps = {
   eventId?: string;
   /** Temporal data for time-aware rendering */
   temporal?: TemporalData;
+  /** Map of registry itemId → claim summary (only present if the viewer is
+   * a verified guest and the event has a registry). */
+  registryClaims?: Record<string, RegistryClaimSummaryDTO>;
+  /** True when the current viewer can submit claim mutations (i.e. arrived
+   * via a valid invite token). */
+  canClaim?: boolean;
 };
 
 /**

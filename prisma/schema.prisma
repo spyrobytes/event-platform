@@ -141,6 +141,7 @@ model Event {
   mediaAssets      MediaAsset[]
   pageVersions     EventPageVersion[]
   invitationConfig InvitationConfig?
+  registryClaims   RegistryClaim[]
 
   @@index([creatorId])
   @@index([city])
@@ -188,9 +189,10 @@ model Invite {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  event  Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  rsvp   RSVP?
-  emails EmailOutbox[]
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rsvp           RSVP?
+  emails         EmailOutbox[]
+  registryClaims RegistryClaim[]
 
   @@unique([eventId, email])
   @@unique([eventId, phone])
@@ -236,6 +238,44 @@ enum RSVPResponse {
   YES
   NO
   MAYBE
+}
+
+// =============================================================================
+// REGISTRY CLAIMS
+// =============================================================================
+
+// Guests claim registry items so other guests don't buy duplicates. Registry
+// items live in Event.pageConfig JSON (see src/schemas/event-page.ts); itemId
+// refers to the stable uuid on each item, not a foreign key. Organizer "claims"
+// are represented here with source=ORGANIZER and inviteId=null — the existing
+// `purchased` boolean on a registry item is a derived view of those rows.
+model RegistryClaim {
+  id       String @id @default(cuid())
+  eventId  String @map("event_id")
+  itemId   String @map("item_id")
+  inviteId String? @map("invite_id")
+
+  source   RegistryClaimSource @default(GUEST)
+  quantity Int                 @default(1)
+
+  claimedAt       DateTime  @default(now()) @map("claimed_at")
+  thankYouSentAt  DateTime? @map("thank_you_sent_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  event  Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invite Invite? @relation(fields: [inviteId], references: [id], onDelete: SetNull)
+
+  // One row per (item, guest). Organizer rows (inviteId=null) collapse to a
+  // single row per item via the partial unique index declared in the migration.
+  @@unique([eventId, itemId, inviteId])
+  @@index([eventId, itemId])
+  @@index([inviteId])
+  @@map("registry_claims")
+}
+
+enum RegistryClaimSource {
+  GUEST
+  ORGANIZER
 }
 
 // =============================================================================
