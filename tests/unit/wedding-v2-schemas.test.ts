@@ -124,12 +124,13 @@ describe("airportSchema", () => {
 
 describe("registryItemSchema", () => {
   it("validates a minimal registry item", () => {
-    const valid = { name: "Amazon" };
+    const valid = { id: "item-1", name: "Amazon" };
     expect(registryItemSchema.safeParse(valid).success).toBe(true);
   });
 
   it("validates with URL", () => {
     const valid = {
+      id: "item-1",
       name: "Crate & Barrel",
       url: "https://crateandbarrel.com/registry",
     };
@@ -138,6 +139,7 @@ describe("registryItemSchema", () => {
 
   it("validates with empty string URL", () => {
     const valid = {
+      id: "item-1",
       name: "Amazon",
       url: "",
     };
@@ -146,23 +148,28 @@ describe("registryItemSchema", () => {
 
   it("validates with logo asset", () => {
     const valid = {
+      id: "item-1",
       name: "Target",
-      logoAssetId: "clxyz123456",
+      logoAssetId: "clxyz1234567890abcdefghij",
     };
     expect(registryItemSchema.safeParse(valid).success).toBe(true);
   });
 
   it("requires name", () => {
-    expect(registryItemSchema.safeParse({}).success).toBe(false);
+    expect(registryItemSchema.safeParse({ id: "item-1" }).success).toBe(false);
+  });
+
+  it("requires id", () => {
+    expect(registryItemSchema.safeParse({ name: "Amazon" }).success).toBe(false);
   });
 
   it("rejects name over 100 characters", () => {
-    const invalid = { name: "A".repeat(101) };
+    const invalid = { id: "item-1", name: "A".repeat(101) };
     expect(registryItemSchema.safeParse(invalid).success).toBe(false);
   });
 
   it("rejects invalid URL", () => {
-    const invalid = { name: "Test", url: "not-a-url" };
+    const invalid = { id: "item-1", name: "Test", url: "not-a-url" };
     expect(registryItemSchema.safeParse(invalid).success).toBe(false);
   });
 });
@@ -173,8 +180,8 @@ describe("registrySectionDataSchema", () => {
       heading: "Our Registry",
       description: "Your love and presence is the greatest gift.",
       items: [
-        { name: "Amazon", url: "https://amazon.com/registry" },
-        { name: "Target", url: "https://target.com/registry" },
+        { id: "amazon-1", name: "Amazon", url: "https://amazon.com/registry" },
+        { id: "target-1", name: "Target", url: "https://target.com/registry" },
       ],
     };
     expect(registrySectionDataSchema.safeParse(valid).success).toBe(true);
@@ -185,9 +192,12 @@ describe("registrySectionDataSchema", () => {
     expect(result.heading).toBe("Gift Registry");
   });
 
-  it("rejects more than 6 items", () => {
+  it("rejects more than 24 items", () => {
     const invalid = {
-      items: Array.from({ length: 7 }, (_, i) => ({ name: `Registry ${i}` })),
+      items: Array.from({ length: 25 }, (_, i) => ({
+        id: `item-${i}`,
+        name: `Registry ${i}`,
+      })),
     };
     expect(registrySectionDataSchema.safeParse(invalid).success).toBe(false);
   });
@@ -465,7 +475,7 @@ describe("eventPageConfigV1Schema - backward compatibility", () => {
           enabled: true,
           data: {
             heading: "Our Registry",
-            items: [{ name: "Amazon" }],
+            items: [{ id: "amazon-1", name: "Amazon" }],
           },
         },
       ],
