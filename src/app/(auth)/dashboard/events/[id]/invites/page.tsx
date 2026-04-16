@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 type EventBasic = {
   id: string;
   title: string;
+  slug: string;
   status: string;
 };
 
@@ -93,7 +94,7 @@ export default function InvitesPage() {
         </Link>
       </div>
 
-      <InviteManager eventId={event.id} />
+      <InviteManager eventId={event.id} eventSlug={event.slug} />
     </div>
   );
 }

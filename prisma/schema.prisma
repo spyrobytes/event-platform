@@ -177,8 +177,9 @@ model Invite {
   name      String?
   tokenHash String  @unique @map("token_hash")
 
-  plusOnesAllowed Int          @default(0) @map("plus_ones_allowed")
-  status          InviteStatus @default(PENDING)
+  plusOnesAllowed     Int          @default(0) @map("plus_ones_allowed")
+  tokenRegenerateCount Int        @default(0) @map("token_regenerate_count")
+  status              InviteStatus @default(PENDING)
 
   expiresAt      DateTime? @map("expires_at")
   sentAt         DateTime? @map("sent_at")

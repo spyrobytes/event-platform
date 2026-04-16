@@ -36,6 +36,7 @@ type Invite = {
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
+  tokenRegenerateCount?: number;
   sentAt?: string | null;
   openedAt?: string | null;
   createdAt: string;
@@ -52,6 +53,7 @@ type Invite = {
 
 type InviteManagerProps = {
   eventId: string;
+  eventSlug?: string;
 };
 
 const PAGE_SIZE = 50;
@@ -72,7 +74,7 @@ type InviteStats = {
   attending: number;
 };
 
-export function InviteManager({ eventId }: InviteManagerProps) {
+export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const { getIdToken } = useAuthContext();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,16 +205,67 @@ export function InviteManager({ eventId }: InviteManagerProps) {
   };
 
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
+  const [tokenCache, setTokenCache] = useState<Map<string, string>>(new Map());
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+
+  const buildGuestLink = useCallback((token: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    if (eventSlug) {
+      return `${baseUrl}/e/${eventSlug}?tk=${token}`;
+    }
+    return `${baseUrl}/rsvp/${token}`;
+  }, [eventSlug]);
 
   const handleCopyLink = async (invite: Invite) => {
-    if (invite.token) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
-      const link = `${baseUrl}/rsvp/${invite.token}`;
+    const token = invite.token || tokenCache.get(invite.id);
+    if (token) {
+      const link = buildGuestLink(token);
       await navigator.clipboard.writeText(link);
       setCopiedInviteId(invite.id);
       setTimeout(() => setCopiedInviteId(null), 3000);
-    } else {
-      alert("Link not available. The invite link was only shown when created.");
+    }
+  };
+
+  const handleRegenerate = async (invite: Invite) => {
+    try {
+      setRegeneratingId(invite.id);
+      const authToken = await getIdToken();
+      if (!authToken) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `/api/events/${eventId}/invites/${invite.id}/regenerate`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${authToken}` },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to regenerate link");
+      }
+
+      const result = await response.json();
+      const newToken = result.data.token;
+
+      setTokenCache((prev) => new Map(prev).set(invite.id, newToken));
+
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === invite.id
+            ? { ...i, tokenRegenerateCount: result.data.tokenRegenerateCount }
+            : i
+        )
+      );
+
+      const link = buildGuestLink(newToken);
+      await navigator.clipboard.writeText(link);
+      setCopiedInviteId(invite.id);
+      setTimeout(() => setCopiedInviteId(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to regenerate link");
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -447,8 +500,11 @@ export function InviteManager({ eventId }: InviteManagerProps) {
               <InviteTable
                 invites={invites}
                 onCopyLink={handleCopyLink}
+                onRegenerate={handleRegenerate}
                 onRevoke={handleRevoke}
                 copiedInviteId={copiedInviteId}
+                tokenCache={tokenCache}
+                regeneratingId={regeneratingId}
               />
               {pagination && pagination.total > PAGE_SIZE && (
                 <div className="flex items-center justify-between border-t pt-4 mt-4">

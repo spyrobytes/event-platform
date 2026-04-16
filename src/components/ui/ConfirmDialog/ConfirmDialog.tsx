@@ -70,7 +70,7 @@ export function ConfirmDialog({
     >
       <div className="p-6">
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-2 whitespace-pre-line text-sm text-muted-foreground">{description}</p>
         {reasonInput && (
           <div className="mt-4">
             <label className="mb-1 block text-sm font-medium text-foreground">

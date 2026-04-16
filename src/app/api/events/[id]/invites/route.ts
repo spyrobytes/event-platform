@@ -50,6 +50,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           openedAt: true,
           expiresAt: true,
           createdAt: true,
+          tokenRegenerateCount: true,
           rsvp: {
             select: {
               id: true,
