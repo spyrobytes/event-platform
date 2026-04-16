@@ -239,6 +239,8 @@ export type NavRendererProps = {
   accentColor?: string;
   /** Whether the hero section has a background image (affects nav contrast) */
   hasHeroImage?: boolean;
+  /** On sub-pages, links the logo back to the landing page instead of #top. */
+  homeHref?: string;
 };
 
 /** Footer props */

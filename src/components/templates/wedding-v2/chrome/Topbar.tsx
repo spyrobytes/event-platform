@@ -15,6 +15,7 @@ type TopbarProps = {
   dateText?: string;
   sections?: NavSection[];
   accentColor?: string;
+  homeHref?: string;
 };
 
 /**
@@ -29,6 +30,7 @@ export function Topbar({
   coupleNames,
   dateText,
   sections = [],
+  homeHref,
 }: TopbarProps) {
   const [scrolled, setScrolled] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -88,7 +90,7 @@ export function Topbar({
     >
       <div className={styles.inner}>
         {/* Brand */}
-        <a className={styles.brand} href="#top" aria-label="Back to top">
+        <a className={styles.brand} href={homeHref ?? "#top"} aria-label="Back to top">
           {monogram && (
             <div className={styles.monogram} aria-hidden="true">
               <span className={styles.monogramLetter}>{monogram}</span>

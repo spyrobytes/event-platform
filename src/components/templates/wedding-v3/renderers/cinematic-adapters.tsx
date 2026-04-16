@@ -84,6 +84,7 @@ export function CinematicNavAdapter(props: NavRendererProps) {
       dateText={props.dateText}
       sections={props.sections}
       accentColor={props.accentColor}
+      homeHref={props.homeHref}
     />
   );
 }
