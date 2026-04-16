@@ -137,8 +137,10 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
     registryClaims = Object.fromEntries(summary);
   }
 
+  const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
+
   return (
-    <>
+    <div style={bannerOffset}>
       <PageViewTracker eventId={event.id} source="event_page" />
       {tokenInvalid && <InvalidTokenBanner />}
       {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} eventSlug={slug} />}
@@ -153,7 +155,7 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
         registryMode="full"
         navLinkBase={navLinkBase}
       />
-    </>
+    </div>
   );
 }
 

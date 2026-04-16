@@ -36,7 +36,7 @@ export function PillDotNav({
     <nav
       style={{
         position: "fixed",
-        top: 0,
+        top: "var(--banner-offset, 0px)",
         left: 0,
         right: 0,
         zIndex: 100,

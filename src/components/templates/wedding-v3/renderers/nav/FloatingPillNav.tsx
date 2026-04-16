@@ -36,7 +36,7 @@ export function FloatingPillNav({
     <nav
       style={{
         position: "fixed",
-        top: 16,
+        top: "calc(16px + var(--banner-offset, 0px))",
         left: "50%",
         transform: visible
           ? "translateX(-50%) translateY(0)"
