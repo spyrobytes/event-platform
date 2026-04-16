@@ -5,6 +5,7 @@ import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
 import { ReminderEmail } from "@/emails/ReminderEmail";
 import { VerificationEmail } from "@/emails/VerificationEmail";
+import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
@@ -169,6 +170,11 @@ type VerificationEmailPayload = {
   expiresInHours: number;
 };
 
+type PasswordResetEmailPayload = {
+  resetUrl: string;
+  expiresInHours: number;
+};
+
 type NoResponseReminderEmailPayload = {
   guestName?: string;
   eventTitle: string;
@@ -293,6 +299,28 @@ export async function queueVerificationEmail(
 }
 
 /**
+ * Queue a password reset email for sending
+ */
+export async function queuePasswordResetEmail(
+  toEmail: string,
+  payload: PasswordResetEmailPayload
+): Promise<string> {
+  const subject = "Reset your password for EventsFixer";
+
+  const emailRecord = await db.emailOutbox.create({
+    data: {
+      template: "PASSWORD_RESET",
+      toEmail,
+      subject,
+      payload: payload as Prisma.InputJsonValue,
+      status: "QUEUED",
+    },
+  });
+
+  return emailRecord.id;
+}
+
+/**
  * Queue a no-response reminder email for sending
  */
 export async function queueNoResponseReminderEmail(
@@ -350,6 +378,9 @@ export async function processEmail(emailId: string): Promise<void> {
         break;
       case "VERIFICATION":
         html = await render(VerificationEmail(payload as unknown as VerificationEmailPayload));
+        break;
+      case "PASSWORD_RESET":
+        html = await render(PasswordResetEmail(payload as unknown as PasswordResetEmailPayload));
         break;
       case "NO_RESPONSE_REMINDER":
         html = await render(NoResponseReminderEmail(payload as unknown as NoResponseReminderEmailPayload));

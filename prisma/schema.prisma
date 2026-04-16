@@ -26,6 +26,10 @@ model User {
   verificationTokenHash String?   @unique @map("verification_token_hash")
   verificationExpiresAt DateTime? @map("verification_expires_at")
 
+  // Password reset
+  passwordResetTokenHash String?   @unique @map("password_reset_token_hash")
+  passwordResetExpiresAt DateTime? @map("password_reset_expires_at")
+
   // Platform admin flag (invitational phase)
   isAdmin Boolean @default(false) @map("is_admin")
 
@@ -318,6 +322,7 @@ enum EmailTemplate {
   UPDATE
   CANCELLATION
   VERIFICATION
+  PASSWORD_RESET
   NO_RESPONSE_REMINDER
 }
 
