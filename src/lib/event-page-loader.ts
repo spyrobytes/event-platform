@@ -11,8 +11,6 @@ import type { AccessLevel } from "@/lib/guest-access";
  * published/visibility/token rules as the event page itself.
  */
 
-export type PublicEventData = Awaited<ReturnType<typeof getEventBySlug>>;
-
 export async function getEventBySlug(slug: string, hasGuestToken: boolean) {
   const event = await db.event.findUnique({
     where: { slug },
@@ -74,6 +72,8 @@ export async function resolveGuestAccess(
     where: {
       tokenHash,
       eventId,
+      // Allow any status except EXPIRED and BOUNCED — guests can view
+      // details before deciding to attend (PENDING/SENT/OPENED/RESPONDED).
       status: { notIn: ["EXPIRED", "BOUNCED"] },
       OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
     },

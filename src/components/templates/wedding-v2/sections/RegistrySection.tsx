@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MediaAsset } from "@prisma/client";
 import type { RegistrySection as RegistrySectionData } from "@/schemas/event-page";
@@ -549,7 +550,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
 
         {mode === "preview" && items.length > PREVIEW_CAP && eventSlug && (
           <div style={{ textAlign: "center", marginTop: 28 }}>
-            <a
+            <Link
               href={`/e/${eventSlug}/registry${inviteToken ? `?tk=${encodeURIComponent(inviteToken)}` : ""}`}
               style={{
                 display: "inline-flex",
@@ -569,7 +570,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
               }}
             >
               View full registry ({items.length - PREVIEW_CAP} more) →
-            </a>
+            </Link>
           </div>
         )}
 
