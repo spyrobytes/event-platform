@@ -122,7 +122,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
   // Default theme pack is the first one
   const defaultThemePack = definition.themePacks[0];
 
-  function WeddingTemplate({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full" }: TemplateProps) {
+  function WeddingTemplate({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full", navLinkBase }: TemplateProps) {
     const { theme, hero, sections } = config;
     const primaryColor = theme.primaryColor;
     const socialLinks = definition.supportsSocialLinks ? config.socialLinks : undefined;
@@ -171,15 +171,18 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       }));
     }, [sections]);
 
-    // Build nav sections
     const navSections = useMemo(() => {
       return sections
         .filter((s) => s.enabled)
-        .map((s) => ({
-          id: getSectionId(s.type),
-          label: getSectionLabel(s.type),
-        }));
-    }, [sections]);
+        .map((s) => {
+          const id = getSectionId(s.type);
+          const label = getSectionLabel(s.type);
+          const href = navLinkBase && s.type !== "registry"
+            ? `${navLinkBase}#${id}`
+            : `#${id}`;
+          return { id, label, href };
+        });
+    }, [sections, navLinkBase]);
 
     const dateText = hero.subtitle || "";
 
@@ -187,6 +190,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
 
     const renderSection = (section: (typeof sections)[number], arrayIndex: number) => {
       if (!section.enabled) return null;
+      if (navLinkBase && section.type !== "registry") return null;
 
       const key = `${section.type}-${arrayIndex}`;
       const currentSectionIndex = sectionIndex++;

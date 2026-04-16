@@ -6,6 +6,7 @@ import styles from "./Topbar.module.css";
 type NavSection = {
   id: string;
   label: string;
+  href?: string;
 };
 
 type TopbarProps = {
@@ -109,10 +110,10 @@ export function Topbar({
             className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
             aria-label="Page sections"
           >
-            {sections.map(({ id, label }) => (
+            {sections.map(({ id, label, href }) => (
               <a
                 key={id}
-                href={`#${id}`}
+                href={href ?? `#${id}`}
                 className={`${styles.navLink} ${activeSection === id ? styles.navLinkActive : ""}`}
                 onClick={handleNavClick}
               >

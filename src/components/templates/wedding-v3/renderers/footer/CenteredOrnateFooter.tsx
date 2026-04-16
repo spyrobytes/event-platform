@@ -113,7 +113,7 @@ export function CenteredOrnateFooter({
                   />
                 )}
                 <a
-                  href={`#${s.id}`}
+                  href={s.href ?? `#${s.id}`}
                   className="ornate-footer-link"
                   style={{
                     fontFamily: "var(--sans)",

@@ -89,7 +89,7 @@ export function FestiveLayeredFooter({
             {sections.map((s) => (
               <a
                 key={s.id}
-                href={`#${s.id}`}
+                href={s.href ?? `#${s.id}`}
                 style={{
                   fontFamily: "var(--sans)",
                   fontSize: "0.68rem",

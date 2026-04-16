@@ -62,6 +62,7 @@ type WeddingTemplateV2Props = {
   }>;
   canClaim?: boolean;
   registryMode?: "preview" | "full";
+  navLinkBase?: string;
 };
 
 const V2_LABEL_OVERRIDES: Record<string, string> = {
@@ -108,7 +109,7 @@ function getSectionId(type: string): string {
  * - Full footer with monogram, nav, credits
  * - User-configurable accent color, font pair, and chrome toggles
  */
-export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full" }: WeddingTemplateV2Props) {
+export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full", navLinkBase }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
   // Resolve variant (if set)
@@ -176,15 +177,20 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
     }));
   }, [sections]);
 
-  // Build nav sections from enabled sections
+  // Build nav sections from enabled sections. On sub-pages (navLinkBase set),
+  // non-registry links point back to the main event page.
   const navSections = useMemo(() => {
     return sections
       .filter((s) => s.enabled)
-      .map((s) => ({
-        id: getSectionId(s.type),
-        label: getSectionLabel(s.type),
-      }));
-  }, [sections]);
+      .map((s) => {
+        const id = getSectionId(s.type);
+        const label = getSectionLabel(s.type);
+        const href = navLinkBase && s.type !== "registry"
+          ? `${navLinkBase}#${id}`
+          : `#${id}`;
+        return { id, label, href };
+      });
+  }, [sections, navLinkBase]);
 
   // Date text for topbar/footer
   const dateText = hero.subtitle || "";
@@ -193,6 +199,7 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
 
   const renderSection = (section: (typeof sections)[number], arrayIndex: number) => {
     if (!section.enabled) return null;
+    if (navLinkBase && section.type !== "registry") return null;
 
     const key = `${section.type}-${arrayIndex}`;
     const currentSectionIndex = sectionIndex++;

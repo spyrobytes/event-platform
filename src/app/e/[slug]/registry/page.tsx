@@ -78,15 +78,15 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
     eventTitle: event.title,
   });
 
-  // Keep all sections visible (hero, nav, footer stay consistent with the
-  // main event page). Only the registry section changes: registryMode="full"
-  // renders every item instead of the 4-item preview. 404 if the event has
-  // no registry section at all — this page has no reason to exist without one.
+  // All sections are passed to the template so nav/footer links match the
+  // landing page. The template's renderSection gates on navLinkBase to only
+  // render the registry section in the body. 404 if no registry section.
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
   const hasRegistry = filteredSections.some((s) => s.type === "registry" && s.enabled);
   if (!hasRegistry) notFound();
 
   const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
+  const navLinkBase = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
 
   const assets = event.mediaAssets.map((asset: {
     id: string;
@@ -151,6 +151,7 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
         registryClaims={registryClaims}
         canClaim={accessLevel === "guest"}
         registryMode="full"
+        navLinkBase={navLinkBase}
       />
     </>
   );

@@ -103,7 +103,7 @@ export function OrganicWaveFooter({
               {sections.map((s) => (
                 <a
                   key={s.id}
-                  href={`#${s.id}`}
+                  href={s.href ?? `#${s.id}`}
                   className="gh-footer-link"
                   style={{
                     fontFamily: "var(--sans)",

@@ -235,7 +235,7 @@ export type NavRendererProps = {
   monogram?: string;
   coupleNames?: string;
   dateText: string;
-  sections: { id: string; label: string }[];
+  sections: { id: string; label: string; href?: string }[];
   accentColor?: string;
   /** Whether the hero section has a background image (affects nav contrast) */
   hasHeroImage?: boolean;
@@ -246,7 +246,7 @@ export type FooterRendererProps = {
   monogram?: string;
   coupleNames?: string;
   dateText: string;
-  sections: { id: string; label: string }[];
+  sections: { id: string; label: string; href?: string }[];
   /** Optional social links — only passed when the definition opts in via supportsSocialLinks */
   socialLinks?: SocialLink[];
 };

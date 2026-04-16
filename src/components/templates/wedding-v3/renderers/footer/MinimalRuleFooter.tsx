@@ -41,7 +41,7 @@ export function MinimalRuleFooter({
         {sections.length > 0 && (
           <nav className={styles.nav} aria-label="Footer navigation">
             {sections.map((s) => (
-              <a key={s.id} href={`#${s.id}`} className={styles.navLink}>
+              <a key={s.id} href={s.href ?? `#${s.id}`} className={styles.navLink}>
                 {s.label}
               </a>
             ))}

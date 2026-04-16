@@ -4,6 +4,7 @@ import { SocialIconRow } from "../shared";
 type NavSection = {
   id: string;
   label: string;
+  href?: string;
 };
 
 type WeddingV2FooterProps = {
@@ -124,10 +125,10 @@ export function WeddingV2Footer({
             }}
             aria-label="Footer navigation"
           >
-            {sections.map(({ id, label }) => (
+            {sections.map(({ id, label, href }) => (
               <a
                 key={id}
-                href={`#${id}`}
+                href={href ?? `#${id}`}
                 style={{
                   fontSize: "var(--sm, 0.85rem)",
                   fontWeight: 500,

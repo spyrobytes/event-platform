@@ -65,6 +65,10 @@ export type TemplateProps = {
    * - "preview" (main event page): first 4 items + "View full registry" CTA.
    * - "full" (default, /e/[slug]/registry + organizer preview): all items. */
   registryMode?: "preview" | "full";
+  /** When set, the template is rendering a sub-page (e.g. /e/[slug]/registry).
+   * Nav links for sections not on this page become cross-page links:
+   * `${navLinkBase}#sectionId`. The registry section links stay on-page. */
+  navLinkBase?: string;
 };
 
 /**
