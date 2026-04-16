@@ -208,8 +208,11 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const [tokenCache, setTokenCache] = useState<Map<string, string>>(new Map());
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
-  const buildGuestLink = useCallback((token: string) => {
+  const buildGuestLink = useCallback((token: string, invite: Invite) => {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    if (!invite.email) {
+      return `${baseUrl}/rsvp/${token}`;
+    }
     if (eventSlug) {
       return `${baseUrl}/e/${eventSlug}?tk=${token}`;
     }
@@ -219,7 +222,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const handleCopyLink = async (invite: Invite) => {
     const token = invite.token || tokenCache.get(invite.id);
     if (token) {
-      const link = buildGuestLink(token);
+      const link = buildGuestLink(token, invite);
       await navigator.clipboard.writeText(link);
       setCopiedInviteId(invite.id);
       setTimeout(() => setCopiedInviteId(null), 3000);
@@ -258,7 +261,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
         )
       );
 
-      const link = buildGuestLink(newToken);
+      const link = buildGuestLink(newToken, invite);
       await navigator.clipboard.writeText(link);
       setCopiedInviteId(invite.id);
       setTimeout(() => setCopiedInviteId(null), 3000);
