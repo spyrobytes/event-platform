@@ -37,6 +37,12 @@ export function SignupPageContent() {
     e.preventDefault();
     setError(null);
 
+    // Hard gate: no invite code, no signup
+    if (!inviteCode) {
+      setError("An invite code is required to sign up");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -50,31 +56,48 @@ export function SignupPageContent() {
     setIsLoading(true);
 
     try {
-      // signUp returns the Firebase user directly
-      const firebaseUser = await signUp(email, password);
+      // Step 1: Validate invite code BEFORE creating the account
+      const validateRes = await fetch("/api/launch-invites/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: inviteCode }),
+      });
 
-      // Get token from the returned user (not from hook state which may not be updated yet)
-      const token = await firebaseUser.getIdToken();
-
-      // Claim invite code (non-blocking — if it fails the guard will catch it later)
-      if (inviteCode) {
-        await fetch("/api/launch-invites/claim", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ code: inviteCode }),
-        });
+      if (!validateRes.ok) {
+        const validateData = await validateRes.json();
+        setError(validateData.error || "Invalid invite code");
+        setIsLoading(false);
+        return;
       }
 
-      // Send verification email
+      // Step 2: Create Firebase account
+      const firebaseUser = await signUp(email, password);
+      const token = await firebaseUser.getIdToken();
+
+      // Step 3: Claim invite (blocking — must succeed)
+      const claimRes = await fetch("/api/launch-invites/claim", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code: inviteCode }),
+      });
+
+      if (!claimRes.ok) {
+        const claimData = await claimRes.json();
+        setError(claimData.error || "Failed to claim invite code");
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 4: Send verification email
       await fetch("/api/auth/resend-verification", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Redirect to verification pending page
+      // Step 5: Redirect to verification pending page
       router.push("/verify-email");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create account");
@@ -86,6 +109,18 @@ export function SignupPageContent() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  // No invite code — show redirect message (useEffect handles the redirect)
+  if (!inviteCode) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
       </div>
     );
   }

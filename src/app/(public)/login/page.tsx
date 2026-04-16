@@ -9,6 +9,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Map raw Firebase error codes to user-friendly messages
+function friendlyAuthError(err: unknown): string {
+  const message = err instanceof Error ? err.message : "";
+  if (message.includes("auth/user-not-found") || message.includes("auth/invalid-credential")) {
+    return "No account found with that email. Do you have an invite code?";
+  }
+  if (message.includes("auth/wrong-password")) {
+    return "Incorrect password. Please try again.";
+  }
+  if (message.includes("auth/too-many-requests")) {
+    return "Too many failed attempts. Please try again later.";
+  }
+  if (message.includes("auth/invalid-email")) {
+    return "Please enter a valid email address.";
+  }
+  return message || "Failed to sign in";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { signIn, isAuthenticated, loading: authLoading } = useAuthContext();
@@ -16,24 +34,52 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Track whether we're in the middle of a submit — prevents the
+  // auto-redirect effect from racing with the invite check.
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !submitting) {
       router.replace("/dashboard");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, submitting, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+    setSubmitting(true);
 
     try {
-      await signIn(email, password);
+      const firebaseUser = await signIn(email, password);
+      const token = await firebaseUser.getIdToken();
+
+      // Check invite status before allowing access
+      const inviteRes = await fetch("/api/launch-invites/invite-status", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (inviteRes.ok) {
+        const { data } = await inviteRes.json();
+        if (!data.hasInvite) {
+          // Sign out the uninvited user — don't leave a live session
+          const { getFirebaseAuth } = await import("@/lib/firebase");
+          const { signOut: firebaseSignOut } = await import("firebase/auth");
+          await firebaseSignOut(getFirebaseAuth());
+          setError(
+            "Your account doesn't have an active invite. Please enter an invite code to get started."
+          );
+          setIsLoading(false);
+          setSubmitting(false);
+          return;
+        }
+      }
+
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to sign in");
+      setError(friendlyAuthError(err));
       setIsLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -97,9 +143,9 @@ export default function LoginPage() {
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="text-accent hover:underline">
-                Sign up
+              Have an invite code?{" "}
+              <Link href="/join" className="text-accent hover:underline">
+                Get started
               </Link>
             </p>
           </form>

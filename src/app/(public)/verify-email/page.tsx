@@ -20,7 +20,7 @@ export default function VerifyEmailPendingPage() {
   const [error, setError] = useState<string | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
 
-  // Check if email is already verified on mount
+  // Check invite status and email verification on mount
   useEffect(() => {
     if (loading) return;
 
@@ -29,7 +29,7 @@ export default function VerifyEmailPendingPage() {
       return;
     }
 
-    const checkVerificationStatus = async () => {
+    const checkStatusOnMount = async () => {
       try {
         const token = await getIdToken();
         if (!token) {
@@ -37,12 +37,27 @@ export default function VerifyEmailPendingPage() {
           return;
         }
 
-        const response = await fetch("/api/auth/verification-status", {
+        // Gate: uninvited users must not reach this page
+        const inviteRes = await fetch("/api/launch-invites/invite-status", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (response.ok) {
-          const { data } = await response.json();
+        if (inviteRes.ok) {
+          const { data: inviteData } = await inviteRes.json();
+          if (!inviteData.hasInvite) {
+            await signOut();
+            router.replace("/join");
+            return;
+          }
+        }
+
+        // Check if already verified
+        const verifyRes = await fetch("/api/auth/verification-status", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (verifyRes.ok) {
+          const { data } = await verifyRes.json();
           if (data.emailVerified) {
             router.replace("/dashboard");
             return;
@@ -55,8 +70,8 @@ export default function VerifyEmailPendingPage() {
       }
     };
 
-    checkVerificationStatus();
-  }, [user, loading, getIdToken, router]);
+    checkStatusOnMount();
+  }, [user, loading, getIdToken, signOut, router]);
 
   const handleResend = async () => {
     setIsResending(true);
