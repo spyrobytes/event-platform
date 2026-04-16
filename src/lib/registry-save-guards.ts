@@ -21,12 +21,6 @@ type ClaimRow = {
   source: "GUEST" | "ORGANIZER";
 };
 
-type OldItemMeta = {
-  name: string;
-  /** Count of live guest+organizer claims aggregated from `existingClaims`. */
-  claimedQuantity: number;
-};
-
 /**
  * Guard the page-editor save path: reject the save if any registry item with
  * live claims is being removed, converted away from the claimable "link" type,
@@ -71,15 +65,12 @@ export function validateRegistrySaveAgainstClaims(params: {
   // Recover a display name for any claimed item that's going missing. Falls
   // back to a placeholder when the old config couldn't be parsed or the item
   // was already orphaned before this save.
-  const oldItemById = new Map<string, OldItemMeta>();
+  const oldNameById = new Map<string, string>();
   if (oldConfig) {
     for (const section of oldConfig.sections) {
       if (section.type !== "registry") continue;
       for (const item of section.data.items) {
-        oldItemById.set(item.id, {
-          name: item.name,
-          claimedQuantity: claimedByItem.get(item.id) ?? 0,
-        });
+        oldNameById.set(item.id, item.name);
       }
     }
   }
@@ -93,7 +84,7 @@ export function validateRegistrySaveAgainstClaims(params: {
       violations.push({
         kind: "removed_with_claims",
         itemId,
-        itemName: oldItemById.get(itemId)?.name ?? "this gift",
+        itemName: oldNameById.get(itemId) ?? "this gift",
         claimedQuantity,
       });
       continue;
