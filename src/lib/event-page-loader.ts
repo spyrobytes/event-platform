@@ -72,9 +72,7 @@ export async function resolveGuestAccess(
     where: {
       tokenHash,
       eventId,
-      // Allow any status except EXPIRED and BOUNCED — guests can view
-      // details before deciding to attend (PENDING/SENT/OPENED/RESPONDED).
-      status: { notIn: ["EXPIRED", "BOUNCED"] },
+      status: { notIn: ["EXPIRED", "BOUNCED", "REVOKED"] },
       OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
     },
     select: { id: true, name: true },
