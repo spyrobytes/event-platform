@@ -27,9 +27,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     await requireEventOwner(eventId, user.id);
     assertCanMutate(user);
 
+    const MAX_REGENERATIONS = 3;
+
     const invite = await db.invite.findUnique({
       where: { id: inviteId },
-      select: { id: true, eventId: true, status: true },
+      select: { id: true, eventId: true, status: true, tokenRegenerateCount: true },
     });
 
     if (!invite || invite.eventId !== eventId) {
@@ -44,21 +46,35 @@ export async function POST(request: NextRequest, context: RouteContext) {
       throw new ValidationError("Cannot regenerate an expired invite");
     }
 
+    if (invite.tokenRegenerateCount >= MAX_REGENERATIONS) {
+      throw new ValidationError(
+        `Regeneration limit reached (${MAX_REGENERATIONS}). Revoke this invite and create a new one instead.`
+      );
+    }
+
     const { token, hash } = generateTokenPair();
 
     const updated = await db.invite.update({
       where: { id: inviteId },
-      data: { tokenHash: hash },
+      data: {
+        tokenHash: hash,
+        tokenRegenerateCount: { increment: 1 },
+      },
       select: {
         id: true,
         email: true,
         phone: true,
         name: true,
         status: true,
+        tokenRegenerateCount: true,
       },
     });
 
-    return successResponse({ ...updated, token });
+    return successResponse({
+      ...updated,
+      token,
+      regenerationsRemaining: MAX_REGENERATIONS - updated.tokenRegenerateCount,
+    });
   } catch (error) {
     return handleApiError(error);
   }

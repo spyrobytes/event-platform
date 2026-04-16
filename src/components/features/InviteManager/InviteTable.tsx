@@ -15,6 +15,7 @@ type Invite = {
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
+  tokenRegenerateCount?: number;
   sentAt?: string | null;
   openedAt?: string | null;
   createdAt: string;
@@ -39,6 +40,8 @@ type InviteTableProps = {
   tokenCache?: Map<string, string>;
   regeneratingId?: string | null;
 };
+
+const MAX_REGENERATIONS = 3;
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> = {
   PENDING: { label: "Pending", className: "bg-surface-3 text-foreground" },
@@ -171,6 +174,17 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
                       }
 
                       if (!hasToken && isActive && onRegenerate) {
+                        const used = invite.tokenRegenerateCount ?? 0;
+                        const remaining = MAX_REGENERATIONS - used;
+
+                        if (remaining <= 0) {
+                          return (
+                            <span className="text-xs text-muted-foreground" title="Regeneration limit reached. Revoke and create a new invite.">
+                              Limit reached
+                            </span>
+                          );
+                        }
+
                         return regeneratingId === invite.id ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-muted-foreground">
                             <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -187,7 +201,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
                             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
                             </svg>
-                            New Link
+                            New Link ({remaining} left)
                           </button>
                         );
                       }
@@ -252,7 +266,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
           title="Generate New Link"
           description={
             regenerateTarget
-              ? `This will create a new invite link for ${regenerateTarget.name || regenerateTarget.email || regenerateTarget.phone} and invalidate their previous link. The new link will be copied to your clipboard.`
+              ? `This will create a new invite link for ${regenerateTarget.name || regenerateTarget.email || regenerateTarget.phone} and invalidate their previous link. The new link will be copied to your clipboard.\n\nYou can regenerate a link up to ${MAX_REGENERATIONS} times per invite. ${MAX_REGENERATIONS - (regenerateTarget.tokenRegenerateCount ?? 0)} remaining. If you need more, revoke this invite and create a new one.`
               : ""
           }
           confirmLabel="Generate & Copy"

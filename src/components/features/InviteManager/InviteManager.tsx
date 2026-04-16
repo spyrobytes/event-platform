@@ -36,6 +36,7 @@ type Invite = {
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
+  tokenRegenerateCount?: number;
   sentAt?: string | null;
   openedAt?: string | null;
   createdAt: string;
@@ -248,6 +249,14 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
       const newToken = result.data.token;
 
       setTokenCache((prev) => new Map(prev).set(invite.id, newToken));
+
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === invite.id
+            ? { ...i, tokenRegenerateCount: result.data.tokenRegenerateCount }
+            : i
+        )
+      );
 
       const link = buildGuestLink(newToken);
       await navigator.clipboard.writeText(link);
