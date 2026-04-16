@@ -159,12 +159,12 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
 
 function InvalidTokenBanner() {
   return (
-    <div className="w-full bg-warning/10 border-b border-warning/20 px-4 py-2 text-center text-sm text-warning">
+    <div className="fixed top-0 left-0 right-0 z-[150] bg-amber-600 px-4 py-2.5 text-center text-sm font-medium text-white shadow-md">
       This guest link is invalid or has expired. You&apos;re viewing the public
       version of this page.{" "}
       <a
         href="mailto:support@eventsfixer.com"
-        className="underline hover:text-warning/80"
+        className="underline hover:text-white/80"
       >
         Contact the organizer
       </a>{" "}
