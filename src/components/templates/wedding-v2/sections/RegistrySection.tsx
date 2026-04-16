@@ -570,7 +570,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
         {mode === "preview" && items.length > PREVIEW_CAP && eventSlug && (
           <div style={{ textAlign: "center", marginTop: 28 }}>
             <Link
-              href={`/e/${eventSlug}/registry${inviteToken ? `?tk=${encodeURIComponent(inviteToken)}` : ""}`}
+              href={`/e/${eventSlug}/registry${inviteToken ? `?tk=${encodeURIComponent(inviteToken)}` : ""}#registry`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

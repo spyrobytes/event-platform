@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
 import { summarizeClaims } from "@/lib/registry-claims";
@@ -56,9 +55,10 @@ export async function generateMetadata({
 }
 
 /**
- * Full registry page — renders the event's template with sections filtered
- * down to just the registry. Public-viewable; claim controls only light up
- * for guests with a valid invite token (same gating as the main event page).
+ * Full registry page — identical layout to the main event page (hero, nav,
+ * all sections, footer) but with the registry section in "full" mode showing
+ * all items instead of the 4-item preview. Public-viewable; claim controls
+ * only light up for guests with a valid invite token.
  */
 export default async function FullRegistryPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
@@ -78,14 +78,15 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
     eventTitle: event.title,
   });
 
-  // Filter by visibility first, then narrow to registry only. If the registry
-  // section isn't present (or was filtered out for this viewer), 404 —
-  // there's nothing meaningful to render here.
+  // Keep all sections visible (hero, nav, footer stay consistent with the
+  // main event page). Only the registry section changes: registryMode="full"
+  // renders every item instead of the 4-item preview. 404 if the event has
+  // no registry section at all — this page has no reason to exist without one.
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
-  const registryOnly = filteredSections.filter((s) => s.type === "registry" && s.enabled);
-  if (registryOnly.length === 0) notFound();
+  const hasRegistry = filteredSections.some((s) => s.type === "registry" && s.enabled);
+  if (!hasRegistry) notFound();
 
-  const filteredConfig: EventPageConfigV1 = { ...config, sections: registryOnly };
+  const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
 
   const assets = event.mediaAssets.map((asset: {
     id: string;
@@ -115,9 +116,8 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
 
   const Template = TEMPLATES[resolvedTemplateId];
 
-  // Claim summaries — same logic as /e/[slug], but only fetched if the
-  // registry actually made it through visibility filtering (it did, since
-  // we just checked). Guests only; public visitors get read-only cards.
+  // Claim summaries — same logic as /e/[slug]. Guests only; public visitors
+  // get read-only cards.
   let registryClaims: Record<string, RegistryClaimSummaryDTO> | undefined;
   if (accessLevel === "guest") {
     const claims = await db.registryClaim.findMany({
@@ -137,26 +137,11 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
     registryClaims = Object.fromEntries(summary);
   }
 
-  const backHref = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
-
   return (
     <>
       <PageViewTracker eventId={event.id} source="event_page" />
       {tokenInvalid && <InvalidTokenBanner />}
       {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} eventSlug={slug} />}
-      <div style={{ padding: "16px 24px" }}>
-        <Link
-          href={backHref}
-          style={{
-            fontFamily: "var(--sans, system-ui)",
-            fontSize: "0.9rem",
-            color: "var(--accent, #7a8c72)",
-            textDecoration: "none",
-          }}
-        >
-          ← Back to {event.title}
-        </Link>
-      </div>
       <Template
         config={filteredConfig}
         assets={assets}
