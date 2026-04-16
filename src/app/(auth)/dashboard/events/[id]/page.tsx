@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsSnapshot, RSVPFunnel, VelocityChart } from "@/components/features/Analytics";
 import { RSVPDeadlineInfo } from "@/components/features";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -127,12 +128,10 @@ export default function EventDetailPage() {
     }
   };
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDelete = async () => {
     if (!event || isDeleting) return;
-
-    if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
-      return;
-    }
 
     setIsDeleting(true);
     try {
@@ -250,11 +249,24 @@ export default function EventDetailPage() {
           <Button variant="outline" onClick={handleDuplicate} disabled={isDuplicating}>
             {isDuplicating ? "Duplicating..." : "Duplicate"}
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+          <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)} disabled={isDeleting}>
             {isDeleting ? "Deleting..." : "Delete"}
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          handleDelete();
+        }}
+        title="Delete Event"
+        description={`Are you sure you want to delete "${event.title}"? This will permanently remove the event, all invites, RSVPs, and associated data. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+      />
 
       {event.coverImageUrl && (
         <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg">
