@@ -15,6 +15,10 @@ import {
 import { revalidateEventPage } from "@/lib/revalidation";
 import { eventPageConfigV1Schema } from "@/schemas/event-page";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
+import {
+  validateRegistrySaveAgainstClaims,
+  formatViolations,
+} from "@/lib/registry-save-guards";
 
 /** Keep only the most recent N versions per event, delete the rest. */
 const MAX_VERSIONS_PER_EVENT = 10;
@@ -154,6 +158,39 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const validatedConfig: EventPageConfigV1 = parseResult.data;
+
+    // Registry save guard: reject removals / type-flips / quantity reductions
+    // that would orphan or under-supply live claims. Runs alongside the fetch
+    // of existing claims; cheap enough on every save (O(items + claims)).
+    const [existingEvent, existingClaims] = await Promise.all([
+      db.event.findUnique({
+        where: { id: eventId },
+        select: { pageConfig: true },
+      }),
+      db.registryClaim.findMany({
+        where: { eventId },
+        select: { itemId: true, quantity: true, source: true },
+      }),
+    ]);
+
+    let oldConfig: EventPageConfigV1 | null = null;
+    if (existingEvent?.pageConfig) {
+      try {
+        oldConfig = validateAndMigrate(existingEvent.pageConfig);
+      } catch {
+        // Prior config couldn't be parsed — guard still runs against new config;
+        // we just won't have old display names for any removed items.
+      }
+    }
+
+    const violations = validateRegistrySaveAgainstClaims({
+      oldConfig,
+      newConfig: validatedConfig,
+      existingClaims,
+    });
+    if (violations.length > 0) {
+      return errorResponse(formatViolations(violations), 400);
+    }
 
     // Save version history and prune old versions
     await db.eventPageVersion.create({
