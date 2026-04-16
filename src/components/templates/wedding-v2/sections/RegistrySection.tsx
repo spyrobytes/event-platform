@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { MediaAsset } from "@prisma/client";
 import type { RegistrySection as RegistrySectionData } from "@/schemas/event-page";
 import { pickPreviewItems } from "@/lib/registry-claims";
+import { EventImage } from "@/components/media/EventImage";
 
 type ClaimSummary = {
   itemId: string;
@@ -44,10 +45,12 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
   const kickerText = "Gift Registry";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  const getAssetUrl = (assetId?: string): string | null => {
+  const getAsset = (assetId?: string) => {
     if (!assetId) return null;
-    const asset = assets.find((a) => a.id === assetId);
-    return asset?.publicUrl || null;
+    return assets.find((a) => a.id === assetId) ?? null;
+  };
+  const getAssetUrl = (assetId?: string): string | null => {
+    return getAsset(assetId)?.publicUrl || null;
   };
 
   const router = useRouter();
@@ -234,7 +237,9 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
             const itemType = item.type ?? "link";
             const isFund = itemType === "fund";
             const logoUrl = getAssetUrl(item.logoAssetId);
-            const imageUrl = getAssetUrl(item.imageAssetId);
+            const imageAsset = getAsset(item.imageAssetId);
+            const imageUrl = imageAsset?.publicUrl ?? null;
+            const imageBlur = imageAsset?.blurDataUrl ?? null;
             const hasLink = !!item.url && item.url.length > 0;
             const isFeatured = !!item.featured;
             const isClaimed = !!item.purchased;
@@ -312,10 +317,14 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                         flexShrink: 0,
                       }}
                     >
-                      <img
+                      <EventImage
                         src={imageUrl}
                         alt={item.name}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        fill
+                        sizes="96px"
+                        loading="lazy"
+                        blurDataURL={imageBlur}
+                        style={{ objectFit: "cover" }}
                       />
                       {logoUrl && (
                         <div
@@ -332,9 +341,13 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                             boxShadow: "0 1px 4px rgba(0,0,0,.2)",
                           }}
                         >
+                          {/* Tiny 16x16 overlay — raw <img> since next/image overhead */}
+                          {/* isn't worth it at this size. */}
                           <img
                             src={logoUrl}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             style={{ width: 16, height: 16, objectFit: "contain" }}
                           />
                         </div>
@@ -354,7 +367,13 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                       }}
                     >
                       {logoUrl ? (
-                        <img src={logoUrl} alt={item.name} style={{ width: 24, height: 24, objectFit: "contain" }} />
+                        <img
+                          src={logoUrl}
+                          alt={item.name}
+                          loading="lazy"
+                          decoding="async"
+                          style={{ width: 24, height: 24, objectFit: "contain" }}
+                        />
                       ) : isFund ? (
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={24} height={24}>
                           <path d="M12 1v22" />
