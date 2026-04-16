@@ -160,15 +160,21 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
                       }
 
                       if (hasToken && onCopyLink) {
+                        const isPhoneOnly = !invite.email;
                         return (
                           <button
                             onClick={() => onCopyLink(invite)}
-                            className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                              isPhoneOnly
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                                : "bg-primary/10 text-primary hover:bg-primary/20"
+                            )}
                           >
                             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.06a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.343 8.28" />
                             </svg>
-                            Copy Link
+                            {isPhoneOnly ? "Copy & Share Link" : "Copy Link"}
                           </button>
                         );
                       }
