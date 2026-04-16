@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +51,7 @@ export function MediaUploadCard({
   onAssetDeleted,
   onAssetUpdated,
   getIdToken,
-  maxAssets = 30,
+  maxAssets = PAGE_CONFIG_LIMITS.maxAssetsPerEvent,
 }: MediaUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTags, setSelectedTags] = useState<MediaTag[]>(["gallery"]);
