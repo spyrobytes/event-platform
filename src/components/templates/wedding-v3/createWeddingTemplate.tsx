@@ -122,7 +122,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
   // Default theme pack is the first one
   const defaultThemePack = definition.themePacks[0];
 
-  function WeddingTemplate({ config, assets, eventId, temporal, registryClaims, canClaim }: TemplateProps) {
+  function WeddingTemplate({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full" }: TemplateProps) {
     const { theme, hero, sections } = config;
     const primaryColor = theme.primaryColor;
     const socialLinks = definition.supportsSocialLinks ? config.socialLinks : undefined;
@@ -241,8 +241,10 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
               data={section.data}
               assets={assets}
               eventId={eventId}
+              eventSlug={eventSlug}
               registryClaims={registryClaims}
               canClaim={canClaim}
+              registryMode={registryMode}
             />
           ));
         case "schedule":
