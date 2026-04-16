@@ -36,9 +36,15 @@ export function proxy(request: NextRequest) {
   } else if (pathname.includes("/invites")) {
     rateLimitConfig = RATE_LIMITS.invites;
     rateLimitKey = "invites";
-  } else if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+  } else if (pathname.startsWith("/api/auth/")) {
     rateLimitConfig = RATE_LIMITS.auth;
     rateLimitKey = "auth";
+  } else if (pathname.startsWith("/api/launch-invites/invite-status")) {
+    rateLimitConfig = RATE_LIMITS.login;
+    rateLimitKey = "login";
+  } else if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
+    rateLimitConfig = RATE_LIMITS.login;
+    rateLimitKey = "login";
   } else if (pathname.startsWith("/e/") && request.nextUrl.searchParams.has("tk")) {
     // Rate limit token validation on event pages to prevent enumeration
     rateLimitConfig = RATE_LIMITS.tokenValidation;

@@ -89,6 +89,9 @@ export const RATE_LIMITS = {
   // Auth endpoints: 10 requests per minute
   auth: { limit: 10, windowSeconds: 60 },
 
+  // Login attempts: 5 per 15-minute window per IP (brute-force protection)
+  login: { limit: 5, windowSeconds: 900 },
+
   // RSVP submission: 5 requests per minute per IP
   rsvp: { limit: 5, windowSeconds: 60 },
 

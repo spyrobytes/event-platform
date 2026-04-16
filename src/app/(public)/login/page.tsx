@@ -59,6 +59,16 @@ export default function LoginPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      if (inviteRes.status === 429) {
+        const { getFirebaseAuth } = await import("@/lib/firebase");
+        const { signOut: firebaseSignOut } = await import("firebase/auth");
+        await firebaseSignOut(getFirebaseAuth());
+        setError("Too many login attempts. Please try again later.");
+        setIsLoading(false);
+        setSubmitting(false);
+        return;
+      }
+
       if (inviteRes.ok) {
         const { data } = await inviteRes.json();
         if (!data.hasInvite) {
