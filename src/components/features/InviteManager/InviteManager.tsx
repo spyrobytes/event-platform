@@ -414,14 +414,18 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
         </Card>
       </div>
 
-      {/* Email Stats */}
-      {emailStats && emailStats.total > 0 && (
+      {/* Email Stats — show once emails have been sent or have delivery outcomes */}
+      {emailStats && (emailStats.sent + emailStats.delivered + emailStats.opened + emailStats.failed + emailStats.bounced) > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Email Delivery</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-5">
+              <div>
+                <p className="text-sm text-muted-foreground">Sent</p>
+                <p className="text-xl font-bold">{emailStats.sent}</p>
+              </div>
               <div>
                 <p className="text-sm text-muted-foreground">Delivered</p>
                 <p className="text-xl font-bold text-green-600">{emailStats.delivered}</p>

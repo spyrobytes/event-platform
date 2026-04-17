@@ -560,6 +560,7 @@ export async function getEmailStats(eventId: string): Promise<{
     by: ["status"],
     where: {
       inviteId: { in: ids },
+      template: "INVITE",
     },
     _count: true,
   });
