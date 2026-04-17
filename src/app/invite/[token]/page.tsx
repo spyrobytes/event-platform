@@ -219,6 +219,11 @@ export default async function InvitationPage({ params }: PageProps) {
     // Wedding Storybook extended fields
     couplePhotoUrl: invitationConfig?.couplePhotoUrl || undefined,
     venuePhotoUrl: invitationConfig?.venuePhotoUrl || undefined,
+    ceremonyDate: invitationConfig?.ceremonyDate || undefined,
+    ceremonyTime: invitationConfig?.ceremonyTime || undefined,
+    ceremonyVenue: invitationConfig?.ceremonyVenue || undefined,
+    ceremonyAddress: invitationConfig?.ceremonyAddress || undefined,
+    receptionDate: invitationConfig?.receptionDate || undefined,
     receptionTime: invitationConfig?.receptionTime || undefined,
     receptionVenue: invitationConfig?.receptionVenue || undefined,
     receptionAddress: invitationConfig?.receptionAddress || undefined,

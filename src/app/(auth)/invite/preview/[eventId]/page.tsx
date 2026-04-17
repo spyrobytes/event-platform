@@ -54,6 +54,11 @@ type InvitationConfigData = {
   heroImageUrl: string | null;
   couplePhotoUrl: string | null;
   venuePhotoUrl: string | null;
+  ceremonyDate: string | null;
+  ceremonyTime: string | null;
+  ceremonyVenue: string | null;
+  ceremonyAddress: string | null;
+  receptionDate: string | null;
   receptionTime: string | null;
   receptionVenue: string | null;
   receptionAddress: string | null;
@@ -197,6 +202,11 @@ export default function InvitationPreviewPage() {
     // Wedding Storybook extended fields
     couplePhotoUrl: config.couplePhotoUrl || undefined,
     venuePhotoUrl: config.venuePhotoUrl || undefined,
+    ceremonyDate: config.ceremonyDate || undefined,
+    ceremonyTime: config.ceremonyTime || undefined,
+    ceremonyVenue: config.ceremonyVenue || undefined,
+    ceremonyAddress: config.ceremonyAddress || undefined,
+    receptionDate: config.receptionDate || undefined,
     receptionTime: config.receptionTime || undefined,
     receptionVenue: config.receptionVenue || undefined,
     receptionAddress: config.receptionAddress || undefined,

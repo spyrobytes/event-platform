@@ -442,6 +442,11 @@ model InvitationConfig {
   // Wedding Storybook fields
   couplePhotoUrl   String?  @map("couple_photo_url")
   venuePhotoUrl    String?  @map("venue_photo_url")
+  ceremonyDate     String?  @map("ceremony_date")     // e.g., "Saturday, the Twenty-First of June"
+  ceremonyTime     String?  @map("ceremony_time")     // e.g., "Four O'Clock in the Afternoon"
+  ceremonyVenue    String?  @map("ceremony_venue")
+  ceremonyAddress  String?  @map("ceremony_address")
+  receptionDate    String?  @map("reception_date")    // e.g., "Saturday, the Twenty-First of June"
   receptionTime    String?  @map("reception_time")
   receptionVenue   String?  @map("reception_venue")
   receptionAddress String?  @map("reception_address")

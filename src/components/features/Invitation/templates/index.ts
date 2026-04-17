@@ -174,7 +174,12 @@ export type TemplateField =
   | "customMessage"
   | "dressCode"
   | "heroImageUrl"
-  | "storybookFields";
+  | "storybookFields"
+  | "ceremonyDate"
+  | "ceremonyTime"
+  | "ceremonyVenue"
+  | "ceremonyAddress"
+  | "receptionDate";
 
 /**
  * Per-template field support map — single source of truth for which
@@ -189,7 +194,7 @@ export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>
   TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
   GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl"]),
   FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl"]),
-  WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "monogram", "dressCode", "storybookFields"]),
+  WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "monogram", "dressCode", "storybookFields", "ceremonyDate", "ceremonyTime", "ceremonyVenue", "ceremonyAddress", "receptionDate"]),
 };
 
 /**

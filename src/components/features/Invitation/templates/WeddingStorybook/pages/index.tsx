@@ -391,7 +391,7 @@ export function CoverRight({ data, active }: PageProps) {
             lineHeight: 1.8,
           }}
         >
-          {data.date}
+          {data.ceremonyDate || data.date}
         </p>
         <p
           style={{
@@ -955,6 +955,24 @@ export function DetailsLeft({ data, active }: PageProps) {
           The Ceremony
         </p>
 
+        {data.ceremonyDate && (
+          <p
+            style={{
+              fontFamily: "var(--font-script)",
+              fontSize: "clamp(0.7rem, 1.3vw, 0.95rem)",
+              fontWeight: 400,
+              color: "var(--sb-gold)",
+              opacity: active ? 1 : 0,
+              transform: active ? "translateY(0)" : "translateY(8px)",
+              transition: "all 0.7s 0.55s var(--sb-content-easing)",
+              marginBottom: "0.5rem",
+              lineHeight: 1.4,
+            }}
+          >
+            {data.ceremonyDate}
+          </p>
+        )}
+
         <p
           style={{
             fontFamily: "var(--font-display)",
@@ -1030,6 +1048,8 @@ export function DetailsLeft({ data, active }: PageProps) {
 }
 
 export function DetailsRight({ data, active }: PageProps) {
+  const hasReception = !!(data.receptionDate || data.receptionTime || data.receptionVenue);
+
   return (
     <div
       style={{
@@ -1042,94 +1062,141 @@ export function DetailsRight({ data, active }: PageProps) {
         textAlign: "center",
       }}
     >
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(0.55rem, 0.9vw, 0.65rem)",
-          letterSpacing: "0.3em",
-          textTransform: "uppercase",
-          color: "var(--sb-gold-dark)",
-          marginBottom: "1.5rem",
-          opacity: active ? 1 : 0,
-          transition: "opacity 0.7s 0.3s",
-        }}
-      >
-        The Reception
-      </p>
+      {hasReception ? (
+        <>
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(0.55rem, 0.9vw, 0.65rem)",
+              letterSpacing: "0.3em",
+              textTransform: "uppercase",
+              color: "var(--sb-gold-dark)",
+              marginBottom: "1.5rem",
+              opacity: active ? 1 : 0,
+              transition: "opacity 0.7s 0.3s",
+            }}
+          >
+            The Reception
+          </p>
 
-      <div
-        style={{
-          width: "36px",
-          height: "36px",
-          border: "1.5px solid var(--sb-gold)",
-          borderRadius: "50%",
-          margin: "0 auto 1.5rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: active ? 1 : 0,
-          transform: active ? "scale(1)" : "scale(0.7)",
-          transition: "all 0.8s 0.4s var(--sb-content-easing)",
-          fontSize: "0.75rem",
-        }}
-      >
-        &#10022;
-      </div>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              border: "1.5px solid var(--sb-gold)",
+              borderRadius: "50%",
+              margin: "0 auto 1.5rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: active ? 1 : 0,
+              transform: active ? "scale(1)" : "scale(0.7)",
+              transition: "all 0.8s 0.4s var(--sb-content-easing)",
+              fontSize: "0.75rem",
+            }}
+          >
+            &#10022;
+          </div>
 
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(0.85rem, 1.8vw, 1.2rem)",
-          fontWeight: 400,
-          color: "var(--sb-text-on-light)",
-          opacity: active ? 1 : 0,
-          transform: active ? "translateY(0)" : "translateY(10px)",
-          transition: "all 0.7s 0.5s var(--sb-content-easing)",
-          marginBottom: "0.5rem",
-        }}
-      >
-        {data.receptionTime}
-      </p>
+          {data.receptionDate && (
+            <p
+              style={{
+                fontFamily: "var(--font-script)",
+                fontSize: "clamp(0.75rem, 1.5vw, 1.05rem)",
+                fontWeight: 400,
+                color: "var(--sb-gold-dark)",
+                opacity: active ? 1 : 0,
+                transform: active ? "translateY(0)" : "translateY(10px)",
+                transition: "all 0.7s 0.45s var(--sb-content-easing)",
+                marginBottom: "0.5rem",
+                lineHeight: 1.4,
+              }}
+            >
+              {data.receptionDate}
+            </p>
+          )}
 
-      <div
-        style={{
-          width: "30px",
-          height: "1px",
-          background: "var(--sb-gold-muted)",
-          margin: "1rem auto",
-          opacity: active ? 1 : 0,
-          transition: "opacity 0.5s 0.55s",
-        }}
-      />
+          {data.receptionTime && (
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(0.85rem, 1.8vw, 1.2rem)",
+                fontWeight: 400,
+                color: "var(--sb-text-on-light)",
+                opacity: active ? 1 : 0,
+                transform: active ? "translateY(0)" : "translateY(10px)",
+                transition: "all 0.7s 0.5s var(--sb-content-easing)",
+                marginBottom: "0.5rem",
+              }}
+            >
+              {data.receptionTime}
+            </p>
+          )}
 
-      <h3
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(0.85rem, 1.6vw, 1.1rem)",
-          fontWeight: 500,
-          fontStyle: "italic",
-          color: "var(--sb-text-on-light)",
-          marginBottom: "0.5rem",
-          opacity: active ? 1 : 0,
-          transform: active ? "translateY(0)" : "translateY(10px)",
-          transition: "all 0.7s 0.6s var(--sb-content-easing)",
-        }}
-      >
-        {data.receptionVenue}
-      </h3>
+          <div
+            style={{
+              width: "30px",
+              height: "1px",
+              background: "var(--sb-gold-muted)",
+              margin: "1rem auto",
+              opacity: active ? 1 : 0,
+              transition: "opacity 0.5s 0.55s",
+            }}
+          />
 
-      <p
-        style={{
-          fontFamily: "var(--font-body)",
-          fontSize: "clamp(0.55rem, 0.9vw, 0.65rem)",
-          color: "var(--sb-text-on-light-muted)",
-          lineHeight: 1.6,
-          opacity: active ? 1 : 0,
-          transition: "opacity 0.7s 0.7s",
-        }}
-      >
-        {data.receptionAddress}
-      </p>
+          {data.receptionVenue && (
+            <h3
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(0.85rem, 1.6vw, 1.1rem)",
+                fontWeight: 500,
+                fontStyle: "italic",
+                color: "var(--sb-text-on-light)",
+                marginBottom: "0.5rem",
+                opacity: active ? 1 : 0,
+                transform: active ? "translateY(0)" : "translateY(10px)",
+                transition: "all 0.7s 0.6s var(--sb-content-easing)",
+              }}
+            >
+              {data.receptionVenue}
+            </h3>
+          )}
+
+          {data.receptionAddress && (
+            <p
+              style={{
+                fontFamily: "var(--font-body)",
+                fontSize: "clamp(0.55rem, 0.9vw, 0.65rem)",
+                color: "var(--sb-text-on-light-muted)",
+                lineHeight: 1.6,
+                opacity: active ? 1 : 0,
+                transition: "opacity 0.7s 0.7s",
+              }}
+            >
+              {data.receptionAddress}
+            </p>
+          )}
+        </>
+      ) : (
+        /* Empty reception — decorative placeholder */
+        <div
+          style={{
+            width: "36px",
+            height: "36px",
+            border: "1.5px solid var(--sb-gold-muted)",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: active ? 0.4 : 0,
+            transition: "opacity 0.8s 0.4s",
+            fontSize: "0.75rem",
+            color: "var(--sb-gold-muted)",
+          }}
+        >
+          &#10022;
+        </div>
+      )}
 
       {data.dressCode && (
         <div

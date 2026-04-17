@@ -126,6 +126,11 @@ export default function InvitationConfigPage() {
   // Wedding Storybook fields
   const [couplePhotoUrl, setCouplePhotoUrl] = useState("");
   const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
+  const [ceremonyDate, setCeremonyDate] = useState("");
+  const [ceremonyTime, setCeremonyTime] = useState("");
+  const [ceremonyVenue, setCeremonyVenue] = useState("");
+  const [ceremonyAddress, setCeremonyAddress] = useState("");
+  const [receptionDate, setReceptionDate] = useState("");
   const [receptionTime, setReceptionTime] = useState("");
   const [receptionVenue, setReceptionVenue] = useState("");
   const [receptionAddress, setReceptionAddress] = useState("");
@@ -200,6 +205,11 @@ export default function InvitationConfigPage() {
             // Wedding Storybook fields
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
+            setCeremonyDate(configData.data.ceremonyDate || "");
+            setCeremonyTime(configData.data.ceremonyTime || "");
+            setCeremonyVenue(configData.data.ceremonyVenue || "");
+            setCeremonyAddress(configData.data.ceremonyAddress || "");
+            setReceptionDate(configData.data.receptionDate || "");
             setReceptionTime(configData.data.receptionTime || "");
             setReceptionVenue(configData.data.receptionVenue || "");
             setReceptionAddress(configData.data.receptionAddress || "");
@@ -284,6 +294,11 @@ export default function InvitationConfigPage() {
           // Wedding Storybook fields
           couplePhotoUrl: couplePhotoUrl || undefined,
           venuePhotoUrl: venuePhotoUrl || undefined,
+          ceremonyDate: ceremonyDate || undefined,
+          ceremonyTime: ceremonyTime || undefined,
+          ceremonyVenue: ceremonyVenue || undefined,
+          ceremonyAddress: ceremonyAddress || undefined,
+          receptionDate: receptionDate || undefined,
           receptionTime: receptionTime || undefined,
           receptionVenue: receptionVenue || undefined,
           receptionAddress: receptionAddress || undefined,
@@ -846,40 +861,103 @@ export default function InvitationConfigPage() {
           </Card>
         )}
 
-        {/* Wedding Storybook: Reception Details */}
+        {/* Wedding Storybook: Ceremony & Reception */}
         {supports("storybookFields") && (
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Reception Details</CardTitle>
+              <CardTitle>Ceremony &amp; Reception</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Fill in either or both sections. Empty sections are automatically hidden on the card.
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-3">
-                <div className="space-y-3">
-                  <Label htmlFor="receptionTime">Reception Time</Label>
-                  <Input
-                    id="receptionTime"
-                    value={receptionTime}
-                    onChange={(e) => handleFieldChange(setReceptionTime)(e.target.value)}
-                    placeholder="Six O'Clock in the Evening"
-                  />
+            <CardContent className="space-y-8">
+              {/* Ceremony */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-foreground">Ceremony</h4>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="ceremonyDate">Ceremony Date</Label>
+                    <Input
+                      id="ceremonyDate"
+                      value={ceremonyDate}
+                      onChange={(e) => handleFieldChange(setCeremonyDate)(e.target.value)}
+                      placeholder="Saturday, the Twenty-First of June"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="ceremonyTime">Ceremony Time</Label>
+                    <Input
+                      id="ceremonyTime"
+                      value={ceremonyTime}
+                      onChange={(e) => handleFieldChange(setCeremonyTime)(e.target.value)}
+                      placeholder="Four O'Clock in the Afternoon"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <Label htmlFor="receptionVenue">Reception Venue</Label>
-                  <Input
-                    id="receptionVenue"
-                    value={receptionVenue}
-                    onChange={(e) => handleFieldChange(setReceptionVenue)(e.target.value)}
-                    placeholder="The Glasshouse at Royal Botanic"
-                  />
+                <div className="mt-4 grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="ceremonyVenue">Ceremony Venue</Label>
+                    <Input
+                      id="ceremonyVenue"
+                      value={ceremonyVenue}
+                      onChange={(e) => handleFieldChange(setCeremonyVenue)(e.target.value)}
+                      placeholder="St. Mary's Cathedral"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="ceremonyAddress">Ceremony Address</Label>
+                    <Input
+                      id="ceremonyAddress"
+                      value={ceremonyAddress}
+                      onChange={(e) => handleFieldChange(setCeremonyAddress)(e.target.value)}
+                      placeholder="61 York Place, Edinburgh"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <Label htmlFor="receptionAddress">Reception Address</Label>
-                  <Input
-                    id="receptionAddress"
-                    value={receptionAddress}
-                    onChange={(e) => handleFieldChange(setReceptionAddress)(e.target.value)}
-                    placeholder="20A Inverleith Row, Edinburgh"
-                  />
+              </div>
+
+              {/* Reception */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-foreground">Reception</h4>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="receptionDate">Reception Date</Label>
+                    <Input
+                      id="receptionDate"
+                      value={receptionDate}
+                      onChange={(e) => handleFieldChange(setReceptionDate)(e.target.value)}
+                      placeholder="Saturday, the Twenty-First of June"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="receptionTime">Reception Time</Label>
+                    <Input
+                      id="receptionTime"
+                      value={receptionTime}
+                      onChange={(e) => handleFieldChange(setReceptionTime)(e.target.value)}
+                      placeholder="Six O'Clock in the Evening"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <Label htmlFor="receptionVenue">Reception Venue</Label>
+                    <Input
+                      id="receptionVenue"
+                      value={receptionVenue}
+                      onChange={(e) => handleFieldChange(setReceptionVenue)(e.target.value)}
+                      placeholder="The Glasshouse at Royal Botanic"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="receptionAddress">Reception Address</Label>
+                    <Input
+                      id="receptionAddress"
+                      value={receptionAddress}
+                      onChange={(e) => handleFieldChange(setReceptionAddress)(e.target.value)}
+                      placeholder="20A Inverleith Row, Edinburgh"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="mt-4 space-y-3">

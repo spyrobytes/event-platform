@@ -58,6 +58,8 @@ export const CONTENT_LIMITS = {
   timelineEventLabel: { max: 50 },
   timelineEventDescription: { max: 150 },
   quote: { max: 250, recommended: 200 },
+  eventDateText: { max: 80, recommended: 50 },
+  eventTimeText: { max: 60, recommended: 40 },
 } as const;
 
 // =============================================================================
@@ -121,6 +123,11 @@ export const invitationConfigSchema = z.object({
   // Wedding Storybook fields
   couplePhotoUrl: z.string().url().optional().or(z.literal("")),
   venuePhotoUrl: z.string().url().optional().or(z.literal("")),
+  ceremonyDate: z.string().max(CONTENT_LIMITS.eventDateText.max).optional(),
+  ceremonyTime: z.string().max(CONTENT_LIMITS.eventTimeText.max).optional(),
+  ceremonyVenue: z.string().max(CONTENT_LIMITS.venueName.max).optional(),
+  ceremonyAddress: z.string().max(CONTENT_LIMITS.address.max).optional(),
+  receptionDate: z.string().max(CONTENT_LIMITS.eventDateText.max).optional(),
   receptionTime: z.string().max(60).optional(),
   receptionVenue: z.string().max(CONTENT_LIMITS.venueName.max).optional(),
   receptionAddress: z.string().max(CONTENT_LIMITS.address.max).optional(),
@@ -188,6 +195,11 @@ export const invitationDataSchema = z.object({
   // Wedding Storybook extended fields
   couplePhotoUrl: z.string().url().optional(),
   venuePhotoUrl: z.string().url().optional(),
+  ceremonyDate: z.string().optional(),
+  ceremonyTime: z.string().optional(),
+  ceremonyVenue: z.string().optional(),
+  ceremonyAddress: z.string().optional(),
+  receptionDate: z.string().optional(),
   receptionTime: z.string().optional(),
   receptionVenue: z.string().optional(),
   receptionAddress: z.string().optional(),
