@@ -148,6 +148,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       statsTotal += group._count._all;
     }
 
+    // Cumulative funnel: each stage includes all stages beyond it
+    const sent = (statsMap["SENT"] || 0)
+      + (statsMap["OPENED"] || 0)
+      + (statsMap["RESPONDED"] || 0)
+      + (statsMap["BOUNCED"] || 0);
+    const opened = (statsMap["OPENED"] || 0)
+      + (statsMap["RESPONDED"] || 0);
+
     return successResponse({
       invites,
       pagination: {
@@ -159,8 +167,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       stats: {
         total: statsTotal,
         pending: statsMap["PENDING"] || 0,
-        sent: statsMap["SENT"] || 0,
-        opened: statsMap["OPENED"] || 0,
+        sent,
+        opened,
         responded: statsMap["RESPONDED"] || 0,
         attending: attendingCount,
       },

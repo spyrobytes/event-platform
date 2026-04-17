@@ -339,11 +339,14 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
     }
   };
 
+  const SENT_OR_BEYOND: InviteStatus[] = ["SENT", "OPENED", "RESPONDED", "BOUNCED"];
+  const OPENED_OR_BEYOND: InviteStatus[] = ["OPENED", "RESPONDED"];
+
   const stats = serverStats ?? {
     total: invites.length,
     pending: invites.filter((i) => i.status === "PENDING").length,
-    sent: invites.filter((i) => i.status === "SENT").length,
-    opened: invites.filter((i) => i.status === "OPENED").length,
+    sent: invites.filter((i) => SENT_OR_BEYOND.includes(i.status)).length,
+    opened: invites.filter((i) => OPENED_OR_BEYOND.includes(i.status)).length,
     responded: invites.filter((i) => i.status === "RESPONDED").length,
     attending: invites.filter((i) => i.rsvp?.response === "YES").length,
   };
@@ -414,25 +417,17 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
         </Card>
       </div>
 
-      {/* Email Stats — show once emails have been sent or have delivery outcomes */}
-      {emailStats && (emailStats.sent + emailStats.delivered + emailStats.opened + emailStats.failed + emailStats.bounced) > 0 && (
+      {/* Delivery Health — only shown when webhook feedback exists */}
+      {emailStats && (emailStats.delivered + emailStats.failed + emailStats.bounced) > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Email Delivery</CardTitle>
+            <CardTitle className="text-lg">Delivery Health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-5">
-              <div>
-                <p className="text-sm text-muted-foreground">Sent</p>
-                <p className="text-xl font-bold">{emailStats.sent}</p>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <p className="text-sm text-muted-foreground">Delivered</p>
                 <p className="text-xl font-bold text-green-600">{emailStats.delivered}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Opened</p>
-                <p className="text-xl font-bold text-blue-600">{emailStats.opened}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Failed</p>
