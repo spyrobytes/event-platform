@@ -73,14 +73,16 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Find invites that haven't responded
+      // Find invites that haven't responded OR responded with MAYBE
       const invites = await db.invite.findMany({
         where: {
           eventId: event.id,
-          status: { in: ["SENT", "OPENED"] },
           sentAt: { not: null },
           unsubscribedAt: null,
-          rsvp: null, // No response yet
+          OR: [
+            { status: { in: ["SENT", "OPENED"] }, rsvp: null },
+            { status: "RESPONDED", rsvp: { response: "MAYBE" } },
+          ],
         },
         select: {
           id: true,
@@ -88,6 +90,7 @@ export async function GET(request: NextRequest) {
           name: true,
           sentAt: true,
           tokenHash: true,
+          rsvp: { select: { response: true } },
         },
       });
 

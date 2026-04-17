@@ -26,18 +26,42 @@ type ConfirmationEmailProps = {
   unsubscribeUrl?: string;
 };
 
-const RESPONSE_MESSAGES: Record<RsvpResponse, { title: string; message: string }> = {
+const RESPONSE_CONFIG: Record<
+  RsvpResponse,
+  {
+    title: string;
+    message: string;
+    cardBg: string;
+    cardBorder: string;
+    statusColor: string;
+    statusLabel: string;
+  }
+> = {
   YES: {
     title: "See You There!",
     message: "We're excited to have you join us!",
+    cardBg: "#ecfdf5",
+    cardBorder: "#10b981",
+    statusColor: "#059669",
+    statusLabel: "✓ Attending",
   },
   NO: {
     title: "We'll Miss You",
-    message: "Thank you for letting us know. We hope to see you at a future event!",
+    message:
+      "Thank you for letting us know. We understand you won't be able to make it.",
+    cardBg: "#fef2f2",
+    cardBorder: "#f87171",
+    statusColor: "#dc2626",
+    statusLabel: "✗ Not Attending",
   },
   MAYBE: {
     title: "RSVP Received",
-    message: "We understand you're still deciding. We hope you can make it!",
+    message:
+      "We've noted your response. Take your time deciding — we'll send you a reminder closer to the event.",
+    cardBg: "#fffbeb",
+    cardBorder: "#fbbf24",
+    statusColor: "#d97706",
+    statusLabel: "? Maybe",
   },
 };
 
@@ -53,8 +77,13 @@ export function ConfirmationEmail({
   portalUrl,
   unsubscribeUrl,
 }: ConfirmationEmailProps) {
-  const { title, message } = RESPONSE_MESSAGES[response];
-  const previewText = `Your RSVP for ${eventTitle} has been confirmed`;
+  const config = RESPONSE_CONFIG[response];
+  const previewText =
+    response === "YES"
+      ? `You're confirmed for ${eventTitle}`
+      : response === "NO"
+        ? `Your RSVP for ${eventTitle} has been received`
+        : `We've noted your response for ${eventTitle}`;
 
   return (
     <Html>
@@ -62,19 +91,23 @@ export function ConfirmationEmail({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={heading}>{title}</Heading>
+          <Heading style={heading}>{config.title}</Heading>
 
           <Section style={section}>
             <Text style={text}>Hi {guestName},</Text>
 
-            <Text style={text}>{message}</Text>
+            <Text style={text}>{config.message}</Text>
 
-            <Section style={confirmationCard}>
+            <Section
+              style={{
+                ...confirmationCard,
+                backgroundColor: config.cardBg,
+                borderColor: config.cardBorder,
+              }}
+            >
               <Text style={confirmationLabel}>Your RSVP</Text>
-              <Text style={confirmationResponse}>
-                {response === "YES" && "✓ Attending"}
-                {response === "NO" && "✗ Not Attending"}
-                {response === "MAYBE" && "? Maybe"}
+              <Text style={{ ...confirmationResponse, color: config.statusColor }}>
+                {config.statusLabel}
               </Text>
               {response === "YES" && guestCount > 1 && (
                 <Text style={guestCountText}>
@@ -83,34 +116,40 @@ export function ConfirmationEmail({
               )}
             </Section>
 
-            <Section style={eventCard}>
-              <Heading as="h2" style={eventTitleStyle}>
-                {eventTitle}
-              </Heading>
+            {response !== "NO" && (
+              <Section style={eventCard}>
+                <Heading as="h2" style={eventTitleStyle}>
+                  {eventTitle}
+                </Heading>
 
-              <Text style={eventDetail}>
-                <strong>Date:</strong> {eventDate}
-              </Text>
-              <Text style={eventDetail}>
-                <strong>Time:</strong> {eventTime}
-              </Text>
-              {eventLocation && (
                 <Text style={eventDetail}>
-                  <strong>Location:</strong> {eventLocation}
+                  <strong>Date:</strong> {eventDate}
                 </Text>
-              )}
-              <Text style={eventDetail}>
-                <strong>Hosted by:</strong> {hostName}
-              </Text>
-            </Section>
+                <Text style={eventDetail}>
+                  <strong>Time:</strong> {eventTime}
+                </Text>
+                {eventLocation && (
+                  <Text style={eventDetail}>
+                    <strong>Location:</strong> {eventLocation}
+                  </Text>
+                )}
+                <Text style={eventDetail}>
+                  <strong>Hosted by:</strong> {hostName}
+                </Text>
+              </Section>
+            )}
 
             {portalUrl && (
               <Section style={portalSection}>
                 <Link href={portalUrl} style={portalButton}>
-                  View Event Details
+                  {response === "NO"
+                    ? "Browse Gift Registry"
+                    : "View Event Details"}
                 </Link>
                 <Text style={portalHint}>
-                  Access exclusive event information like gallery, schedule, and more.
+                  {response === "NO"
+                    ? "Even though you can't attend, you can still browse the gift registry using your personal link."
+                    : "Access event information, gallery, schedule, and gift registry."}
                 </Text>
               </Section>
             )}
@@ -118,6 +157,13 @@ export function ConfirmationEmail({
             {response === "YES" && (
               <Text style={reminderText}>
                 We&apos;ll send you a reminder closer to the event date.
+              </Text>
+            )}
+
+            {response === "MAYBE" && (
+              <Text style={reminderText}>
+                We&apos;ll follow up with a reminder so you can confirm when
+                you&apos;re ready.
               </Text>
             )}
           </Section>
@@ -132,7 +178,9 @@ export function ConfirmationEmail({
               </Link>
             </Text>
             <Text style={footerText}>
-              If you need to change your response, please contact the event organizer.
+              {response === "NO"
+                ? "Changed your mind? Contact the event organizer to update your response."
+                : "If you need to change your response, please contact the event organizer."}
             </Text>
             {unsubscribeUrl && (
               <Text style={footerText}>
@@ -183,11 +231,11 @@ const text = {
 };
 
 const confirmationCard = {
-  backgroundColor: "#ecfdf5",
   borderRadius: "8px",
   padding: "24px",
   margin: "24px 0",
-  border: "1px solid #10b981",
+  borderWidth: "1px",
+  borderStyle: "solid" as const,
   textAlign: "center" as const,
 };
 
@@ -203,7 +251,6 @@ const confirmationLabel = {
 const confirmationResponse = {
   fontSize: "24px",
   fontWeight: "700",
-  color: "#059669",
   margin: "0",
 };
 

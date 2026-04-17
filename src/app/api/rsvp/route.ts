@@ -215,10 +215,10 @@ export async function POST(request: NextRequest) {
         portalUrl,
         message:
           data.response === "YES"
-            ? "You're going! We'll see you there."
+            ? "You're confirmed! We'll see you there."
             : data.response === "NO"
-              ? "Thanks for letting us know."
-              : "Thanks for your response. We hope to see you!",
+              ? "Thanks for letting us know. Your personal link will stay active if you'd like to browse the gift registry."
+              : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
       });
     } else {
       // Public RSVP (for public events without invite)
@@ -339,10 +339,10 @@ export async function POST(request: NextRequest) {
         },
         message:
           data.response === "YES"
-            ? "You're going! We'll see you there."
+            ? "You're confirmed! We'll see you there."
             : data.response === "NO"
               ? "Thanks for letting us know."
-              : "Thanks for your response. We hope to see you!",
+              : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
       });
     }
   } catch (error) {
