@@ -325,7 +325,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 sections={navSections}
                 accentColor={primaryColor}
                 hasHeroImage={!!heroAsset?.publicUrl}
-                homeHref={navLinkBase || undefined}
+                homeHref={navLinkBase ? `${navLinkBase}#top` : undefined}
               />
 
               {/* Chrome: Scroll Progress */}

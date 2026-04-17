@@ -371,7 +371,7 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
                 dateText={dateText}
                 sections={navSections}
                 accentColor={primaryColor}
-                homeHref={navLinkBase || undefined}
+                homeHref={navLinkBase ? `${navLinkBase}#top` : undefined}
               />
             )}
 
