@@ -21,6 +21,11 @@ export type StorybookData = {
   receptionTime: string;
   receptionVenue: string;
   receptionAddress: string;
+  headerMode?: "modern" | "traditional";
+  headerText?: string;
+  person1FamilyName?: string;
+  person2FamilyName?: string;
+  familyInviteText?: string;
   dressCode?: string;
   rsvpUrl?: string;
   rsvpDeadline?: string;

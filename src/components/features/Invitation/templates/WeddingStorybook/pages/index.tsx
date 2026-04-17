@@ -239,21 +239,71 @@ export function CoverRight({ data, active }: PageProps) {
         }}
       />
 
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(0.5rem, 1vw, 0.65rem)",
-          letterSpacing: "0.3em",
-          textTransform: "uppercase",
-          color: "var(--sb-gold)",
-          opacity: active ? 1 : 0,
-          transform: active ? "translateY(0)" : "translateY(10px)",
-          transition: "all 0.8s 0.3s var(--sb-content-easing)",
-          marginBottom: "1.8rem",
-        }}
-      >
-        Together with their families
-      </p>
+      {/* Header: Traditional or Modern */}
+      {data.headerMode === "traditional" && data.person1FamilyName && data.person2FamilyName ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.25rem",
+            opacity: active ? 1 : 0,
+            transform: active ? "translateY(0)" : "translateY(10px)",
+            transition: "all 0.8s 0.3s var(--sb-content-easing)",
+            marginBottom: "1.4rem",
+          }}
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(0.45rem, 0.9vw, 0.6rem)",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              color: "var(--sb-gold)",
+            }}
+          >
+            The families of
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-script)",
+              fontSize: "clamp(0.9rem, 2.5vw, 1.3rem)",
+              fontWeight: 400,
+              color: "var(--sb-gold)",
+              lineHeight: 1.3,
+            }}
+          >
+            {data.person1FamilyName} <span style={{ margin: "0 0.15em", fontStyle: "italic" }}>&amp;</span> {data.person2FamilyName}
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(0.45rem, 0.85vw, 0.58rem)",
+              fontStyle: "italic",
+              letterSpacing: "0.12em",
+              color: "var(--sb-text-on-dark-muted)",
+            }}
+          >
+            {data.familyInviteText || "invite you to the wedding of their children"}
+          </p>
+        </div>
+      ) : (
+        <p
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(0.5rem, 1vw, 0.65rem)",
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "var(--sb-gold)",
+            opacity: active ? 1 : 0,
+            transform: active ? "translateY(0)" : "translateY(10px)",
+            transition: "all 0.8s 0.3s var(--sb-content-easing)",
+            marginBottom: "1.8rem",
+          }}
+        >
+          {data.headerText || "Together with their families"}
+        </p>
+      )}
 
       <h1
         style={{
@@ -294,23 +344,25 @@ export function CoverRight({ data, active }: PageProps) {
         <ScatterText text={data.person2} active={active} depth={400} stagger={0.03} />
       </h1>
 
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontStyle: "italic",
-          fontSize: "clamp(0.5rem, 0.9vw, 0.65rem)",
-          letterSpacing: "0.12em",
-          color: "var(--sb-text-on-dark-muted)",
-          opacity: active ? 1 : 0,
-          transition: "opacity 0.8s 0.55s",
-          marginTop: "1.2rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        request the pleasure of your company
-        <br />
-        at the celebration of their marriage
-      </p>
+      {data.headerMode !== "traditional" && (
+        <p
+          style={{
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: "clamp(0.5rem, 0.9vw, 0.65rem)",
+            letterSpacing: "0.12em",
+            color: "var(--sb-text-on-dark-muted)",
+            opacity: active ? 1 : 0,
+            transition: "opacity 0.8s 0.55s",
+            marginTop: "1.2rem",
+            marginBottom: "1.5rem",
+          }}
+        >
+          request the pleasure of your company
+          <br />
+          at the celebration of their marriage
+        </p>
+      )}
 
       <div
         style={{
