@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
 import { updateEmailStatus } from "@/lib/email";
-import type { EmailStatus } from "@prisma/client";
 
 const MAILGUN_WEBHOOK_SIGNING_KEY = process.env.MAILGUN_WEBHOOK_SIGNING_KEY;
+const FRESHNESS_WINDOW_SECONDS = 15 * 60;
 
 type MailgunWebhookPayload = {
   signature: {
@@ -14,6 +16,7 @@ type MailgunWebhookPayload = {
   "event-data": {
     event: string;
     timestamp: number;
+    id?: string;
     message: {
       headers: {
         "message-id": string;
@@ -25,12 +28,11 @@ type MailgunWebhookPayload = {
       message?: string;
       description?: string;
     };
+    severity?: string;
+    reason?: string;
   };
 };
 
-/**
- * Verify Mailgun webhook signature
- */
 function verifySignature(
   timestamp: string,
   token: string,
@@ -38,7 +40,7 @@ function verifySignature(
 ): boolean {
   if (!MAILGUN_WEBHOOK_SIGNING_KEY) {
     console.warn("MAILGUN_WEBHOOK_SIGNING_KEY not set, skipping verification");
-    return true; // Allow in development
+    return true;
   }
 
   const encodedToken = crypto
@@ -52,10 +54,16 @@ function verifySignature(
   );
 }
 
-/**
- * Map Mailgun event to our EmailStatus
- */
-function mapEventToStatus(event: string): EmailStatus | null {
+function isTimestampFresh(timestamp: string): boolean {
+  const webhookTime = Number(timestamp);
+  if (Number.isNaN(webhookTime)) return false;
+  const age = Math.abs(Math.floor(Date.now() / 1000) - webhookTime);
+  return age <= FRESHNESS_WINDOW_SECONDS;
+}
+
+type MappedStatus = "DELIVERED" | "OPENED" | "FAILED" | "BOUNCED";
+
+function mapEventToStatus(event: string): MappedStatus | null {
   switch (event) {
     case "delivered":
       return "DELIVERED";
@@ -72,15 +80,23 @@ function mapEventToStatus(event: string): EmailStatus | null {
   }
 }
 
-/**
- * POST /api/webhooks/mailgun
- * Handle Mailgun webhook events for email delivery status
- */
+function extractErrorDetail(eventData: MailgunWebhookPayload["event-data"]): string | null {
+  const ds = eventData["delivery-status"];
+  if (!ds) return null;
+  const parts = [
+    ds.code && `code=${ds.code}`,
+    ds.message,
+    ds.description,
+    eventData.severity && `severity=${eventData.severity}`,
+    eventData.reason && `reason=${eventData.reason}`,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join("; ") : null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const payload: MailgunWebhookPayload = await request.json();
 
-    // Verify signature
     const { timestamp, token, signature } = payload.signature;
     if (!verifySignature(timestamp, token, signature)) {
       console.error("Invalid Mailgun webhook signature");
@@ -90,31 +106,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!isTimestampFresh(timestamp)) {
+      console.warn(`Mailgun webhook rejected: stale timestamp ${timestamp}`);
+      return NextResponse.json(
+        { error: "Stale timestamp" },
+        { status: 400 }
+      );
+    }
+
     const eventData = payload["event-data"];
     const event = eventData.event;
     const messageId = eventData.message?.headers?.["message-id"];
+    const cleanMessageId = messageId
+      ? messageId.replace(/^<|>$/g, "")
+      : null;
+    const eventTimestamp = new Date(eventData.timestamp * 1000);
 
-    if (!messageId) {
-      console.warn("Webhook received without message-id");
-      return NextResponse.json({ status: "ignored" });
+    await db.emailEvent.create({
+      data: {
+        providerMessageId: cleanMessageId,
+        eventType: event,
+        recipientEmail: eventData.recipient ?? null,
+        payload: payload as unknown as Prisma.InputJsonValue,
+        occurredAt: eventTimestamp,
+      },
+    });
+
+    if (!cleanMessageId) {
+      console.warn("Webhook received without message-id, logged to email_events");
+      return NextResponse.json({ status: "logged" });
     }
 
-    // Clean message ID (Mailgun includes angle brackets)
-    const cleanMessageId = messageId.replace(/^<|>$/g, "");
-
-    // Map event to our status
     const status = mapEventToStatus(event);
     if (!status) {
-      // Event we don't track, acknowledge but don't process
-      return NextResponse.json({ status: "ignored", event });
+      return NextResponse.json({ status: "logged", event });
     }
 
-    // Update email status
-    const eventTimestamp = new Date(eventData.timestamp * 1000);
-    await updateEmailStatus(cleanMessageId, status, eventTimestamp);
+    const errorDetail =
+      status === "FAILED" || status === "BOUNCED"
+        ? extractErrorDetail(eventData)
+        : null;
+
+    await updateEmailStatus(cleanMessageId, status, eventTimestamp, errorDetail);
 
     console.log(`Mailgun webhook: ${event} for ${cleanMessageId}`);
-
     return NextResponse.json({ status: "processed", event });
   } catch (error) {
     console.error("Mailgun webhook error:", error);
@@ -125,10 +160,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * HEAD /api/webhooks/mailgun
- * Mailgun uses HEAD requests to verify webhook endpoint
- */
 export async function HEAD() {
   return new NextResponse(null, { status: 200 });
 }

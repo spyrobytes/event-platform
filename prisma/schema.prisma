@@ -336,6 +336,20 @@ enum EmailStatus {
   BOUNCED
 }
 
+model EmailEvent {
+  id                String   @id @default(cuid())
+  providerMessageId String?  @map("provider_message_id")
+  eventType         String   @map("event_type")
+  recipientEmail    String?  @map("recipient_email")
+  payload           Json
+  occurredAt        DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([providerMessageId])
+  @@index([eventType])
+  @@map("email_events")
+}
+
 // =============================================================================
 // CUSTOM EVENT PAGES
 // =============================================================================

@@ -453,14 +453,37 @@ export async function processQueuedEmails(limit = 10): Promise<number> {
   return processed;
 }
 
+const STATUS_PRIORITY: Record<EmailStatus, number> = {
+  QUEUED: 0,
+  SENDING: 1,
+  SENT: 2,
+  DELIVERED: 3,
+  OPENED: 4,
+  FAILED: 3,
+  BOUNCED: 4,
+};
+
 /**
- * Update email status from Mailgun webhook
+ * Update email status from Mailgun webhook.
+ * Forward-only: a higher-priority status is never overwritten by a lower one.
  */
 export async function updateEmailStatus(
   providerMessageId: string,
   status: EmailStatus,
-  timestamp?: Date
+  timestamp?: Date,
+  errorDetail?: string | null
 ): Promise<void> {
+  const existing = await db.emailOutbox.findFirst({
+    where: { providerMessageId },
+    select: { id: true, status: true, inviteId: true, template: true },
+  });
+
+  if (!existing) return;
+
+  if (STATUS_PRIORITY[status] < STATUS_PRIORITY[existing.status]) {
+    return;
+  }
+
   const updateData: Record<string, unknown> = { status };
 
   if (status === "DELIVERED" && timestamp) {
@@ -469,42 +492,30 @@ export async function updateEmailStatus(
     updateData.openedAt = timestamp;
   }
 
-  const email = await db.emailOutbox.updateMany({
-    where: { providerMessageId },
+  if (errorDetail && (status === "FAILED" || status === "BOUNCED")) {
+    updateData.error = errorDetail;
+  }
+
+  await db.emailOutbox.update({
+    where: { id: existing.id },
     data: updateData,
   });
 
-  // If email was bounced, update the invite status too
-  if (status === "BOUNCED" && email.count > 0) {
-    const emailRecord = await db.emailOutbox.findFirst({
-      where: { providerMessageId },
-      select: { inviteId: true },
+  if (status === "BOUNCED" && existing.inviteId) {
+    await db.invite.update({
+      where: { id: existing.inviteId },
+      data: { status: "BOUNCED" },
     });
-
-    if (emailRecord?.inviteId) {
-      await db.invite.update({
-        where: { id: emailRecord.inviteId },
-        data: { status: "BOUNCED" },
-      });
-    }
   }
 
-  // If email was opened and it's an invite, update invite status
-  if (status === "OPENED") {
-    const emailRecord = await db.emailOutbox.findFirst({
-      where: { providerMessageId },
-      select: { inviteId: true, template: true },
+  if (status === "OPENED" && existing.inviteId && existing.template === "INVITE") {
+    await db.invite.update({
+      where: { id: existing.inviteId },
+      data: {
+        status: "OPENED",
+        openedAt: timestamp || new Date(),
+      },
     });
-
-    if (emailRecord?.inviteId && emailRecord.template === "INVITE") {
-      await db.invite.update({
-        where: { id: emailRecord.inviteId },
-        data: {
-          status: "OPENED",
-          openedAt: timestamp || new Date(),
-        },
-      });
-    }
   }
 }
 
