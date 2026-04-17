@@ -39,9 +39,6 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/api/auth/")) {
     rateLimitConfig = RATE_LIMITS.auth;
     rateLimitKey = "auth";
-  } else if (pathname.startsWith("/api/launch-invites/invite-status")) {
-    rateLimitConfig = RATE_LIMITS.login;
-    rateLimitKey = "login";
   } else if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
     rateLimitConfig = RATE_LIMITS.login;
     rateLimitKey = "login";
