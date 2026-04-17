@@ -92,10 +92,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       // Wedding Storybook fields
       couplePhotoUrl: data.couplePhotoUrl || null,
       venuePhotoUrl: data.venuePhotoUrl || null,
+      ceremonyStartAt: data.ceremonyStartAt || null,
       ceremonyDate: data.ceremonyDate || null,
       ceremonyTime: data.ceremonyTime || null,
       ceremonyVenue: data.ceremonyVenue || null,
       ceremonyAddress: data.ceremonyAddress || null,
+      receptionStartAt: data.receptionStartAt || null,
       receptionDate: data.receptionDate || null,
       receptionTime: data.receptionTime || null,
       receptionVenue: data.receptionVenue || null,

@@ -13,6 +13,68 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+async function buildInviteEmailContext(eventId: string) {
+  const [event, invitationConfig] = await Promise.all([
+    db.event.findUnique({
+      where: { id: eventId },
+      select: {
+        title: true,
+        description: true,
+        startAt: true,
+        timezone: true,
+        venueName: true,
+        city: true,
+        creator: { select: { name: true, email: true } },
+      },
+    }),
+    db.invitationConfig.findUnique({
+      where: { eventId },
+      select: {
+        ceremonyStartAt: true,
+        ceremonyVenue: true,
+        receptionStartAt: true,
+        receptionVenue: true,
+      },
+    }),
+  ]);
+
+  if (!event) return null;
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+  const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
+  const eventTime = format(new Date(event.startAt), "h:mm a");
+  const eventLocation = event.venueName || event.city || undefined;
+  const hostName = event.creator.name || event.creator.email;
+
+  const ceremony = invitationConfig?.ceremonyStartAt
+    ? {
+        ceremonyDate: format(new Date(invitationConfig.ceremonyStartAt), "EEEE, MMMM d, yyyy"),
+        ceremonyTime: format(new Date(invitationConfig.ceremonyStartAt), "h:mm a"),
+        ceremonyVenue: invitationConfig.ceremonyVenue || undefined,
+      }
+    : {};
+
+  const reception = invitationConfig?.receptionStartAt
+    ? {
+        receptionDate: format(new Date(invitationConfig.receptionStartAt), "EEEE, MMMM d, yyyy"),
+        receptionTime: format(new Date(invitationConfig.receptionStartAt), "h:mm a"),
+        receptionVenue: invitationConfig.receptionVenue || undefined,
+      }
+    : {};
+
+  return {
+    eventTitle: event.title,
+    eventDate,
+    eventTime,
+    eventLocation,
+    eventDescription: event.description || undefined,
+    hostName,
+    baseUrl,
+    ...ceremony,
+    ...reception,
+  };
+}
+
 /**
  * GET /api/events/[id]/invites
  * List invites for an event (owner only)
@@ -216,35 +278,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
           .filter((item) => !!item.invite.email);
 
         if (invitesWithEmail.length > 0) {
-          const event = await db.event.findUnique({
-            where: { id: eventId },
-            select: {
-              title: true,
-              description: true,
-              startAt: true,
-              timezone: true,
-              venueName: true,
-              city: true,
-              creator: { select: { name: true, email: true } },
-            },
-          });
+          const ctx = await buildInviteEmailContext(eventId);
 
-          if (event) {
-            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
-            const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
-            const eventTime = format(new Date(event.startAt), "h:mm a");
-            const eventLocation = event.venueName || event.city || undefined;
-            const hostName = event.creator.name || event.creator.email;
+          if (ctx) {
+            const { baseUrl, ...emailFields } = ctx;
 
             for (const { invite, token } of invitesWithEmail) {
               const emailId = await queueInviteEmail(invite.id, invite.email!, {
                 guestName: invite.name || undefined,
-                eventTitle: event.title,
-                eventDate,
-                eventTime,
-                eventLocation,
-                eventDescription: event.description || undefined,
-                hostName,
+                ...emailFields,
                 rsvpUrl: `${baseUrl}/rsvp/${token}`,
                 unsubscribeUrl: buildUnsubscribeUrl(token),
               });
@@ -319,34 +361,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
       let emailQueued = false;
 
       if (sendImmediately && email) {
-        const event = await db.event.findUnique({
-          where: { id: eventId },
-          select: {
-            title: true,
-            description: true,
-            startAt: true,
-            timezone: true,
-            venueName: true,
-            city: true,
-            creator: { select: { name: true, email: true } },
-          },
-        });
+        const ctx = await buildInviteEmailContext(eventId);
 
-        if (event) {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
-          const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
-          const eventTime = format(new Date(event.startAt), "h:mm a");
-          const eventLocation = event.venueName || event.city || undefined;
-          const hostName = event.creator.name || event.creator.email;
+        if (ctx) {
+          const { baseUrl, ...emailFields } = ctx;
 
           const emailId = await queueInviteEmail(invite.id, email, {
             guestName: invite.name || undefined,
-            eventTitle: event.title,
-            eventDate,
-            eventTime,
-            eventLocation,
-            eventDescription: event.description || undefined,
-            hostName,
+            ...emailFields,
             rsvpUrl: `${baseUrl}/rsvp/${token}`,
             unsubscribeUrl: buildUnsubscribeUrl(token),
           });

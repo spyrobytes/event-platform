@@ -126,10 +126,12 @@ export default function InvitationConfigPage() {
   // Wedding Storybook fields
   const [couplePhotoUrl, setCouplePhotoUrl] = useState("");
   const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
+  const [ceremonyStartAt, setCeremonyStartAt] = useState("");
   const [ceremonyDate, setCeremonyDate] = useState("");
   const [ceremonyTime, setCeremonyTime] = useState("");
   const [ceremonyVenue, setCeremonyVenue] = useState("");
   const [ceremonyAddress, setCeremonyAddress] = useState("");
+  const [receptionStartAt, setReceptionStartAt] = useState("");
   const [receptionDate, setReceptionDate] = useState("");
   const [receptionTime, setReceptionTime] = useState("");
   const [receptionVenue, setReceptionVenue] = useState("");
@@ -205,10 +207,12 @@ export default function InvitationConfigPage() {
             // Wedding Storybook fields
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
+            setCeremonyStartAt(configData.data.ceremonyStartAt ? new Date(configData.data.ceremonyStartAt).toISOString().slice(0, 16) : "");
             setCeremonyDate(configData.data.ceremonyDate || "");
             setCeremonyTime(configData.data.ceremonyTime || "");
             setCeremonyVenue(configData.data.ceremonyVenue || "");
             setCeremonyAddress(configData.data.ceremonyAddress || "");
+            setReceptionStartAt(configData.data.receptionStartAt ? new Date(configData.data.receptionStartAt).toISOString().slice(0, 16) : "");
             setReceptionDate(configData.data.receptionDate || "");
             setReceptionTime(configData.data.receptionTime || "");
             setReceptionVenue(configData.data.receptionVenue || "");
@@ -294,10 +298,12 @@ export default function InvitationConfigPage() {
           // Wedding Storybook fields
           couplePhotoUrl: couplePhotoUrl || undefined,
           venuePhotoUrl: venuePhotoUrl || undefined,
+          ceremonyStartAt: ceremonyStartAt ? new Date(ceremonyStartAt).toISOString() : undefined,
           ceremonyDate: ceremonyDate || undefined,
           ceremonyTime: ceremonyTime || undefined,
           ceremonyVenue: ceremonyVenue || undefined,
           ceremonyAddress: ceremonyAddress || undefined,
+          receptionStartAt: receptionStartAt ? new Date(receptionStartAt).toISOString() : undefined,
           receptionDate: receptionDate || undefined,
           receptionTime: receptionTime || undefined,
           receptionVenue: receptionVenue || undefined,
@@ -874,9 +880,21 @@ export default function InvitationConfigPage() {
               {/* Ceremony */}
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-foreground">Ceremony</h4>
+                <div className="space-y-3">
+                  <Label htmlFor="ceremonyStartAt">Ceremony Date &amp; Time</Label>
+                  <Input
+                    id="ceremonyStartAt"
+                    type="datetime-local"
+                    value={ceremonyStartAt}
+                    onChange={(e) => handleFieldChange(setCeremonyStartAt)(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used in invitation emails. The stylized text below is for the invitation card only.
+                  </p>
+                </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-3">
-                    <Label htmlFor="ceremonyDate">Ceremony Date</Label>
+                    <Label htmlFor="ceremonyDate">Card Display Date</Label>
                     <Input
                       id="ceremonyDate"
                       value={ceremonyDate}
@@ -919,9 +937,21 @@ export default function InvitationConfigPage() {
               {/* Reception */}
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-foreground">Reception</h4>
+                <div className="space-y-3">
+                  <Label htmlFor="receptionStartAt">Reception Date &amp; Time</Label>
+                  <Input
+                    id="receptionStartAt"
+                    type="datetime-local"
+                    value={receptionStartAt}
+                    onChange={(e) => handleFieldChange(setReceptionStartAt)(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used in invitation emails. The stylized text below is for the invitation card only.
+                  </p>
+                </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-3">
-                    <Label htmlFor="receptionDate">Reception Date</Label>
+                    <Label htmlFor="receptionDate">Card Display Date</Label>
                     <Input
                       id="receptionDate"
                       value={receptionDate}

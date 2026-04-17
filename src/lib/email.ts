@@ -138,6 +138,12 @@ type InviteEmailPayload = {
   hostName: string;
   rsvpUrl: string;
   unsubscribeUrl?: string;
+  ceremonyDate?: string;
+  ceremonyTime?: string;
+  ceremonyVenue?: string;
+  receptionDate?: string;
+  receptionTime?: string;
+  receptionVenue?: string;
 };
 
 type ConfirmationEmailPayload = {

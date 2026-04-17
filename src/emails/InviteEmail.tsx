@@ -22,6 +22,12 @@ type InviteEmailProps = {
   hostName: string;
   rsvpUrl: string;
   unsubscribeUrl?: string;
+  ceremonyDate?: string;
+  ceremonyTime?: string;
+  ceremonyVenue?: string;
+  receptionDate?: string;
+  receptionTime?: string;
+  receptionVenue?: string;
 };
 
 export function InviteEmail({
@@ -34,8 +40,15 @@ export function InviteEmail({
   hostName,
   rsvpUrl,
   unsubscribeUrl,
+  ceremonyDate,
+  ceremonyTime,
+  ceremonyVenue,
+  receptionDate,
+  receptionTime,
+  receptionVenue,
 }: InviteEmailProps) {
   const previewText = `You're invited to ${eventTitle}`;
+  const hasWeddingEvents = !!(ceremonyDate || receptionDate);
 
   return (
     <Html>
@@ -59,17 +72,61 @@ export function InviteEmail({
                 {eventTitle}
               </Heading>
 
-              <Text style={eventDetail}>
-                <strong>Date:</strong> {eventDate}
-              </Text>
-              <Text style={eventDetail}>
-                <strong>Time:</strong> {eventTime}
-              </Text>
-              {eventLocation && (
-                <Text style={eventDetail}>
-                  <strong>Location:</strong> {eventLocation}
-                </Text>
+              {hasWeddingEvents ? (
+                <>
+                  {ceremonyDate && (
+                    <Section style={subEventBlock}>
+                      <Text style={subEventHeading}>Ceremony</Text>
+                      <Text style={eventDetail}>
+                        <strong>Date:</strong> {ceremonyDate}
+                      </Text>
+                      {ceremonyTime && (
+                        <Text style={eventDetail}>
+                          <strong>Time:</strong> {ceremonyTime}
+                        </Text>
+                      )}
+                      {ceremonyVenue && (
+                        <Text style={eventDetail}>
+                          <strong>Venue:</strong> {ceremonyVenue}
+                        </Text>
+                      )}
+                    </Section>
+                  )}
+                  {receptionDate && (
+                    <Section style={subEventBlock}>
+                      <Text style={subEventHeading}>Reception</Text>
+                      <Text style={eventDetail}>
+                        <strong>Date:</strong> {receptionDate}
+                      </Text>
+                      {receptionTime && (
+                        <Text style={eventDetail}>
+                          <strong>Time:</strong> {receptionTime}
+                        </Text>
+                      )}
+                      {receptionVenue && (
+                        <Text style={eventDetail}>
+                          <strong>Venue:</strong> {receptionVenue}
+                        </Text>
+                      )}
+                    </Section>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Text style={eventDetail}>
+                    <strong>Date:</strong> {eventDate}
+                  </Text>
+                  <Text style={eventDetail}>
+                    <strong>Time:</strong> {eventTime}
+                  </Text>
+                  {eventLocation && (
+                    <Text style={eventDetail}>
+                      <strong>Location:</strong> {eventLocation}
+                    </Text>
+                  )}
+                </>
               )}
+
               {eventDescription && (
                 <Text style={eventDescriptionStyle}>{eventDescription}</Text>
               )}
@@ -176,6 +233,21 @@ const eventTitleStyle = {
   fontWeight: "600",
   color: "#1a1a1a",
   margin: "0 0 16px 0",
+};
+
+const subEventBlock = {
+  margin: "0 0 16px 0",
+  padding: "0 0 12px 0",
+  borderBottom: "1px solid #e5e7eb",
+};
+
+const subEventHeading = {
+  fontSize: "13px",
+  fontWeight: "700",
+  color: "#7c3aed",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.05em",
+  margin: "0 0 6px 0",
 };
 
 const eventDetail = {
