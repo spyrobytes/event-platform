@@ -26,6 +26,9 @@
   position: relative;
   perspective: 2000px;
   margin: 2rem 0;
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 
   /* Animation timings */
   --ffr-duration: 1.4s;
@@ -70,6 +73,7 @@
   background: var(--ffr-card-bg);
   border: 1px solid var(--ffr-card-border);
   border-radius: 4px;
+  backface-visibility: hidden;
   box-shadow:
     0 4px 20px var(--ffr-card-shadow),
     0 8px 40px var(--ffr-card-shadow-deep),
@@ -192,6 +196,38 @@
 /* Event details */
 .eventDetails {
   margin-top: 0.25rem;
+}
+
+.eventBlock {
+  margin-bottom: 0.35rem;
+}
+
+.eventBlock:last-child {
+  margin-bottom: 0;
+}
+
+.eventBlock .eventDate {
+  font-size: 0.95rem;
+  margin-bottom: 0.1rem;
+}
+
+.eventBlock .eventTime {
+  font-size: 0.85rem;
+  margin-bottom: 0.1rem;
+}
+
+.eventBlock .eventVenue {
+  font-size: 0.85rem;
+}
+
+.eventLabel {
+  font-family: var(--inv-font-body, 'Cormorant Garamond', Georgia, serif);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ffr-text-secondary);
+  margin: 0 0 0.1rem 0;
 }
 
 .eventDate {

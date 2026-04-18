@@ -211,6 +211,8 @@ export function GoldenCardReveal({
     return formatEventDate(date, "en-US");
   }, [data.eventDate]);
 
+  const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
   /**
    * Create confetti burst animation
    */
@@ -642,14 +644,45 @@ export function GoldenCardReveal({
                   )}
 
                   <span className={styles.eventDetails}>
-                    <p className={styles.eventDate}>{formattedDate}</p>
-                    <p className={styles.eventTime}>{data.eventTime}</p>
-                    <p className={styles.eventVenue}>
-                      <strong className={styles.venueName}>
-                        {data.venue.name}
-                      </strong>
-                      {data.venue.address}
-                    </p>
+                    {hasCeremonyReception ? (
+                      <>
+                        {data.ceremonyDate && (
+                          <span className={styles.eventBlock}>
+                            <p className={styles.eventLabel}>Ceremony</p>
+                            <p className={styles.eventDate}>{data.ceremonyDate}</p>
+                            <p className={styles.eventTime}>{data.ceremonyTime || data.eventTime}</p>
+                            {data.ceremonyVenue && (
+                              <p className={styles.eventVenue}>
+                                <strong className={styles.venueName}>{data.ceremonyVenue}</strong>
+                              </p>
+                            )}
+                          </span>
+                        )}
+                        {data.receptionDate && (
+                          <span className={styles.eventBlock}>
+                            <p className={styles.eventLabel}>Reception</p>
+                            <p className={styles.eventDate}>{data.receptionDate}</p>
+                            {data.receptionTime && <p className={styles.eventTime}>{data.receptionTime}</p>}
+                            {data.receptionVenue && (
+                              <p className={styles.eventVenue}>
+                                <strong className={styles.venueName}>{data.receptionVenue}</strong>
+                              </p>
+                            )}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className={styles.eventDate}>{formattedDate}</p>
+                        <p className={styles.eventTime}>{data.eventTime}</p>
+                        <p className={styles.eventVenue}>
+                          <strong className={styles.venueName}>
+                            {data.venue.name}
+                          </strong>
+                          {data.venue.address}
+                        </p>
+                      </>
+                    )}
                   </span>
 
                   {data.rsvpUrl && (

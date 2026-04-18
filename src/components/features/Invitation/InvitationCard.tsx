@@ -69,6 +69,8 @@ export function InvitationCard({
     timeZone: timezone,
   }).format(eventDate);
 
+  const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
   return (
     <div
       className={cn(
@@ -202,30 +204,73 @@ export function InvitationCard({
       />
 
       {/* Date and time */}
-      <div className="mb-4">
-        <p
-          className={cn(
-            "font-[var(--inv-font-heading)]",
-            "text-xl md:text-2xl",
-            "text-[var(--inv-text-primary)]",
-            "mb-1"
+      {hasCeremonyReception ? (
+        <div className="mb-4 space-y-3">
+          {data.ceremonyDate && (
+            <div>
+              <p className={cn("font-[var(--inv-font-body)]", "text-xs", "uppercase", "tracking-widest", "text-[var(--inv-text-secondary)]", "mb-1")}>
+                Ceremony
+              </p>
+              <p className={cn("font-[var(--inv-font-heading)]", "text-xl md:text-2xl", "text-[var(--inv-text-primary)]", "mb-1")}>
+                {data.ceremonyDate}
+              </p>
+              <p className={cn("font-[var(--inv-font-body)]", "text-base", "text-[var(--inv-text-secondary)]")}>
+                {data.ceremonyTime || eventTime}
+              </p>
+              {data.ceremonyVenue && (
+                <p className={cn("font-[var(--inv-font-heading)]", "text-base", "text-[var(--inv-text-primary)]", "mt-1")}>
+                  {data.ceremonyVenue}
+                </p>
+              )}
+            </div>
           )}
-        >
-          {formattedDate}
-        </p>
-        <p
-          className={cn(
-            "font-[var(--inv-font-body)]",
-            "text-base",
-            "text-[var(--inv-text-secondary)]"
+          {data.receptionDate && (
+            <div>
+              <p className={cn("font-[var(--inv-font-body)]", "text-xs", "uppercase", "tracking-widest", "text-[var(--inv-text-secondary)]", "mb-1")}>
+                Reception
+              </p>
+              <p className={cn("font-[var(--inv-font-heading)]", "text-xl md:text-2xl", "text-[var(--inv-text-primary)]", "mb-1")}>
+                {data.receptionDate}
+              </p>
+              {data.receptionTime && (
+                <p className={cn("font-[var(--inv-font-body)]", "text-base", "text-[var(--inv-text-secondary)]")}>
+                  {data.receptionTime}
+                </p>
+              )}
+              {data.receptionVenue && (
+                <p className={cn("font-[var(--inv-font-heading)]", "text-base", "text-[var(--inv-text-primary)]", "mt-1")}>
+                  {data.receptionVenue}
+                </p>
+              )}
+            </div>
           )}
-        >
-          {eventTime}
-        </p>
-      </div>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <p
+            className={cn(
+              "font-[var(--inv-font-heading)]",
+              "text-xl md:text-2xl",
+              "text-[var(--inv-text-primary)]",
+              "mb-1"
+            )}
+          >
+            {formattedDate}
+          </p>
+          <p
+            className={cn(
+              "font-[var(--inv-font-body)]",
+              "text-base",
+              "text-[var(--inv-text-secondary)]"
+            )}
+          >
+            {eventTime}
+          </p>
+        </div>
+      )}
 
-      {/* Venue */}
-      {venue.name && (
+      {/* Venue (generic — hidden when ceremony/reception provides venue) */}
+      {!hasCeremonyReception && venue.name && (
         <div className="mb-4">
           <p
             className={cn(

@@ -194,19 +194,22 @@ export function CoverLeft({ data, active }: PageProps) {
         }}
       />
 
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontStyle: "italic",
-          fontSize: "clamp(0.5rem, 0.9vw, 0.65rem)",
-          letterSpacing: "0.12em",
-          color: "var(--sb-text-on-dark-muted)",
-          opacity: active ? 1 : 0,
-          transition: "opacity 0.8s 0.75s",
-        }}
-      >
-        {data.date}, {data.year}
-      </p>
+      {/* Hide generic date when ceremony/reception dates are configured */}
+      {!data.ceremonyDate && !data.receptionDate && (
+        <p
+          style={{
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: "clamp(0.5rem, 0.9vw, 0.65rem)",
+            letterSpacing: "0.12em",
+            color: "var(--sb-text-on-dark-muted)",
+            opacity: active ? 1 : 0,
+            transition: "opacity 0.8s 0.75s",
+          }}
+        >
+          {data.date}, {data.year}
+        </p>
+      )}
     </div>
   );
 }

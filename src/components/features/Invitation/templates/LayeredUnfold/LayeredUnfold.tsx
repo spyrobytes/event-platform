@@ -344,6 +344,8 @@ export function LayeredUnfold({
     timeZone: data.timezone,
   }).format(data.eventDate);
 
+  const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
   // -----------------------------------------------------------------------
   // Render helpers
   // -----------------------------------------------------------------------
@@ -444,9 +446,32 @@ export function LayeredUnfold({
         >
           <div className={styles.crease} aria-hidden="true" />
           <div className={styles.layerContent}>
-            <p className={styles.sectionLabel}>When</p>
-            <p className={styles.dateValue}>{formattedDate}</p>
-            <p className={styles.timeValue}>{data.eventTime}</p>
+            {hasCeremonyReception ? (
+              <>
+                {data.ceremonyDate && (
+                  <>
+                    <p className={styles.sectionLabel}>Ceremony</p>
+                    <p className={styles.dateValue}>{data.ceremonyDate}</p>
+                    <p className={styles.timeValue}>{data.ceremonyTime || data.eventTime}</p>
+                    {data.ceremonyVenue && <p className={styles.timeValue}>{data.ceremonyVenue}</p>}
+                  </>
+                )}
+                {data.receptionDate && (
+                  <>
+                    <p className={styles.sectionLabel}>Reception</p>
+                    <p className={styles.dateValue}>{data.receptionDate}</p>
+                    {data.receptionTime && <p className={styles.timeValue}>{data.receptionTime}</p>}
+                    {data.receptionVenue && <p className={styles.timeValue}>{data.receptionVenue}</p>}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <p className={styles.sectionLabel}>When</p>
+                <p className={styles.dateValue}>{formattedDate}</p>
+                <p className={styles.timeValue}>{data.eventTime}</p>
+              </>
+            )}
           </div>
         </div>
 

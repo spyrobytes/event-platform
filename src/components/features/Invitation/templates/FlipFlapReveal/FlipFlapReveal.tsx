@@ -271,6 +271,8 @@ export function FlipFlapReveal({
     [data.eventDate]
   );
 
+  const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
   // Photo URL - use heroImageUrl with fallback
   const photoUrl = data.heroImageUrl || DEFAULT_PHOTO_URL;
 
@@ -467,12 +469,39 @@ export function FlipFlapReveal({
               )}
 
               <div className={styles.eventDetails}>
-                <p className={styles.eventDate}>{formattedDate}</p>
-                <p className={styles.eventTime}>{data.eventTime}</p>
-                <p className={styles.eventVenue}>
-                  <strong>{data.venue.name}</strong>
-                  {data.venue.address}
-                </p>
+                {hasCeremonyReception ? (
+                  <>
+                    {data.ceremonyDate && (
+                      <div className={styles.eventBlock}>
+                        <p className={styles.eventLabel}>Ceremony</p>
+                        <p className={styles.eventDate}>{data.ceremonyDate}</p>
+                        <p className={styles.eventTime}>{data.ceremonyTime || data.eventTime}</p>
+                        {data.ceremonyVenue && (
+                          <p className={styles.eventVenue}><strong>{data.ceremonyVenue}</strong></p>
+                        )}
+                      </div>
+                    )}
+                    {data.receptionDate && (
+                      <div className={styles.eventBlock}>
+                        <p className={styles.eventLabel}>Reception</p>
+                        <p className={styles.eventDate}>{data.receptionDate}</p>
+                        {data.receptionTime && <p className={styles.eventTime}>{data.receptionTime}</p>}
+                        {data.receptionVenue && (
+                          <p className={styles.eventVenue}><strong>{data.receptionVenue}</strong></p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.eventDate}>{formattedDate}</p>
+                    <p className={styles.eventTime}>{data.eventTime}</p>
+                    <p className={styles.eventVenue}>
+                      <strong>{data.venue.name}</strong>
+                      {data.venue.address}
+                    </p>
+                  </>
+                )}
               </div>
 
               {data.rsvpUrl && (
@@ -548,7 +577,7 @@ export function FlipFlapReveal({
             <div className={styles.flapBack}>
               <div className={styles.flapBackContent}>
                 <p className={styles.flapBackText}>You&apos;re Invited</p>
-                <p className={styles.flapBackDate}>{formattedDate}</p>
+                <p className={styles.flapBackDate}>{data.ceremonyDate || formattedDate}</p>
               </div>
             </div>
           </div>

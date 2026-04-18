@@ -176,6 +176,8 @@ export function SplitRevealCard({
     timeZone: data.timezone,
   }).format(data.eventDate);
 
+  const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
   // Notify parent of state changes
   useEffect(() => {
     onStateChange?.(state);
@@ -336,10 +338,34 @@ export function SplitRevealCard({
             <div className={styles.divider} aria-hidden="true" />
 
             {/* Date & Time */}
-            <p className={styles.date}>{formattedDate}</p>
-            <p className={styles.time}>{data.eventTime}</p>
+            {hasCeremonyReception ? (
+              <>
+                {data.ceremonyDate && (
+                  <div className={styles.eventSection}>
+                    <p className={styles.sectionLabel}>Ceremony</p>
+                    <p className={styles.date}>{data.ceremonyDate}</p>
+                    <p className={styles.time}>{data.ceremonyTime || data.eventTime}</p>
+                    {data.ceremonyVenue && <p className={styles.venue}>{data.ceremonyVenue}</p>}
+                  </div>
+                )}
+                {data.receptionDate && (
+                  <div className={styles.eventSection}>
+                    <p className={styles.sectionLabel}>Reception</p>
+                    <p className={styles.date}>{data.receptionDate}</p>
+                    {data.receptionTime && <p className={styles.time}>{data.receptionTime}</p>}
+                    {data.receptionVenue && <p className={styles.venue}>{data.receptionVenue}</p>}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p className={styles.date}>{formattedDate}</p>
+                <p className={styles.time}>{data.eventTime}</p>
+              </>
+            )}
 
-            {/* Venue */}
+            {/* Venue (generic — hidden when ceremony/reception provides venue) */}
+            {!hasCeremonyReception && (
             <p className={styles.venue}>
               {data.venue.name && (
                 <>
@@ -349,6 +375,7 @@ export function SplitRevealCard({
               )}
               {[data.venue.city, data.venue.state].filter(Boolean).join(", ")}
             </p>
+            )}
 
             {/* Dress Code */}
             {data.dressCode && (

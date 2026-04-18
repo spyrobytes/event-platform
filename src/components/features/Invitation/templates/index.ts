@@ -175,6 +175,7 @@ export type TemplateField =
   | "dressCode"
   | "heroImageUrl"
   | "storybookFields"
+  | "ceremonyReception"
   | "ceremonyDate"
   | "ceremonyTime"
   | "ceremonyVenue"
@@ -186,15 +187,15 @@ export type TemplateField =
  * dashboard controls are relevant to each template.
  */
 export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>> = {
-  ENVELOPE_REVEAL:     new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode"]),
-  ENVELOPE_REVEAL_V2:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode"]),
-  SPLIT_REVEAL:        new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode"]),
-  LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "customMessage", "dressCode"]),
-  CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode"]),
-  TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode"]),
-  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl"]),
-  FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl"]),
-  WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "monogram", "dressCode", "storybookFields", "ceremonyDate", "ceremonyTime", "ceremonyVenue", "ceremonyAddress", "receptionDate"]),
+  ENVELOPE_REVEAL:     new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode", "ceremonyReception"]),
+  ENVELOPE_REVEAL_V2:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode", "ceremonyReception"]),
+  SPLIT_REVEAL:        new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode", "ceremonyReception"]),
+  LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),
+  CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode", "ceremonyReception"]),
+  TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),
+  GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "ceremonyReception"]),
+  FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "ceremonyReception"]),
+  WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "monogram", "dressCode", "storybookFields", "ceremonyReception", "ceremonyDate", "ceremonyTime", "ceremonyVenue", "ceremonyAddress", "receptionDate"]),
 };
 
 /**

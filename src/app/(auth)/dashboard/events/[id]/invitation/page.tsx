@@ -867,8 +867,8 @@ export default function InvitationConfigPage() {
           </Card>
         )}
 
-        {/* Wedding Storybook: Ceremony & Reception */}
-        {supports("storybookFields") && (
+        {/* Ceremony & Reception (all wedding templates) */}
+        {supports("ceremonyReception") && (
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Ceremony &amp; Reception</CardTitle>
