@@ -468,7 +468,15 @@ export function FlipFlapReveal({
                 <p className={styles.invitationHeader}>{eventTypeText}</p>
               )}
 
-              <div className={styles.eventDetails}>
+              <div
+                className={cn(
+                  styles.eventDetails,
+                  hasCeremonyReception &&
+                    data.ceremonyDate &&
+                    data.receptionDate &&
+                    styles.eventDetailsCompact
+                )}
+              >
                 {hasCeremonyReception ? (
                   <>
                     {data.ceremonyDate && (
