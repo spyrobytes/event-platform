@@ -56,6 +56,8 @@ export function RSVPForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [apiMessage, setApiMessage] = useState<string | null>(null);
+  const [submittedResponse, setSubmittedResponse] = useState<RsvpResponse | null>(null);
   const [additionalGuestNames, setAdditionalGuestNames] = useState<string[]>([]);
 
   // Analytics tracking refs
@@ -160,6 +162,12 @@ export function RSVPForm({
         throw new Error(errorData.error || "Failed to submit RSVP");
       }
 
+      const responseData = await response.json().catch(() => ({}));
+      if (responseData?.data?.message) {
+        setApiMessage(responseData.data.message);
+      }
+      setSubmittedResponse(data.response as RsvpResponse);
+
       // Mark as submitted before updating state to prevent abandonment tracking
       formSubmitted.current = true;
 
@@ -200,9 +208,15 @@ export function RSVPForm({
             />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold">Thank You!</h2>
+        <h2 className="text-2xl font-bold">
+          {submittedResponse === "YES"
+            ? "See You There!"
+            : submittedResponse === "NO"
+              ? "We'll Miss You"
+              : "Thank You!"}
+        </h2>
         <p className="text-muted-foreground">
-          {successMessage || "Your RSVP has been recorded. We'll send you a confirmation email shortly."}
+          {apiMessage || successMessage || "Your RSVP has been recorded. You'll receive a confirmation email shortly."}
         </p>
       </div>
     );

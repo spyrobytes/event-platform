@@ -55,6 +55,8 @@ export function InvitationRSVPForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
+  const [apiMessage, setApiMessage] = useState<string | null>(null);
+  const [submittedResponse, setSubmittedResponse] = useState<RsvpResponse | null>(null);
   const [additionalGuestNames, setAdditionalGuestNames] = useState<string[]>([]);
 
   // Analytics tracking refs
@@ -153,6 +155,10 @@ export function InvitationRSVPForm({
       if (responseData?.data?.portalUrl) {
         setPortalUrl(responseData.data.portalUrl);
       }
+      if (responseData?.data?.message) {
+        setApiMessage(responseData.data.message);
+      }
+      setSubmittedResponse(data.response as RsvpResponse);
 
       formSubmitted.current = true;
 
@@ -203,10 +209,14 @@ export function InvitationRSVPForm({
           </svg>
         </div>
         <h2 className="text-xl font-[var(--inv-font-heading)] text-[var(--inv-text-primary)]">
-          Thank You!
+          {submittedResponse === "YES"
+            ? "See You There!"
+            : submittedResponse === "NO"
+              ? "We'll Miss You"
+              : "Thank You!"}
         </h2>
         <p className="text-[var(--inv-text-secondary)]">
-          {successMessage || "Your RSVP has been recorded. We'll send you a confirmation email shortly."}
+          {apiMessage || successMessage || "Your RSVP has been recorded. You'll receive a confirmation email shortly."}
         </p>
         {portalUrl && (
           <a
@@ -217,7 +227,9 @@ export function InvitationRSVPForm({
               "hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
             )}
           >
-            View Event Details
+            {submittedResponse === "NO"
+              ? "Browse Gift Registry"
+              : "View Event Details"}
           </a>
         )}
       </div>
