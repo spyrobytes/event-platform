@@ -124,16 +124,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   padding: 1.25rem 1.5rem;
   text-align: center;
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.03);
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-}
-
-.content::-webkit-scrollbar {
-  display: none;
+  overflow: hidden;
 }
 
 /* Corner flourishes */
@@ -162,7 +157,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: auto 0;
+  width: 100%;
+  min-height: 0;
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.6s ease 0.5s, transform 0.6s ease 0.5s;
@@ -244,11 +240,11 @@
 
 .names {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 5vw, 1.8rem);
   font-weight: 400;
   font-style: italic;
   color: var(--card-text);
-  line-height: 1.2;
+  line-height: 1.15;
   margin: 0 0 0.25rem;
 }
 
@@ -277,7 +273,7 @@
 }
 
 .eventSection {
-  margin: 0 0 0.4rem;
+  margin: 0 0 clamp(0.2rem, 1vw, 0.4rem);
 }
 
 .eventSection:last-child {
@@ -285,7 +281,7 @@
 }
 
 .eventSection .date {
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2.6vw, 0.85rem);
   margin: 0 0 0.1rem;
 }
 
@@ -294,8 +290,92 @@
 }
 
 .eventSection .venue {
-  font-size: 0.75rem;
+  font-size: clamp(0.7rem, 2.4vw, 0.75rem);
   margin: 0;
+}
+
+/* Compact modifier — applied to .contentInner when both ceremony AND
+   reception render. Tightens type + spacing across the whole stack
+   (photo, names, header, event sections) so both blocks + RSVP fit
+   the fixed container. Needed especially in traditional header mode,
+   which adds ~30-40px for the families label + invite text lines. */
+.contentInnerCompact .photo {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.4rem;
+  border-width: 2px;
+}
+
+.contentInnerCompact .greeting {
+  font-size: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.contentInnerCompact .familiesLabel {
+  font-size: 0.55rem;
+  margin-bottom: 0.1rem;
+}
+
+.contentInnerCompact .familyNames {
+  font-size: 0.95rem;
+  margin-bottom: 0.1rem;
+}
+
+.contentInnerCompact .familyInviteText {
+  font-size: 0.55rem;
+}
+
+.contentInnerCompact .traditionalHeader {
+  margin-bottom: 0.3rem;
+}
+
+.contentInnerCompact .names {
+  font-size: 1.45rem;
+  margin-bottom: 0.15rem;
+}
+
+.contentInnerCompact .ampersand {
+  font-size: 1rem;
+  margin: 0.05rem 0;
+}
+
+.contentInnerCompact .eventType {
+  font-size: 0.65rem;
+  margin-bottom: 0.4rem;
+}
+
+.contentInnerCompact .divider {
+  margin: 0 auto 0.35rem;
+}
+
+.contentInnerCompact .eventSection {
+  margin-bottom: 0.2rem;
+}
+
+.contentInnerCompact .sectionLabel {
+  font-size: 0.5rem;
+  margin-bottom: 0.05rem;
+}
+
+.contentInnerCompact .eventSection .date {
+  font-size: 0.75rem;
+}
+
+.contentInnerCompact .eventSection .time,
+.contentInnerCompact .eventSection .venue {
+  font-size: 0.65rem;
+}
+
+.contentInnerCompact .dressCode,
+.contentInnerCompact .customMessage {
+  font-size: 0.7rem;
+  margin-top: 0.3rem;
+}
+
+.contentInnerCompact .rsvpButton {
+  margin-top: 0.4rem;
+  padding: 0.45rem 1.3rem;
+  font-size: 0.65rem;
 }
 
 .sectionLabel {
@@ -310,7 +390,7 @@
 
 .date {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 0.95rem;
+  font-size: clamp(0.85rem, 2.8vw, 0.95rem);
   font-weight: 500;
   color: var(--card-text);
   margin: 0 0 0.15rem;
@@ -327,11 +407,16 @@
 
 .venue {
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2.4vw, 0.85rem);
   font-style: italic;
   color: var(--card-text-light);
-  line-height: 1.4;
+  line-height: 1.35;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dressCode {

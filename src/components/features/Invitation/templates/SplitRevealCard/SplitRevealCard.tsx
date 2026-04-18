@@ -290,7 +290,16 @@ export function SplitRevealCard({
 
         {/* Revealed Content (Behind doors) */}
         <div className={styles.content}>
-          <div className={cn(styles.contentInner, isOpen && styles.contentVisible)}>
+          <div
+            className={cn(
+              styles.contentInner,
+              isOpen && styles.contentVisible,
+              hasCeremonyReception &&
+                data.ceremonyDate &&
+                data.receptionDate &&
+                styles.contentInnerCompact
+            )}
+          >
             {/* Couple Photo */}
             {data.heroImageUrl && (
               <img
