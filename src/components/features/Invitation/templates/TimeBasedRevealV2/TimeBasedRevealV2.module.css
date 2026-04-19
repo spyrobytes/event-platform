@@ -12,15 +12,16 @@
    7. RSVP call-to-action
    ============================================================================= */
 
+/* V2: the root no longer pins to one viewport; each .act is 100dvh on its
+   own and the document scrolls between them. overflow:hidden is dropped
+   for the same reason. */
 .root {
   position: relative;
-  min-height: 100dvh;
   width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--inv-paper-bg);
   background-image: var(--inv-paper-texture);
-  overflow: hidden;
 }
 
 /* =============================================================================
@@ -44,11 +45,10 @@
 }
 
 /* =============================================================================
-   STAGE - Main content area
+   ACTS — Two full-viewport sections forming the cinematic two-act layout
    ============================================================================= */
 
-.stage {
-  flex: 1;
+.act {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -56,6 +56,18 @@
   padding: 4rem 2rem;
   min-height: 100dvh;
   text-align: center;
+  /* Suppress focus ring on the section itself — we move focus here
+     programmatically via tabIndex=-1 for screen readers; visible focus
+     belongs on actual interactive children (RSVP button, controls). */
+  outline: none;
+}
+
+/* Subtle differentiation so Act 2 doesn't read as "the same screen again".
+   Faint vertical wash on top of the existing paper texture. */
+.act[data-act="details"] {
+  background-image:
+    linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.018)),
+    var(--inv-paper-texture);
 }
 
 /* =============================================================================
@@ -441,7 +453,7 @@
    ============================================================================= */
 
 @media (max-width: 640px) {
-  .stage {
+  .act {
     padding: 3rem 1.5rem;
   }
 
@@ -462,7 +474,7 @@
 
 /* Ensure controls don't overlap content on short screens */
 @media (max-height: 600px) {
-  .stage {
+  .act {
     padding-bottom: 6rem;
   }
 }

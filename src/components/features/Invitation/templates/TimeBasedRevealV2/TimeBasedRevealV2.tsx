@@ -51,6 +51,19 @@ const SCENE_ORDER: SceneKey[] = [
 // Total duration of the presentation
 const TOTAL_DURATION = 12500;
 
+// Fire the auto-scroll 800ms before the venue scene reveals, so the smooth
+// scroll has time to settle before Act 2 content starts fading in.
+const SCROLL_TRIGGER_MS = SCENE_TIMINGS.venue.delay - 800;
+
+// How long after a programmatic scroll any incoming scroll events should
+// still be attributed to us (and not flag userScrolledRef). Smooth scroll
+// + iOS rubber-band can take ~1s; 1500ms is a comfortable buffer.
+const PROGRAMMATIC_SCROLL_WINDOW_MS = 1500;
+
+// Delay after firing the scroll before we move keyboard/SR focus into
+// Act 2. Roughly matches when a smooth scroll across one viewport settles.
+const FOCUS_AFTER_SCROLL_MS = 800;
+
 /**
  * TimeBasedRevealV2 — identical behavior to V1 in this commit.
  *
@@ -107,6 +120,19 @@ export function TimeBasedRevealV2({
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
+
+  // Refs for two-act autoscroll
+  const act1Ref = useRef<HTMLElement>(null);
+  const act2Ref = useRef<HTMLElement>(null);
+  /** True once any user-initiated scroll has been observed this playback.
+   *  Latches the auto-scroll OFF — we never yank a user who's chosen to scroll. */
+  const userScrolledRef = useRef(false);
+  /** True once the auto-scroll has fired (or been pre-empted by skip).
+   *  Prevents a second fire if startPresentation re-runs (e.g. resume after pause). */
+  const autoScrollFiredRef = useRef(false);
+  /** Timestamp until which incoming scroll events should be attributed to our
+   *  programmatic scroll, not a user gesture. Set right before scrollIntoView. */
+  const programmaticUntilRef = useRef<number>(0);
 
   // Derive invitation state
   const state: InvitationState =
@@ -171,6 +197,36 @@ export function TimeBasedRevealV2({
         }
       }, 50);
 
+      // Schedule the one-shot Act 1 → Act 2 autoscroll. The trigger is
+      // re-armed each time startPresentation runs (e.g. on resume), but
+      // autoScrollFiredRef ensures it can only execute once per playback.
+      const scrollDelay = SCROLL_TRIGGER_MS - elapsedTime;
+      if (scrollDelay > 0) {
+        const scrollTimer = setTimeout(() => {
+          if (autoScrollFiredRef.current) return;
+          if (userScrolledRef.current) return;
+          const target = act2Ref.current;
+          if (!target) return;
+          // If the user has already scrolled Act 2 into roughly half the
+          // viewport, don't fight them by snapping back to the top of it.
+          const top = target.getBoundingClientRect().top;
+          if (top < window.innerHeight * 0.5) return;
+
+          autoScrollFiredRef.current = true;
+          programmaticUntilRef.current =
+            Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+          // Move keyboard/SR focus into Act 2 once the scroll likely
+          // settles, so non-sighted users land on the right content.
+          const focusTimer = setTimeout(() => {
+            target.focus({ preventScroll: true });
+          }, FOCUS_AFTER_SCROLL_MS);
+          timersRef.current.push(focusTimer);
+        }, scrollDelay);
+        timersRef.current.push(scrollTimer);
+      }
+
       setIsPlaying(true);
     },
     [activeScenes, clearAllTimers, reducedMotion]
@@ -188,10 +244,14 @@ export function TimeBasedRevealV2({
     startPresentation(pausedAtRef.current);
   }, [startPresentation]);
 
-  // Toggle play/pause
+  // Toggle play/pause. The "restart from completion" branch mirrors
+  // handleReplay's scroll reset so the second playback feels like a fresh one.
   const togglePlayPause = useCallback(() => {
     if (isComplete) {
-      // Restart from beginning
+      programmaticUntilRef.current = Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
+      window.scrollTo({ top: 0, behavior: "auto" });
+      userScrolledRef.current = false;
+      autoScrollFiredRef.current = false;
       setRevealedScenes(new Set());
       setProgress(0);
       pausedAtRef.current = 0;
@@ -203,18 +263,29 @@ export function TimeBasedRevealV2({
     }
   }, [isComplete, isPlaying, pausePresentation, resumePresentation, startPresentation]);
 
-  // Skip to end
+  // Skip to end — instant jump to Act 2 so the RSVP is immediately visible.
+  // Marking autoScrollFiredRef prevents a stale pending scroll timer from
+  // firing afterwards if the user changes their mind and replays.
   const skipToEnd = useCallback(() => {
     clearAllTimers();
     setRevealedScenes(new Set(activeScenes));
     setProgress(100);
     setIsPlaying(false);
+    autoScrollFiredRef.current = true;
+    programmaticUntilRef.current = Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
+    act2Ref.current?.scrollIntoView({ behavior: "auto", block: "start" });
   }, [activeScenes, clearAllTimers]);
 
-  // Replay from start
+  // Replay — reset scroll position and re-arm the auto-scroll. clearing
+  // userScrolledRef is intentional: a replay is a fresh playback, so the
+  // user's prior scroll choice from the previous run shouldn't disarm it.
   const handleReplay = useCallback(() => {
     if (reducedMotion) return;
 
+    programmaticUntilRef.current = Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    userScrolledRef.current = false;
+    autoScrollFiredRef.current = false;
     setRevealedScenes(new Set());
     setProgress(0);
     pausedAtRef.current = 0;
@@ -239,6 +310,19 @@ export function TimeBasedRevealV2({
       clearAllTimers();
     };
   }, [clearAllTimers]);
+
+  // Distinguish user-initiated scrolls from our programmatic one. Anything
+  // that arrives outside the programmatic window latches userScrolledRef,
+  // which permanently disarms the auto-scroll for this playback.
+  useEffect(() => {
+    if (reducedMotion) return;
+    const onScroll = () => {
+      if (Date.now() < programmaticUntilRef.current) return;
+      userScrolledRef.current = true;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [reducedMotion]);
 
   // Format date for display
   const formattedDate = new Intl.DateTimeFormat("en-US", {
@@ -275,8 +359,14 @@ export function TimeBasedRevealV2({
         </div>
       )}
 
-      {/* Main content area */}
-      <div className={styles.stage}>
+      {/* Act 1 — Announcement (greeting → date). Carries the "who, what, when"
+          beat; closes on the date which sets up the venue reveal in Act 2. */}
+      <section
+        ref={act1Ref}
+        className={styles.act}
+        data-act="announcement"
+        aria-label="Invitation announcement"
+      >
         {/* Scene: Greeting */}
         {hasGreeting && (
           <div
@@ -379,7 +469,18 @@ export function TimeBasedRevealV2({
             </>
           )}
         </div>
+      </section>
 
+      {/* Act 2 — Details (venue → RSVP). tabIndex=-1 lets us move keyboard/SR
+          focus here when the autoscroll lands, so non-sighted users land on
+          the right content rather than still announcing Act 1. */}
+      <section
+        ref={act2Ref}
+        className={styles.act}
+        data-act="details"
+        aria-label="Event details and RSVP"
+        tabIndex={-1}
+      >
         {/* Scene: Venue */}
         <div
           className={cn(
@@ -443,7 +544,7 @@ export function TimeBasedRevealV2({
             RSVP
           </a>
         </div>
-      </div>
+      </section>
 
       {/* Playback controls */}
       {showControls && !reducedMotion && (
