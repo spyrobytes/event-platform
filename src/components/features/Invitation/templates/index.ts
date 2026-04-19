@@ -3,6 +3,7 @@ export { EnvelopeRevealV2, InvitationContent } from "./EnvelopeRevealV2";
 export { LayeredUnfold } from "./LayeredUnfold";
 export { CinematicScroll } from "./CinematicScroll";
 export { TimeBasedReveal } from "./TimeBasedReveal";
+export { TimeBasedRevealV2 } from "./TimeBasedRevealV2";
 export { SplitRevealCard } from "./SplitRevealCard";
 export { GoldenCardReveal } from "./GoldenCardReveal";
 export { FlipFlapReveal } from "./FlipFlapReveal";
@@ -16,6 +17,7 @@ import { EnvelopeRevealV2 } from "./EnvelopeRevealV2";
 import { LayeredUnfold } from "./LayeredUnfold";
 import { CinematicScroll } from "./CinematicScroll";
 import { TimeBasedReveal } from "./TimeBasedReveal";
+import { TimeBasedRevealV2 } from "./TimeBasedRevealV2";
 import { SplitRevealCard } from "./SplitRevealCard";
 import { GoldenCardReveal } from "./GoldenCardReveal";
 import { FlipFlapReveal } from "./FlipFlapReveal";
@@ -56,6 +58,7 @@ export type TemplateId =
   | "LAYERED_UNFOLD"
   | "CINEMATIC_SCROLL"
   | "TIME_BASED_REVEAL"
+  | "TIME_BASED_REVEAL_V2"
   | "GOLDEN_CARD_REVEAL"
   | "FLIP_FLAP_REVEAL"
   | "WEDDING_STORYBOOK";
@@ -84,6 +87,7 @@ const templateRegistry: Record<
   LAYERED_UNFOLD: { component: LayeredUnfold, type: "data-driven" },
   CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
+  TIME_BASED_REVEAL_V2: { component: TimeBasedRevealV2, type: "data-driven" },
   GOLDEN_CARD_REVEAL: { component: GoldenCardReveal, type: "data-driven" },
   FLIP_FLAP_REVEAL: { component: FlipFlapReveal, type: "data-driven" },
   WEDDING_STORYBOOK: { component: WeddingStorybook as ComponentType<DataDrivenTemplateProps>, type: "data-driven" },
@@ -134,6 +138,12 @@ export const templateMetadata: Record<
   TIME_BASED_REVEAL: {
     name: "Time-Based Reveal",
     description: "Dramatic auto-playing presentation",
+    available: true,
+    type: "data-driven",
+  },
+  TIME_BASED_REVEAL_V2: {
+    name: "Time-Based Reveal V2",
+    description: "Two-act cinematic presentation with autoscroll between acts",
     available: true,
     type: "data-driven",
   },
@@ -193,6 +203,7 @@ export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>
   LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),
   CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode", "ceremonyReception"]),
   TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),
+  TIME_BASED_REVEAL_V2: new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),
   GOLDEN_CARD_REVEAL:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "ceremonyReception"]),
   FLIP_FLAP_REVEAL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "ceremonyReception"]),
   WEDDING_STORYBOOK:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "monogram", "dressCode", "storybookFields", "ceremonyReception", "ceremonyDate", "ceremonyTime", "ceremonyVenue", "ceremonyAddress", "receptionDate"]),

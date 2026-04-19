@@ -72,6 +72,7 @@ const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: b
   { value: "LAYERED_UNFOLD", label: "Layered Unfold", available: true },
   { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll", available: true },
   { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal", available: true },
+  { value: "TIME_BASED_REVEAL_V2", label: "Time-Based Reveal V2", available: true },
   { value: "GOLDEN_CARD_REVEAL", label: "Golden Card Reveal", available: true },
   { value: "FLIP_FLAP_REVEAL", label: "Flip Flap Reveal", available: true },
   { value: "WEDDING_STORYBOOK", label: "Wedding Storybook (Premium)", available: true },

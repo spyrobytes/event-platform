@@ -12,6 +12,7 @@ import {
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
+  TimeBasedRevealV2,
   GoldenCardReveal,
   FlipFlapReveal,
   WeddingStorybook,
@@ -277,6 +278,15 @@ export default async function InvitationPage({ params }: PageProps) {
         case "TIME_BASED_REVEAL":
           return (
             <TimeBasedReveal
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              autoPlay={!hasResponded}
+              showReplay={!hasResponded}
+            />
+          );
+        case "TIME_BASED_REVEAL_V2":
+          return (
+            <TimeBasedRevealV2
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
               autoPlay={!hasResponded}

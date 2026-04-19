@@ -14,6 +14,7 @@ import {
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
+  TimeBasedRevealV2,
   GoldenCardReveal,
   FlipFlapReveal,
   WeddingStorybook,
@@ -235,6 +236,8 @@ export default function InvitationPreviewPage() {
           return <CinematicScroll data={invitationData} showReplay={true} />;
         case "TIME_BASED_REVEAL":
           return <TimeBasedReveal data={invitationData} showReplay={true} />;
+        case "TIME_BASED_REVEAL_V2":
+          return <TimeBasedRevealV2 data={invitationData} showReplay={true} />;
         case "SPLIT_REVEAL":
           return <SplitRevealCard data={invitationData} showReplay={true} />;
         case "GOLDEN_CARD_REVEAL":

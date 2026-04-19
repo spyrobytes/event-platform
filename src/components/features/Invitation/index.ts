@@ -21,6 +21,7 @@ export {
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
+  TimeBasedRevealV2,
   GoldenCardReveal,
   FlipFlapReveal,
   WeddingStorybook,
