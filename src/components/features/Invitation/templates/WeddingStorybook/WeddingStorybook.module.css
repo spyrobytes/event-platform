@@ -154,6 +154,29 @@
   width: 28px;
 }
 
+/* Surface-aware contrast: gold reads on dark pages but disappears on cream
+   light/accent pages. Swap to the page's ink color in those cases — same
+   approach the page text already uses (--sb-text-on-light). The lagged
+   data-surface change combined with the existing 0.25s transition crossfades
+   the swap across the flip's midpoint instead of snapping at click time. */
+.navButton[data-surface="light"],
+.navButton[data-surface="accent"] {
+  color: var(--sb-text-on-light);
+  border-color: var(--sb-text-on-light-muted);
+}
+
+.navButton[data-surface="light"]::before,
+.navButton[data-surface="accent"]::before {
+  background: var(--sb-text-on-light-muted);
+}
+
+.navButton[data-surface="light"]:hover,
+.navButton[data-surface="accent"]:hover {
+  border-color: var(--sb-text-on-light);
+  background: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.08);
+}
+
 /* ─── Spread Indicator ─── */
 .indicator {
   display: flex;

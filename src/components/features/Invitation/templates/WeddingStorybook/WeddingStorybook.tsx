@@ -98,6 +98,14 @@ export function WeddingStorybook({
 
   const initialSpread = initialState === "open" ? 1 : 0;
   const [currentSpread, setCurrentSpread] = useState(initialSpread);
+  /**
+   * Lagged copy of currentSpread used only for the nav-arrow surface color.
+   * The flip animation lasts ~1.1s; the page is edge-on (90°) at the midpoint,
+   * which is when the new surface starts appearing. Swapping the arrow color
+   * at that moment makes it feel like it belongs to the surface beneath
+   * rather than snapping at click time.
+   */
+  const [navSurfaceSpread, setNavSurfaceSpread] = useState(initialSpread);
   const [confettiActive, setConfettiActive] = useState(false);
   const confettiFired = useRef(false);
   const touchStartX = useRef(0);
@@ -111,6 +119,15 @@ export function WeddingStorybook({
       const timer = setTimeout(() => setConfettiActive(true), 600);
       return () => clearTimeout(timer);
     }
+  }, [currentSpread]);
+
+  // Sync the lagged nav-surface spread to currentSpread, timed to the flip
+  // midpoint (≈ flip-duration/2 + initial 0.08s start delay). The button's
+  // existing 0.25s transition then crossfades color/border across the moment
+  // the new surface emerges.
+  useEffect(() => {
+    const id = window.setTimeout(() => setNavSurfaceSpread(currentSpread), 600);
+    return () => window.clearTimeout(id);
   }, [currentSpread]);
 
   const goNext = useCallback(() => {
@@ -238,12 +255,14 @@ export function WeddingStorybook({
         {/* Spine */}
         <div className={styles.spine} aria-hidden />
 
-        {/* Navigation buttons */}
+        {/* Navigation buttons. data-surface adapts color to the page beneath
+            for contrast (gold on dark surfaces, ink on light/accent). */}
         <button
           className={cn(styles.navButton, styles.navPrev)}
           onClick={goPrev}
           disabled={currentSpread === 0}
           aria-label="Previous page"
+          data-surface={pages[navSurfaceSpread * 2]?.variant ?? "dark"}
         >
           &lsaquo;
         </button>
@@ -252,6 +271,7 @@ export function WeddingStorybook({
           onClick={goNext}
           disabled={currentSpread === TOTAL_SPREADS - 1}
           aria-label="Next page"
+          data-surface={pages[navSurfaceSpread * 2 + 1]?.variant ?? "dark"}
         >
           &rsaquo;
         </button>
