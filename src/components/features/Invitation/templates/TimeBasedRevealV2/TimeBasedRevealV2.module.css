@@ -45,8 +45,16 @@
 }
 
 /* =============================================================================
-   ACTS — Two full-viewport sections forming the cinematic two-act layout
-   ============================================================================= */
+   ACTS — Three sections; merge container collapses #1 and #2 on desktop
+   =============================================================================
+   Mobile baseline: each .act is its own 100dvh viewport (3 acts).
+   Desktop (>640px): .actMerge becomes a flex parent that holds the
+   announcement + date sections in a single 100dvh viewport (2 acts). */
+
+.actMerge {
+  /* Pass-through on mobile — children flow as independent 100dvh sections. */
+  display: contents;
+}
 
 .act {
   display: flex;
@@ -62,12 +70,32 @@
   outline: none;
 }
 
-/* Subtle differentiation so Act 2 doesn't read as "the same screen again".
-   Faint vertical wash on top of the existing paper texture. */
+/* Subtle differentiation so the details section doesn't read as "the same
+   screen again". Faint vertical wash on top of the existing paper texture. */
 .act[data-act="details"] {
   background-image:
     linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.018)),
     var(--inv-paper-texture);
+}
+
+/* Desktop merge: announcement + date share a single viewport.
+   Use min-width 641px so it kicks in exactly above the existing mobile
+   breakpoint at 640px. */
+@media (min-width: 641px) {
+  .actMerge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+  }
+  /* Sub-acts inside the merger lose their own min-height so they share
+     the merger's viewport instead of stacking two viewports tall. */
+  .actMerge > .act {
+    min-height: 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
 }
 
 /* =============================================================================

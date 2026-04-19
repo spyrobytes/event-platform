@@ -51,9 +51,20 @@ const SCENE_ORDER: SceneKey[] = [
 // Total duration of the presentation
 const TOTAL_DURATION = 12500;
 
-// Fire the auto-scroll 800ms before the venue scene reveals, so the smooth
-// scroll has time to settle before Act 2 content starts fading in.
-const SCROLL_TRIGGER_MS = SCENE_TIMINGS.venue.delay - 800;
+/** Viewport width breakpoint at which we collapse from 3 acts (mobile) to 2
+ *  (desktop). Matches the existing mobile-optimization media query. */
+const MOBILE_BREAKPOINT_PX = 640;
+
+/** Auto-scroll fires 800ms before the next scene reveals, giving the smooth
+ *  scroll time to settle before that scene starts fading in. */
+const SCROLL_LEAD_MS = 800;
+
+/** Desktop trigger: one scroll, before venue (Act 1+date → details). */
+const SCROLL_TRIGGER_DETAILS_MS = SCENE_TIMINGS.venue.delay - SCROLL_LEAD_MS;
+
+/** Mobile-only second trigger: scroll before the date scene reveals
+ *  (announcement → date), since on mobile date gets its own viewport. */
+const SCROLL_TRIGGER_DATE_MS = SCENE_TIMINGS.date.delay - SCROLL_LEAD_MS;
 
 // How long after a programmatic scroll any incoming scroll events should
 // still be attributed to us (and not flag userScrolledRef). Smooth scroll
@@ -121,17 +132,21 @@ export function TimeBasedRevealV2({
   const startTimeRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
 
-  // Refs for two-act autoscroll
-  const act1Ref = useRef<HTMLElement>(null);
-  const act2Ref = useRef<HTMLElement>(null);
+  // Refs for the three section anchors. On desktop the announcement + date
+  // sections share a viewport (one scroll fires); on mobile each section is
+  // its own viewport (two scrolls fire).
+  const announcementRef = useRef<HTMLElement>(null);
+  const dateRef = useRef<HTMLElement>(null);
+  const detailsRef = useRef<HTMLElement>(null);
   /** True once any user-initiated scroll has been observed this playback.
-   *  Latches the auto-scroll OFF — we never yank a user who's chosen to scroll. */
+   *  Latches every remaining auto-scroll OFF — we never yank a user who's
+   *  chosen to scroll. */
   const userScrolledRef = useRef(false);
-  /** True once the auto-scroll has fired (or been pre-empted by skip).
-   *  Prevents a second fire if startPresentation re-runs (e.g. resume after pause). */
-  const autoScrollFiredRef = useRef(false);
+  /** Set of trigger ids that have already fired this playback. Prevents
+   *  re-firing after pause/resume re-arms timers. */
+  const firedTriggersRef = useRef<Set<"date" | "details">>(new Set());
   /** Timestamp until which incoming scroll events should be attributed to our
-   *  programmatic scroll, not a user gesture. Set right before scrollIntoView. */
+   *  programmatic scroll, not a user gesture. */
   const programmaticUntilRef = useRef<number>(0);
 
   // Derive invitation state
@@ -197,35 +212,62 @@ export function TimeBasedRevealV2({
         }
       }, 50);
 
-      // Schedule the one-shot Act 1 → Act 2 autoscroll. The trigger is
-      // re-armed each time startPresentation runs (e.g. on resume), but
-      // autoScrollFiredRef ensures it can only execute once per playback.
-      const scrollDelay = SCROLL_TRIGGER_MS - elapsedTime;
-      if (scrollDelay > 0) {
-        const scrollTimer = setTimeout(() => {
-          if (autoScrollFiredRef.current) return;
+      // Schedule auto-scrolls. Desktop fires one scroll (announcement+date
+      // share one viewport, then details); mobile fires two (each section
+      // is its own viewport). matchMedia is read at trigger time, not at
+      // schedule time, so a window resize across the breakpoint mid-playback
+      // is reflected in the next decision.
+      //
+      // We scroll by exactly one viewport rather than scrollIntoView'ing
+      // the next section: scrollIntoView travels element.top, which can
+      // exceed 1vh when a section's content overflows its 100dvh min-height
+      // and would blur past un-seen content. A fixed one-viewport advance
+      // keeps the scroll length predictable; if a section overflows, the
+      // user continues manually from a sane starting point inside it.
+      const scheduleTrigger = (
+        id: "date" | "details",
+        triggerAt: number,
+        focusTarget: () => HTMLElement | null,
+        onlyIf: () => boolean
+      ) => {
+        const delay = triggerAt - elapsedTime;
+        if (delay <= 0) return;
+        const timer = setTimeout(() => {
+          if (firedTriggersRef.current.has(id)) return;
           if (userScrolledRef.current) return;
-          const target = act2Ref.current;
+          if (!onlyIf()) return;
+          const target = focusTarget();
           if (!target) return;
-          // If the user has already scrolled Act 2 into roughly half the
-          // viewport, don't fight them by snapping back to the top of it.
-          const top = target.getBoundingClientRect().top;
-          if (top < window.innerHeight * 0.5) return;
+          // If the target section is already roughly half-in-view, the user
+          // (or a previous trigger) has already gotten there — don't re-scroll.
+          if (target.getBoundingClientRect().top < window.innerHeight * 0.5) {
+            firedTriggersRef.current.add(id);
+            return;
+          }
 
-          autoScrollFiredRef.current = true;
+          firedTriggersRef.current.add(id);
           programmaticUntilRef.current =
             Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.scrollBy({ top: window.innerHeight, behavior: "smooth" });
 
-          // Move keyboard/SR focus into Act 2 once the scroll likely
+          // Move keyboard/SR focus into the new section after the scroll
           // settles, so non-sighted users land on the right content.
           const focusTimer = setTimeout(() => {
             target.focus({ preventScroll: true });
           }, FOCUS_AFTER_SCROLL_MS);
           timersRef.current.push(focusTimer);
-        }, scrollDelay);
-        timersRef.current.push(scrollTimer);
-      }
+        }, delay);
+        timersRef.current.push(timer);
+      };
+
+      const isMobile = () =>
+        window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches;
+
+      // Mobile-only: announcement → date scroll, just before date reveals.
+      scheduleTrigger("date", SCROLL_TRIGGER_DATE_MS, () => dateRef.current, isMobile);
+      // Always: scroll to the details section, just before venue reveals.
+      // On desktop this is the only scroll; on mobile it's the second.
+      scheduleTrigger("details", SCROLL_TRIGGER_DETAILS_MS, () => detailsRef.current, () => true);
 
       setIsPlaying(true);
     },
@@ -251,7 +293,7 @@ export function TimeBasedRevealV2({
       programmaticUntilRef.current = Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
       window.scrollTo({ top: 0, behavior: "auto" });
       userScrolledRef.current = false;
-      autoScrollFiredRef.current = false;
+      firedTriggersRef.current.clear();
       setRevealedScenes(new Set());
       setProgress(0);
       pausedAtRef.current = 0;
@@ -263,20 +305,21 @@ export function TimeBasedRevealV2({
     }
   }, [isComplete, isPlaying, pausePresentation, resumePresentation, startPresentation]);
 
-  // Skip to end — instant jump to Act 2 so the RSVP is immediately visible.
-  // Marking autoScrollFiredRef prevents a stale pending scroll timer from
-  // firing afterwards if the user changes their mind and replays.
+  // Skip to end — instant jump to the details section so the RSVP is
+  // immediately visible. Marking both triggers as fired prevents stale
+  // pending scroll timers from firing afterwards.
   const skipToEnd = useCallback(() => {
     clearAllTimers();
     setRevealedScenes(new Set(activeScenes));
     setProgress(100);
     setIsPlaying(false);
-    autoScrollFiredRef.current = true;
+    firedTriggersRef.current.add("date");
+    firedTriggersRef.current.add("details");
     programmaticUntilRef.current = Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
-    act2Ref.current?.scrollIntoView({ behavior: "auto", block: "start" });
+    detailsRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
   }, [activeScenes, clearAllTimers]);
 
-  // Replay — reset scroll position and re-arm the auto-scroll. clearing
+  // Replay — reset scroll position and re-arm both triggers. Clearing
   // userScrolledRef is intentional: a replay is a fresh playback, so the
   // user's prior scroll choice from the previous run shouldn't disarm it.
   const handleReplay = useCallback(() => {
@@ -285,7 +328,7 @@ export function TimeBasedRevealV2({
     programmaticUntilRef.current = Date.now() + PROGRAMMATIC_SCROLL_WINDOW_MS;
     window.scrollTo({ top: 0, behavior: "auto" });
     userScrolledRef.current = false;
-    autoScrollFiredRef.current = false;
+    firedTriggersRef.current.clear();
     setRevealedScenes(new Set());
     setProgress(0);
     pausedAtRef.current = 0;
@@ -359,15 +402,20 @@ export function TimeBasedRevealV2({
         </div>
       )}
 
-      {/* Act 1 — Announcement (greeting → date). Carries the "who, what, when"
-          beat; closes on the date which sets up the venue reveal in Act 2. */}
-      <section
-        ref={act1Ref}
-        className={styles.act}
-        data-act="announcement"
-        aria-label="Invitation announcement"
-      >
-        {/* Scene: Greeting */}
+      {/* Three sections wrapped in a merge container. On desktop, .actMerge
+          collapses announcement + date into a single 100dvh viewport so the
+          layout reads as 2 acts. On mobile, .actMerge becomes display:contents
+          so the three sections flow as three independent 100dvh viewports —
+          the natural fit when scene content doesn't compress to one screen. */}
+      <div className={styles.actMerge}>
+        {/* Section 1 — Announcement (greeting → invite). */}
+        <section
+          ref={announcementRef}
+          className={cn(styles.act, styles.actAnnouncement)}
+          data-act="announcement"
+          aria-label="Invitation announcement"
+        >
+          {/* Scene: Greeting */}
         {hasGreeting && (
           <div
             className={cn(
@@ -433,16 +481,27 @@ export function TimeBasedRevealV2({
           </p>
           <div className={styles.divider} aria-hidden="true" />
         </div>
+        </section>
 
-        {/* Scene: Date */}
-        <div
-          className={cn(
-            styles.scene,
-            styles.dateScene,
-            isSceneVisible("date") && styles.visible
-          )}
-          aria-hidden={!isSceneVisible("date")}
+        {/* Section 2 — Date. Mobile gives this its own viewport because the
+            ceremony+reception variant is dense; desktop merges it into the
+            announcement viewport via .actMerge. */}
+        <section
+          ref={dateRef}
+          className={cn(styles.act, styles.actDate)}
+          data-act="date"
+          aria-label="Date"
+          tabIndex={-1}
         >
+          {/* Scene: Date */}
+          <div
+            className={cn(
+              styles.scene,
+              styles.dateScene,
+              isSceneVisible("date") && styles.visible
+            )}
+            aria-hidden={!isSceneVisible("date")}
+          >
           {hasCeremonyReception ? (
             <>
               {data.ceremonyDate && (
@@ -468,15 +527,14 @@ export function TimeBasedRevealV2({
               <p className={styles.timeValue}>{data.eventTime}</p>
             </>
           )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </div>
 
-      {/* Act 2 — Details (venue → RSVP). tabIndex=-1 lets us move keyboard/SR
-          focus here when the autoscroll lands, so non-sighted users land on
-          the right content rather than still announcing Act 1. */}
+      {/* Section 3 — Details (venue → RSVP). Always its own viewport. */}
       <section
-        ref={act2Ref}
-        className={styles.act}
+        ref={detailsRef}
+        className={cn(styles.act, styles.actDetails)}
         data-act="details"
         aria-label="Event details and RSVP"
         tabIndex={-1}
