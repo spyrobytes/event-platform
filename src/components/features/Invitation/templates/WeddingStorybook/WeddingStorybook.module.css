@@ -374,10 +374,11 @@
    current rendering when these overrides aren't active. */
 @media (max-aspect-ratio: 4/3) and (max-width: 1024px) and (max-height: 700px) {
   .book {
+    --sb-hero-gap: 1.5rem;
     --sb-section-gap: 1.1rem;
-    --sb-heading-gap: 0.8rem;
-    --sb-subhead-gap: 0.5rem;
-    --sb-block-gap: 0.6rem;
+    --sb-block-gap: 0.9rem;
+    --sb-heading-gap: 0.7rem;
+    --sb-subhead-gap: 0.4rem;
   }
 }
 

@@ -79,7 +79,7 @@ export function CoverLeft({ data, active }: PageProps) {
           opacity: active ? 1 : 0,
           transform: active ? "scale(1)" : "scale(0.8)",
           transition: "all 1s 0.3s var(--sb-content-easing)",
-          marginBottom: "1.5rem",
+          marginBottom: "var(--sb-block-gap, 1.5rem)",
         }}
       >
         {/* Outer ring */}
@@ -253,7 +253,7 @@ export function CoverRight({ data, active }: PageProps) {
             opacity: active ? 1 : 0,
             transform: active ? "translateY(0)" : "translateY(10px)",
             transition: "all 0.8s 0.3s var(--sb-content-easing)",
-            marginBottom: "1.4rem",
+            marginBottom: "var(--sb-block-gap, 1.4rem)",
           }}
         >
           <p
@@ -301,7 +301,7 @@ export function CoverRight({ data, active }: PageProps) {
             opacity: active ? 1 : 0,
             transform: active ? "translateY(0)" : "translateY(10px)",
             transition: "all 0.8s 0.3s var(--sb-content-easing)",
-            marginBottom: "1.8rem",
+            marginBottom: "var(--sb-section-gap, 1.8rem)",
           }}
         >
           {data.headerText || "Together with their families"}
@@ -357,8 +357,8 @@ export function CoverRight({ data, active }: PageProps) {
             color: "var(--sb-text-on-dark-muted)",
             opacity: active ? 1 : 0,
             transition: "opacity 0.8s 0.55s",
-            marginTop: "1.2rem",
-            marginBottom: "1.5rem",
+            marginTop: "var(--sb-heading-gap, 1.2rem)",
+            marginBottom: "var(--sb-block-gap, 1.5rem)",
           }}
         >
           request the pleasure of your company
@@ -373,7 +373,7 @@ export function CoverRight({ data, active }: PageProps) {
           height: "1px",
           background: "var(--sb-gold)",
           transition: "width 0.8s 0.6s var(--sb-content-easing)",
-          marginBottom: "1.2rem",
+          marginBottom: "var(--sb-heading-gap, 1.2rem)",
         }}
       />
 
@@ -415,7 +415,7 @@ export function CoverRight({ data, active }: PageProps) {
           fontStyle: "italic",
           fontSize: "clamp(0.5rem, 0.85vw, 0.6rem)",
           color: "var(--sb-text-on-dark-muted)",
-          marginTop: "1.2rem",
+          marginTop: "var(--sb-heading-gap, 1.2rem)",
           lineHeight: 1.5,
           opacity: active ? 1 : 0,
           transition: "opacity 0.8s 0.8s",
@@ -478,7 +478,7 @@ export function StoryLeft({ active }: PageProps) {
             letterSpacing: "0.3em",
             textTransform: "uppercase",
             color: "var(--sb-gold)",
-            marginBottom: "0.8rem",
+            marginBottom: "var(--sb-subhead-gap, 0.8rem)",
             opacity: active ? 1 : 0,
             transition: "opacity 0.7s 0.5s",
           }}
@@ -507,7 +507,7 @@ export function StoryLeft({ active }: PageProps) {
             width: active ? "40px" : "0px",
             height: "1px",
             background: "var(--sb-gold)",
-            marginTop: "1rem",
+            marginTop: "var(--sb-heading-gap, 1rem)",
             transition: "width 0.7s 0.8s var(--sb-content-easing)",
           }}
         />
@@ -559,7 +559,7 @@ export function StoryRight({ data, active }: PageProps) {
           fontWeight: 400,
           fontStyle: "italic",
           color: "var(--sb-text-on-light)",
-          marginBottom: "1.5rem",
+          marginBottom: "var(--sb-block-gap, 1.5rem)",
           opacity: active ? 1 : 0,
           transform: active ? "translateY(0)" : "translateY(12px)",
           transition: "all 0.8s 0.4s var(--sb-content-easing)",
@@ -573,7 +573,7 @@ export function StoryRight({ data, active }: PageProps) {
           width: "30px",
           height: "1px",
           background: "var(--sb-gold)",
-          marginBottom: "1.5rem",
+          marginBottom: "var(--sb-block-gap, 1.5rem)",
           opacity: active ? 1 : 0,
           transition: "opacity 0.5s 0.5s",
         }}
@@ -630,7 +630,7 @@ export function TimelineLeft({ data, active }: PageProps) {
           letterSpacing: "0.3em",
           textTransform: "uppercase",
           color: "var(--sb-gold)",
-          marginBottom: "2rem",
+          marginBottom: "var(--sb-hero-gap, 2rem)",
           opacity: active ? 1 : 0,
           transition: "opacity 0.7s 0.3s",
         }}
@@ -657,7 +657,7 @@ export function TimelineLeft({ data, active }: PageProps) {
           <div
             key={i}
             style={{
-              marginBottom: "1.5rem",
+              marginBottom: "var(--sb-block-gap, 1.5rem)",
               position: "relative",
               opacity: active ? 1 : 0,
               transform: active ? "translateX(0)" : "translateX(-15px)",
@@ -776,7 +776,7 @@ export function TimelineRight({ data, active }: PageProps) {
       {brideQuote.attribution && (
         <div
           style={{
-            marginTop: "0.8rem",
+            marginTop: "var(--sb-subhead-gap, 0.8rem)",
             opacity: active ? 1 : 0,
             transition: "opacity 0.7s 0.7s",
           }}
@@ -786,7 +786,7 @@ export function TimelineRight({ data, active }: PageProps) {
               width: "20px",
               height: "1px",
               background: "var(--sb-gold)",
-              marginBottom: "0.5rem",
+              marginBottom: "var(--sb-subhead-gap, 0.5rem)",
             }}
           />
           <p
@@ -845,7 +845,7 @@ export function TimelineRight({ data, active }: PageProps) {
       {groomQuote.attribution && (
         <div
           style={{
-            marginTop: "0.8rem",
+            marginTop: "var(--sb-subhead-gap, 0.8rem)",
             opacity: active ? 1 : 0,
             transition: "opacity 0.7s 1.1s",
           }}
@@ -855,7 +855,7 @@ export function TimelineRight({ data, active }: PageProps) {
               width: "20px",
               height: "1px",
               background: "var(--sb-gold)",
-              marginBottom: "0.5rem",
+              marginBottom: "var(--sb-subhead-gap, 0.5rem)",
             }}
           />
           <p
@@ -950,7 +950,7 @@ export function DetailsLeft({ data, active }: PageProps) {
             letterSpacing: "0.3em",
             textTransform: "uppercase",
             color: "var(--sb-gold)",
-            marginBottom: "0.8rem",
+            marginBottom: "var(--sb-subhead-gap, 0.8rem)",
             opacity: active ? 1 : 0,
             transition: "opacity 0.7s 0.5s",
           }}
@@ -968,7 +968,7 @@ export function DetailsLeft({ data, active }: PageProps) {
               opacity: active ? 1 : 0,
               transform: active ? "translateY(0)" : "translateY(8px)",
               transition: "all 0.7s 0.55s var(--sb-content-easing)",
-              marginBottom: "0.5rem",
+              marginBottom: "var(--sb-subhead-gap, 0.5rem)",
               lineHeight: 1.4,
             }}
           >
@@ -1074,7 +1074,7 @@ export function DetailsRight({ data, active }: PageProps) {
               letterSpacing: "0.3em",
               textTransform: "uppercase",
               color: "var(--sb-gold-dark)",
-              marginBottom: "1.5rem",
+              marginBottom: "var(--sb-block-gap, 1.5rem)",
               opacity: active ? 1 : 0,
               transition: "opacity 0.7s 0.3s",
             }}
@@ -1088,7 +1088,7 @@ export function DetailsRight({ data, active }: PageProps) {
               height: "36px",
               border: "1.5px solid var(--sb-gold)",
               borderRadius: "50%",
-              margin: "0 auto 1.5rem",
+              margin: "0 auto var(--sb-block-gap, 1.5rem)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1111,7 +1111,7 @@ export function DetailsRight({ data, active }: PageProps) {
                 opacity: active ? 1 : 0,
                 transform: active ? "translateY(0)" : "translateY(10px)",
                 transition: "all 0.7s 0.45s var(--sb-content-easing)",
-                marginBottom: "0.5rem",
+                marginBottom: "var(--sb-subhead-gap, 0.5rem)",
                 lineHeight: 1.4,
               }}
             >
@@ -1129,7 +1129,7 @@ export function DetailsRight({ data, active }: PageProps) {
                 opacity: active ? 1 : 0,
                 transform: active ? "translateY(0)" : "translateY(10px)",
                 transition: "all 0.7s 0.5s var(--sb-content-easing)",
-                marginBottom: "0.5rem",
+                marginBottom: "var(--sb-subhead-gap, 0.5rem)",
               }}
             >
               {data.receptionTime}
@@ -1155,7 +1155,7 @@ export function DetailsRight({ data, active }: PageProps) {
                 fontWeight: 500,
                 fontStyle: "italic",
                 color: "var(--sb-text-on-light)",
-                marginBottom: "0.5rem",
+                marginBottom: "var(--sb-subhead-gap, 0.5rem)",
                 opacity: active ? 1 : 0,
                 transform: active ? "translateY(0)" : "translateY(10px)",
                 transition: "all 0.7s 0.6s var(--sb-content-easing)",
@@ -1204,7 +1204,7 @@ export function DetailsRight({ data, active }: PageProps) {
       {data.dressCode && (
         <div
           style={{
-            marginTop: "2rem",
+            marginTop: "var(--sb-hero-gap, 2rem)",
             padding: "0.6rem 1.2rem",
             border: "1px solid var(--sb-gold-muted)",
             borderRadius: "2px",
@@ -1269,7 +1269,7 @@ export function RSVPLeft({ data, active }: PageProps) {
             letterSpacing: "0.3em",
             textTransform: "uppercase",
             color: "var(--sb-gold)",
-            marginBottom: "1.5rem",
+            marginBottom: "var(--sb-block-gap, 1.5rem)",
             opacity: active ? 1 : 0,
             transition: "opacity 0.7s 0.3s",
           }}
@@ -1297,7 +1297,7 @@ export function RSVPLeft({ data, active }: PageProps) {
             width: active ? "50px" : "0px",
             height: "1px",
             background: "var(--sb-gold)",
-            margin: "1.5rem auto",
+            margin: "var(--sb-block-gap, 1.5rem) auto",
             transition: "width 0.8s 0.6s var(--sb-content-easing)",
           }}
         />
@@ -1368,7 +1368,7 @@ export function RSVPRight({ data, active }: PageProps) {
           opacity: active ? 1 : 0,
           transform: active ? "translateY(0)" : "translateY(12px)",
           transition: "all 0.8s 0.4s var(--sb-content-easing)",
-          marginBottom: "2rem",
+          marginBottom: "var(--sb-hero-gap, 2rem)",
         }}
       >
         We can&apos;t wait to celebrate this special day with you
@@ -1407,7 +1407,7 @@ export function RSVPRight({ data, active }: PageProps) {
           fontFamily: "var(--font-script)",
           fontSize: "clamp(1rem, 2.5vw, 1.6rem)",
           color: "var(--sb-gold-dark)",
-          marginTop: "2.5rem",
+          marginTop: "var(--sb-hero-gap, 2.5rem)",
           opacity: active ? 0.5 : 0,
           transition: "opacity 0.8s 0.8s",
         }}
