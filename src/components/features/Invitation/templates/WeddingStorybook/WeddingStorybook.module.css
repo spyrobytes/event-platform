@@ -304,6 +304,10 @@
   .dot {
     transition: none;
   }
+
+  .spreadLabel {
+    transition: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════
@@ -382,9 +386,5 @@
   }
 }
 
-/* Portrait + reduced motion: slide animation drops to instant swap.
-   Landscape reduced-motion is handled above. */
-@media (prefers-reduced-motion: reduce) and
-       (max-aspect-ratio: 4/3) and (max-width: 1024px) {
-  /* BookPage.module.css `.single` transition is overridden there */
-}
+/* Portrait single-mode reduced-motion handling lives in BookPage.module.css
+   on the `.single` class (slide transitions dropped, ahead/behind untransformed). */
