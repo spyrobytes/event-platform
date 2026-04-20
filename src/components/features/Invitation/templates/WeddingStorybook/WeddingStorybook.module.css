@@ -305,3 +305,85 @@
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   Portrait / Single-Page Mode
+   ═══════════════════════════════════════════════════
+   Engaged on viewports where the two-page spread becomes structurally
+   hostile — narrow enough *and* portrait-ish. Desktop users dragging
+   their window narrow keep the spread; real phone/tablet portrait
+   switches to single-page. Layout is CSS-driven; useLayoutMode only
+   owns JS-side concerns (nav step, ARIA, active-page class).
+
+   See internal-docs/wedding-storybook-portrait-mode-plan-v2.md
+   ═══════════════════════════════════════════════════ */
+
+@media (max-aspect-ratio: 4/3) and (max-width: 1024px) {
+  .book {
+    width: min(92vw, 600px);
+    height: min(85dvh, 900px);
+    aspect-ratio: auto;
+    /* Drop the perspective — no 3D flip in single mode */
+    perspective: none;
+  }
+
+  /* Spine is meaningless without two pages splayed against it */
+  .spine,
+  .spine::before,
+  .spine::after {
+    display: none;
+  }
+
+  /* Nav arrows → bottom corners for thumb reach; 44×44pt hit area
+     per Apple HIG / WCAG 2.5.5. Visible circle stays smaller; the
+     expanded hit area is the padding + absolute positioning combo. */
+  .navButton {
+    top: auto;
+    bottom: 16px;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    font-size: 0.8rem;
+  }
+
+  .navButton:active {
+    transform: scale(0.95);
+  }
+
+  .navPrev {
+    left: 12px;
+  }
+
+  .navNext {
+    right: 12px;
+  }
+
+  /* Hide the horizontal decoration line — reads as clutter on portrait */
+  .navButton::before {
+    display: none;
+  }
+
+  .hint {
+    display: none;
+  }
+}
+
+/* Compact typography cascade for small portrait viewports (iPhone SE
+   class). Exposes spacing via CSS custom properties; each page module
+   reads `var(--sb-*-gap, <fallback>)` so the fallback preserves
+   current rendering when these overrides aren't active. */
+@media (max-aspect-ratio: 4/3) and (max-width: 1024px) and (max-height: 700px) {
+  .book {
+    --sb-section-gap: 1.1rem;
+    --sb-heading-gap: 0.8rem;
+    --sb-subhead-gap: 0.5rem;
+    --sb-block-gap: 0.6rem;
+  }
+}
+
+/* Portrait + reduced motion: slide animation drops to instant swap.
+   Landscape reduced-motion is handled above. */
+@media (prefers-reduced-motion: reduce) and
+       (max-aspect-ratio: 4/3) and (max-width: 1024px) {
+  /* BookPage.module.css `.single` transition is overridden there */
+}

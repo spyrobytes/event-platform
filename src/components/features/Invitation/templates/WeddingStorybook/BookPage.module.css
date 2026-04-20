@@ -140,3 +140,85 @@
     opacity: 1;
   }
 }
+
+/* ═══════════════════════════════════════════════════
+   Single-Page Mode
+   ═══════════════════════════════════════════════════
+   The `.single` class is applied by BookPage when layoutMode === "single".
+   It overrides the spread geometry: each page fills the book, there is no
+   spine to rotate around, and navigation is a horizontal slide + fade.
+
+   Active/ahead/behind states drive the slide: the active page sits at
+   translateX(0), pages ahead wait at +100%, pages behind sit at −100%.
+   When React swaps which page is active, the transition animates every
+   page's transform simultaneously, producing a natural page-turn feel.
+
+   Direction default: forward advances slide left (new page enters from
+   right). Confirm on-device per §12.4 / Decision C.
+   ═══════════════════════════════════════════════════ */
+
+.single {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  right: auto;
+  left: auto;
+  transform-origin: center center;
+  transform-style: flat;
+  transition:
+    transform 420ms var(--sb-content-easing),
+    opacity 320ms var(--sb-content-easing);
+  contain: layout paint;
+}
+
+.single.active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.single.ahead {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.single.behind {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Composition hint scoped to the active page only — avoids promoting
+   every mounted page to its own layer. iOS Safari and low-end Android
+   both benefit from explicit compositing on transform+opacity. */
+.single.active {
+  will-change: transform, opacity;
+}
+
+/* In single mode, no spine = no spine shadow. The pageInner paper-
+   texture overlay stays — it's a per-page effect, not spine-related. */
+.single .spineShadow {
+  display: none;
+}
+
+/* Back-face pre-rotation is a spread-mode hack; undo it in single mode
+   so left-paged content (CoverLeft, StoryLeft, …) reads right-side-up. */
+.single .backFace {
+  transform: none;
+}
+
+/* Single mode + reduced motion: instant content swap. */
+@media (prefers-reduced-motion: reduce) {
+  .single,
+  .single.active {
+    transition: none;
+    will-change: auto;
+  }
+
+  .single.ahead,
+  .single.behind {
+    transform: none;
+  }
+}
