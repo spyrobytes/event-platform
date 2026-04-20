@@ -845,9 +845,14 @@
     padding: 1.5rem;
   }
 
+  /* Taller card on narrow phones — 460px was too squat and clipped the
+     RSVP for single-date + all-optional content that doesn't trigger
+     the compact modifier. Narrow phones have abundant viewport height
+     (iPhone SE is 667, Pixel 5 is 851), so 500px still centers
+     comfortably with room for the seal hint and replay button. */
   .container {
     width: 320px;
-    height: 460px;
+    height: 500px;
   }
 
   .content {
@@ -885,7 +890,14 @@
   }
 }
 
-@media (min-width: 500px) {
+/* Luxurious sizing only at large viewports. 500px was too eager — it
+   pushed tablets and small laptops (1024x768, 1366x768 etc.) to the
+   400x560 / 2rem-names sizing, which overflowed .content's fixed height
+   for single-date + all optional fields scenarios and clipped the RSVP
+   button with no way to recover (overflow: hidden inside a fixed-size
+   container; page scroll doesn't help). Use base sizing 481-1024 and
+   keep the upgraded sizing for true desktop widths. */
+@media (min-width: 1025px) {
   .container {
     width: 400px;
     height: 560px;
