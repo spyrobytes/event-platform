@@ -736,9 +736,10 @@
   }
 
   /* Note: .card.isOpen .cardFlap rotation is NOT overridden here
-     so that the responsive breakpoints (640px, 400px) can set
-     the appropriate angle per screen size. The default -145deg
-     is already set on .card.isOpen .cardFlap in the base styles. */
+     so that the responsive breakpoints (640px horizontal hinge,
+     480px vertical hinge) can set the appropriate axis+angle
+     per screen size. The default -145deg rotateY is already set
+     on .card.isOpen .cardFlap in the base styles. */
 
   .card.isOpen .contentInner {
     opacity: 1;
@@ -758,16 +759,29 @@
 /* ============================================
    RESPONSIVE ADJUSTMENTS
 
-   The flap swings left from transform-origin: left center.
-   At -145deg the right edge projects ~278px left of the card.
-   Total spread ≈ card-width + 278px ≈ 620px — wider than
-   most mobile viewports. We fix this progressively:
+   The flap's hinge direction is viewport-adaptive:
 
-   ≤ 640px → shift card right + soften tilt
-   ≤ 400px → also shrink card + reduce flap angle
+   > 640px (desktop):
+     Horizontal hinge — flap swings left from transform-origin:
+     left center, rotating ~-145deg around Y axis. Full landscape
+     "book spread" metaphor.
+
+   481-640px (medium mobile / tablet landscape):
+     Same horizontal hinge, but the card shifts right when open
+     so the left-swinging flap stays partially visible instead of
+     clipping fully off-screen. Acceptable compromise at this
+     width range.
+
+   ≤ 480px (portrait mobile):
+     VERTICAL hinge — flap swings UP from transform-origin:
+     center top, rotating -155deg around X axis. Hinge reorients
+     90° so the flap opens like a laptop lid; horizontal space is
+     no longer a constraint, and the card can grow taller to fit
+     all content without internal clipping. Preserves the "peel
+     open" interaction metaphor that defines this template.
    ============================================ */
 
-/* --- Medium mobile (phones in landscape, small tablets) --- */
+/* --- Medium mobile (481-640px) — horizontal hinge with shift --- */
 @media (max-width: 640px) {
   /* Shift the card right when open so the left-swinging flap
      stays partially visible instead of clipping off-screen.
@@ -782,22 +796,46 @@
   }
 }
 
-/* --- Small mobile (most phones in portrait) --- */
-@media (max-width: 400px) {
+/* --- Small mobile (≤ 480px) — vertical hinge --- */
+@media (max-width: 480px) {
   .card {
-    width: 300px;
-    height: 420px;
+    /* Card can grow taller since the flap no longer needs
+       horizontal space to swing. 320×500 fits comfortably on
+       iPhone SE (375×667) and up with room for the seal hint
+       and any replay button beneath. */
+    width: 320px;
+    height: 500px;
   }
 
-  /* Tighter shift + reduced rotation for narrow screens */
+  /* Hinge reorients to the top edge — flap rotates around X. */
+  .cardFlap {
+    transform-origin: center top;
+  }
+
+  /* Drop the horizontal translate — no longer needed with
+     vertical swing. Keep the subtle rotateX(2deg) tilt for
+     depth. */
   .card.isOpen {
-    transform: translateX(min(100px, 20vw)) rotateX(2deg);
+    transform: rotateX(2deg);
   }
 
+  /* Flap swings forward-then-up past vertical (positive X), like
+     lifting a greeting card cover toward the viewer. Negative X
+     feels reversed — it sweeps the flap away into the screen
+     first, which reads as "falling backward" rather than
+     "opening toward you". */
   .card.isOpen .cardFlap {
-    transform: rotateY(-125deg);
+    transform: rotateX(155deg);
   }
 
+  /* The flap's back-face rotation needs to match the hinge
+     axis so its content ("You're Invited", date) reads
+     right-side-up when the flap opens. */
+  .flapBack {
+    transform: rotateX(180deg);
+  }
+
+  /* Typography overrides for the narrower card width. */
   .coupleNames {
     font-size: 1.5rem;
   }
@@ -807,10 +845,10 @@
   }
 
   .photoFrame {
-    top: 20px;
-    left: 20px;
-    right: 20px;
-    bottom: 85px;
+    top: 22px;
+    left: 22px;
+    right: 22px;
+    bottom: 95px;
   }
 
   .photoNames {
@@ -818,12 +856,12 @@
   }
 
   .seal {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
   }
 
   .sealMonogram {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
 
   .cardContent {
@@ -837,7 +875,7 @@
 
   .bottomLeft,
   .bottomRight {
-    bottom: 75px;
+    bottom: 85px;
   }
 }
 
