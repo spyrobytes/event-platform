@@ -39,26 +39,21 @@ Portrait mode ships as a modification to the existing `WeddingStorybook` templat
 
 All four decisions below must be resolved before code lands. Budget: ~1 hour total.
 
-### Decision A — Left-page content audit (blocking, ~20 min with designer)
+### Decision A — Left-page content audit — CLOSED
 
-For each of `CoverLeft`, `StoryLeft`, `TimelineLeft`, `DetailsLeft`, `RSVPLeft`, tag **content-bearing** or **decorative**. Outcome drives Decision B and the portrait navigation distance (probably 5–7 pages, not 10).
-
-Record the audit outcome in this document before Commit 1 lands:
+All 10 pages are content-bearing. No pages dropped on portrait; portrait navigation is a linear 10-page traversal.
 
 ```
-CoverLeft     — [ ] content  [ ] decorative  notes: _____
-StoryLeft     — [ ] content  [ ] decorative  notes: _____
-TimelineLeft  — [ ] content  [ ] decorative  notes: _____
-DetailsLeft   — [ ] content  [ ] decorative  notes: _____
-RSVPLeft      — [ ] content  [ ] decorative  notes: _____
+CoverLeft     — [x] content
+StoryLeft     — [x] content
+TimelineLeft  — [x] content
+DetailsLeft   — [x] content
+RSVPLeft      — [x] content
 ```
 
-### Decision B — State model (depends on A)
+### Decision B — State model — CLOSED
 
-- **If all 10 pages kept** → unified `const [currentPage, setCurrentPage] = useState(0)` with `currentSpread = Math.floor(currentPage / 2)`. No invariant drift, trivial derivation.
-- **If any left page dropped** → portrait page map: `const PORTRAIT_PAGES: number[] = [0, 2, 3, 4, 5, 7, 9]` (example); unified `currentPage` indexes into the map. Spread-keyed logic still derives from `PORTRAIT_PAGES[currentPage]`.
-
-Dual state (`currentSpread` + `intraSpreadPage`) from v1 is rejected — it adds a maintained invariant without meaningful benefit in either branch.
+Unified `const [currentPage, setCurrentPage] = useState(0)` with `currentSpread = Math.floor(currentPage / 2)`. No portrait page map needed. No dual state.
 
 ### Decision C — Slide direction (30-sec device prototype)
 
