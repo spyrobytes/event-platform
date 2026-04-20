@@ -317,3 +317,59 @@ Track separately, do not bundle:
 - Prior commits: `063da89` (nav arrow contrast), `695d6f8` (`useSyncExternalStore` precedent in `GuestBar`)
 - Project conventions: `CLAUDE.md` (root), specifically the "Adding New Invitation Templates" and "React Hooks Rules" sections.
 - MDN: [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore), [`MediaQueryList`](https://developer.mozilla.org/en-US/docs/Web/API/MediaQueryList)
+
+---
+
+## 12. Addendum — Review notes informed by FlipFlap & SplitReveal fixes
+
+_Added after shipping portrait-mode fixes to FlipFlapReveal (commit `5555eac`) and SplitRevealCard (commit `4d8b136`). These are refinements, not redirections — the plan's architecture is sound; this section captures lessons that tune specific steps and flag decisions worth closing before implementation starts._
+
+### 12.1 The single-page mode is the right escalation — don't retreat to "just tighten fonts"
+
+We saw on FlipFlap that once geometry is structurally hostile (landscape-only hinge on portrait), tightening typography buys a few pixels but can't fix the fundamental mismatch. Same applies here: iPad-mini portrait gives 368×369 pages, iPhone gives 195×195 — no `clamp()` tuning makes that readable.
+
+The plan's diagnosis in §1 — "surgical fixes stop overflow but produce cramped content in a small box" — matches exactly what we saw on FlipFlap at ≤400px before adding the vertical hinge. **Reinforcement, not change**: ship the single-page mode; don't let review push you back to micro-tuning.
+
+### 12.2 Apply the "constrain, don't scroll" principle *per page*, not just at the book container
+
+The plan sets `.book { width: min(92vw, 600px); height: min(85dvh, 900px); }` — good. But §4 says "page components untouched," which works on iPad portrait (600×900) but may break on iPhone SE (375×667 → book `345×567`). At that size, a page authored for ~650×650 with fixed `1.8rem` margins is going to overflow the same way it does today.
+
+**Addition to §4 Commit 2**: add a `@media (max-aspect-ratio: 4/3) and (max-height: 700px)` block that applies a single compact-modifier cascade to every `.bookPage` descendant — tighter margins, slightly smaller headings. Same pattern as SplitRevealCard's `.contentInnerCompact`, but applied from `.book` or `.bookPage` down instead of from `.contentInner`. Don't rewrite the 10 page components; cascade one modifier over them.
+
+Keep `overflow: hidden` per page with `justify-content: center` — page-scroll inside a book page would break the "turn pages like a book" metaphor. If a specific page (RSVPRight is the likely candidate) still doesn't fit after the compact cascade at iPhone SE, fall back to a named `.bookPage--scrollable` opt-in on that single page rather than relaxing the discipline globally.
+
+### 12.3 Breakpoint calibration — `4/3` alone is under-specified
+
+SplitRevealCard taught us that one breakpoint isn't enough. `(max-aspect-ratio: 4/3)` flips iPad portrait (834×1194 = 0.70) into single-page correctly, but:
+
+- iPad landscape (1194×834 = 1.43) sits just above the cutoff — fine today, but a 1.34-aspect window is "landscape" by the rule yet visually portrait-ish.
+- A desktop user dragging their browser narrow (1200×1000 = 1.20) hits single-page mode, which is probably wrong (Open Question #1 in §10 flags this).
+
+**Refinement**: use `(max-aspect-ratio: 4/3) and (max-width: 1024px)`. Desktop users with narrow browser windows stay in spread mode; tablets and phones in portrait switch. Pattern matches SplitReveal's `(min-width: 500px)` → `(min-width: 1025px)` adjustment — an aspect/width pair catches the actual intent, a single dimension doesn't.
+
+### 12.4 The slide-direction "open question" isn't actually open — test on device and commit
+
+FlipFlap's one-line sign flip (`rotateX(-155deg)` → `rotateX(155deg)`) was the difference between "feels reversed" and "feels natural." Same kind of decision lives in §10 Open Question #2. Don't ship this as an unresolved question — a reviewer will flag it, and the only way to resolve it is with a prototype on a phone for 30 seconds.
+
+**Recommendation**: at §4 Commit 3, build the minimal single-page slide and put it on a real device. Right-to-left is the working default; validate or invert based on feel, then commit the direction and remove the open question before opening the PR. Same hedge logic as "we can roll back if it breaks the design concept" — build, validate, commit.
+
+### 12.5 Quick "rule out the simpler alternative" spike — not to ship, just to defend the choice
+
+Before the 190 LOC / 5-commit build-out, run a 30-minute spike on **rotating the spread axis** on portrait: keep the two-page spread model but stack pages top/bottom (spine becomes horizontal). Each "page" gets ~345×280 on iPhone SE. State model is unchanged; animation axis flips (same lesson as FlipFlap's vertical hinge).
+
+**Expectation**: this will look weird (books open sideways, not up/down) and content-per-page will still be too cramped.
+**Outcome**: you rule it out in half an hour and now have a concrete "we tried the simpler thing, here's why it doesn't work" answer for the PR review, instead of an architecture decision that has to be defended from first principles.
+
+### 12.6 Summary of plan edits this addendum implies
+
+| Section | Change |
+|---|---|
+| §3 breakpoint | `(max-aspect-ratio: 4/3) and (max-width: 1024px)` (was: aspect ratio alone) |
+| §4 Commit 2 | Add per-page compact-modifier cascade as contingency for iPhone-SE-sized books |
+| §4 Commit 3 | Decide slide direction on-device as part of the commit, not as an open question |
+| §10 Open Q #1 | Closed by §12.3 refinement — combine aspect ratio with max-width |
+| §10 Open Q #2 | Closed by §12.4 — decide via device prototype, remove from PR |
+| §6 Risks | Add: "content still overflows at iPhone SE" — mitigated by §12.2 compact cascade + scrollable-page opt-in for known-dense pages |
+| Pre-work | 30-min spike per §12.5 before starting Commit 1, to document why single-page beats axis-rotation |
+
+No change to the commit count, file list, or overall LOC estimate.
