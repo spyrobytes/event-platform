@@ -24,7 +24,7 @@ Already in place — no action unless versions drift.
 
 | Layer | Version | Notes |
 |---|---|---|
-| Node.js | **not pinned** | **ACTION:** add `.nvmrc` with `20` (LTS). Vercel defaults to latest; pinning avoids silent upgrades. |
+| Node.js | `.nvmrc` → **22** | Matches CI (`.github/workflows/ci.yml`) and local dev. Vercel reads `.nvmrc` automatically. |
 | Next.js | 16.1.1 | App Router, no Turbopack prod flag, no middleware.ts |
 | React | 19.2.3 | |
 | TypeScript | ^5 (strict) | |
@@ -196,8 +196,8 @@ Consider updating `CLAUDE.md` post-deploy.
 
 ### Action before launch
 
-- [ ] Add `.nvmrc` with `20`
-- [ ] Update `CLAUDE.md` async-jobs section (GCP Tasks → Vercel Cron + email outbox)
+- [x] ~~Add `.nvmrc`~~ — done (pins Node 22)
+- [x] ~~Update `CLAUDE.md` async-jobs section~~ — done (commit `7dd9166`)
 - [ ] Rotate any development Firebase service-account keys that were ever committed or shared
 
 ### Monitoring (optional but recommended)
