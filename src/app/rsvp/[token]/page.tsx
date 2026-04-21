@@ -70,18 +70,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!invite) {
       return {
-        title: "Invitation Not Found | EventsFixer",
+        title: "Invitation Not Found | EventFXr",
         description: "This invitation link is invalid or has expired.",
       };
     }
 
     return {
-      title: `RSVP to ${invite.event.title} | EventsFixer`,
+      title: `RSVP to ${invite.event.title} | EventFXr`,
       description: invite.event.description || `You're invited to ${invite.event.title}. RSVP now!`,
     };
   } catch {
     return {
-      title: "RSVP | EventsFixer",
+      title: "RSVP | EventFXr",
       description: "Respond to your event invitation.",
     };
   }

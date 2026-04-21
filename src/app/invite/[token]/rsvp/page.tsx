@@ -211,7 +211,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
         <p className="mt-6 text-xs text-[var(--inv-text-secondary)] text-center">
           Need to change your response?{" "}
           <a
-            href="mailto:support@eventsfixer.com"
+            href="mailto:support@eventfxr.com"
             className="text-[var(--inv-accent)] hover:underline"
           >
             Contact us

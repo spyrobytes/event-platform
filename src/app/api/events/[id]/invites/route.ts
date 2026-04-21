@@ -40,7 +40,7 @@ async function buildInviteEmailContext(eventId: string) {
 
   if (!event) return null;
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
   const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
   const eventTime = format(new Date(event.startAt), "h:mm a");
   const eventLocation = event.venueName || event.city || undefined;

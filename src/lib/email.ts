@@ -13,7 +13,7 @@ import type { EmailStatus, Prisma } from "@prisma/client";
 const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
 const MAILGUN_BASE_URL = process.env.MAILGUN_REGION_BASE_URL || "https://api.mailgun.net";
-const MAIL_FROM = process.env.MAIL_FROM || "Events <noreply@eventsfixer.com>";
+const MAIL_FROM = process.env.MAIL_FROM || "Events <noreply@eventfxr.com>";
 
 // SMTP configuration (local development with Mailpit)
 const SMTP_HOST = process.env.SMTP_HOST;
@@ -21,7 +21,7 @@ const SMTP_PORT = parseInt(process.env.SMTP_PORT || "1025", 10);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 // Detect email transport mode
 const isSmtpMode = !!SMTP_HOST;
@@ -289,7 +289,7 @@ export async function queueVerificationEmail(
   toEmail: string,
   payload: VerificationEmailPayload
 ): Promise<string> {
-  const subject = "Verify your email address for EventsFixer";
+  const subject = "Verify your email address for EventFXr";
 
   const emailRecord = await db.emailOutbox.create({
     data: {
@@ -311,7 +311,7 @@ export async function queuePasswordResetEmail(
   toEmail: string,
   payload: PasswordResetEmailPayload
 ): Promise<string> {
-  const subject = "Reset your password for EventsFixer";
+  const subject = "Reset your password for EventFXr";
 
   const emailRecord = await db.emailOutbox.create({
     data: {

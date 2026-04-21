@@ -37,7 +37,7 @@ const serverEnvSchema = z.object({
   MAIL_FROM: z
     .string()
     .min(1, "MAIL_FROM is required")
-    .default("Events <noreply@eventsfixer.com>"),
+    .default("Events <noreply@eventfxr.com>"),
 
   // Cron job authentication
   CRON_SECRET: z

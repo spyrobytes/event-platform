@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Discover Events",
   description: "Find and attend amazing events near you. Browse public events, meetups, conferences, and more.",
   openGraph: {
-    title: "Discover Events | EventsFixer",
+    title: "Discover Events | EventFXr",
     description: "Find and attend amazing events near you. Browse public events, meetups, conferences, and more.",
   },
 };

@@ -293,11 +293,11 @@ describe("buildPortalUrl", () => {
     process.env.NEXT_PUBLIC_BASE_URL = orig;
   });
 
-  it("falls back to eventsfixer.com when env var is not set", () => {
+  it("falls back to eventfxr.com when env var is not set", () => {
     const orig = process.env.NEXT_PUBLIC_BASE_URL;
     delete process.env.NEXT_PUBLIC_BASE_URL;
     const url = buildPortalUrl("my-event", "token123");
-    expect(url).toBe("https://eventsfixer.com/e/my-event?tk=token123");
+    expect(url).toBe("https://eventfxr.com/e/my-event?tk=token123");
     process.env.NEXT_PUBLIC_BASE_URL = orig;
   });
 });

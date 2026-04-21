@@ -88,7 +88,7 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
       canonical: `${baseUrl}/cities/${citySlug}`,
     },
     openGraph: {
-      title: `Events in ${displayName} | EventsFixer`,
+      title: `Events in ${displayName} | EventFXr`,
       description: `Discover amazing events happening in ${displayName}. Find concerts, meetups, conferences, and more local events.`,
     },
   };

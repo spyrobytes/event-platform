@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
     // Calculate tomorrow's date range (in UTC)
     const now = new Date();

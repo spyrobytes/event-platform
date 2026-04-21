@@ -22,7 +22,7 @@ type EventJsonLdProps = {
 };
 
 export function EventJsonLd({ event }: EventJsonLdProps) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
   const location = event.venueName || event.city
     ? {

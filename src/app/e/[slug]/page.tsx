@@ -215,7 +215,7 @@ function InvalidTokenBanner() {
       This guest link is invalid or has expired. You&apos;re viewing the public
       version of this page.{" "}
       <a
-        href="mailto:support@eventsfixer.com"
+        href="mailto:support@eventfxr.com"
         className="underline hover:text-white/80"
       >
         Contact the organizer

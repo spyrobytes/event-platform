@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: "EventsFixer - Create and Discover Events",
-    template: "%s | EventsFixer",
+    default: "EventFXr - Create and Discover Events",
+    template: "%s | EventFXr",
   },
   description:
     "The modern event platform for creating, discovering, and managing events. Free event creation with invitations, RSVPs, and email notifications.",
@@ -32,23 +32,23 @@ export const metadata: Metadata = {
     "RSVP",
     "invitations",
   ],
-  authors: [{ name: "EventsFixer" }],
-  creator: "EventsFixer",
+  authors: [{ name: "EventFXr" }],
+  creator: "EventFXr",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: BASE_URL,
-    siteName: "EventsFixer",
-    title: "EventsFixer - Create and Discover Events",
+    siteName: "EventFXr",
+    title: "EventFXr - Create and Discover Events",
     description:
       "The modern event platform for creating, discovering, and managing events. Free event creation with invitations, RSVPs, and email notifications.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "EventsFixer - Create and Discover Events",
+    title: "EventFXr - Create and Discover Events",
     description:
       "The modern event platform for creating, discovering, and managing events.",
-    creator: "@eventsfixer",
+    creator: "@eventfxr",
   },
   robots: {
     index: true,

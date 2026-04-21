@@ -285,7 +285,7 @@ export default async function PrintInvitationPage({ params }: PageProps) {
               className="text-sm font-medium"
               style={{ color: themeColors["--inv-accent"] }}
             >
-              eventsfixer.com/invite/...
+              eventfxr.com/invite/...
             </p>
           </div>
 

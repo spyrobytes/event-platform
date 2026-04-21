@@ -154,7 +154,7 @@ export function WeddingV2Footer({
         >
           Made with{" "}
           <a
-            href="https://eventsfixer.com"
+            href="https://eventfxr.com"
             style={{ color: "var(--accent, #7a8c72)", textDecoration: "none" }}
             target="_blank"
             rel="noopener noreferrer"

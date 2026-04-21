@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 // Dynamic sitemap - generated at runtime, not build time
 export const dynamic = "force-dynamic";

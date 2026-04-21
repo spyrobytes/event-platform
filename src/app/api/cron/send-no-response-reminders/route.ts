@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { db } from "@/lib/db";
 import { queueNoResponseReminderEmail, processEmail } from "@/lib/email";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 /**
  * GET /api/cron/send-no-response-reminders

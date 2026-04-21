@@ -21,7 +21,7 @@ export function PasswordResetEmail({
   resetUrl,
   expiresInHours,
 }: PasswordResetEmailProps) {
-  const previewText = "Reset your password for EventsFixer";
+  const previewText = "Reset your password for EventFXr";
 
   return (
     <Html>
@@ -33,7 +33,7 @@ export function PasswordResetEmail({
 
           <Section style={section}>
             <Text style={text}>
-              We received a request to reset your password for your EventsFixer
+              We received a request to reset your password for your EventFXr
               account. Click the button below to choose a new password.
             </Text>
 
@@ -59,8 +59,8 @@ export function PasswordResetEmail({
           <Section style={footer}>
             <Text style={footerText}>
               This email was sent by{" "}
-              <Link href="https://eventsfixer.com" style={link}>
-                EventsFixer
+              <Link href="https://eventfxr.com" style={link}>
+                EventFXr
               </Link>
             </Text>
           </Section>

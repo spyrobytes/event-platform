@@ -117,6 +117,6 @@ export function getSectionLabel(sectionType: string): string {
  * This URL includes the invite token as a query parameter.
  */
 export function buildPortalUrl(eventSlug: string, rawToken: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventsfixer.com";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
   return `${baseUrl}/e/${eventSlug}?tk=${rawToken}`;
 }

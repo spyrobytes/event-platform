@@ -104,8 +104,8 @@ export function NoResponseReminderEmail({
           <Section style={footer}>
             <Text style={footerText}>
               This is reminder #{reminderNumber} sent via{" "}
-              <Link href="https://eventsfixer.com" style={link}>
-                EventsFixer
+              <Link href="https://eventfxr.com" style={link}>
+                EventFXr
               </Link>
             </Text>
             <Text style={footerText}>

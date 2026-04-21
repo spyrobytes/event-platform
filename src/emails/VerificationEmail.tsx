@@ -21,7 +21,7 @@ export function VerificationEmail({
   verificationUrl,
   expiresInHours,
 }: VerificationEmailProps) {
-  const previewText = "Verify your email address for EventsFixer";
+  const previewText = "Verify your email address for EventFXr";
 
   return (
     <Html>
@@ -33,7 +33,7 @@ export function VerificationEmail({
 
           <Section style={section}>
             <Text style={text}>
-              Thanks for signing up for EventsFixer! Please verify your email
+              Thanks for signing up for EventFXr! Please verify your email
               address to start creating and managing events.
             </Text>
 
@@ -48,7 +48,7 @@ export function VerificationEmail({
             </Text>
 
             <Text style={text}>
-              If you didn&apos;t create an account on EventsFixer, you can
+              If you didn&apos;t create an account on EventFXr, you can
               safely ignore this email.
             </Text>
           </Section>
@@ -58,8 +58,8 @@ export function VerificationEmail({
           <Section style={footer}>
             <Text style={footerText}>
               This email was sent by{" "}
-              <Link href="https://eventsfixer.com" style={link}>
-                EventsFixer
+              <Link href="https://eventfxr.com" style={link}>
+                EventFXr
               </Link>
             </Text>
           </Section>

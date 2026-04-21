@@ -173,8 +173,8 @@ export function ConfirmationEmail({
           <Section style={footer}>
             <Text style={footerText}>
               This confirmation was sent via{" "}
-              <Link href="https://eventsfixer.com" style={link}>
-                EventsFixer
+              <Link href="https://eventfxr.com" style={link}>
+                EventFXr
               </Link>
             </Text>
             <Text style={footerText}>
