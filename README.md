@@ -5,8 +5,8 @@ A modern, SEO-first event platform for creating, discovering, and managing event
 Domains:
 1. eventfxr.com
 2. eventfxr.ca
-3. eventsfixer.com
-4. eventsfixer.ca
+3. eventfxr.com
+4. eventfxr.ca
 
 ---
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Event Platform is an SEO-first event platform for creating, discovering, and managing events with invitations, RSVPs, and transactional email. Target domains: eventsfixer.com, eventsfixer.ca.
+Event Platform is an SEO-first event platform for creating, discovering, and managing events with invitations, RSVPs, and transactional email. Target domains: eventfxr.com, eventfxr.ca.
 
 ## Commands
 

@@ -67,7 +67,7 @@ Already in place — no action unless versions drift.
 | `FIREBASE_CLIENT_EMAIL` | Admin SDK | From service-account JSON (`client_email` field) |
 | `FIREBASE_PRIVATE_KEY` | Admin SDK | From service-account JSON (`private_key` field). Paste the multi-line PEM as-is; Vercel preserves newlines, and `auth.ts` also handles `\n`-escaped form. **Do not quote.** |
 | `CRON_SECRET` | All `/api/cron/*` routes | Generate: `openssl rand -base64 32`. Must be ≥32 chars. |
-| `NEXT_PUBLIC_BASE_URL` | Email links, canonical URLs | e.g. `https://eventsfixer.com` (no trailing slash) |
+| `NEXT_PUBLIC_BASE_URL` | Email links, canonical URLs | e.g. `https://eventfxr.com` (no trailing slash) |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Client SDK | Firebase console → Web app config |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Client SDK | Firebase console |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Client SDK | Same project ID, **must match** `FIREBASE_PROJECT_ID` |
@@ -81,7 +81,7 @@ Already in place — no action unless versions drift.
 | `MAILGUN_DOMAIN` | Transactional email |
 | `MAILGUN_REGION_BASE_URL` | `https://api.mailgun.net` (US) or `https://api.eu.mailgun.net` (EU) |
 | `MAILGUN_WEBHOOK_SIGNING_KEY` | `/api/webhooks/mailgun` signature verification |
-| `MAIL_FROM` | e.g. `Events <noreply@eventsfixer.com>` — sender domain must be verified in Mailgun |
+| `MAIL_FROM` | e.g. `Events <noreply@eventfxr.com>` — sender domain must be verified in Mailgun |
 
 ### OPTIONAL — enable features
 
