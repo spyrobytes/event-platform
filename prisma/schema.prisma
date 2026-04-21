@@ -21,10 +21,11 @@ model User {
   avatarUrl   String? @map("avatar_url")
 
   // Email verification
-  emailVerified         Boolean   @default(false) @map("email_verified")
-  emailVerifiedAt       DateTime? @map("email_verified_at")
-  verificationTokenHash String?   @unique @map("verification_token_hash")
-  verificationExpiresAt DateTime? @map("verification_expires_at")
+  emailVerified             Boolean   @default(false) @map("email_verified")
+  emailVerifiedAt           DateTime? @map("email_verified_at")
+  verificationTokenHash     String?   @unique @map("verification_token_hash")
+  verificationExpiresAt     DateTime? @map("verification_expires_at")
+  verificationRemindersSent Int       @default(0) @map("verification_reminders_sent")
 
   // Password reset
   passwordResetTokenHash String?   @unique @map("password_reset_token_hash")
