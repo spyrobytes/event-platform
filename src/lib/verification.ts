@@ -1,4 +1,6 @@
+import { getAuth } from "firebase-admin/auth";
 import { db } from "./db";
+import { getFirebaseAdmin } from "./auth";
 import { generateTokenPair, hashToken } from "./tokens";
 import { queueVerificationEmail, processEmail } from "./email";
 import { ValidationError, NotFoundError } from "./errors";
@@ -65,6 +67,7 @@ export async function verifyEmail(
     select: {
       id: true,
       email: true,
+      firebaseUid: true,
       emailVerified: true,
       verificationExpiresAt: true,
     },
@@ -83,6 +86,13 @@ export async function verifyEmail(
       "Verification link has expired. Please request a new one."
     );
   }
+
+  // Sync the Firebase-side emailVerified flag first so the ID token's
+  // email_verified claim and client-side auth.currentUser stay consistent
+  // with our Postgres User row. If this throws (Firebase outage, missing
+  // user), leave the token intact so the user can retry.
+  getFirebaseAdmin();
+  await getAuth().updateUser(user.firebaseUid, { emailVerified: true });
 
   // Mark email as verified and clear token
   await db.user.update({
