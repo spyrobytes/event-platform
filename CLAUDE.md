@@ -34,7 +34,8 @@ npm run test:e2e         # Run Playwright E2E tests
 - **Database**: Supabase Postgres with Prisma ORM
 - **Auth**: Firebase Authentication
 - **Email**: Mailgun for transactional delivery
-- **Async Jobs**: Google Cloud Tasks + Cloud Scheduler
+- **Hosting**: Vercel (Production + Preview deploys)
+- **Async Jobs**: Vercel Cron + `email_outbox` table (see `internal-docs/hosting-platform-decision.md` for history)
 
 ## Architecture
 
@@ -75,8 +76,8 @@ Client Components must include `"use client";` at the top.
 1. User authenticates via Firebase Auth → gets ID token
 2. Frontend calls API with `Authorization: Bearer <token>`
 3. API verifies token (Firebase Admin SDK) → performs DB operations
-4. Email sending is async: API writes to `email_outbox` + enqueues Cloud Task
-5. Mailgun webhooks update delivery status
+4. Email sending is async: API writes to `email_outbox` row with `status=QUEUED`; `/api/cron/process-emails` (Vercel cron, every 5 min) picks it up, calls Mailgun, updates the row
+5. Mailgun webhooks hit `/api/webhooks/mailgun` to advance `email_outbox.status` to DELIVERED / OPENED / BOUNCED
 
 ## Naming Conventions
 
