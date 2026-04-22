@@ -1,5 +1,5 @@
 import { config } from "dotenv";
-import { defineConfig } from "prisma/config";
+import { defineConfig, env } from "prisma/config";
 
 // Load .env.local for development
 config({ path: ".env.local" });
@@ -10,7 +10,14 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    // Primary connection (pooled for serverless)
-    url: process.env["DATABASE_URL"],
+    // CLI-only URL. In Prisma 7, `datasource.url` here is used exclusively
+    // by the Prisma CLI (migrate, db push, etc.) — NOT by the runtime
+    // PrismaClient, which gets its connection from the adapter in
+    // src/lib/db.ts (Pool over DATABASE_URL).
+    //
+    // Point this at DIRECT_URL so migrations run through a direct session
+    // (port 5432 on Supabase) and never through PgBouncer transaction
+    // pooling, which breaks Prisma's advisory-lock DDL flow.
+    url: env("DIRECT_URL"),
   },
 });
