@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Note: Playwright E2E tests (`npm run test:e2e`) are intentionally not run in CI.
+# They are slow and historically flaky; run them locally before major releases.
+
 jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
@@ -26,6 +33,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: npx prisma generate
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
 
       - name: Run ESLint
         run: npm run lint
@@ -61,7 +71,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck]
+    needs: [lint-and-typecheck, test]
 
     steps:
       - name: Checkout repository
