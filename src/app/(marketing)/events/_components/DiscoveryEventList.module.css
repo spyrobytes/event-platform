@@ -1,0 +1,7 @@
+.empty {
+  background:
+    radial-gradient(circle at 30% 20%, rgb(var(--accent) / 0.08) 0%, transparent 55%),
+    radial-gradient(circle at 70% 80%, rgb(var(--secondary) / 0.06) 0%, transparent 55%),
+    rgb(var(--surface-2) / 0.4);
+  backdrop-filter: blur(8px);
+}
