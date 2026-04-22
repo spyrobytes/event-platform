@@ -119,3 +119,6 @@ NOTES.md
 # Playwright test artifacts
 playwright-report/
 test-results/
+
+# Supabase Studio SQL editor drafts (local-only)
+supabase/snippets/
