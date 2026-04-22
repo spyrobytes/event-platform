@@ -18,12 +18,6 @@ import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./FlipFlapReveal.module.css";
 
 /**
- * Default placeholder photo URL
- */
-const DEFAULT_PHOTO_URL =
-  "https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=800&fit=crop&crop=faces";
-
-/**
  * Corner flourish SVG path for decorative corners
  */
 const FLOURISH_PATH = "M5 5 Q5 25 25 25 Q25 5 45 5 Q25 5 25 25 Q5 25 5 45 Q5 25 5 5Z";
@@ -273,8 +267,7 @@ export function FlipFlapReveal({
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 
-  // Photo URL - use heroImageUrl with fallback
-  const photoUrl = data.heroImageUrl || DEFAULT_PHOTO_URL;
+  const photoUrl = data.heroImageUrl;
 
   /**
    * Handle card open
@@ -552,16 +545,18 @@ export function FlipFlapReveal({
 
               {/* Photo Frame */}
               <div className={styles.photoFrame}>
-                <Image
-                  className={styles.couplePhoto}
-                  src={photoUrl}
-                  alt={`${coupleNames.partner1} and ${coupleNames.partner2}`}
-                  fill
-                  sizes="(max-width: 400px) 260px, 292px"
-                  style={{ objectFit: "cover" }}
-                  priority
-                  unoptimized={photoUrl.startsWith("http")}
-                />
+                {photoUrl && (
+                  <Image
+                    className={styles.couplePhoto}
+                    src={photoUrl}
+                    alt={`${coupleNames.partner1} and ${coupleNames.partner2}`}
+                    fill
+                    sizes="(max-width: 400px) 260px, 292px"
+                    style={{ objectFit: "cover" }}
+                    priority
+                    unoptimized={photoUrl.startsWith("http")}
+                  />
+                )}
                 {/* Names overlay on photo */}
                 <div className={styles.photoNamesOverlay}>
                   <p className={styles.photoNames}>
