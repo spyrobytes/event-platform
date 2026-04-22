@@ -1,7 +1,8 @@
-import { Suspense } from "react";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { EventList } from "@/components/features";
 import { EventFilters } from "@/components/features/EventFilters";
+import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 
 // This page uses database queries, so it must be dynamic
@@ -86,17 +87,29 @@ async function getPopularCities() {
     .map((c) => ({ name: c.city as string, count: c._count.city }));
 }
 
-function EventsLoading() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-64 animate-pulse rounded-lg bg-muted"
-        />
-      ))}
-    </div>
-  );
+function buildPageHref(page: number, city?: string): string {
+  const params = new URLSearchParams();
+  if (city) params.set("city", city);
+  if (page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return qs ? `/events?${qs}` : "/events";
+}
+
+function getPaginationItems(
+  current: number,
+  total: number
+): Array<number | "ellipsis"> {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const items: Array<number | "ellipsis"> = [1];
+  if (current > 3) items.push("ellipsis");
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let p = start; p <= end; p++) items.push(p);
+  if (current < total - 2) items.push("ellipsis");
+  items.push(total);
+  return items;
 }
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
@@ -126,41 +139,80 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
       <div className="grid gap-8 lg:grid-cols-4">
         <aside className="lg:col-span-1">
-          <Suspense fallback={<div className="h-40 animate-pulse rounded-lg bg-muted" />}>
-            <EventFilters cities={cities} selectedCity={city} />
-          </Suspense>
+          <EventFilters cities={cities} selectedCity={city} />
         </aside>
 
         <div className="lg:col-span-3">
-          <Suspense fallback={<EventsLoading />}>
-            <EventList
-              events={events}
-              showStatus={false}
-              emptyMessage={
-                city
-                  ? `No upcoming events in ${city}. Check back later!`
-                  : "No upcoming events found. Check back later!"
-              }
-            />
+          <EventList
+            events={events}
+            showStatus={false}
+            emptyMessage={
+              city
+                ? `No upcoming events in ${city}. Check back later!`
+                : "No upcoming events found. Check back later!"
+            }
+          />
 
-            {totalPages > 1 && (
-              <div className="mt-8 flex justify-center gap-2">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                  <a
-                    key={pageNum}
-                    href={`/events?${city ? `city=${city}&` : ""}page=${pageNum}`}
-                    className={`rounded-md px-4 py-2 text-sm ${
-                      pageNum === page
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-surface-3 text-foreground hover:bg-surface-2"
-                    }`}
+          {totalPages > 1 && (
+            <nav
+              aria-label="Pagination"
+              className="mt-8 flex items-center justify-center gap-1"
+            >
+              <Link
+                href={buildPageHref(page - 1, city)}
+                aria-label="Previous page"
+                aria-disabled={page === 1}
+                tabIndex={page === 1 ? -1 : undefined}
+                className={cn(
+                  "inline-flex h-9 items-center rounded-md px-3 text-sm transition-colors",
+                  page === 1
+                    ? "pointer-events-none text-muted-foreground/40"
+                    : "text-foreground hover:bg-surface-2"
+                )}
+              >
+                ← Prev
+              </Link>
+              {getPaginationItems(page, totalPages).map((item, idx) =>
+                item === "ellipsis" ? (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    aria-hidden="true"
+                    className="px-2 text-sm text-muted-foreground"
                   >
-                    {pageNum}
-                  </a>
-                ))}
-              </div>
-            )}
-          </Suspense>
+                    …
+                  </span>
+                ) : (
+                  <Link
+                    key={item}
+                    href={buildPageHref(item, city)}
+                    aria-current={item === page ? "page" : undefined}
+                    className={cn(
+                      "inline-flex h-9 min-w-9 items-center justify-center rounded-md px-3 text-sm transition-colors",
+                      item === page
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground hover:bg-surface-2"
+                    )}
+                  >
+                    {item}
+                  </Link>
+                )
+              )}
+              <Link
+                href={buildPageHref(page + 1, city)}
+                aria-label="Next page"
+                aria-disabled={page === totalPages}
+                tabIndex={page === totalPages ? -1 : undefined}
+                className={cn(
+                  "inline-flex h-9 items-center rounded-md px-3 text-sm transition-colors",
+                  page === totalPages
+                    ? "pointer-events-none text-muted-foreground/40"
+                    : "text-foreground hover:bg-surface-2"
+                )}
+              >
+                Next →
+              </Link>
+            </nav>
+          )}
         </div>
       </div>
     </div>

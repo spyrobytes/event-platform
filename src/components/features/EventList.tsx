@@ -1,5 +1,3 @@
-"use client";
-
 import { EventCard } from "./EventCard";
 import { cn } from "@/lib/utils";
 
