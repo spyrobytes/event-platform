@@ -126,11 +126,15 @@ These are development-only; leaving them set in prod will silently break auth/em
 
 - [ ] Production Supabase project created and connection strings captured
 - [ ] `DATABASE_URL` uses pooled connection (port **6543**, `?pgbouncer=true`)
-- [ ] `DIRECT_URL` uses direct connection (port **5432**)
-- [ ] `npx prisma migrate deploy` runs cleanly against the production DB (dry-run locally first: `DATABASE_URL=<prod> DIRECT_URL=<prod> npx prisma migrate status`)
+- [ ] `DIRECT_URL` uses direct / session-pooler connection (port **5432**)
+- [ ] Auth verified end-to-end with `psql "$DIRECT_URL" -c 'select 1;'` before touching Prisma
+- [ ] `npx prisma migrate deploy` runs cleanly against the production DB (dry-run locally first with `prisma migrate status`)
 - [ ] No schema drift (`npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma` is empty)
 - [ ] `prisma/migrations/migration_lock.toml` committed (it is)
+- [ ] Prod credentials cleaned from shell + `history`, and `.env.local` restored to local-dev values
 - [ ] Supabase storage buckets created: any bucket referenced by `src/lib/supabase-storage.ts` — check media upload paths
+
+**For the full executable procedure** (including the Supavisor username gotcha, bash-quoting pitfalls, and a draft CI workflow for future automation), follow [`DATABASE_MIGRATION_RUNBOOK.md`](./DATABASE_MIGRATION_RUNBOOK.md).
 
 **Critical:** `npm run build` regenerates the Prisma client from `DATABASE_URL`. If that env var isn't set in the Vercel build environment, the build fails at the `prisma generate` step.
 
