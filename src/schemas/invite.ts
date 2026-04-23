@@ -67,3 +67,27 @@ export const inviteLookupSchema = z.object({
 });
 
 export type InviteLookupInput = z.infer<typeof inviteLookupSchema>;
+
+/**
+ * Schema for PATCH /api/events/[id]/invites/[inviteId].
+ * Strictly scoped to planning fields: unknown keys are rejected with a
+ * validation error so the endpoint cannot be used to mutate email, name,
+ * status, tokens, or any other field outside the planning panel's remit.
+ * Partial update: `undefined` leaves a field unchanged; explicit `null` clears it.
+ */
+export const updateInvitePlanningSchema = z
+  .object({
+    seatAssignment: z
+      .string()
+      .max(500, "Seat assignment must be 500 characters or fewer")
+      .nullable()
+      .optional(),
+    plannerNotes: z
+      .string()
+      .max(500, "Planner notes must be 500 characters or fewer")
+      .nullable()
+      .optional(),
+  })
+  .strict();
+
+export type UpdateInvitePlanningInput = z.infer<typeof updateInvitePlanningSchema>;

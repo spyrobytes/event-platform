@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { createEventSchema, updateEventSchema } from "@/schemas/event";
-import { createInviteSchema, bulkInviteSchema } from "@/schemas/invite";
+import {
+  createInviteSchema,
+  bulkInviteSchema,
+  updateInvitePlanningSchema,
+} from "@/schemas/invite";
 import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
 
 // Helper to get a future date
@@ -244,6 +248,65 @@ describe("publicRsvpSchema", () => {
       guestName: "John Doe",
     };
     const result = publicRsvpSchema.safeParse(invalidPublicRsvp);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateInvitePlanningSchema", () => {
+  it("accepts both planning fields set to strings", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      seatAssignment: "Table 3, Seat 7",
+      plannerNotes: "Gluten-free meal; wheelchair access",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a partial update with only one field", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      seatAssignment: "A1",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null to clear a field", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      seatAssignment: null,
+      plannerNotes: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty object (no-op update)", () => {
+    const result = updateInvitePlanningSchema.safeParse({});
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects seatAssignment over 500 characters", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      seatAssignment: "x".repeat(501),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects plannerNotes over 500 characters", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      plannerNotes: "x".repeat(501),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown fields (e.g. attempt to change email)", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      seatAssignment: "A1",
+      email: "attacker@example.com",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects attempts to change status through this endpoint", () => {
+    const result = updateInvitePlanningSchema.safeParse({
+      status: "REVOKED",
+    });
     expect(result.success).toBe(false);
   });
 });
