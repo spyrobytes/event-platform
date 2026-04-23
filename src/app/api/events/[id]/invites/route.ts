@@ -108,6 +108,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
           name: true,
           status: true,
           plusOnesAllowed: true,
+          seatAssignment: true,
+          plannerNotes: true,
           sentAt: true,
           openedAt: true,
           expiresAt: true,
@@ -266,6 +268,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
               name: true,
               status: true,
               plusOnesAllowed: true,
+              seatAssignment: true,
+              plannerNotes: true,
               createdAt: true,
             },
           })
@@ -360,6 +364,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
           name: true,
           status: true,
           plusOnesAllowed: true,
+          seatAssignment: true,
+          plannerNotes: true,
           createdAt: true,
         },
       });
