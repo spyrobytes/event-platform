@@ -92,6 +92,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     });
 
     // 6. Generate CSV
+    //    Seat Assignment and Planner Notes are appended at the end to preserve
+    //    positional reads by existing CSV consumers.
     const headers = [
       "Name",
       "Email",
@@ -103,6 +105,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       "Responded Date",
       "Notes",
       "Invite Sent Date",
+      "Seat Assignment",
+      "Planner Notes",
     ];
 
     const rows = invites.map((invite) => [
@@ -116,6 +120,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       formatDateForCSV(invite.rsvp?.respondedAt),
       invite.rsvp?.notes || "",
       formatDateForCSV(invite.sentAt),
+      invite.seatAssignment || "",
+      invite.plannerNotes || "",
     ]);
 
     const csv = generateCSV(headers, rows);
