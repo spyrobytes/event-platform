@@ -1,0 +1,347 @@
+# Database Migration Runbook
+
+Executable playbook for applying Prisma migrations to the **production** Supabase database. Covers the first deploy and every subsequent schema change until the process is automated in CI (see Appendix).
+
+If you're just verifying deploy readiness, start with [`PRE_DEPLOYMENT_CHECKLIST.md`](./PRE_DEPLOYMENT_CHECKLIST.md) — come back here when you reach Section 5.
+
+---
+
+## When to use this runbook
+
+- First production deploy (empty DB, applying the full migration history).
+- Any PR that merges a schema change (adds a file under `prisma/migrations/`) and needs to be applied to prod before or shortly after the Vercel deploy goes live.
+- Recovering from migration drift detected by `prisma migrate status` in CI or manual checks.
+
+Do **not** use this for local development — use `npx prisma migrate dev` there. This runbook is specifically for `prisma migrate deploy` against the production DB.
+
+---
+
+## Prerequisites
+
+| Tool | Why | Install check |
+|---|---|---|
+| `psql` (PostgreSQL client) | Auth sanity check before running Prisma | `psql --version` |
+| Vercel CLI, authenticated | Pull prod env vars safely | `vercel whoami` |
+| Supabase project access | Retrieve/reset DB password, copy connection strings | Log in to Supabase dashboard |
+| Node 22 + repo deps installed | `prisma migrate` commands | `node --version && ls node_modules/@prisma/client` |
+
+You also need the **production database password**. It's not your Supabase account password — it's a per-project password set under *Project Settings → Database → Database Password*. If you don't know it, reset it (see [Pitfall 3](#pitfall-3-password-problems-p1000-authentication-failed)).
+
+---
+
+## The happy path
+
+Do these in order. Each step is independently safe — you can stop and resume at any boundary.
+
+### 1. Pull prod connection strings *without* clobbering `.env.local`
+
+`vercel env pull` always writes to a file (default: `.env.local`). There is **no `--stdout` flag** — pass a temp path so your local-dev env isn't overwritten:
+
+```bash
+tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT
+vercel env pull --environment=production "$tmp"
+```
+
+Spot-check that both vars came through (redacted view):
+
+```bash
+grep -E '^(DATABASE_URL|DIRECT_URL)=' "$tmp" \
+  | sed -E 's|(://[^:]+):[^@]+@|\1:[redacted]@|'
+```
+
+Expected shape:
+```
+DATABASE_URL=postgresql://postgres.<project-ref>:[redacted]@aws-1-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.<project-ref>:[redacted]@aws-1-<region>.pooler.supabase.com:5432/postgres
+```
+
+If the username is just `postgres` (no `.<project-ref>` suffix), see [Pitfall 2](#pitfall-2-supavisor-pooler-username-format).
+
+### 2. Export into the shell — **single-quoted**
+
+```bash
+export DATABASE_URL='<paste the DATABASE_URL value>'
+export DIRECT_URL='<paste the DIRECT_URL value>'
+```
+
+**Critical:** single quotes, not double. Passwords often contain `$`, `!`, `` ` ``, `\` which bash expands under double quotes and silently corrupts the URL. See [Pitfall 4](#pitfall-4-bash-special-chars-in-passwords).
+
+You can now delete the temp file:
+```bash
+rm -f "$tmp" && trap - EXIT
+```
+
+### 3. Sanity-check auth with `psql`
+
+```bash
+psql "$DIRECT_URL" -c 'select 1;'
+```
+
+Expected output:
+```
+ ?column?
+----------
+        1
+(1 row)
+```
+
+`?column?` is just Postgres's default header for an unaliased expression — the `1` below confirms a full auth + query round-trip.
+
+If this fails, fix auth before touching Prisma. See [Pitfall 3](#pitfall-3-password-problems-p1000-authentication-failed).
+
+### 4. Dry-run with `prisma migrate status`
+
+```bash
+npx prisma migrate status
+```
+
+Possible outputs:
+
+| Output | Meaning | Action |
+|---|---|---|
+| *"Database schema is up to date!"* | No pending migrations | Nothing to do; skip to cleanup (step 7). |
+| *"N migrations have not yet been applied"* + list | Prod is behind repo | Review the list — are they all expected? Proceed to step 5. |
+| *"Following migration is currently in failed state"* | A prior run died mid-apply | **Do not rerun `migrate deploy` blind.** See Prisma's [resolve docs](https://www.prisma.io/docs/orm/reference/prisma-cli-reference#migrate-resolve) — typically `prisma migrate resolve --rolled-back <name>` then rerun, or `--applied <name>` if the DB actually has the changes. |
+| *"Drift detected"* | DB schema differs from the migration history | **Stop.** See [PRE_DEPLOYMENT_CHECKLIST.md §5](./PRE_DEPLOYMENT_CHECKLIST.md) and Prisma's [drift docs](https://www.prisma.io/docs/orm/prisma-migrate/workflows/prototyping-your-schema). Never run `migrate reset` against prod. |
+
+### 5. Apply migrations
+
+```bash
+npx prisma migrate deploy
+```
+
+`migrate deploy` is transactional per migration — if one fails partway through a batch, earlier migrations stay applied and recorded. Rerun after fixing the offending migration and it resumes from where it stopped.
+
+Expected tail:
+```
+All migrations have been successfully applied.
+```
+
+### 6. Verify
+
+```bash
+npx prisma migrate status
+# expect: "Database schema is up to date!"
+```
+
+Optional — detect any drift introduced during apply:
+```bash
+npx prisma migrate diff \
+  --from-migrations ./prisma/migrations \
+  --to-schema-datamodel ./prisma/schema.prisma
+# expect: empty output
+```
+
+### 7. Clean up
+
+```bash
+# Remove prod creds from this shell
+unset DATABASE_URL DIRECT_URL
+
+# Review history for lines with the password inline
+history | grep -E 'export.*(DATABASE|DIRECT)_URL='
+
+# Delete those specific lines:
+history -d <line-number>   # repeat per line
+# OR nuke this session's history:
+history -c
+```
+
+If an earlier `vercel env pull` overwrote `.env.local`, restore it to your local-dev values. Local should point at local Supabase (typically `127.0.0.1:54322`) — **never** leave prod URLs in `.env.local`.
+
+---
+
+## Ordering vs. Vercel deploy
+
+Vercel auto-deploys on every push to `main`, in parallel with — not gated on — any manual migration work.
+
+- **Additive migrations** (new column, new table, new index): order doesn't matter in practice. Old code ignores new columns; the next deploy picks them up.
+- **Destructive migrations** (drop, rename, type change): don't try to strictly order a single push. Use **expand-contract across two PRs**:
+  1. PR 1: add new column, code writes to both old and new, reads from old.
+  2. Migrate + backfill.
+  3. PR 2: code reads from new, stop writing old.
+  4. Migrate to drop old column.
+
+The [Appendix](#appendix-github-actions-migration-workflow-draft) shows a proposed workflow for when you want this automated.
+
+---
+
+## Pitfalls
+
+Each is something we actually hit during the first prod deploy.
+
+### Pitfall 1 — `vercel env pull --stdout` does not exist
+
+Command reference for `vercel env pull` accepts a file path, not a stdout flag. Calling it without a path (or with `--stdout`) writes to `.env.local` by default, **silently clobbering your local-dev config**.
+
+**Fix:** always pass an explicit temp path (step 1). If it happens anyway, restore `.env.local` from git or a teammate's copy — `.env.local` is gitignored, so you may not have a backup.
+
+### Pitfall 2 — Supavisor pooler username format
+
+Supabase's modern connection strings use Supavisor (not the legacy direct host). Pooler hostnames (`aws-*.pooler.supabase.com`) require a **different username**:
+
+| Hostname | Username |
+|---|---|
+| `db.<ref>.supabase.co` (legacy direct, IPv6-only) | `postgres` |
+| `aws-*.pooler.supabase.com:6543` (Supavisor transaction) | **`postgres.<project-ref>`** |
+| `aws-*.pooler.supabase.com:5432` (Supavisor session) | **`postgres.<project-ref>`** |
+
+Symptom: `P1000: Authentication failed against database server, the provided database credentials for postgres are not valid.` (note the username in the error is just `postgres`).
+
+**Fix:** copy the URI from Supabase dashboard → *Project Settings → Database → Connection string → Session pooler / Transaction pooler*. The correct username is baked into the displayed string; you only need to fill `[YOUR-PASSWORD]`.
+
+### Pitfall 3 — Password problems (`P1000: authentication failed`)
+
+Three sub-causes, ranked by likelihood:
+
+1. **Stale password in Vercel** — the DB password was rotated in Supabase but the Vercel secret was never updated. Reset in *Supabase → Database → Database Password*, then update both `DATABASE_URL` and `DIRECT_URL` in Vercel Production env vars.
+2. **Placeholder pasted verbatim** — the literal string `[YOUR-PASSWORD]` was left in when someone copied the connection string. Length check: the password inside your URL should be long (Supabase-generated passwords are typically 16+ chars).
+3. **URL-reserved chars not percent-encoded** — passwords containing `@ : / ? # % [ ]` must be URL-encoded when embedded in a connection string. Use `python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' 'thepassword'` to encode, then paste the encoded form into the URL.
+
+Use `psql "$DIRECT_URL" -c 'select 1;'` to isolate: if `psql` fails, the URL is bad (skip Prisma entirely until fixed). If only Prisma fails, the URL is fine and the issue is downstream.
+
+### Pitfall 4 — Bash special chars in passwords
+
+Passwords often contain `$ ! \` `` ` ``. Under **double quotes**, bash expands them before setting the variable, so the URL you end up with is not the URL you pasted.
+
+```bash
+# WRONG — $abc gets expanded to empty string
+export DIRECT_URL="postgresql://postgres.xxx:pw$abc!stuff@host:5432/postgres"
+
+# RIGHT — single quotes preserve literal chars
+export DIRECT_URL='postgresql://postgres.xxx:pw$abc!stuff@host:5432/postgres'
+```
+
+**Fix:** always single-quote connection strings in shell exports. If you must use double quotes (e.g., the URL contains a literal single quote), escape every `$`, `!`, `\`, `` ` `` with backslashes — but single-quoting is safer.
+
+### Pitfall 5 — `env()` helper in `prisma.config.ts` breaks CI
+
+In Prisma 7, the `env()` helper exported from `prisma/config` is **strict** — it throws `PrismaConfigEnvError: Cannot resolve environment variable: X` when the variable is unset. CI jobs that run `prisma generate` or `prisma validate` (neither connects to a DB) don't have `DIRECT_URL` set as a secret, so using `env()` causes the postinstall hook to fail before lint / tests / build even start.
+
+**Fix:** use `process.env["DIRECT_URL"]` — it returns `undefined` silently, which Prisma tolerates for non-connection commands. For `migrate` commands that need the URL, it must be exported in the shell (or provided as a GitHub Actions secret in the migration workflow — see Appendix).
+
+Current config — the correct pattern:
+```ts
+// prisma.config.ts
+import { config } from "dotenv";
+import { defineConfig } from "prisma/config";
+
+config({ path: ".env.local" });
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: { path: "prisma/migrations" },
+  datasource: {
+    url: process.env["DIRECT_URL"], // NOT env("DIRECT_URL")
+  },
+});
+```
+
+---
+
+## How Prisma 7 wires the two URLs
+
+Worth internalizing so you understand why `DATABASE_URL` and `DIRECT_URL` exist at all:
+
+| Who uses it? | Where configured | Should point at |
+|---|---|---|
+| **Runtime PrismaClient** (every API route, server component) | Adapter passed to `new PrismaClient({ adapter })` in `src/lib/db.ts` — it reads `process.env.DATABASE_URL` via `new Pool({ connectionString })` | **Pooled** URL, port 6543, with `?pgbouncer=true`. Survives Vercel's serverless connection churn. |
+| **Prisma CLI** (`migrate`, `db push`, `db pull`) | `datasource.url` in `prisma.config.ts` | **Direct/session** URL, port 5432. DDL needs session-scoped state (advisory locks) which transaction-mode pooling breaks. |
+
+The two are completely independent. The `datasource.url` field **no longer exists in `schema.prisma` under Prisma 7** — that's why `schema.prisma` only declares `provider`.
+
+---
+
+## Appendix: GitHub Actions migration workflow (DRAFT)
+
+This workflow is **not currently enabled**. It's the planned post-first-deploy automation so future migrations don't need a developer to run commands from their laptop with prod credentials.
+
+Place at `.github/workflows/migrate-production.yml` when the team is ready to enable:
+
+```yaml
+name: Migrate production DB
+
+# Triggers: push to main (after a PR merges), or manual run.
+# Required repo secrets:
+#   - DATABASE_URL   Supabase pooled connection (port 6543, ?pgbouncer=true)
+#   - DIRECT_URL     Supabase session/direct connection (port 5432)
+# Required environment: "production" (configure at Settings → Environments)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Serialize — never cancel a running migration mid-DDL.
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: prisma migrate deploy
+    runs-on: ubuntu-latest
+    environment: production  # Required-reviewer gate via GitHub Environment
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Show migration status (dry run)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate status
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Verify no drift after apply
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          DIFF=$(npx prisma migrate diff \
+            --from-migrations ./prisma/migrations \
+            --to-schema-datamodel ./prisma/schema.prisma \
+            --script)
+          if [ -n "$DIFF" ]; then
+            echo "::error::Schema drift detected after migrate deploy"
+            echo "$DIFF"
+            exit 1
+          fi
+```
+
+### Design notes for the reviewer
+
+- **`environment: production`** forces a manual-approval click on the first run; configure required reviewers under *Settings → Environments → production*. Remove the line for fully-automatic migrations.
+- **`concurrency.cancel-in-progress: false`** — a running migration must finish (or fail on its own) before the next one starts. Prisma's advisory lock catches concurrent runs at the DB level, but this avoids the contention entirely.
+- **Ordering vs. Vercel** — the workflow runs in parallel with Vercel's git auto-deploy. See the [Ordering section](#ordering-vs-vercel-deploy) above. If you need strict "migrate before deploy," turn off Vercel's git auto-deploy for `main` and append a `vercel deploy --prod` step to this workflow (using a `VERCEL_TOKEN` secret).
+- **Not gated on `ci.yml`** — `workflow_run` chaining is awkward (triggering event is lost, timing unpredictable). The `environment: production` approval gate serves as the human check.
+- **No notifications** — failures surface in the Actions tab only. Add a Slack / email step if your team wants pings.
+
+### Enabling checklist (when ready)
+
+1. Create repo secrets under *Settings → Secrets and variables → Actions*:
+   - `DATABASE_URL` — production pooled URI (matches Vercel)
+   - `DIRECT_URL` — production session pooler URI (matches Vercel)
+2. Create the `production` environment under *Settings → Environments → New environment*:
+   - Add yourself (and/or a teammate) as a required reviewer
+   - Restrict to the `main` branch
+3. Drop the YAML above into `.github/workflows/migrate-production.yml`, commit, push.
+4. First run after merge → Actions tab → approve → watch it apply. If it works, you're automated; update this runbook to note that manual runs are only needed for recovery/drift scenarios.
