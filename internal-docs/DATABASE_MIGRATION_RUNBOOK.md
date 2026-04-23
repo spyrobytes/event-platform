@@ -16,6 +16,24 @@ Do **not** use this for local development — use `npx prisma migrate dev` there
 
 ---
 
+## Timing convention
+
+**Apply migrations *before* merging the PR that depends on them — not after.**
+
+Vercel auto-deploys on every push to `main` and that deploy doesn't wait on anything. If you merge first and then migrate, you create a window where the new code is live but the schema it expects doesn't exist yet. Running the migration first — against the live prod DB, from your laptop — means by the time Vercel picks up the merged PR, the schema is already in place. The race simply can't happen.
+
+Concrete sequence for any schema-change PR:
+
+1. PR is reviewed and approved, but **not merged yet**.
+2. Check out the PR branch locally.
+3. Follow [The happy path](#the-happy-path) below to apply `prisma migrate deploy` to production.
+4. `npx prisma migrate status` confirms "up to date."
+5. **Then** merge the PR. Vercel deploys the new code against the already-migrated schema.
+
+Same rule for a stack of PRs: migrate at the top of every branch that adds a migration, before merging that specific branch.
+
+---
+
 ## Prerequisites
 
 | Tool | Why | Install check |
@@ -155,14 +173,22 @@ If an earlier `vercel env pull` overwrote `.env.local`, restore it to your local
 
 ## Ordering vs. Vercel deploy
 
-Vercel auto-deploys on every push to `main`, in parallel with — not gated on — any manual migration work.
+The [Timing convention](#timing-convention) — migrate before merging — eliminates any ordering race for additive migrations: by the time Vercel sees the merged PR, the schema is already in place, and the only transient state is "new schema + old code," which old code tolerates (it ignores columns it doesn't know about).
 
-- **Additive migrations** (new column, new table, new index): order doesn't matter in practice. Old code ignores new columns; the next deploy picks them up.
-- **Destructive migrations** (drop, rename, type change): don't try to strictly order a single push. Use **expand-contract across two PRs**:
-  1. PR 1: add new column, code writes to both old and new, reads from old.
-  2. Migrate + backfill.
-  3. PR 2: code reads from new, stop writing old.
-  4. Migrate to drop old column.
+**Destructive changes (drop column, rename, type change, constraint tightening) are different.** A single migration that drops a column the currently-running code still reads will crash every request that touches it, regardless of ordering — the dangerous window exists between "migration applied" and "new code live" no matter who goes first.
+
+The discipline that eliminates this is **expand-contract**: decompose the destructive change into a sequence of individually-additive steps, each safe in either deploy order. This isn't an alternative to strict ordering — it's the engineering discipline that *removes the need* for strict ordering.
+
+Example — renaming `user_name` to `username`, as a sequence of separate PRs each shipped through this runbook's timing convention:
+
+| PR | Migration (applied before merge) | Code in that PR | Why it's safe |
+|---|---|---|---|
+| 1 | Add `username` column (nullable), backfill from `user_name` | Write to **both**; read from `user_name` | Additive; old code ignores new column |
+| 2 | — | Write to both; read from `username` | Both columns populated; either read works |
+| 3 | — | Write only to `username` | `user_name` frozen but still present |
+| 4 | Drop `user_name` | — | Nothing reads or writes `user_name` anymore |
+
+Every PR on its own looks like an additive change at the deploy boundary. The race has nowhere to happen.
 
 Migrations run **manually** via this runbook — see [Why migrations stay manual](#why-migrations-stay-manual-for-now) for the threat model and the criteria for revisiting automation.
 
