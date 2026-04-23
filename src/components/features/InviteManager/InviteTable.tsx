@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
@@ -15,6 +13,8 @@ type Invite = {
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
+  seatAssignment: string | null;
+  plannerNotes: string | null;
   tokenRegenerateCount?: number;
   sentAt?: string | null;
   openedAt?: string | null;
@@ -32,16 +32,12 @@ type Invite = {
 
 type InviteTableProps = {
   invites: Invite[];
-  onResend?: (invite: Invite) => void;
-  onCopyLink?: (invite: Invite) => void;
-  onRegenerate?: (invite: Invite) => void;
-  onRevoke?: (invite: Invite) => void;
+  onResend?: (invite: Invite) => void | Promise<void>;
+  onCopyLink?: (invite: Invite) => void | Promise<void>;
+  onRowClick?: (invite: Invite) => void;
   copiedInviteId?: string | null;
   tokenCache?: Map<string, string>;
-  regeneratingId?: string | null;
 };
-
-const MAX_REGENERATIONS = 3;
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> = {
   PENDING: { label: "Pending", className: "bg-surface-3 text-foreground" },
@@ -59,10 +55,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRevoke, copiedInviteId, tokenCache, regeneratingId }: InviteTableProps) {
-  const [revokeTarget, setRevokeTarget] = useState<Invite | null>(null);
-  const [regenerateTarget, setRegenerateTarget] = useState<Invite | null>(null);
-
+export function InviteTable({ invites, onResend, onCopyLink, onRowClick, copiedInviteId, tokenCache }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -72,7 +65,13 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <>
+      {onRowClick && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          Tip: click any row to manage seating, notes, and link actions.
+        </p>
+      )}
+      <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50">
           <tr>
@@ -91,8 +90,35 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
               ? RESPONSE_CONFIG[invite.rsvp.response]
               : null;
 
+            const handleRowActivate = () => {
+              if (onRowClick) onRowClick(invite);
+            };
+            const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
+              if (!onRowClick) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onRowClick(invite);
+              }
+            };
+            const stopBubble = (e: React.SyntheticEvent) => e.stopPropagation();
+
             return (
-              <tr key={invite.id} className="hover:bg-muted/30">
+              <tr
+                key={invite.id}
+                className={cn(
+                  "hover:bg-muted/30",
+                  onRowClick && "cursor-pointer focus:bg-muted/50 focus:outline-none"
+                )}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? "button" : undefined}
+                aria-label={
+                  onRowClick
+                    ? `Open details for ${invite.name || invite.email || invite.phone || "invite"}`
+                    : undefined
+                }
+                onClick={onRowClick ? handleRowActivate : undefined}
+                onKeyDown={onRowClick ? handleRowKeyDown : undefined}
+              >
                 <td className="px-4 py-3">
                   <div>
                     <p className="font-medium">
@@ -144,87 +170,43 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
-                    {(() => {
+                    {copiedInviteId === invite.id ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-600 dark:text-green-400">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copied!
+                      </span>
+                    ) : (() => {
                       const hasToken = !!(invite.token || tokenCache?.get(invite.id));
-                      const isActive = invite.status !== "REVOKED" && invite.status !== "EXPIRED";
-
-                      if (copiedInviteId === invite.id) {
-                        return (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-600 dark:text-green-400">
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Copied!
-                          </span>
-                        );
-                      }
-
-                      if (hasToken && onCopyLink) {
-                        const isPhoneOnly = !invite.email;
-                        return (
-                          <button
-                            onClick={() => onCopyLink(invite)}
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                              isPhoneOnly
-                                ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-                                : "bg-primary/10 text-primary hover:bg-primary/20"
-                            )}
-                          >
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.06a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.343 8.28" />
-                            </svg>
-                            {isPhoneOnly ? "Copy & Share Link" : "Copy Link"}
-                          </button>
-                        );
-                      }
-
-                      if (!hasToken && isActive && onRegenerate) {
-                        const used = invite.tokenRegenerateCount ?? 0;
-                        const remaining = MAX_REGENERATIONS - used;
-
-                        if (remaining <= 0) {
-                          return (
-                            <span className="text-xs text-muted-foreground" title="Regeneration limit reached. Revoke and create a new invite.">
-                              Limit reached
-                            </span>
-                          );
-                        }
-
-                        return regeneratingId === invite.id ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-muted-foreground">
-                            <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                            Generating...
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => setRegenerateTarget(invite)}
-                            className="inline-flex items-center gap-1 rounded-md bg-surface-3 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-surface-3/80 transition-colors"
-                          >
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
-                            </svg>
-                            New Link ({remaining} left)
-                          </button>
-                        );
-                      }
-
-                      return null;
+                      if (!hasToken || !onCopyLink) return null;
+                      const isPhoneOnly = !invite.email;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            stopBubble(e);
+                            onCopyLink(invite);
+                          }}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                            isPhoneOnly
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                              : "bg-primary/10 text-primary hover:bg-primary/20"
+                          )}
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.06a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.343 8.28" />
+                          </svg>
+                          {isPhoneOnly ? "Copy & Share Link" : "Copy Link"}
+                        </button>
+                      );
                     })()}
-                    {onRevoke && invite.status !== "REVOKED" && invite.status !== "EXPIRED" && (
-                      <button
-                        onClick={() => setRevokeTarget(invite)}
-                        className="text-xs text-destructive hover:underline"
-                      >
-                        Revoke
-                      </button>
-                    )}
                     {onResend && invite.email && invite.status !== "RESPONDED" && invite.status !== "REVOKED" && (
                       <button
-                        onClick={() => onResend(invite)}
+                        onClick={(e) => {
+                          stopBubble(e);
+                          onResend(invite);
+                        }}
                         className="text-xs text-primary hover:underline"
                       >
                         Resend
@@ -237,47 +219,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onRegenerate, onRev
           })}
         </tbody>
       </table>
-
-      {onRevoke && (
-        <ConfirmDialog
-          open={!!revokeTarget}
-          onCancel={() => setRevokeTarget(null)}
-          onConfirm={() => {
-            if (revokeTarget) {
-              onRevoke(revokeTarget);
-              setRevokeTarget(null);
-            }
-          }}
-          title="Revoke Invitation"
-          description={
-            revokeTarget
-              ? `Are you sure you want to revoke the invite for ${revokeTarget.name || revokeTarget.email || revokeTarget.phone}? They will no longer be able to view or respond to the invitation.`
-              : ""
-          }
-          confirmLabel="Revoke"
-          variant="destructive"
-        />
-      )}
-
-      {onRegenerate && (
-        <ConfirmDialog
-          open={!!regenerateTarget}
-          onCancel={() => setRegenerateTarget(null)}
-          onConfirm={() => {
-            if (regenerateTarget) {
-              onRegenerate(regenerateTarget);
-              setRegenerateTarget(null);
-            }
-          }}
-          title="Generate New Link"
-          description={
-            regenerateTarget
-              ? `This will create a new invite link for ${regenerateTarget.name || regenerateTarget.email || regenerateTarget.phone} and invalidate their previous link. The new link will be copied to your clipboard.\n\nYou can regenerate a link up to ${MAX_REGENERATIONS} times per invite. ${MAX_REGENERATIONS - (regenerateTarget.tokenRegenerateCount ?? 0)} remaining. If you need more, revoke this invite and create a new one.`
-              : ""
-          }
-          confirmLabel="Generate & Copy"
-        />
-      )}
-    </div>
+      </div>
+    </>
   );
 }

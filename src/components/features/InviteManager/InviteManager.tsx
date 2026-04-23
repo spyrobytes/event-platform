@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { InviteForm } from "./InviteForm";
 import { InviteTable } from "./InviteTable";
+import { InvitePlanningPanel, type PlanningFields } from "./InvitePlanningPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CreateInviteInput } from "@/schemas/invite";
@@ -36,6 +38,8 @@ type Invite = {
   name?: string | null;
   status: InviteStatus;
   plusOnesAllowed: number;
+  seatAssignment: string | null;
+  plannerNotes: string | null;
   tokenRegenerateCount?: number;
   sentAt?: string | null;
   openedAt?: string | null;
@@ -206,7 +210,78 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
 
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
   const [tokenCache, setTokenCache] = useState<Map<string, string>>(new Map());
-  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+
+  // Panel state coordination via `?invite=<id>` — deep-linkable, back-button friendly.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const panelInviteId = searchParams.get("invite");
+  const panelInvite = useMemo(
+    () => (panelInviteId ? invites.find((i) => i.id === panelInviteId) ?? null : null),
+    [panelInviteId, invites]
+  );
+  const panelToken = useMemo(() => {
+    if (!panelInvite) return null;
+    return panelInvite.token ?? tokenCache.get(panelInvite.id) ?? null;
+  }, [panelInvite, tokenCache]);
+
+  const setPanelInviteIdInUrl = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (id) {
+        params.set("invite", id);
+      } else {
+        params.delete("invite");
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams]
+  );
+
+  const handleRowClick = useCallback(
+    (invite: Invite) => setPanelInviteIdInUrl(invite.id),
+    [setPanelInviteIdInUrl]
+  );
+  const handleClosePanel = useCallback(
+    () => setPanelInviteIdInUrl(null),
+    [setPanelInviteIdInUrl]
+  );
+
+  const handleSavePlanning = useCallback(
+    async (inviteId: string, data: PlanningFields) => {
+      const authToken = await getIdToken();
+      if (!authToken) throw new Error("Not authenticated");
+      const response = await fetch(
+        `/api/events/${eventId}/invites/${inviteId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(data),
+        }
+      );
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to save planning fields");
+      }
+      const result = await response.json();
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === inviteId
+            ? {
+                ...i,
+                seatAssignment: result.data.seatAssignment,
+                plannerNotes: result.data.plannerNotes,
+              }
+            : i
+        )
+      );
+    },
+    [eventId, getIdToken]
+  );
 
   const buildGuestLink = useCallback((token: string, invite: Invite) => {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
@@ -231,7 +306,6 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
 
   const handleRegenerate = async (invite: Invite) => {
     try {
-      setRegeneratingId(invite.id);
       const authToken = await getIdToken();
       if (!authToken) throw new Error("Not authenticated");
 
@@ -267,8 +341,6 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
       setTimeout(() => setCopiedInviteId(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to regenerate link");
-    } finally {
-      setRegeneratingId(null);
     }
   };
 
@@ -502,11 +574,9 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
               <InviteTable
                 invites={invites}
                 onCopyLink={handleCopyLink}
-                onRegenerate={handleRegenerate}
-                onRevoke={handleRevoke}
+                onRowClick={handleRowClick}
                 copiedInviteId={copiedInviteId}
                 tokenCache={tokenCache}
-                regeneratingId={regeneratingId}
               />
               {pagination && pagination.total > PAGE_SIZE && (
                 <div className="flex items-center justify-between border-t pt-4 mt-4">
@@ -537,6 +607,19 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
           )}
         </CardContent>
       </Card>
+
+      <InvitePlanningPanel
+        open={panelInviteId !== null}
+        invite={panelInvite}
+        token={panelToken}
+        onClose={handleClosePanel}
+        onSavePlanning={(data) => {
+          if (!panelInvite) return Promise.resolve();
+          return handleSavePlanning(panelInvite.id, data);
+        }}
+        onRegenerate={panelInvite ? () => handleRegenerate(panelInvite) : undefined}
+        onRevoke={panelInvite ? () => handleRevoke(panelInvite) : undefined}
+      />
     </div>
   );
 }
