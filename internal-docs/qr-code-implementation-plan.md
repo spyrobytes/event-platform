@@ -6,7 +6,7 @@
 **Owner:** _TBD_
 **Status:** Ready to pick up
 
-> **Revision note.** This version supersedes the original draft in `implementation-docs-archive/qr-code-implementation-plan.md`. Changes: adds pass-view route, attachment-plumbing task, broken-image fallback, revoked-invite handling in the QR route; switches QR target URL from `/rsvp/[token]` to `/invite/[token]/pass`; fixes factual error about the Mailgun SDK; narrows dashboard UX to Pattern 2 (action-menu + modal).
+> **Revision note.** This version supersedes the original draft (kept out-of-repo). Initial revision: adds pass-view route, attachment-plumbing task, broken-image fallback, revoked-invite handling in the QR route; switches QR target URL from `/rsvp/[token]` to `/invite/[token]/pass`; fixes factual error about the Mailgun SDK; narrows dashboard UX to Pattern 2 (action-menu + modal). Second revision (2026-04-23) applies reviewer feedback: B1 (inline-attachment abstraction), B2 (`force-dynamic`), B3 (phone-only cohort), B4 (copy-link action), S1–S4 (pass-view state & fields), S5 (OG privacy), S6 (email copy), S7 (multipart boundary), S8 (single Prisma call), and selected polish items (N1, N2, N4, N6, N7, N8).
 
 ---
 
@@ -19,6 +19,7 @@
 - Implementation respects existing email queue / retry semantics (no duplicate sends, no orphaned jobs).
 - Feature is additive: no changes to existing RSVP or email flows for guests. The email body's "RSVP Now" CTA continues to point at the animated invitation card (`/invite/[token]`); only the QR encodes the pass URL.
 - QR URL is **durable** — same token, same URL, reusable when pre-GA check-in infrastructure ships. No QR rotation.
+- **Phone-only invite handling.** Invitees created without an email address (`Invite.email === null`) do not receive a QR via automated delivery in the MVP. The organizer-driven workflow (manually copy the invite link from the dashboard, send via SMS/WhatsApp) continues to function: the tokenized link the guest receives opens the pass view directly on their phone at the venue. Organizers who want to supply a QR image to phone-only invitees can download the PNG from the dashboard modal and attach it to the message. Automated SMS/WhatsApp delivery via Twilio is deferred to GA.
 
 **Non-Goals (for this plan)**
 
@@ -77,13 +78,29 @@ The **pass view** at `/invite/[token]/pass` renders the same underlying data (gu
 
 The current `SendEmailOptions` at `src/lib/email.ts:49` has no `attachments` field, and neither `sendEmailViaSMTP` nor `sendEmailViaMailgun` passes any. This must be added as a separate, inert-until-used task before QR code propagation.
 
-For **SMTP** (Mailpit in dev), nodemailer accepts `attachments: [{ filename, content, cid }]` natively.
+For **SMTP** (Mailpit in dev), nodemailer accepts `attachments: [{ filename, content, cid }]` natively. We set `cid === filename` so the HTML reference `cid:${filename}` works on both providers.
 
-For **Mailgun**, the current code uses raw `fetch` + `FormData` — not the `mailgun.js` SDK. Inline attachments use `formData.append("inline", new Blob([buffer]), "rsvp-qr.png")` where "inline" (vs "attachment") is the Mailgun field name that produces CID-referenced images.
+For **Mailgun**, the current code uses raw `fetch` + `FormData` — not the `mailgun.js` SDK. Inline attachments use `formData.append("inline", new Blob([buffer]), "rsvp-qr.png")` where "inline" (vs "attachment") is the Mailgun field name that produces CID-referenced images. The filename passed to FormData is the CID identifier, so `filename` must equal whatever `cid:<…>` value is referenced in the HTML.
+
+The `SendEmailOptions.attachments` shape normalizes this with a single `inline?: boolean` flag instead of exposing a separate `cid` field (which cannot be honored independently by Mailgun). See Task 2a.
 
 ### 2.7 Cache QRs aggressively
 
 The QR API route serves `Cache-Control: public, max-age=31536000, immutable`. Token → URL is a stable 1-to-1 mapping; revocation is handled at the pass view itself (which does a live DB read), not at the QR image layer. Aggressive caching keeps the dashboard snappy and CDN costs minimal.
+
+### 2.8 State detection uses timestamps, not status enum
+
+The pass view reads `invite.revokedAt`, `invite.expiresAt`, `event.endAt`, and `event.status` directly. The `InviteStatus` enum is treated as denormalized display state for dashboard listings — not as authoritative access control. If an invite's `revokedAt` is non-null, the pass view treats it as revoked regardless of whether `InviteStatus` has been updated.
+
+### 2.9 Route map — three routes share the same token
+
+| Route | Audience | Rendering | Auth |
+|---|---|---|---|
+| `/invite/[token]` | Guest (email CTA) | Animated invitation card | Token in URL |
+| `/invite/[token]/pass` | Staff / guest at venue | Compact, no animation | Token in URL |
+| `/rsvp/[token]` | Guest (direct-link RSVP flow) | RSVP form | Token in URL |
+
+The email's "RSVP Now" CTA points at `/invite/[token]`. The QR encodes `/invite/[token]/pass`. `/rsvp/[token]` remains the target of direct RSVP links and is still live; a future cleanup pass may consolidate it behind `/invite/[token]` but that is out of scope here.
 
 ---
 
@@ -123,9 +140,27 @@ buildPassUrl(token: string): string
 generateQrSvg(url: string, size?: number): Promise<string>
 generateQrPngBuffer(url: string, size?: number): Promise<Buffer>
 generateQrDataUrl(url: string): Promise<string>
+buildQrFilename(guestName: string | null, token: string): string
 ```
 
 `buildPassUrl(token)` returns `${NEXT_PUBLIC_BASE_URL}/invite/${token}/pass`.
+
+`buildQrFilename(guestName, token)` centralizes download filename sanitization so the dashboard modal, future bulk-export, and any ad-hoc tooling all produce the same shape. Reference implementation:
+
+```ts
+export function buildQrFilename(guestName: string | null, token: string): string {
+  const safe = (guestName ?? "invite")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32) || "invite";
+  return `rsvp-${safe}-${token.slice(0, 6)}.png`;
+}
+```
+
+The 6-char token suffix disambiguates when organizers download multiple guests with the same first name.
 
 **Acceptance criteria**
 
@@ -133,7 +168,8 @@ generateQrDataUrl(url: string): Promise<string>
 - [ ] `buildPassUrl` throws a clear error if `NEXT_PUBLIC_BASE_URL` is unset.
 - [ ] `buildPassUrl` handles trailing slash in base URL correctly.
 - [ ] Default error correction level is `M`, documented in a code comment with rationale.
-- [ ] Unit tests cover: URL construction, trailing-slash normalization, missing env var, SVG output shape, PNG buffer non-empty.
+- [ ] `buildQrFilename` covers: null name → `"invite"` base, diacritics stripped, non-alphanumerics collapsed to hyphens, leading/trailing hyphens trimmed, 32-char cap, token suffix preserved.
+- [ ] Unit tests cover: URL construction, trailing-slash normalization, missing env var, SVG output shape, PNG buffer non-empty, `buildQrFilename` cases above.
 - [ ] JSDoc on each export explaining chosen options.
 
 ---
@@ -162,20 +198,23 @@ generateQrDataUrl(url: string): Promise<string>
     attachments?: Array<{
       filename: string;
       content: Buffer;
-      cid?: string;              // If present, referenceable as cid:<value> in HTML
+      inline?: boolean;          // If true, attachment is embeddable via cid:<filename> in HTML
       contentType?: string;      // Defaults to application/octet-stream
     }>;
   };
   ```
-- In `sendEmailViaSMTP`: pass `attachments` through to nodemailer's `sendMail` as-is; nodemailer's native shape matches.
-- In `sendEmailViaMailgun`: for each attachment, append to FormData as `"inline"` (when `cid` is set) or `"attachment"` (otherwise), using `new Blob([content], { type: contentType ?? "application/octet-stream" })`.
+
+  **Why `inline` and not `cid`.** Mailgun's REST API has no separate CID field — the FormData filename *is* the CID reference. Nodemailer allows an independent `cid`, but that asymmetry would silently diverge between providers (SMTP honors a custom cid, Mailgun ignores it and uses the filename). A single `inline` boolean sidesteps the divergence: callers reference the attachment in HTML as `cid:${filename}` on both paths.
+- In `sendEmailViaSMTP`: for each attachment, forward to nodemailer's `sendMail` as `{ filename, content, contentType, cid: inline ? filename : undefined }` so the CID matches the filename.
+- In `sendEmailViaMailgun`: for each attachment, append to FormData as `"inline"` (when `inline === true`) or `"attachment"` (otherwise), using `new Blob([content], { type: contentType ?? "application/octet-stream" })` with the filename.
 
 **Acceptance criteria**
 
 - [ ] `SendEmailOptions.attachments` is optional; existing callers compile unchanged.
-- [ ] Nodemailer SMTP path forwards the array to `transporter.sendMail({ attachments })`.
-- [ ] Mailgun path produces correct FormData field names (`inline` vs `attachment`) per cid presence.
-- [ ] Unit tests: (a) SMTP receives attachments in `sendMail` call; (b) Mailgun FormData contains both `inline` and `attachment` fields when given mixed input.
+- [ ] Nodemailer SMTP path forwards the array to `transporter.sendMail({ attachments })` with `cid` set to `filename` when `inline === true`.
+- [ ] Mailgun path produces correct FormData field names (`inline` vs `attachment`) keyed off `inline === true`.
+- [ ] `sendEmailViaMailgun` does **not** manually set a Content-Type header when the body is `FormData`; `fetch` derives the `multipart/form-data; boundary=…` header. Setting it manually corrupts the boundary.
+- [ ] Unit tests: (a) SMTP path: inline attachment passed to `transporter.sendMail` with `cid === filename`; (b) Mailgun path: mocked `fetch` sees `inline` field for `inline: true` and `attachment` field for `inline: false/undefined`; (c) HTML reference `cid:rsvp-qr.png` renders correctly across both mocked transports.
 - [ ] No behavior change for calls that omit `attachments` — verified via existing test suite.
 
 ---
@@ -194,7 +233,7 @@ generateQrDataUrl(url: string): Promise<string>
 **Changes**
 
 - In the `INVITE` case of `processEmail()`, after payload extraction, call `generateQrPngBuffer(buildPassUrl(payload.token))`.
-- On success: pass the buffer through the new `attachments` option with `filename: "rsvp-qr.png"`, `cid: "rsvp-qr.png"`, `contentType: "image/png"`. Also set `qrAvailable: true` in the template payload.
+- On success: pass the buffer through the new `attachments` option with `filename: "rsvp-qr.png"`, `inline: true`, `contentType: "image/png"`. The template references `cid:rsvp-qr.png` — the CID value matches the filename on both providers (see §2.6, Task 2a). Also set `qrAvailable: true` in the template payload.
 - On failure: `logger.warn("QR generation failed", { inviteId, error })`, set `qrAvailable: false`, send the email without the attachment. Never throw.
 - Leave `CONFIRMATION`, `REMINDER`, `NO_RESPONSE_REMINDER`, `VERIFICATION`, `PASSWORD_RESET` cases untouched.
 - The INVITE email payload must include `token` — verify this is present in `queueInviteEmail` callers or add a clear error.
@@ -237,7 +276,7 @@ generateQrDataUrl(url: string): Promise<string>
         style={qrImageStyles}
       />
       <Text style={qrHelperStyles}>
-        Save this QR or take a screenshot — scan at the venue for faster check-in.
+        Show this QR at the venue — staff can verify your invitation at a glance.
       </Text>
     </Section>
   )}
@@ -269,32 +308,77 @@ generateQrDataUrl(url: string): Promise<string>
 
 **Behavior**
 
-Server component. Reads the invite by hashed token, loads the related RSVP (if any), renders a compact layout optimized for staff scanning a phone at arm's length:
+Server component. Explicitly opts into dynamic rendering and reads the invite in a single Prisma call with `rsvp` and `event` included. Renders a compact layout optimized for staff scanning a phone at arm's length.
 
-1. **Guest name** — extra-large (~48px), top of viewport.
+```tsx
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Invitation",
+  description: "Event invitation details",
+  robots: { index: false, follow: false },
+  openGraph: {
+    title: "Event Invitation",
+    description: "View your invitation details",
+  },
+};
+
+const invite = await db.invite.findUnique({
+  where: { tokenHash },
+  include: {
+    rsvp: true,
+    event: { select: { title: true, startAt: true, endAt: true, status: true } },
+  },
+});
+```
+
+**Render order (happy path):**
+
+1. **Guest name** — extra-large (~48px), top of viewport. Fallback chain (first non-null wins):
+   1. `rsvp.guestName` if RSVP exists.
+   2. `invite.name`.
+   3. Email local-part (`invite.email.split("@")[0]`) if `invite.email` is set.
+   4. `"Guest"`.
 2. **RSVP status badge** — prominent color-coded pill:
-   - Green "Attending" for `RSVP.response === "YES"`.
-   - Amber "Maybe" for `RSVP.response === "MAYBE"`.
-   - Red "Declined" for `RSVP.response === "NO"`.
+   - Green "Attending" for `rsvp.response === "YES"`.
+   - Amber "Maybe" for `rsvp.response === "MAYBE"`.
+   - Red "Declined" for `rsvp.response === "NO"`.
    - Gray "RSVP pending" if no RSVP row exists.
-3. **Plus-ones** — "Party of {1 + plusOnesAllowed}" if `plusOnesAllowed > 0`.
-4. **Event title and date** — smaller; lets staff verify the right event.
-5. **Access-blocking overlays** (render these *instead of* the above when applicable):
-   - **Revoked banner** — full-bleed red if `Invite.revokedAt` is set.
-   - **Expired banner** — amber if `Invite.expiresAt < now`.
+3. **Party label** — use the *actual* declared size, not the cap:
+   - If `rsvp` exists and `rsvp.guestCount > 1`: `"Party of ${rsvp.guestCount}"`.
+   - Else if no RSVP and `invite.plusOnesAllowed > 0`: `"Up to ${1 + invite.plusOnesAllowed} guests"`.
+   - Else: omitted.
+4. **Event title and start date** — smaller; lets staff verify the right event.
 
-No client JS required for MVP. No animations. Meta `robots: noindex` (per-invite content must not be indexed).
+**Access-blocking overlays** (render one of these *instead of* the render order above; priority top-to-bottom):
+
+- **Revoked banner** — full-bleed red if `invite.revokedAt` is set.
+- **Cancelled banner** — full-bleed red if `event.status === "CANCELLED"`.
+- **Expired banner** — amber if `invite.expiresAt && invite.expiresAt < now`.
+- **Event-ended banner** — gray if `event.endAt && event.endAt < now`. When `event.endAt === null`, skip this state (do not guess from `startAt`); a null-end event has no reliable "ended" signal.
+
+State detection uses timestamps/enums directly per §2.8 — do not rely on `InviteStatus`.
+
+No client JS required for MVP. No animations.
 
 **Security/auth:** unauthenticated. The token itself is the credential. Matches the existing `/rsvp/[token]` and `/invite/[token]` auth model.
 
+**`X-Robots-Tag` response header (optional belt-and-braces).** The `metadata.robots` export covers HTML-parsing crawlers; it does not cover HEAD-only bots (Slackbot link previews, some email scanners). Setting `X-Robots-Tag: noindex, nofollow` on the response requires either a `headers()` rule in `next.config.ts` matching `/invite/:token/pass` or a middleware rule — pick one and note the choice in the PR. Not a blocker for first merge if `metadata.robots` is in place.
+
 **Acceptance criteria**
 
-- [ ] Renders the four key fields (guest, RSVP, plus-ones, event) legibly at 375px viewport.
-- [ ] Color-coded badge matches RSVP response.
-- [ ] Revoked or expired state is shown as a blocking banner that dominates the view.
+- [ ] `export const dynamic = "force-dynamic"` is set; build output lists the pass route as `ƒ` (dynamic), not `○` (static).
+- [ ] Pass view renders with exactly one DB query per request (single `findUnique` with `include`).
+- [ ] Renders the four key fields (guest, RSVP, party, event) legibly at 375px viewport.
+- [ ] Guest name fallback chain is implemented in the order above; pass view renders when `invite.name` is null and no RSVP exists.
+- [ ] Party label uses `rsvp.guestCount` when an RSVP exists; `1 + plusOnesAllowed` cap only when no RSVP exists.
+- [ ] Color-coded RSVP badge matches `rsvp.response`.
+- [ ] Revoked, cancelled, expired, and event-ended states each render a blocking banner that dominates the view.
+- [ ] `event.endAt === null` does not trigger the event-ended banner under any condition.
 - [ ] Returns 404 for unknown token hashes.
 - [ ] SSR-rendered; no hydration-required components in the MVP.
-- [ ] `robots: noindex` in metadata.
+- [ ] `metadata.robots = { index: false, follow: false }` is set.
+- [ ] `metadata.openGraph` contains no guest-identifying data — social link preview in iMessage/Slack shows generic text only.
 - [ ] Smoke-tested: visit `/invite/<test-token>/pass` on a phone, hold at arm's length, confirm guest name + RSVP badge are legible without zoom.
 
 ---
@@ -355,7 +439,8 @@ Pattern chosen: **action-menu + modal** (not inline thumbnail). Reasons captured
   - Guest name (matching the row).
   - QR image loaded from `/api/invites/[token]/qr` (SVG for display).
   - Event title (so screenshots are self-contained at the door).
-  - **Download PNG** button → targets `?format=png` with `download="rsvp-{guestFirstName}.png"` attribute. Filename convention: first name only for brevity, or `{shortToken}` if no name is known. Sanitize non-filename-safe chars.
+  - **Copy invite link** button (equal visual weight to Download PNG) → `navigator.clipboard.writeText(buildPassUrl(token))`; swap label to `"Copied ✓"` for ~2s after click, then revert. This is the primary tool for phone-only invites (see §1 Goals): organizers texting the link manually need the URL on their clipboard, not a file.
+  - **Download PNG** button → targets `?format=png` with `download={buildQrFilename(guestName, token)}`. Use the shared helper from `src/lib/qr.ts` (Task 1, N4) rather than ad-hoc sanitization here.
   - **Close** button; focus trap; `Esc` closes.
 - Explicit `width`/`height` on the `<img>` inside the modal to prevent layout shift while the SVG loads.
 
@@ -363,7 +448,8 @@ Pattern chosen: **action-menu + modal** (not inline thumbnail). Reasons captured
 
 - [ ] "View QR" action is discoverable in every invite row.
 - [ ] Modal opens with QR, guest name, event title; focus is trapped inside.
-- [ ] Download produces a usable PNG file with a sensible filename.
+- [ ] "Copy invite link" button copies the pass URL and shows a visible confirmation (`"Copied ✓"`) for ~2s, then reverts.
+- [ ] Download produces a usable PNG file; filename is generated by `buildQrFilename`, not a per-PR re-implementation.
 - [ ] `Esc` and the Close button both dismiss the modal.
 - [ ] Mobile dashboard layout is not broken.
 - [ ] No cumulative layout shift on modal open.
@@ -415,6 +501,17 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 - No DB migrations in any task.
 - Emails already delivered with a QR remain functional forever — the URL encoded in the QR (`/invite/<token>/pass`) does not change.
 
+### 6.5 Post-ship monitoring (stub)
+
+Not in scope for the MVP tasks above, but worth capturing so the owner of observability picks it up alongside ship. Define dashboards / alerts for:
+
+- **QR generation failure rate** (count of `processEmail()` INVITE branch that logged `"QR generation failed"`). Target <0.1%.
+- **INVITE emails sent with `qrAvailable: false`** — counter; should be ~0. Non-zero indicates a systematic issue (e.g. env var drift).
+- **Pass view 404 rate** — baseline, then alert on sustained spikes (indicates token leakage, stale QR after regeneration, or broken dashboard link).
+- **Mailgun bounce / complaint delta** — compare 7-day pre/post-ship. Investigate if +0.5pp or more, especially bounce — PNG attachments can affect spam scoring.
+
+Implementation is decoupled from this plan and should be filed against whichever observability system owns the rest of our email and HTTP metrics.
+
 ---
 
 ## 7. Risks and Mitigations
@@ -428,6 +525,7 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 | Token enumeration via QR route | Negligible | Low | 256-bit token space; enumeration is infeasible. |
 | Pass view renders slowly and door queue backs up | Low | Medium | SSR server component, minimal dependencies, no client JS. Measure first real use at a small event before scaling. |
 | Revoked invite still opens pass view with QR screenshot | Low | Medium | Pass view does a live DB read; revoked banner overrides all other content. The stale QR image itself is not revocable, but the content it links to is. |
+| Phone-only invitee has no credential accessible offline at venue | Low | Low | The SMS link opens the pass view in a browser; most mobile browsers cache the rendered page and will display stale content offline. Staff can also look up by name in the dashboard from a connected device. Not a blocker for venues with normal connectivity. |
 
 ---
 
@@ -438,8 +536,10 @@ Deliberately deferred; all reusable with the MVP QRs (no rotation required).
 - **Pre-GA backend check-in.** Adds `checkedInAt` timestamp (one field on `Invite` or a new `CheckIn` table), `POST /api/invites/[token]/check-in` endpoint, and a staff-auth "Check In" button on the pass view. Estimated 2–3 days of additive work; the QRs shipped in this plan remain valid.
 - **Staff scanner UI.** Dedicated `/admin/events/[id]/check-in` page that uses the browser camera API to scan QRs directly. Only needed once the backend check-in flow exists and venues request faster throughput than the "open phone, hold for staff" flow.
 - **Branded QR codes with logo overlay.** Requires error correction `H` and design input.
-- **QR codes in CONFIRMATION / REMINDER emails.** Low marginal value; guest already has the invite email with the QR.
+- **QR code on the pass view itself.** Not useful for MVP (visual verification only). Becomes valuable when backend check-in ships because scanning the pass-view QR from a staff scanner would then trigger a state write rather than re-display the same information.
+- **QR codes in CONFIRMATION / REMINDER emails.** Redundant for email invitees who already have the invite email with the QR. Could help phone-only invitees who provide an email at RSVP time, but adds payload-type complexity; revisit if phone-only invitees report difficulty at venues in practice.
 - **Apple / Google Wallet passes.** Significant infra lift; only worth doing once check-in is live and demand is proven.
+- **Token-regeneration UX polish.** Schema has `Invite.tokenRegenerateCount`. When an organizer regenerates a token, the old QR still decodes to a URL that now 404s. Two post-ship polish items: (1) the pass view 404 should render a branded *"This invitation is no longer valid — contact the organizer"* page instead of a generic Next.js 404; (2) the dashboard should warn organizers that regenerating a token invalidates previously-distributed QRs and links. Neither is a ship blocker.
 
 ---
 
@@ -463,14 +563,14 @@ No QR rotation. Guests never need to receive a replacement QR.
 
 In addition to the standard reviewer expectations in `CLAUDE.md` and `CONTRIBUTING.md`:
 
-- [ ] Architectural decisions in §2 are respected (especially: send-time generation, CID attachments, non-fatal QR failures, pass-view URL as the QR target).
+- [ ] Architectural decisions in §2 are respected (especially: send-time generation, `inline: true` attachments per §2.6, non-fatal QR failures, pass-view URL as the QR target, timestamp-driven state detection per §2.8).
 - [ ] No new environment variables introduced.
 - [ ] No changes to `EmailOutbox` schema or shape.
 - [ ] Non-INVITE email cases are provably unchanged (test evidence, not just claim).
-- [ ] Pass view is SSR, reads DB live, correctly renders revoked/expired states.
-- [ ] `sendEmail` attachment extension is fully tested against both send paths before Task 2b lands.
-- [ ] Dashboard Pattern 2 (action-menu + modal) is implemented as specified; no inline thumbnail variant crept in.
+- [ ] Pass view is dynamically rendered (`force-dynamic`), reads DB live in a single query, correctly renders revoked / cancelled / expired / event-ended states, applies the documented guest-name fallback chain, and does not leak guest identity in OG metadata.
+- [ ] `sendEmail` attachment extension uses the `inline` boolean abstraction (no `cid` field); inline attachments render correctly on both SMTP and Mailgun paths; no manual Content-Type header set on the Mailgun FormData request.
+- [ ] Dashboard Pattern 2 (action-menu + modal) is implemented as specified; "Copy invite link" and "Download PNG" actions are both present; download filename comes from `buildQrFilename`, not ad-hoc code.
 
 ---
 
-_Last updated: 2026-04-23_
+_Last updated: 2026-04-23 (post-review revision: B1–B4, S1–S8, N1/N2/N4/N6/N7/N8, N3 stub, N5 flagged)_
