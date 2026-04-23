@@ -89,9 +89,14 @@ export default function InvitesPage() {
             Send and track invitations for {event.title}
           </p>
         </div>
-        <Link href={`/dashboard/events/${event.id}`}>
-          <Button variant="outline">Back to Event</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href={`/dashboard/events/${event.id}/invites/roster`}>
+            <Button variant="outline">Print roster</Button>
+          </Link>
+          <Link href={`/dashboard/events/${event.id}`}>
+            <Button variant="outline">Back to Event</Button>
+          </Link>
+        </div>
       </div>
 
       <InviteManager eventId={event.id} eventSlug={event.slug} />
