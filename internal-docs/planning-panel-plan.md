@@ -1,8 +1,8 @@
 # Invite Planning Panel + Printable Roster — Implementation Plan
 
-**Feature:** Per-invite side panel on the Manage Invites page (edit seat assignment, planner notes; view QR; quick actions) plus a printable day-of roster filtered to confirmed-attending guests.
-**Scope:** Companion plan to `qr-code-implementation-plan.md`. Subsumes the deferred **Task 5** (dashboard QR surface) from that plan — the panel replaces the standalone `InviteQrModal`. Two additive schema fields on `Invite`; one new API route; two new UI surfaces (panel + roster).
-**Effort estimate:** ~2.5 dev days across 6 small PRs.
+**Feature:** Per-invite side panel on the Manage Invites page (edit seat assignment, planner notes; copy invite link; quick actions) plus a printable day-of roster filtered to confirmed-attending guests.
+**Scope:** Two additive schema fields on `Invite`; one new API route; two new UI surfaces (panel + roster). The MVP panel (Tasks 1–6) ships **independently of `qr-code-implementation-plan.md`** — see §2.8. A cross-plan follow-up (Task 7) later folds the QR display into the panel and retires the QR plan's standalone `InviteQrModal`.
+**Effort estimate:** ~2.5 dev days across 6 small PRs, plus ~0.5 dev day for the Task 7 follow-up.
 **Owner:** _TBD_
 **Status:** Draft
 
@@ -12,9 +12,9 @@
 
 **Goals**
 
-- Organizers can open a per-invite side panel from the Manage Invites table (`/dashboard/events/[id]/invites`) that anchors all per-guest operations in one place: view details, view/download QR, copy invite link, edit seat assignment, edit planner notes.
+- Organizers can open a per-invite side panel from the Manage Invites table (`/dashboard/events/[id]/invites`) that anchors per-guest operations in one place: view details, copy invite link, edit seat assignment, edit planner notes, and (post-Task-7) view/download QR.
 - Seat assignment and planner notes persist to the `Invite` row and are visible wherever invite data is rendered.
-- The panel **replaces** Task 5 of the QR plan — there is no standalone QR modal.
+- The MVP panel has **no QR dependencies** and can ship whether or not the QR plan has merged. A follow-up task (Task 7) later integrates the QR surface into the panel and retires the QR plan's standalone modal — see §2.8.
 - Organizers can open a printable roster filtered to confirmed-attending guests (`rsvp.response === "YES"` only). The roster is a web page with print stylesheet; organizers use the browser's native print / save-as-PDF.
 - Roster columns: **Guest name**, **Seat assignment**, **Planner notes**. (A QR column is explicitly excluded — see §2.7.)
 - Schema changes are additive and non-breaking; organizers who never open the panel see no UI change.
@@ -84,19 +84,21 @@ The roster is door-staff-facing paper. The MVP check-in flow is visual verificat
 
 When backend check-in ships (QR plan §9), scanning a paper QR would trigger a state write — a genuinely distinct outcome. Revisit at that point.
 
-### 2.8 Panel subsumes QR plan Task 5; QR plan ships without dashboard QR surface
+### 2.8 Planning panel ships independently of the QR plan
 
-The QR plan (revised 2026-04-23) ships Tasks 1–4, 2a, 2b, 3, 3.5 and explicitly defers Task 5. This plan's Task 3 (panel component) is the replacement. Between QR plan merge and this plan's Task 3 merge, organizers can still access QRs by visiting `/api/invites/[token]/qr` directly or through the pass view — there is no dashboard-native QR surface during the gap. See §7 for mitigation.
+The MVP panel (Tasks 1–6 below) has **no QR dependencies**: it renders Overview + Planning + Danger zone sections with a "Copy invite link" action that uses the canonical `/invite/[token]` URL (trivially inlined, no helper needed). The panel can ship whether or not the QR plan has merged.
+
+Once both plans are in place, a **follow-up task (Task 7)** folds the QR into the panel as a new section and retires the QR plan's standalone `InviteQrModal` (Task 5 of that plan). This keeps each plan independently reviewable and deployable — neither is a release-gate for the other — while still reaching the eventual UX goal of a single per-invite panel.
+
+The QR plan's Task 5 is therefore **not deferred**: it ships as drafted. Task 7 below supersedes it later.
 
 ---
 
 ## 3. Prerequisites
 
-**Upstream plan:** `qr-code-implementation-plan.md` — Tasks 1, 3.5, and 4 must be merged before this plan's Task 3. Specifically required:
+**None from other plans.** The MVP panel (Tasks 1–6) is self-contained; it does not depend on `qr-code-implementation-plan.md` being merged.
 
-- `buildPassUrl`, `generateQrSvg`, `buildQrFilename` from `src/lib/qr.ts` (QR Task 1).
-- `/api/invites/[token]/qr` route (QR Task 4).
-- `/invite/[token]/pass` route (QR Task 3.5) — referenced from the panel's "Preview pass view" link.
+**Task 7 (the QR integration follow-up) does require QR plan artifacts** — specifically Tasks 1 (utility module), 3.5 (pass view), 4 (QR API route), and 5 (standalone QR modal, which Task 7 retires). See Task 7 for the full dependency list.
 
 **No new npm deps.**
 
@@ -108,7 +110,7 @@ The QR plan (revised 2026-04-23) ships Tasks 1–4, 2a, 2b, 3, 3.5 and explicitl
 
 ## 4. Task Breakdown
 
-Six tasks, sized for solo review. T1 is independent; T2 depends on T1; T3 depends on T2 and QR plan T1/T4; T4 depends on T3; T5 depends on T1 only; T6 depends on T1. T1 can merge on its own ahead of the others.
+Seven tasks, sized for solo review. T1 is independent; T2 depends on T1; T3 depends on T2; T4 depends on T3; T5 depends on T1 only; T6 depends on T1; T7 is a follow-up that depends on T3, T4, and QR plan Tasks 1/3.5/4/5 — see Task 7 for details. T1–T6 form the standalone panel+roster release; T7 is gated on the QR plan and can land whenever both prerequisites are in place.
 
 ### Task 1 — Schema migration
 
@@ -178,7 +180,7 @@ npm run db:generate
 
 **Branch:** `feat/invite-planning-panel`
 **PR title:** `feat: add InvitePlanningPanel side sheet`
-**Depends on:** Task 2, QR plan Task 1, QR plan Task 4
+**Depends on:** Task 2
 
 **Files**
 
@@ -193,12 +195,14 @@ npm run db:generate
 Side sheet, docked right on desktop (≥1024px, ~480px wide), full-height; bottom-sheet on mobile (<768px, ~75vh). Sections stacked vertically inside a scrollable container:
 
 1. **Header** — guest name, Close button, visible status indicator for auto-save (`Saving…` / `Saved ✓` / `Save failed`).
-2. **Overview** — email, phone, RSVP response badge (reuses existing badge component), party size (`rsvp.guestCount` if present, else `plusOnesAllowed` cap — consistent with pass view §3.5 of QR plan).
-3. **QR code** — SVG image from `/api/invites/[token]/qr`, **Download PNG** button (using `buildQrFilename` helper), **Copy invite link** button (using `buildPassUrl`), link to `/invite/[token]/pass` labeled "Preview pass view".
+2. **Overview** — email, phone, RSVP response badge (reuses existing badge component), party size (`rsvp.guestCount` if present, else `plusOnesAllowed` cap).
+3. **Invite link** — **Copy invite link** button that copies the canonical invite URL (``${NEXT_PUBLIC_BASE_URL}/invite/${token}``) inlined directly in this component; no helper import required. Shows `"Copied ✓"` for ~2s after click, then reverts. Primary tool for phone-only invites (organizers texting the link manually need the URL on their clipboard).
 4. **Planning** — two fields, auto-saving:
    - Seat assignment (single-line input, max 500 chars)
    - Planner notes (multi-line textarea, max 500 chars, character counter)
 5. **Danger zone** (collapsed by default) — existing Regenerate / Revoke actions relocated from the table action menu (see Task 4).
+
+QR display and PNG download are **not** part of this task — they arrive via Task 7 (follow-up) once the QR plan has merged. Today the QR plan's standalone modal (its Task 5) continues to provide a QR surface via the row action menu; Task 7 folds that into this panel and retires the modal.
 
 **URL state**
 
@@ -221,15 +225,15 @@ Side sheet, docked right on desktop (≥1024px, ~480px wide), full-height; botto
 - [ ] Seat and notes fields auto-save 500ms after last edit; indicator transitions `Saving… → Saved ✓`.
 - [ ] Save failure: inline retry link appears next to the field; typing in the field does not lose the unsaved value.
 - [ ] Character cap enforced client-side (hard limit) and server-side (Task 2).
-- [ ] Download PNG uses `buildQrFilename(guestName, token)` from QR plan Task 1 — no bespoke sanitization in this component.
-- [ ] "Copy invite link" copies `buildPassUrl(token)` and shows `Copied ✓` for ~2s.
+- [ ] "Copy invite link" copies `${NEXT_PUBLIC_BASE_URL}/invite/${token}` and shows `Copied ✓` for ~2s.
 - [ ] Focus is trapped inside the panel when open; `Esc` closes; focus returns to the triggering row.
 - [ ] Mobile layout at 375px is usable — sheet docks to bottom, field labels don't overflow.
 - [ ] Panel renders an empty state when `invite` param points to a missing row (not a 404 for the page).
+- [ ] Component has no imports from `src/lib/qr.ts` and no references to `/api/invites/[token]/qr` — verified by grep/test.
 
 ---
 
-### Task 4 — Wire panel into `InviteTable`; remove action-menu QR entry
+### Task 4 — Wire panel into `InviteTable`
 
 **Branch:** `feat/invite-table-panel-integration`
 **PR title:** `feat: open planning panel from invite row`
@@ -243,14 +247,15 @@ Side sheet, docked right on desktop (≥1024px, ~480px wide), full-height; botto
 **Changes**
 
 - Row click opens the panel for that invite. Use a button or clickable row; not `<a>` (no navigation).
-- Remove the action-menu "View QR" entry (never shipped in this plan's sequencing, but if it landed via any interim patch, remove here).
-- Remove Regenerate / Revoke from the row action menu; surface them in the panel's Danger zone (Task 3) instead. Reduces row action-menu to just the open-panel default behavior.
+- Move Regenerate / Revoke from the row action menu into the panel's Danger zone (Task 3).
+- **Leave the action menu's "View QR" entry in place** if the QR plan's Task 5 has shipped — Task 7 will remove it when it retires the standalone modal. Do not touch it here.
 - `InviteManager.tsx` holds the `?invite=<id>` ↔ open-panel state coordination.
 
 **Acceptance criteria**
 
 - [ ] Clicking any row opens the panel for that invite.
-- [ ] Action menu on each row is simplified — no QR, regenerate, or revoke entries. If the action menu has no remaining entries, drop the kebab trigger entirely; rows just click to open.
+- [ ] Regenerate and Revoke are no longer in the row action menu (now in panel Danger zone).
+- [ ] Action menu "View QR" entry is **unchanged** by this task (Task 7 handles its removal).
 - [ ] Keyboard: Enter on a focused row opens the panel; Tab order remains sensible.
 - [ ] No regressions in existing invite-table behavior (filters, sort, pagination) — verified by existing test suite.
 
@@ -340,6 +345,40 @@ No raw token is read; no QR is rendered. See §2.7 for rationale.
 
 ---
 
+### Task 7 — Fold QR section into the panel (follow-up, cross-plan)
+
+**Branch:** `feat/invite-panel-qr-section`
+**PR title:** `feat: move QR display into planning panel`
+**Depends on:** Task 3 (panel exists) + Task 4 (panel wired in) + QR plan Task 1 (`buildQrFilename`, `buildPassUrl`) + QR plan Task 3.5 (`/invite/[token]/pass` route) + QR plan Task 4 (`/api/invites/[token]/qr` route) + QR plan Task 5 (standalone modal, retired here).
+
+This task is a small, focused PR that lands once both plans have merged. It does three things:
+
+1. Adds a **QR section** to `InvitePlanningPanel` (between Overview and Planning per the original layout intent):
+   - SVG image from `/api/invites/[token]/qr`.
+   - **Download PNG** button using `buildQrFilename(guestName, token)`.
+   - "Preview pass view" link pointing at `/invite/[token]/pass`.
+   - Replaces the panel's inline Copy-invite-link helper with `buildPassUrl(token)` if it's preferable to copy the pass URL instead of the canonical `/invite/[token]`. Reviewer decision; either is valid.
+2. Removes the QR plan's standalone `InviteQrModal` component (`src/components/features/InviteManager/InviteQrModal.tsx`) and its "View QR" entry in `InviteTable`'s action menu. This retires QR plan Task 5's UI; the API route (QR plan Task 4) stays.
+3. Verifies that any remaining references to the retired modal are cleaned up (search for `InviteQrModal` imports).
+
+**Files**
+
+- `src/components/features/InviteManager/InvitePlanningPanel.tsx` _(edit — add QR section)_
+- `src/components/features/InviteManager/InviteTable.tsx` _(edit — remove "View QR" action)_
+- `src/components/features/InviteManager/InviteQrModal.tsx` _(delete)_
+- `src/components/features/InviteManager/index.ts` _(edit — drop modal export)_
+
+**Acceptance criteria**
+
+- [ ] Panel's QR section renders for any invite, matching the visual and interaction contract of the retired modal (SVG, Download PNG, focus/keyboard).
+- [ ] Download PNG uses `buildQrFilename` from `src/lib/qr.ts`; no filename sanitization duplicated in the panel.
+- [ ] "View QR" action-menu entry no longer appears in `InviteTable`.
+- [ ] `InviteQrModal.tsx` file is deleted; no stale imports remain (grep verified in CI).
+- [ ] Keyboard + focus behavior of the panel is unchanged by the section addition.
+- [ ] No regression in roster printing (Task 5) or CSV export (Task 6).
+
+---
+
 ## 5. Testing Strategy
 
 **Unit tests (Vitest)** — per-task AC above.
@@ -349,7 +388,7 @@ No raw token is read; no QR is rendered. See §2.7 for rationale.
 **Manual smoke test checklist (before production deploy)**
 
 1. Create event → add 3 invites, RSVP 2 as YES (one solo, one party of 3), 1 as NO.
-2. On the Manage Invites page, click a YES invite → panel opens, QR renders, RSVP badge shows green.
+2. On the Manage Invites page, click a YES invite → panel opens, RSVP badge shows green. (QR appears in the panel only after Task 7 has merged; before Task 7 it still lives in the existing action-menu modal.)
 3. Type a seat assignment → see `Saving…` → `Saved ✓`. Refresh the page → value persists.
 4. Type planner notes > 500 chars → client-side limit blocks input; server would 400.
 5. Toggle airplane mode → type into seat field → see `Save failed — retry`; reconnect → click retry → save succeeds.
@@ -375,15 +414,16 @@ No raw token is read; no QR is rendered. See §2.7 for rationale.
 | T1 | Schema fields present; no UI yet | None |
 | T2 | PATCH endpoint callable; no UI yet | None |
 | T6 | CSV export gains two new columns | Organizers who use the export see two extra columns (always empty until panel lands) |
-| T3 + T4 (together) | Panel replaces row action menu; editing enabled | Organizers see redesigned row behavior; click-to-open panel; QR accessible in the dashboard for the first time |
+| T3 + T4 (together) | Panel opens on row click; seat + notes editable | Organizers see click-to-open panel, Regenerate/Revoke move into the panel Danger zone. QR still lives in the existing action-menu modal (if QR plan shipped) or is not present (if QR plan not shipped) |
 | T5 | Printable roster link appears on Manage Invites page | Organizers can print day-of roster |
+| T7 (follow-up) | Panel gains QR section; action-menu "View QR" modal is retired | Organizers see QR inside the panel rather than a separate modal |
 
-**Interim state (QR plan merged, this plan not yet fully merged).** Organizers have no dashboard QR surface during the gap. See §7 R1.
+**No cross-plan release gate.** T1–T6 ship independently of the QR plan. T7 is the only task that coordinates the two plans and can land at any point after both prerequisite sets are merged.
 
 **Rollback**
 
 - T1 migration is additive; a rollback migration dropping the columns is safe (data loss of planning fields only).
-- T2–T6 are independently revertable.
+- T2–T7 are independently revertable. T7 rollback restores the previous `InviteQrModal` + action-menu entry.
 - No data migration or backfill.
 
 ---
@@ -392,7 +432,6 @@ No raw token is read; no QR is rendered. See §2.7 for rationale.
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| **R1.** Organizers request dashboard QR access during the QR-plan→panel-plan gap | Medium | Low | QR plan's Task 3.5 means organizers can still copy-paste a guest's pass URL from the address bar after visiting `/invite/[token]/pass`. Unglamorous but functional. Accelerate T3 if this becomes a friction point. |
 | Auto-save loses data during flaky network | Medium | Medium | Optimistic local state preserved on error; inline retry link; no toast fatigue. Visible indicator avoids the "did it save?" question. |
 | Print rendering breaks for >100 guests | Low | Low | Explicit `break-inside: avoid` on rows; repeating `<thead>`. Test with a seeded 200-row event before ship. |
 | Panel `?invite=<id>` deep-link points to deleted invite | Medium | Low | Empty state inside the panel ("invite not found"); the page itself still renders. |
@@ -403,7 +442,7 @@ No raw token is read; no QR is rendered. See §2.7 for rationale.
 
 ## 8. Out of Scope (Future Work)
 
-- **QR column on the printable roster.** Deferred pending the dashboard-auth QR lookup helper (Task 5 note, option C). When it lands, add as a follow-up PR; the table layout already leaves space.
+- **QR column on the printable roster.** Excluded per §2.7, not deferred on plumbing grounds — scanning a paper QR in the MVP resolves to the same guest/name already on the row. Revisit when backend check-in ships and scanning produces a distinct state write.
 - **Interactive seating chart.** Canvas / SVG venue diagram with drag-and-drop seat tokens. Separate plan, separate design input.
 - **Bulk-edit seat assignments.** Multi-select rows → bulk action → "assign seats A1–A20 round-robin" or similar.
 - **CSV import of seat/notes.** Round-trip for organizers who prefer spreadsheet workflows.
@@ -418,16 +457,18 @@ No raw token is read; no QR is rendered. See §2.7 for rationale.
 
 In addition to standard expectations in `CLAUDE.md` and `CONTRIBUTING.md`:
 
-- [ ] Architectural decisions in §2 are respected (panel as overlay, URL state via search param, auto-save pattern, single migration, reuse of existing CSV export and QR API route).
+- [ ] Architectural decisions in §2 are respected (panel as overlay, URL state via search param, auto-save pattern, single migration, panel independent of QR plan per §2.8).
 - [ ] No new environment variables.
 - [ ] No new npm dependencies.
 - [ ] Single additive migration for the two new columns; no data migration.
 - [ ] PATCH endpoint (Task 2) is strictly scoped to the two new fields — does not accidentally allow editing other invite fields.
-- [ ] Panel (Task 3) uses `buildQrFilename` and `buildPassUrl` from the QR plan's `src/lib/qr.ts` — no duplicated sanitization or URL construction.
+- [ ] **Task 3 has zero imports from `src/lib/qr.ts` and zero references to `/api/invites/[token]/qr`.** The MVP panel must be reviewable without QR plan context.
+- [ ] **Task 4 leaves the action-menu "View QR" entry untouched** (if present). Task 7 is the only task that removes it.
 - [ ] Roster (Task 5) filters on `rsvp.response === "YES"` exactly; no MAYBE bleed-through.
 - [ ] Print CSS is scoped to the roster route; does not affect other dashboard pages.
 - [ ] Roster has **no** QR column and reads no raw tokens; exclusion reasoning matches §2.7.
+- [ ] Task 7, when it lands, uses `buildQrFilename` and `buildPassUrl` from the QR plan's `src/lib/qr.ts` — no duplicated sanitization or URL construction.
 
 ---
 
-_Last updated: 2026-04-23_
+_Last updated: 2026-04-23 (decoupled panel from QR plan; QR integration moved to follow-up Task 7)_
