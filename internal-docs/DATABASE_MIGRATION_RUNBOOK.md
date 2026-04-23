@@ -128,8 +128,10 @@ Optional — detect any drift introduced during apply:
 ```bash
 npx prisma migrate diff \
   --from-migrations ./prisma/migrations \
-  --to-schema-datamodel ./prisma/schema.prisma
-# expect: empty output
+  --to-schema-datamodel ./prisma/schema.prisma \
+  --exit-code
+# expect: exit code 0 (no drift). Exit 2 = drift detected; exit 1 = error.
+# If you want to see the drift as SQL, re-run with --script added.
 ```
 
 ### 7. Clean up
@@ -367,16 +369,19 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        # --exit-code returns:
+        #   0 = no drift        (step passes)
+        #   1 = error            (step fails)
+        #   2 = drift detected   (step fails)
+        # Any non-zero exit fails the Actions step automatically, so no bash
+        # wrapper is needed. Do NOT use `--script` here without --exit-code:
+        # --script always emits output (even "-- This is an empty migration."
+        # when there is no drift), which makes a `-n "$DIFF"` check unusable.
         run: |
-          DIFF=$(npx prisma migrate diff \
+          npx prisma migrate diff \
             --from-migrations ./prisma/migrations \
             --to-schema-datamodel ./prisma/schema.prisma \
-            --script)
-          if [ -n "$DIFF" ]; then
-            echo "::error::Schema drift detected after migrate deploy"
-            echo "$DIFF"
-            exit 1
-          fi
+            --exit-code
 ```
 
 ### Design notes for the reviewer

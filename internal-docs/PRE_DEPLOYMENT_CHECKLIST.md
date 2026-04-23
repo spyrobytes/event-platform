@@ -129,7 +129,7 @@ These are development-only; leaving them set in prod will silently break auth/em
 - [ ] `DIRECT_URL` uses direct / session-pooler connection (port **5432**)
 - [ ] Auth verified end-to-end with `psql "$DIRECT_URL" -c 'select 1;'` before touching Prisma
 - [ ] `npx prisma migrate deploy` runs cleanly against the production DB (dry-run locally first with `prisma migrate status`)
-- [ ] No schema drift (`npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma` is empty)
+- [ ] No schema drift — `npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code` exits `0` (exit `2` = drift; re-run with `--script` added to see the SQL)
 - [ ] `prisma/migrations/migration_lock.toml` committed (it is)
 - [ ] Prod credentials cleaned from shell + `history`, and `.env.local` restored to local-dev values
 - [ ] Supabase storage buckets created: any bucket referenced by `src/lib/supabase-storage.ts` — check media upload paths
