@@ -183,6 +183,8 @@ model Invite {
   tokenHash String  @unique @map("token_hash")
 
   plusOnesAllowed     Int          @default(0) @map("plus_ones_allowed")
+  seatAssignment      String?      @map("seat_assignment")
+  plannerNotes        String?      @map("planner_notes")
   tokenRegenerateCount Int        @default(0) @map("token_regenerate_count")
   status              InviteStatus @default(PENDING)
 
