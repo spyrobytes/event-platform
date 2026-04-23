@@ -162,7 +162,7 @@ Vercel auto-deploys on every push to `main`, in parallel with — not gated on �
   3. PR 2: code reads from new, stop writing old.
   4. Migrate to drop old column.
 
-The [Appendix](#appendix-github-actions-migration-workflow-draft) shows a proposed workflow for when you want this automated.
+Migrations run **manually** via this runbook — see [Why migrations stay manual](#why-migrations-stay-manual-for-now) for the threat model and the criteria for revisiting automation.
 
 ---
 
@@ -218,7 +218,7 @@ export DIRECT_URL='postgresql://postgres.xxx:pw$abc!stuff@host:5432/postgres'
 
 In Prisma 7, the `env()` helper exported from `prisma/config` is **strict** — it throws `PrismaConfigEnvError: Cannot resolve environment variable: X` when the variable is unset. CI jobs that run `prisma generate` or `prisma validate` (neither connects to a DB) don't have `DIRECT_URL` set as a secret, so using `env()` causes the postinstall hook to fail before lint / tests / build even start.
 
-**Fix:** use `process.env["DIRECT_URL"]` — it returns `undefined` silently, which Prisma tolerates for non-connection commands. For `migrate` commands that need the URL, it must be exported in the shell (or provided as a GitHub Actions secret in the migration workflow — see Appendix).
+**Fix:** use `process.env["DIRECT_URL"]` — it returns `undefined` silently, which Prisma tolerates for non-connection commands. For `migrate` commands that need the URL, it must be exported in the shell as the runbook instructs.
 
 Current config — the correct pattern:
 ```ts
@@ -252,9 +252,61 @@ The two are completely independent. The `datasource.url` field **no longer exist
 
 ---
 
-## Appendix: GitHub Actions migration workflow (DRAFT)
+## Why migrations stay manual (for now)
 
-This workflow is **not currently enabled**. It's the planned post-first-deploy automation so future migrations don't need a developer to run commands from their laptop with prod credentials.
+A natural next step after this runbook would be to automate `prisma migrate deploy` in CI so humans don't need prod credentials on their laptops. We've chosen **not** to take that step. This section captures the reasoning so future contributors can re-evaluate rather than rediscover it.
+
+### Why automation is attractive
+
+- Eliminates per-developer credential copies.
+- Audit trail in GitHub Actions logs.
+- Consistent process regardless of who's on call.
+- Unblocks a higher migration cadence.
+
+### Why we defer
+
+Automation with **static DB credentials stored as GitHub Actions secrets** *expands* the attack surface rather than shrinking it:
+
+- **Workflow injection.** Any future workflow edit that interpolates untrusted input (PR title, commit message, issue body) into a `run:` step can exfiltrate secrets. GitHub's own security guidance has a whole page on this.
+- **Action supply chain.** Every pinned action (`actions/checkout`, `actions/setup-node`, anything added later) runs with access to the job's secrets. Compromise of any of them compromises the DB.
+- **Static credential rot.** Rotating requires coordinating Vercel, GitHub secrets, and any dev laptops that have a copy. In practice rotation slips and a single leak persists indefinitely.
+- **Blast radius.** The `postgres` role Supabase issues by default has full DML and DDL on every table. A leak is catastrophic.
+
+For a nascent platform with low migration frequency, **manual runs via this runbook carry less persistent exposure** than a CI workflow with stored DB credentials: one person, one shell session, one `unset` at the end, no long-lived secret sitting in a settings page.
+
+### When to revisit
+
+Automate once **both** are true:
+
+1. Migration frequency exceeds comfort with manual runs (weekly+).
+2. A secrets manager is in place — Doppler, 1Password Connect, Infisical, or HashiCorp Vault — fronted by GitHub Actions OIDC. The workflow fetches a short-lived DB credential at run time rather than reading a stored secret.
+
+Until both hold, stay manual.
+
+### Defense in depth to adopt sooner
+
+Regardless of whether migrations are ever automated, narrow the blast radius of the credentials you do have by running migrations as a **dedicated, DDL-only Postgres role** instead of the default `postgres` superuser:
+
+```sql
+-- Run once against prod as a superuser
+CREATE ROLE app_migrator LOGIN PASSWORD '<strong-password>';
+GRANT USAGE ON SCHEMA public TO app_migrator;
+GRANT CREATE ON SCHEMA public TO app_migrator;
+-- Plus ALTER/DROP rights on existing tables as needed by future migrations.
+-- Critically, do NOT grant data-level rights the app already has via its own role.
+```
+
+Then point `DIRECT_URL` at this role (same hostname/port, different user/password). A leak of `DIRECT_URL` now reveals DDL-only creds; it can't be used to read or exfiltrate user data. The runtime `DATABASE_URL` keeps its own (separately scoped) role for the application.
+
+This is cheap to adopt and pays off whether you stay manual or move to automation later. Not done today — flagged as follow-up hardening.
+
+---
+
+## Appendix: GitHub Actions migration workflow (DRAFT — NOT RECOMMENDED AS-IS)
+
+This workflow is **retained as reference, not a recommended configuration**. It stores DB credentials as GitHub Actions secrets, which we've deliberately chosen not to do — see [Why migrations stay manual](#why-migrations-stay-manual-for-now) above for the threat model.
+
+If the team later adopts a secrets manager with OIDC, the *structure* below stays correct — but the `env: DATABASE_URL: ${{ secrets.DATABASE_URL }}` lines get replaced by a "fetch from vault over OIDC" step that returns short-lived credentials. Don't enable the workflow as written.
 
 Place at `.github/workflows/migrate-production.yml` when the team is ready to enable:
 
@@ -335,13 +387,21 @@ jobs:
 - **Not gated on `ci.yml`** — `workflow_run` chaining is awkward (triggering event is lost, timing unpredictable). The `environment: production` approval gate serves as the human check.
 - **No notifications** — failures surface in the Actions tab only. Add a Slack / email step if your team wants pings.
 
-### Enabling checklist (when ready)
+### Enabling checklist (do not start until prerequisites are met)
 
-1. Create repo secrets under *Settings → Secrets and variables → Actions*:
-   - `DATABASE_URL` — production pooled URI (matches Vercel)
-   - `DIRECT_URL` — production session pooler URI (matches Vercel)
-2. Create the `production` environment under *Settings → Environments → New environment*:
-   - Add yourself (and/or a teammate) as a required reviewer
-   - Restrict to the `main` branch
-3. Drop the YAML above into `.github/workflows/migrate-production.yml`, commit, push.
-4. First run after merge → Actions tab → approve → watch it apply. If it works, you're automated; update this runbook to note that manual runs are only needed for recovery/drift scenarios.
+**Do not enable this workflow with static `secrets.*` references.** Static credentials in GitHub Actions give you no security benefit over manual runs — they just move the secret to a more-exposed location. Meet all prerequisites first.
+
+**Prerequisites:**
+
+1. A secrets manager is deployed and integrated with GitHub Actions via OIDC (Doppler, 1Password Connect, Infisical, HashiCorp Vault, or equivalent). No stored secret; the workflow fetches a short-lived credential at run time.
+2. A dedicated migrator Postgres role with DDL-only privileges (see [Defense in depth](#defense-in-depth-to-adopt-sooner) above). The runtime keeps its own separately-scoped role.
+3. The YAML below is **reworked** to replace each `${{ secrets.* }}` reference with a secrets-manager fetch step producing a temporary credential for that job only.
+
+**Only then:**
+
+1. Create the `production` GitHub Environment under *Settings → Environments → New environment*:
+   - Required reviewer(s) for human approval.
+   - Restrict to the `main` branch.
+2. Drop the reworked YAML into `.github/workflows/migrate-production.yml`, commit, push.
+3. First run after merge → Actions tab → approve → watch it apply.
+4. If it works, update the [Why migrations stay manual](#why-migrations-stay-manual-for-now) section to note the date and rationale, and reframe this runbook's happy path as "recovery / drift-repair only."
