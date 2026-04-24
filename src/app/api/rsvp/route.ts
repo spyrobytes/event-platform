@@ -48,6 +48,15 @@ export async function POST(request: NextRequest) {
         throw new NotFoundError("Invite not found or has expired");
       }
 
+      // Phone-only invites: email is optional at invite creation but required
+      // at RSVP time so we have somewhere to send the confirmation. This check
+      // layers on top of the permissive schema parse above.
+      if (!invite.email && !data.guestEmail) {
+        throw new ValidationError(
+          "Please provide an email address so we can send your confirmation."
+        );
+      }
+
       // Check if invite has expired
       if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
         throw new ValidationError("This invite has expired");
