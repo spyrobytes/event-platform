@@ -6,7 +6,7 @@ import { queueVerificationEmail, processEmail } from "./email";
 import { ValidationError, NotFoundError } from "./errors";
 
 const VERIFICATION_EXPIRY_HOURS = 24;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const APP_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 /**
  * Create and send a verification email for a user
