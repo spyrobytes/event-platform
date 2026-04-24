@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
-import { submitRsvpSchema } from "@/schemas/rsvp";
+import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import {
   trackFormStarted,
   trackFormSubmitted,
@@ -95,6 +95,14 @@ export function InvitationRSVPForm({
     };
   }, [eventId]);
 
+  // Build a schema that knows whether email is required for this invite
+  // (phone-only invites pass `needsEmail={true}`). Memoized so the resolver
+  // reference is stable when `needsEmail` is unchanged.
+  const formSchema = useMemo(
+    () => buildSubmitRsvpSchema({ emailRequired: needsEmail }),
+    [needsEmail]
+  );
+
   const {
     register,
     handleSubmit,
@@ -102,7 +110,7 @@ export function InvitationRSVPForm({
     setValue,
     watch,
   } = useForm({
-    resolver: zodResolver(submitRsvpSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       guestName,
       guestCount: 1,
@@ -115,6 +123,23 @@ export function InvitationRSVPForm({
   });
 
   const watchGuestCount = watch("guestCount");
+  const watchGuestName = watch("guestName");
+  const watchGuestEmail = watch("guestEmail");
+
+  // Gate Submit on all required-field presence so the button matches the
+  // `*` indicators next to labels. Each condition mirrors what the Zod schema
+  // (and superRefine) would reject on submit.
+  const hasName = typeof watchGuestName === "string" && watchGuestName.trim().length > 0;
+  const hasEmail =
+    !needsEmail ||
+    (typeof watchGuestEmail === "string" && watchGuestEmail.trim().length > 0);
+  const expectedAdditional =
+    selectedResponse === "YES" ? Math.max(0, (watchGuestCount ?? 1) - 1) : 0;
+  const additionalGuestsValid =
+    expectedAdditional === 0 ||
+    (additionalGuestNames.length === expectedAdditional &&
+      additionalGuestNames.every((n) => n.trim().length > 0));
+  const canSubmit = !!selectedResponse && hasName && hasEmail && additionalGuestsValid;
 
   // Sync additionalGuestNames array length when guestCount changes
   const updateGuestNameSlots = useCallback(
@@ -434,7 +459,7 @@ export function InvitationRSVPForm({
 
         <button
           type="submit"
-          disabled={submitting || !selectedResponse}
+          disabled={submitting || !canSubmit}
           className={cn(
             "w-full py-3 px-6 rounded-full",
             "bg-[var(--inv-accent)] text-[var(--inv-card-bg)]",

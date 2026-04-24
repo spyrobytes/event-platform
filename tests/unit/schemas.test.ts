@@ -5,7 +5,7 @@ import {
   bulkInviteSchema,
   updateInvitePlanningSchema,
 } from "@/schemas/invite";
-import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
+import { submitRsvpSchema, publicRsvpSchema, buildSubmitRsvpSchema } from "@/schemas/rsvp";
 
 // Helper to get a future date
 const getFutureDate = () => new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
@@ -249,6 +249,67 @@ describe("publicRsvpSchema", () => {
     };
     const result = publicRsvpSchema.safeParse(invalidPublicRsvp);
     expect(result.success).toBe(false);
+  });
+});
+
+describe("buildSubmitRsvpSchema({ emailRequired: true })", () => {
+  const schema = buildSubmitRsvpSchema({ emailRequired: true });
+
+  it("accepts a submission with a valid email", () => {
+    const result = schema.safeParse({
+      response: "YES",
+      guestName: "Jane Doe",
+      guestEmail: "jane@example.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a submission with a blank email", () => {
+    const result = schema.safeParse({
+      response: "YES",
+      guestName: "Jane Doe",
+      guestEmail: "",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a submission with a whitespace-only email", () => {
+    const result = schema.safeParse({
+      response: "YES",
+      guestName: "Jane Doe",
+      guestEmail: "   ",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a submission with no email field at all", () => {
+    const result = schema.safeParse({
+      response: "YES",
+      guestName: "Jane Doe",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a submission with a malformed email", () => {
+    const result = schema.safeParse({
+      response: "YES",
+      guestName: "Jane Doe",
+      guestEmail: "not-an-email",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("buildSubmitRsvpSchema() default (emailRequired: false)", () => {
+  const schema = buildSubmitRsvpSchema();
+
+  it("accepts a blank email (matches existing submitRsvpSchema behaviour)", () => {
+    const result = schema.safeParse({
+      response: "YES",
+      guestName: "Jane Doe",
+      guestEmail: "",
+    });
+    expect(result.success).toBe(true);
   });
 });
 

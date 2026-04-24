@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { submitRsvpSchema } from "@/schemas/rsvp";
+import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import {
   trackFormStarted,
   trackFormSubmitted,
@@ -97,6 +97,14 @@ export function RSVPForm({
     };
   }, [eventId]);
 
+  // Build a schema that knows whether email is required for this invite.
+  // Memoized so the resolver reference is stable across renders when
+  // `needsEmail` is unchanged.
+  const formSchema = useMemo(
+    () => buildSubmitRsvpSchema({ emailRequired: needsEmail }),
+    [needsEmail]
+  );
+
   const {
     register,
     handleSubmit,
@@ -104,7 +112,7 @@ export function RSVPForm({
     setValue,
     watch,
   } = useForm({
-    resolver: zodResolver(submitRsvpSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       guestName,
       guestCount: 1,
@@ -131,6 +139,16 @@ export function RSVPForm({
   );
 
   const watchGuestCount = watch("guestCount");
+  const watchGuestName = watch("guestName");
+  const watchGuestEmail = watch("guestEmail");
+
+  // Gate Submit on required-field presence so the button reflects what the
+  // schema would enforce on submit. Matches the * indicators next to labels.
+  const hasName = typeof watchGuestName === "string" && watchGuestName.trim().length > 0;
+  const hasEmail =
+    !needsEmail ||
+    (typeof watchGuestEmail === "string" && watchGuestEmail.trim().length > 0);
+  const canSubmit = !!selectedResponse && hasName && hasEmail;
 
   const onSubmit = async (data: Record<string, unknown>) => {
     setSubmitting(true);
@@ -409,7 +427,7 @@ export function RSVPForm({
         <Button
           type="submit"
           className="w-full"
-          disabled={submitting || !selectedResponse}
+          disabled={submitting || !canSubmit}
         >
           {submitting ? "Submitting..." : "Submit RSVP"}
         </Button>
