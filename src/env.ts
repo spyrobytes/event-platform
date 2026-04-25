@@ -10,7 +10,7 @@ import { z } from "zod";
  */
 
 // Schema for server-side environment variables
-const serverEnvSchema = z.object({
+export const serverEnvSchema = z.object({
   // Database (Supabase Postgres)
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DIRECT_URL: z.string().min(1, "DIRECT_URL is required"),
@@ -44,10 +44,23 @@ const serverEnvSchema = z.object({
     .string()
     .min(32, "CRON_SECRET must be at least 32 characters"),
 
+  // Supabase Storage (server-side privileged access)
+  SUPABASE_SERVICE_ROLE_KEY: z
+    .string()
+    .min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
+
   // Optional services
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   SENTRY_DSN: z.string().url().optional(),
+
+  // Local development (optional)
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  FIREBASE_AUTH_EMULATOR_HOST: z.string().optional(),
+  ALLOW_TEST_ROUTES: z.string().optional(),
 
   // Node environment
   NODE_ENV: z
@@ -56,7 +69,7 @@ const serverEnvSchema = z.object({
 });
 
 // Schema for client-side (public) environment variables
-const clientEnvSchema = z.object({
+export const clientEnvSchema = z.object({
   NEXT_PUBLIC_BASE_URL: z
     .string()
     .url("NEXT_PUBLIC_BASE_URL must be a valid URL"),
@@ -72,6 +85,9 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
     .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+
+  // Local development (optional)
+  NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST: z.string().optional(),
 });
 
 // Combined schema

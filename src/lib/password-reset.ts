@@ -6,7 +6,7 @@ import { queuePasswordResetEmail, processEmail } from "./email";
 import { ValidationError } from "./errors";
 
 const RESET_EXPIRY_HOURS = 1;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const APP_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 /**
  * Send a password reset email for the given email address.
