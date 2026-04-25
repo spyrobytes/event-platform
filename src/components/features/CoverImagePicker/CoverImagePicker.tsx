@@ -159,7 +159,7 @@ export function CoverImagePicker({
             <img
               src={value}
               alt="Cover preview"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover object-top"
               onError={() => setError("Image failed to load — check the URL")}
             />
           </div>
@@ -271,7 +271,7 @@ export function CoverImagePicker({
                       <img
                         src={asset.publicUrl}
                         alt={asset.alt || "Media asset"}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover object-top"
                       />
                     )}
                     {isSelected && (

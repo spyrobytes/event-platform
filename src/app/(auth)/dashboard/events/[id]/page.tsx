@@ -275,7 +275,7 @@ export default function EventDetailPage() {
             alt={event.title}
             fill
             sizes="(max-width: 768px) 100vw, 800px"
-            className="object-cover"
+            className="object-cover object-top"
             priority
           />
         </div>
