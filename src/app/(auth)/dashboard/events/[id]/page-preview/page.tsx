@@ -255,12 +255,16 @@ export default function PagePreviewPage() {
             </button>
           </div>
           <div className="h-6 w-px bg-border" />
-          {pageData.isPublished && eventSlug && (
+          {pageData.isPublished && eventSlug ? (
             <Link href={`/e/${eventSlug}`} target="_blank">
               <Button variant="outline" size="sm">
                 View Live
               </Button>
             </Link>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Publish to view live
+            </span>
           )}
           <Link href={`/dashboard/events/${params.id}/page-editor`}>
             <Button variant="outline" size="sm">
