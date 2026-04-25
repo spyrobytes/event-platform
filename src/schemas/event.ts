@@ -31,7 +31,7 @@ export const createEventSchema = z.object({
   longitude: z.number().min(-180).max(180).optional(),
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).default("PUBLIC"),
   maxAttendees: z.number().int().positive().max(10000).optional(),
-  coverImageUrl: z.string().url().optional(),
+  coverImageUrl: z.string().url().optional().or(z.literal("")),
   templateId: z.enum(VALID_TEMPLATE_IDS).optional(),
   // RSVP settings
   rsvpDeadline: z.coerce.date().optional(),
@@ -66,7 +66,7 @@ export const updateEventSchema = z.object({
   longitude: z.number().min(-180).max(180).nullable().optional(),
   visibility: z.enum(["PUBLIC", "UNLISTED", "PRIVATE"]).optional(),
   maxAttendees: z.number().int().positive().max(10000).nullable().optional(),
-  coverImageUrl: z.string().url().nullable().optional(),
+  coverImageUrl: z.string().url().nullable().optional().or(z.literal("")),
   templateId: z.enum(VALID_TEMPLATE_IDS).nullable().optional(),
   // RSVP settings
   rsvpDeadline: z.coerce.date().nullable().optional(),
