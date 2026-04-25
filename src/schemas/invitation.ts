@@ -183,7 +183,7 @@ export const invitationDataSchema = z.object({
   salutation: z.string().max(CONTENT_LIMITS.salutation.max).optional(),
   dressCode: z.string().max(CONTENT_LIMITS.dressCode.max).optional(),
   customMessage: z.string().max(CONTENT_LIMITS.customMessage.max).optional(),
-  heroImageUrl: z.string().url().optional(),
+  heroImageUrl: z.string().url().optional().or(z.literal("")),
   rsvpUrl: z.string(),
   // Structured names and customizable wording (optional, templates use defaults)
   person1Name: z.string().max(CONTENT_LIMITS.personName.max).optional(),
@@ -196,8 +196,8 @@ export const invitationDataSchema = z.object({
   eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
   monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
   // Wedding Storybook extended fields
-  couplePhotoUrl: z.string().url().optional(),
-  venuePhotoUrl: z.string().url().optional(),
+  couplePhotoUrl: z.string().url().optional().or(z.literal("")),
+  venuePhotoUrl: z.string().url().optional().or(z.literal("")),
   ceremonyStartAt: z.coerce.date().optional(),
   ceremonyDate: z.string().optional(),
   ceremonyTime: z.string().optional(),

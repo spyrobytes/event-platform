@@ -84,6 +84,26 @@ describe("createEventSchema", () => {
     const result = createEventSchema.safeParse(pastEvent);
     expect(result.success).toBe(false);
   });
+
+  it("accepts an empty string for coverImageUrl (form-default case)", () => {
+    const result = createEventSchema.safeParse({
+      title: "Test Event",
+      startAt: getFutureDate(),
+      timezone: "UTC",
+      coverImageUrl: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a malformed coverImageUrl", () => {
+    const result = createEventSchema.safeParse({
+      title: "Test Event",
+      startAt: getFutureDate(),
+      timezone: "UTC",
+      coverImageUrl: "not-a-url",
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("updateEventSchema", () => {
@@ -101,6 +121,11 @@ describe("updateEventSchema", () => {
     };
     const result = updateEventSchema.safeParse(invalidUpdate);
     expect(result.success).toBe(false);
+  });
+
+  it("accepts an empty string for coverImageUrl", () => {
+    const result = updateEventSchema.safeParse({ coverImageUrl: "" });
+    expect(result.success).toBe(true);
   });
 });
 
