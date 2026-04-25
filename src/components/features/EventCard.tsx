@@ -62,13 +62,13 @@ export function EventCard({
   const content = (
     <Card className={cn("overflow-hidden transition-shadow hover:shadow-md", className)}>
       {event.coverImageUrl && (
-        <div className="relative aspect-video w-full overflow-hidden">
+        <div className="relative aspect-video w-full overflow-hidden bg-muted">
           <Image
             src={event.coverImageUrl}
             alt={event.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover object-top"
+            className="object-contain"
           />
         </div>
       )}

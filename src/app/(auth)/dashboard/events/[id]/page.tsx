@@ -269,13 +269,13 @@ export default function EventDetailPage() {
       />
 
       {event.coverImageUrl && (
-        <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg">
+        <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg bg-muted">
           <Image
             src={event.coverImageUrl}
             alt={event.title}
             fill
             sizes="(max-width: 768px) 100vw, 800px"
-            className="object-cover object-top"
+            className="object-contain"
             priority
           />
         </div>
