@@ -153,7 +153,7 @@ export function CoverImagePicker({
     <div className="space-y-3">
       {/* Preview */}
       {value ? (
-        <div className="relative overflow-hidden rounded-lg border bg-muted">
+        <div className="relative overflow-hidden rounded-lg border">
           <div className="aspect-video w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

@@ -269,7 +269,7 @@ export default function EventDetailPage() {
       />
 
       {event.coverImageUrl && (
-        <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg bg-muted">
+        <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg">
           <Image
             src={event.coverImageUrl}
             alt={event.title}
