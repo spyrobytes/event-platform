@@ -153,13 +153,13 @@ export function CoverImagePicker({
     <div className="space-y-3">
       {/* Preview */}
       {value ? (
-        <div className="relative overflow-hidden rounded-lg border bg-muted">
+        <div className="relative overflow-hidden rounded-lg border">
           <div className="aspect-video w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={value}
               alt="Cover preview"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
               onError={() => setError("Image failed to load — check the URL")}
             />
           </div>
@@ -271,7 +271,7 @@ export function CoverImagePicker({
                       <img
                         src={asset.publicUrl}
                         alt={asset.alt || "Media asset"}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     )}
                     {isSelected && (
