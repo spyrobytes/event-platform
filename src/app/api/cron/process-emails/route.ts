@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processQueuedEmails } from "@/lib/email";
 
+export const maxDuration = 60;
+
 /**
  * Cron job endpoint for processing queued emails.
  * Triggered by Vercel Cron every 5 minutes.
