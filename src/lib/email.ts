@@ -117,6 +117,7 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
         Authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,
       },
       body: formData,
+      signal: AbortSignal.timeout(15_000),
     }
   );
 
@@ -407,7 +408,7 @@ export async function processEmail(emailId: string): Promise<void> {
       where: { id: emailId },
       data: {
         status: "SENT",
-        providerMessageId: result.id,
+        providerMessageId: result.id?.replace(/^<|>$/g, "") ?? null,
         sentAt: new Date(),
       },
     });
@@ -423,9 +424,11 @@ export async function processEmail(emailId: string): Promise<void> {
       });
     }
   } catch (error) {
-    // Mark as failed
-    await db.emailOutbox.update({
-      where: { id: emailId },
+    // Only flip to FAILED if the row hasn't already reached SENT — otherwise a
+    // post-send error (e.g. the Invite update) would erase the truth that
+    // Mailgun already accepted the message.
+    await db.emailOutbox.updateMany({
+      where: { id: emailId, status: { notIn: ["SENT", "DELIVERED", "OPENED"] } },
       data: {
         status: "FAILED",
         error: error instanceof Error ? error.message : "Unknown error",
@@ -436,10 +439,64 @@ export async function processEmail(emailId: string): Promise<void> {
   }
 }
 
+const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000;
+
+/**
+ * Reclaim rows stranded in SENDING (function killed mid-send before catch could run)
+ * and reconcile invites whose outbox row already reached SENT/DELIVERED but whose
+ * own status update was lost.
+ */
+async function recoverEmailOutbox(): Promise<{ reclaimed: number; reconciled: number }> {
+  const cutoff = new Date(Date.now() - STRANDED_SENDING_THRESHOLD_MS);
+
+  const reclaim = await db.emailOutbox.updateMany({
+    where: { status: "SENDING", updatedAt: { lt: cutoff } },
+    data: { status: "QUEUED" },
+  });
+
+  const stuckInvites = await db.invite.findMany({
+    where: {
+      status: "PENDING",
+      emails: {
+        some: {
+          template: "INVITE",
+          status: { in: ["SENT", "DELIVERED", "OPENED"] },
+        },
+      },
+    },
+    select: {
+      id: true,
+      emails: {
+        where: { template: "INVITE", status: { in: ["SENT", "DELIVERED", "OPENED"] } },
+        select: { sentAt: true },
+        orderBy: { sentAt: "asc" },
+        take: 1,
+      },
+    },
+  });
+
+  for (const invite of stuckInvites) {
+    await db.invite.update({
+      where: { id: invite.id },
+      data: {
+        status: "SENT",
+        sentAt: invite.emails[0]?.sentAt ?? new Date(),
+      },
+    });
+  }
+
+  return { reclaimed: reclaim.count, reconciled: stuckInvites.length };
+}
+
 /**
  * Process all queued emails (batch processing)
  */
 export async function processQueuedEmails(limit = 10): Promise<number> {
+  const recovery = await recoverEmailOutbox();
+  if (recovery.reclaimed > 0 || recovery.reconciled > 0) {
+    console.log("Email recovery sweep", recovery);
+  }
+
   const queuedEmails = await db.emailOutbox.findMany({
     where: { status: "QUEUED" },
     take: limit,
