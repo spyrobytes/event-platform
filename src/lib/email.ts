@@ -355,19 +355,22 @@ export async function queueNoResponseReminderEmail(
  * Process and send a queued email
  */
 export async function processEmail(emailId: string): Promise<void> {
+  // Atomic claim: only one invocation can flip QUEUED -> SENDING for a given row.
+  // Closes the read-then-update race between overlapping cron invocations.
+  const claim = await db.emailOutbox.updateMany({
+    where: { id: emailId, status: "QUEUED" },
+    data: {
+      status: "SENDING",
+      lastAttemptAt: new Date(),
+      attemptCount: { increment: 1 },
+    },
+  });
+  if (claim.count === 0) return;
+
   const email = await db.emailOutbox.findUnique({
     where: { id: emailId },
   });
-
-  if (!email || email.status !== "QUEUED") {
-    return;
-  }
-
-  // Mark as sending
-  await db.emailOutbox.update({
-    where: { id: emailId },
-    data: { status: "SENDING" },
-  });
+  if (!email) return;
 
   try {
     const payload = email.payload as Record<string, unknown>;
@@ -439,18 +442,37 @@ export async function processEmail(emailId: string): Promise<void> {
   }
 }
 
-const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000;
+const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const FAILED_RETRY_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_SEND_ATTEMPTS = 3;
 
 /**
- * Reclaim rows stranded in SENDING (function killed mid-send before catch could run)
- * and reconcile invites whose outbox row already reached SENT/DELIVERED but whose
- * own status update was lost.
+ * Reclaim rows stranded in SENDING, retry transient FAILED rows under the
+ * attempt cap, and reconcile invites whose outbox row already reached
+ * SENT/DELIVERED/OPENED but whose own status update was lost.
  */
-async function recoverEmailOutbox(): Promise<{ reclaimed: number; reconciled: number }> {
-  const cutoff = new Date(Date.now() - STRANDED_SENDING_THRESHOLD_MS);
+async function recoverEmailOutbox(): Promise<{
+  reclaimed: number;
+  retried: number;
+  reconciled: number;
+}> {
+  const sendingCutoff = new Date(Date.now() - STRANDED_SENDING_THRESHOLD_MS);
+  const failedCutoff = new Date(Date.now() - FAILED_RETRY_THRESHOLD_MS);
 
   const reclaim = await db.emailOutbox.updateMany({
-    where: { status: "SENDING", updatedAt: { lt: cutoff } },
+    where: { status: "SENDING", updatedAt: { lt: sendingCutoff } },
+    data: { status: "QUEUED" },
+  });
+
+  // Bounded retry for FAILED rows. After MAX_SEND_ATTEMPTS the row stays
+  // FAILED and needs manual triage — this avoids loops on permanently
+  // broken sends (bad recipient, blocked domain, malformed payload).
+  const retry = await db.emailOutbox.updateMany({
+    where: {
+      status: "FAILED",
+      attemptCount: { lt: MAX_SEND_ATTEMPTS },
+      updatedAt: { lt: failedCutoff },
+    },
     data: { status: "QUEUED" },
   });
 
@@ -485,7 +507,11 @@ async function recoverEmailOutbox(): Promise<{ reclaimed: number; reconciled: nu
     });
   }
 
-  return { reclaimed: reclaim.count, reconciled: stuckInvites.length };
+  return {
+    reclaimed: reclaim.count,
+    retried: retry.count,
+    reconciled: stuckInvites.length,
+  };
 }
 
 /**
@@ -493,7 +519,7 @@ async function recoverEmailOutbox(): Promise<{ reclaimed: number; reconciled: nu
  */
 export async function processQueuedEmails(limit = 10): Promise<number> {
   const recovery = await recoverEmailOutbox();
-  if (recovery.reclaimed > 0 || recovery.reconciled > 0) {
+  if (recovery.reclaimed > 0 || recovery.retried > 0 || recovery.reconciled > 0) {
     console.log("Email recovery sweep", recovery);
   }
 

@@ -303,6 +303,9 @@ model EmailOutbox {
   providerMessageId String?     @map("provider_message_id")
   error             String?
 
+  attemptCount  Int       @default(0) @map("attempt_count")
+  lastAttemptAt DateTime? @map("last_attempt_at")
+
   scheduledFor DateTime? @map("scheduled_for")
   sentAt       DateTime? @map("sent_at")
   deliveredAt  DateTime? @map("delivered_at")
@@ -314,6 +317,7 @@ model EmailOutbox {
   invite Invite? @relation(fields: [inviteId], references: [id], onDelete: SetNull)
 
   @@index([status])
+  @@index([status, updatedAt])
   @@index([providerMessageId])
   @@map("email_outbox")
 }
