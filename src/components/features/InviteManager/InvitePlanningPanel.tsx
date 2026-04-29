@@ -44,11 +44,12 @@ export type InvitePlanningPanelProps = {
   onRevoke?: () => Promise<void>;
 };
 
-const RSVP_BADGE: Record<RsvpResponse | "PENDING", { label: string; cls: string }> = {
+const RSVP_BADGE: Record<RsvpResponse | "PENDING" | "REVOKED", { label: string; cls: string }> = {
   YES: { label: "Attending", cls: "bg-green-100 text-green-800 border-green-200" },
   MAYBE: { label: "Maybe", cls: "bg-amber-100 text-amber-800 border-amber-200" },
   NO: { label: "Declined", cls: "bg-red-100 text-red-800 border-red-200" },
   PENDING: { label: "RSVP pending", cls: "bg-slate-100 text-slate-700 border-slate-200" },
+  REVOKED: { label: "Revoked", cls: "bg-red-100 text-red-800 border-red-200" },
 };
 
 function getPartyLabel(invite: PanelInvite): string | null {
@@ -213,11 +214,17 @@ export function InvitePlanningPanel({
     );
   }
 
-  const badgeKey: RsvpResponse | "PENDING" = invite.rsvp?.response ?? "PENDING";
+  const isRevoked = invite.status === "REVOKED";
+  // REVOKED takes precedence over RSVP state — even if a guest had previously
+  // RSVP'd, the invite is no longer active and the surface should reflect
+  // that, not the historical RSVP response.
+  const badgeKey: RsvpResponse | "PENDING" | "REVOKED" = isRevoked
+    ? "REVOKED"
+    : (invite.rsvp?.response ?? "PENDING");
   const badge = RSVP_BADGE[badgeKey];
   const displayName = invite.name ?? invite.rsvp?.guestName ?? invite.email ?? "Guest";
   const partyLabel = getPartyLabel(invite);
-  const canCopy = Boolean(token);
+  const canCopy = Boolean(token) && !isRevoked;
 
   return (
     <dialog
@@ -249,6 +256,13 @@ export function InvitePlanningPanel({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
+          {isRevoked && (
+            <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+              This invite has been revoked. The link no longer works and the
+              recipient cannot RSVP. RSVP history is preserved below for your
+              records.
+            </div>
+          )}
           {/* Overview */}
           <section className="border-b border-border p-4">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -294,7 +308,11 @@ export function InvitePlanningPanel({
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Invite link
             </h3>
-            {canCopy ? (
+            {isRevoked ? (
+              <p className="text-xs text-muted-foreground">
+                The invite link is disabled because this invite has been revoked.
+              </p>
+            ) : canCopy ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -363,7 +381,7 @@ export function InvitePlanningPanel({
           </section>
 
           {/* Manage invite */}
-          {(onRegenerate || onRevoke) && (
+          {(onRegenerate || onRevoke) && !isRevoked && (
             <section className="p-4">
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Manage invite

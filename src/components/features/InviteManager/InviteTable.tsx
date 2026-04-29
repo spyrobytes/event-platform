@@ -205,7 +205,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onRowClick, copiedI
                             "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                             isPhoneOnly
                               ? "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
-                              : "bg-primary/10 text-primary hover:bg-primary/20"
+                              : "bg-foreground/10 text-foreground hover:bg-foreground/20"
                           )}
                         >
                           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -232,7 +232,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onRowClick, copiedI
                             stopBubble(e);
                             onResend!(invite);
                           }}
-                          className="text-xs text-primary hover:underline"
+                          className="text-xs text-foreground hover:underline underline-offset-2"
                           title={lastEmail?.error || undefined}
                         >
                           Resend
