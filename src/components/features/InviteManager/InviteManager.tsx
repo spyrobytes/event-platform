@@ -30,6 +30,14 @@ type EmailStats = {
 
 type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
+type EmailOutboxStatus =
+  | "QUEUED"
+  | "SENDING"
+  | "SENT"
+  | "DELIVERED"
+  | "OPENED"
+  | "FAILED"
+  | "BOUNCED";
 
 type Invite = {
   id: string;
@@ -53,6 +61,12 @@ type Invite = {
     additionalGuestNames?: string[];
     respondedAt: string;
   } | null;
+  emails?: {
+    id: string;
+    status: EmailOutboxStatus;
+    error: string | null;
+    createdAt: string;
+  }[];
 };
 
 type InviteManagerProps = {
@@ -344,6 +358,36 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
     }
   };
 
+  const handleResend = async (invite: Invite) => {
+    const latestEmail = invite.emails?.[0];
+    if (!latestEmail) return;
+
+    try {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const response = await fetch(`/api/events/${eventId}/emails`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: "resend", emailId: latestEmail.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to resend invite");
+      }
+
+      // The new email_outbox row enters QUEUED; refresh both lists so
+      // the UI reflects the queued state and updated counts.
+      await Promise.all([fetchInvites(page), fetchEmailStats()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resend invite");
+    }
+  };
+
   const handleRevoke = async (invite: Invite) => {
     try {
       const token = await getIdToken();
@@ -575,6 +619,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
                 invites={invites}
                 onCopyLink={handleCopyLink}
                 onRowClick={handleRowClick}
+                onResend={handleResend}
                 copiedInviteId={copiedInviteId}
                 tokenCache={tokenCache}
               />

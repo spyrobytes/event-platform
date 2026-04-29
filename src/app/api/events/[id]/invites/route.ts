@@ -125,6 +125,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
               respondedAt: true,
             },
           },
+          // Latest INVITE outbox row — used by the UI to gate the Resend
+          // action to FAILED/BOUNCED states only.
+          emails: {
+            where: { template: "INVITE" },
+            select: { id: true, status: true, error: true, createdAt: true },
+            orderBy: { createdAt: "desc" },
+            take: 1,
+          },
         },
         orderBy: { createdAt: "desc" },
         take: query.limit,
@@ -216,16 +224,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return errorResponse("Duplicate phone numbers in request", 400, "DUPLICATE_PHONES");
       }
 
-      // Check for existing invites by email or phone
+      // Check for existing *active* invites by email or phone. Revoked rows
+      // are intentionally ignored so an organizer can re-invite the same
+      // recipient after revoking — the partial unique index in the DB
+      // enforces the same rule.
       const existingByEmail = emails.length > 0
         ? await db.invite.findMany({
-            where: { eventId, email: { in: emails } },
+            where: { eventId, email: { in: emails }, status: { not: "REVOKED" } },
             select: { email: true },
           })
         : [];
       const existingByPhone = phones.length > 0
         ? await db.invite.findMany({
-            where: { eventId, phone: { in: phones } },
+            where: { eventId, phone: { in: phones }, status: { not: "REVOKED" } },
             select: { phone: true },
           })
         : [];
@@ -327,18 +338,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const email = data.email?.toLowerCase() ?? null;
       const phone = data.phone ?? null;
 
-      // Check for existing invite by email or phone
+      // Check for existing *active* invite by email or phone. Revoked rows
+      // are intentionally ignored so an organizer can re-invite the same
+      // recipient after revoking — the partial unique index in the DB
+      // enforces the same rule.
       if (email) {
-        const existingByEmail = await db.invite.findUnique({
-          where: { eventId_email: { eventId, email } },
+        const existingByEmail = await db.invite.findFirst({
+          where: { eventId, email, status: { not: "REVOKED" } },
+          select: { id: true },
         });
         if (existingByEmail) {
           throw new ConflictError("An invite already exists for this email");
         }
       }
       if (phone) {
-        const existingByPhone = await db.invite.findUnique({
-          where: { eventId_phone: { eventId, phone } },
+        const existingByPhone = await db.invite.findFirst({
+          where: { eventId, phone, status: { not: "REVOKED" } },
+          select: { id: true },
         });
         if (existingByPhone) {
           throw new ConflictError("An invite already exists for this phone number");

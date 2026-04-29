@@ -202,9 +202,12 @@ model Invite {
   emails         EmailOutbox[]
   registryClaims RegistryClaim[]
 
-  @@unique([eventId, email])
-  @@unique([eventId, phone])
+  // Active uniqueness on (event_id, email) and (event_id, phone) is enforced
+  // by partial unique indexes — see migration add_invite_partial_unique_active.
+  // Prisma's schema language can't express partial indexes, so they're added
+  // via raw SQL and Prisma sees only regular indexes here.
   @@index([email])
+  @@index([eventId, email])
   @@index([eventId, phone])
   @@map("invites")
 }

@@ -5,6 +5,14 @@ import { cn } from "@/lib/utils";
 
 type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
+type EmailOutboxStatus =
+  | "QUEUED"
+  | "SENDING"
+  | "SENT"
+  | "DELIVERED"
+  | "OPENED"
+  | "FAILED"
+  | "BOUNCED";
 
 type Invite = {
   id: string;
@@ -28,6 +36,12 @@ type Invite = {
     additionalGuestNames?: string[];
     respondedAt: string;
   } | null;
+  emails?: {
+    id: string;
+    status: EmailOutboxStatus;
+    error: string | null;
+    createdAt: string;
+  }[];
 };
 
 type InviteTableProps = {
@@ -201,17 +215,30 @@ export function InviteTable({ invites, onResend, onCopyLink, onRowClick, copiedI
                         </button>
                       );
                     })()}
-                    {onResend && invite.email && invite.status !== "RESPONDED" && invite.status !== "REVOKED" && (
-                      <button
-                        onClick={(e) => {
-                          stopBubble(e);
-                          onResend(invite);
-                        }}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Resend
-                      </button>
-                    )}
+                    {(() => {
+                      // Resend is gated to FAILED/BOUNCED outbox rows. The
+                      // resend API only accepts those states; gating in the
+                      // UI prevents a click that the API would reject.
+                      const lastEmail = invite.emails?.[0];
+                      const canResend =
+                        !!onResend &&
+                        !!invite.email &&
+                        invite.status !== "REVOKED" &&
+                        (lastEmail?.status === "FAILED" || lastEmail?.status === "BOUNCED");
+                      if (!canResend) return null;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            stopBubble(e);
+                            onResend!(invite);
+                          }}
+                          className="text-xs text-primary hover:underline"
+                          title={lastEmail?.error || undefined}
+                        >
+                          Resend
+                        </button>
+                      );
+                    })()}
                   </div>
                 </td>
               </tr>
