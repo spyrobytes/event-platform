@@ -139,12 +139,16 @@ type InviteEmailPayload = {
   hostName: string;
   rsvpUrl: string;
   unsubscribeUrl?: string;
+  logoUrl?: string;
+  rsvpDeadline?: string;
   ceremonyDate?: string;
   ceremonyTime?: string;
   ceremonyVenue?: string;
+  ceremonyAddress?: string;
   receptionDate?: string;
   receptionTime?: string;
   receptionVenue?: string;
+  receptionAddress?: string;
 };
 
 type ConfirmationEmailPayload = {
