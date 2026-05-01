@@ -35,6 +35,8 @@ import {
   faqRenderer as FAQRenderer,
   travelStayRenderer as TravelStayRenderer,
   registryRenderer as RegistryRenderer,
+  wishesRenderer as WishesRenderer,
+  PaperFilters,
   attireRenderer as AttireRenderer,
   thingsToDoRenderer as ThingsToDoRenderer,
   speakersRenderer as SpeakersRenderer,
@@ -122,7 +124,21 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
   // Default theme pack is the first one
   const defaultThemePack = definition.themePacks[0];
 
-  function WeddingTemplate({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full", navLinkBase }: TemplateProps) {
+  function WeddingTemplate({
+    config,
+    assets,
+    eventId,
+    eventSlug,
+    temporal,
+    registryClaims,
+    canClaim,
+    registryMode = "full",
+    approvedWishes,
+    wishesMode = "full",
+    inviteToken,
+    navLinkBase,
+    subPageSection,
+  }: TemplateProps) {
     const { theme, hero, sections } = config;
     const primaryColor = theme.primaryColor;
     const socialLinks = definition.supportsSocialLinks ? config.socialLinks : undefined;
@@ -177,12 +193,11 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
         .map((s) => {
           const id = getSectionId(s.type);
           const label = getSectionLabel(s.type);
-          const href = navLinkBase && s.type !== "registry"
-            ? `${navLinkBase}#${id}`
-            : `#${id}`;
+          const isOnPage = !navLinkBase || s.type === subPageSection;
+          const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
           return { id, label, href };
         });
-    }, [sections, navLinkBase]);
+    }, [sections, navLinkBase, subPageSection]);
 
     const dateText = hero.subtitle || "";
 
@@ -190,7 +205,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
 
     const renderSection = (section: (typeof sections)[number], arrayIndex: number) => {
       if (!section.enabled) return null;
-      if (navLinkBase && section.type !== "registry") return null;
+      if (navLinkBase && section.type !== subPageSection) return null;
 
       const key = `${section.type}-${arrayIndex}`;
       const currentSectionIndex = sectionIndex++;
@@ -249,6 +264,18 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
               registryClaims={registryClaims}
               canClaim={canClaim}
               registryMode={registryMode}
+            />
+          ));
+        case "wishes":
+          return wrapWithChrome(wrapWithAnimation(
+            <WishesRenderer
+              data={section.data}
+              assets={assets}
+              eventId={eventId}
+              eventSlug={eventSlug}
+              approvedWishes={approvedWishes}
+              wishesMode={wishesMode}
+              inviteToken={inviteToken}
             />
           ));
         case "schedule":
@@ -317,6 +344,14 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
               }}
               data-template={`wedding-v3-${definition.id}`}
             >
+              {/* SVG defs for the Wedding Wishes ripped-paper effect.
+                  Mounted only when a wishes section is enabled; per-card
+                  filter URLs (url(#ww-...)) resolve from inside the
+                  WishesRenderer cards below. */}
+              {sections.some((s) => s.type === "wishes" && s.enabled) && (
+                <PaperFilters />
+              )}
+
               {/* Nav */}
               <NavComponent
                 monogram={hero.monogram}

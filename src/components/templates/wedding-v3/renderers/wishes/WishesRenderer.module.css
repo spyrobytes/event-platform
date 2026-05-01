@@ -1,0 +1,291 @@
+/* ============================================================
+   Wedding Wishes — ripped-paper card wall.
+
+   Visual layers per card:
+   - .card is just a positioning container with rotation + drop-shadow.
+   - .card::before is the paper layer — clip-path silhouette + SVG
+     filter (paper-tear-*) frays the polygon's straight edges into
+     fibrous lines. The drop-shadow on .card respects the filtered
+     ::before so the shadow follows the irregular outline.
+   - .card::after is the masking tape — vertical fiber stripes,
+     soft top highlight, frayed by the tape-edge-* SVG filter.
+
+   SVG filters live in PaperFilters.tsx (mounted once at the template
+   root) and are referenced via url(#ww-...).
+   ============================================================ */
+
+.section {
+  --wish-bg: #fffaf1;
+  --wish-bg-warm: #fdf2dd;
+  --wish-ink: #3b2f2f;
+  --wish-muted: #8a6f5a;
+  --wish-accent: #b58b5f;
+  --wish-page-bg: #f7efe4;
+  /* RGB triplet so per-card variants can tweak the tape color */
+  --tape: 251, 233, 184;
+
+  padding: 5rem 1.25rem;
+  background:
+    radial-gradient(circle at top left, rgba(181, 139, 95, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffaf4, var(--wish-page-bg));
+  color: var(--wish-ink);
+}
+
+.header {
+  max-width: 720px;
+  margin: 0 auto 3rem;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--wish-accent);
+  font-weight: 700;
+}
+
+.heading {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-weight: 500;
+  line-height: 1.05;
+}
+
+.intro {
+  margin: 1rem auto 0;
+  max-width: 540px;
+  color: var(--wish-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   Grid
+   ============================================================ */
+
+.grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem 2rem;
+  /* Top room so the tape sitting above each card has space to breathe */
+  padding-top: 1.25rem;
+}
+
+/* ============================================================
+   Card
+   ============================================================ */
+
+.card {
+  position: relative;
+  isolation: isolate;
+  padding: 2.6rem 1.8rem 2.4rem;
+  color: var(--wish-ink);
+  transform: rotate(var(--rotation, -1deg));
+
+  /*
+     drop-shadow on the parent respects the clip-path + filter on the
+     ::before child, so the shadow follows the irregular torn outline
+     instead of a clean rectangle.
+  */
+  filter:
+    drop-shadow(0 14px 24px rgba(64, 46, 32, 0.16))
+    drop-shadow(0 3px 6px rgba(64, 46, 32, 0.10));
+}
+
+/* Per-card variation — a wall of identical cards reads as a template */
+.card:nth-child(3n + 1) { --rotation: -1.2deg; --tape: 251, 233, 184; }
+.card:nth-child(3n + 2) { --rotation:  1.4deg; --tape: 246, 226, 175; }
+.card:nth-child(3n + 3) { --rotation: -0.5deg; --tape: 254, 240, 200; }
+
+/* ============================================================
+   Paper layer (::before)
+   ============================================================ */
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+
+  background:
+    /* faint coffee-stain aging spots */
+    radial-gradient(ellipse at 25% 95%, rgba(140, 90, 50, 0.06), transparent 40%),
+    radial-gradient(ellipse at 80% 100%, rgba(170, 120, 70, 0.05), transparent 35%),
+    radial-gradient(ellipse at 90% 8%, rgba(140, 90, 50, 0.04), transparent 30%),
+
+    /* top-down light catching the upper portion of the page */
+    linear-gradient(170deg, rgba(255, 255, 255, 0.45), transparent 28%),
+
+    /* slightly lighter fiber tone at the torn bottom edge */
+    linear-gradient(0deg, rgba(255, 252, 244, 0.85) 0, rgba(255, 252, 244, 0) 12px),
+
+    /* very faint horizontal ruled lines */
+    repeating-linear-gradient(
+      0deg,
+      rgba(80, 50, 30, 0.035) 0,
+      rgba(80, 50, 30, 0.035) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+
+    /* base paper tint (top to bottom warmth) */
+    linear-gradient(180deg, var(--wish-bg), var(--wish-bg-warm));
+
+  /*
+     Hand-tuned silhouette:
+     - top: nearly straight with tiny dips (clean cut from a pad)
+     - sides: subtle waver
+     - bottom: irregular tear -- deep notches and shallow nips
+     The SVG filter handles the fine fiber detail on top of this.
+  */
+  clip-path: polygon(
+    0% 1.2%, 6% 0.4%, 14% 0.9%, 23% 0.2%, 31% 0.7%,
+    42% 0.1%, 51% 0.6%, 60% 0.2%, 70% 0.5%, 79% 0.1%,
+    88% 0.6%, 95% 0.3%, 100% 0.9%,
+
+    99.4% 12%, 100% 28%, 99.5% 44%, 100% 62%, 99.6% 80%, 100% 92%,
+
+    100% 95.5%,
+    96.5% 99.2%, 93.4% 96.4%, 90.1% 99.8%,
+    86.3% 95.6%, 82.7% 99.1%, 78.4% 95.9%, 74.6% 99.4%,
+    70.1% 96.2%, 66.3% 99.7%, 62.2% 95.4%, 58.7% 99.3%,
+    54.4% 96.1%, 50.6% 99.5%, 46.7% 95.7%, 42.9% 99.2%,
+    38.5% 95.5%, 34.4% 99.6%, 30.2% 96.3%, 26.5% 99.1%,
+    22.3% 95.9%, 18.2% 99.4%, 14.1% 95.6%, 10.0% 99.8%,
+    6.4% 96.0%, 2.8% 99.3%, 0% 95.8%,
+
+    0.5% 80%, 0% 62%, 0.6% 44%, 0% 28%, 0.4% 12%
+  );
+
+  filter: url(#ww-paper-tear-a);
+}
+
+.card:nth-child(3n + 2)::before { filter: url(#ww-paper-tear-b); }
+.card:nth-child(3n + 3)::before { filter: url(#ww-paper-tear-c); }
+
+/* ============================================================
+   Tape (::after)
+   ============================================================ */
+
+.card::after {
+  content: "";
+  position: absolute;
+  top: -0.8rem;
+  left: 50%;
+  width: 6.2rem;
+  height: 1.55rem;
+  transform: translateX(-50%) rotate(-3deg);
+
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 60%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.18) 0,
+      rgba(255, 255, 255, 0.18) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    rgba(var(--tape), 0.55);
+
+  box-shadow:
+    0 3px 6px rgba(64, 46, 32, 0.12),
+    0 1px 2px rgba(64, 46, 32, 0.08);
+
+  filter: url(#ww-tape-edge-a);
+}
+
+.card:nth-child(3n + 2)::after {
+  width: 7.1rem;
+  transform: translateX(-54%) rotate(4.2deg);
+  filter: url(#ww-tape-edge-b);
+}
+.card:nth-child(3n + 3)::after {
+  width: 5.6rem;
+  transform: translateX(-48%) rotate(-1.8deg);
+  filter: url(#ww-tape-edge-c);
+}
+
+/* ============================================================
+   Content
+   ============================================================ */
+
+.message {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+  line-height: 1.8;
+  /* Preserve guest line breaks without allowing arbitrary HTML */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.author {
+  margin-top: 1.4rem;
+  color: var(--wish-muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* ============================================================
+   "View all" CTA (preview mode only)
+   ============================================================ */
+
+.cta {
+  max-width: 1100px;
+  margin: 3rem auto 0;
+  text-align: center;
+}
+
+.ctaLink {
+  display: inline-block;
+  padding: 0.6rem 1.4rem;
+  border: 1px solid var(--wish-accent);
+  border-radius: 999px;
+  color: var(--wish-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ctaLink:hover {
+  background-color: var(--wish-accent);
+  color: #fff;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .section {
+    padding: 4rem 1rem;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .card {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transform: none;
+  }
+  .ctaLink {
+    transition: none;
+  }
+}

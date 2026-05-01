@@ -5,6 +5,7 @@ import { RSVPForm } from "@/components/features";
 import { PageViewTracker } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ async function getInviteByToken(token: string) {
           coverImageUrl: true,
           status: true,
           rsvpDeadline: true,
+          pageConfig: true,
         },
       },
       rsvp: {
@@ -109,6 +111,22 @@ export default async function RSVPPage({ params }: PageProps) {
   }
 
   const event = invite.event;
+
+  // Derive whether the RSVP form should expose the "Message for the couple"
+  // textarea. Both the wishes section AND its enableSubmissions flag must be
+  // on; either being off hides the field. Falls back to false when the event
+  // has no pageConfig yet or no wishes section.
+  const pageConfig = loadAndMigrateConfig(event.pageConfig, {
+    eventId: event.id,
+    eventTitle: event.title,
+  });
+  const wishesSection = pageConfig.sections.find(
+    (s) => s.type === "wishes" && s.enabled
+  );
+  const enableWishes =
+    wishesSection?.type === "wishes"
+      ? wishesSection.data.enableSubmissions !== false
+      : false;
 
   // Check if event is still active
   if (event.status === "CANCELLED") {
@@ -293,6 +311,7 @@ export default async function RSVPPage({ params }: PageProps) {
           plusOnesAllowed={invite.plusOnesAllowed}
           needsEmail={!invite.email}
           inviteRef={inviteRef}
+          enableWishes={enableWishes}
         />
       </div>
     </div>
