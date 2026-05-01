@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { formatInTimeZone } from "date-fns-tz";
 import { twMerge } from "tailwind-merge";
 
 /**
@@ -21,6 +22,54 @@ export function formatEventDate(date: Date, timezone: string): string {
     minute: "2-digit",
     timeZone: timezone,
   }).format(date);
+}
+
+/**
+ * Long event-date format: "Saturday, June 21, 2026".
+ * Use for emails, invitation pages, and other formal display contexts.
+ * Always pass `event.timezone` so the date represents the venue's wall clock,
+ * not the server's UTC clock.
+ */
+export function formatEventDateLong(
+  date: Date | string | number,
+  timezone: string
+): string {
+  return formatInTimeZone(date, timezone, "EEEE, MMMM d, yyyy");
+}
+
+/**
+ * Event time format: "7:00 PM".
+ * Always pass `event.timezone`.
+ */
+export function formatEventTime(
+  date: Date | string | number,
+  timezone: string
+): string {
+  return formatInTimeZone(date, timezone, "h:mm a");
+}
+
+/**
+ * Medium event-date format: "June 21, 2026".
+ * Use for compact contexts — meta descriptions, secondary copy where the
+ * weekday isn't useful. Always pass `event.timezone`.
+ */
+export function formatEventDateMedium(
+  date: Date | string | number,
+  timezone: string
+): string {
+  return formatInTimeZone(date, timezone, "MMMM d, yyyy");
+}
+
+/**
+ * Combined long date + time: "Saturday, June 21, 2026 at 7:00 PM".
+ * Used in dashboards and event detail pages.
+ * Always pass `event.timezone`.
+ */
+export function formatEventDateTimeLong(
+  date: Date | string | number,
+  timezone: string
+): string {
+  return formatInTimeZone(date, timezone, "EEEE, MMMM d, yyyy 'at' h:mm a");
 }
 
 /**

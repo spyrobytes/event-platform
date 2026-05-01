@@ -6,6 +6,7 @@ import { PageViewTracker } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
+import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -239,18 +240,10 @@ export default async function RSVPPage({ params }: PageProps) {
     );
   }
 
-  // Format event date
-  const startDate = new Date(event.startAt);
-  const formattedDate = startDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const formattedTime = startDate.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  // Format event date in the event's timezone so guests see venue time,
+  // not Vercel's UTC.
+  const formattedDate = formatEventDateLong(event.startAt, event.timezone);
+  const formattedTime = formatEventTime(event.startAt, event.timezone);
 
   return (
     <div className="min-h-screen bg-background">

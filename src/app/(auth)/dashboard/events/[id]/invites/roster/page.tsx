@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { formatEventDateLong } from "@/lib/utils";
 import styles from "./roster.module.css";
 
 type RosterRow = {
@@ -20,7 +21,7 @@ type RosterRow = {
 };
 
 type RosterData = {
-  event: { title: string; startAt: string } | null;
+  event: { title: string; startAt: string; timezone: string } | null;
   invites: RosterRow[];
 };
 
@@ -97,12 +98,7 @@ export default function RosterPage() {
 
   const eventTitle = data.event?.title ?? "Event";
   const eventStart = data.event
-    ? new Date(data.event.startAt).toLocaleDateString(undefined, {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+    ? formatEventDateLong(data.event.startAt, data.event.timezone)
     : "";
   const invites = data.invites;
 

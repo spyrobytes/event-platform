@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { format } from "date-fns";
 import { db } from "@/lib/db";
+import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventJsonLd } from "@/components/seo/EventJsonLd";
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
   const description = event.description
     ? event.description.slice(0, 160)
-    : `Join us for ${event.title}${event.city ? ` in ${event.city}` : ""} on ${format(event.startAt, "MMMM d, yyyy")}`;
+    : `Join us for ${event.title}${event.city ? ` in ${event.city}` : ""} on ${formatEventDateMedium(event.startAt, event.timezone)}`;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
 
@@ -175,11 +175,11 @@ export default async function EventPage({ params }: EventPageProps) {
                   <span className="text-2xl">📅</span>
                   <div>
                     <p className="font-medium">
-                      {format(startDate, "EEEE, MMMM d, yyyy")}
+                      {formatEventDateLong(startDate, event.timezone)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {format(startDate, "h:mm a")}
-                      {endDate && ` - ${format(endDate, "h:mm a")}`}
+                      {formatEventTime(startDate, event.timezone)}
+                      {endDate && ` - ${formatEventTime(endDate, event.timezone)}`}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {event.timezone}

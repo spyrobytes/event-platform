@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const event = await db.event.findUnique({
       where: { id: eventId },
-      select: { title: true, startAt: true },
+      select: { title: true, startAt: true, timezone: true },
     });
 
     const invites = await db.invite.findMany({
