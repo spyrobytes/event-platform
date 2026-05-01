@@ -31,6 +31,7 @@ import type {
   FAQRenderer,
   TravelStayRenderer,
   RegistryRenderer,
+  WishesRenderer as WishesRendererType,
   WeddingPartyRenderer,
   AttireRenderer,
   ThingsToDoRenderer,
@@ -98,6 +99,12 @@ import { FestiveLayeredFooter } from "./footer/FestiveLayeredFooter";
 import { MetallicLineDivider } from "./divider/MetallicLineDivider";
 import { RhythmicPatternDivider } from "./divider/RhythmicPatternDivider";
 import { ScrapbookWeddingParty } from "./wedding-party/ScrapbookWeddingParty";
+
+// ---------------------------------------------------------------------------
+// Wedding Wishes — single renderer (currently no per-template variants)
+// ---------------------------------------------------------------------------
+import { WishesRenderer as WishesRendererComponent } from "./wishes";
+export { PaperFilters } from "./wishes";
 
 // ---------------------------------------------------------------------------
 // V2 "cinematic" adapters — wrap existing V2 sections to match V3 contracts
@@ -213,6 +220,7 @@ export const detailsRenderer: DetailsRenderer = CinematicDetailsAdapter;
 export const faqRenderer: FAQRenderer = CinematicFAQAdapter;
 export const travelStayRenderer: TravelStayRenderer = CinematicTravelStayAdapter;
 export const registryRenderer: RegistryRenderer = CinematicRegistryAdapter;
+export const wishesRenderer: WishesRendererType = WishesRendererComponent;
 export const attireRenderer: AttireRenderer = CinematicAttireAdapter;
 export const thingsToDoRenderer: ThingsToDoRenderer = CinematicThingsToDoAdapter;
 export const speakersRenderer: SpeakersRenderer = CinematicSpeakersAdapter;

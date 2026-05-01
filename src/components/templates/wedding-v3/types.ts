@@ -25,6 +25,7 @@ import type {
   AttireSection,
   ThingsToDoSection,
   RegistrySection,
+  WishesSection,
   SocialLink,
 } from "@/schemas/event-page";
 import type { V2FontPair, V2PaletteOverrides, V2GlassTokens } from "../wedding-v2/tokens";
@@ -212,6 +213,18 @@ export type SectionRendererProps<TData> = {
   canClaim?: boolean;
   /** Registry rendering mode — ignored by non-registry adapters. */
   registryMode?: "preview" | "full";
+  /** Approved wedding wishes. Only meaningful for the wishes renderer;
+   *  other adapters ignore. */
+  approvedWishes?: Array<{
+    id: string;
+    message: string;
+    authorName: string;
+  }>;
+  /** Wishes rendering mode — ignored by non-wishes adapters. */
+  wishesMode?: "preview" | "full";
+  /** Guest invite token (`tk` query param). Used by the wishes renderer
+   *  to build the "View all" CTA href; ignored by other adapters. */
+  inviteToken?: string;
 };
 
 /** Hero has a special contract */
@@ -277,6 +290,7 @@ export type DetailsRenderer = ComponentType<SectionRendererProps<DetailsSection[
 export type FAQRenderer = ComponentType<SectionRendererProps<FAQSection["data"]>>;
 export type TravelStayRenderer = ComponentType<SectionRendererProps<TravelStaySection["data"]>>;
 export type RegistryRenderer = ComponentType<SectionRendererProps<RegistrySection["data"]>>;
+export type WishesRenderer = ComponentType<SectionRendererProps<WishesSection["data"]>>;
 export type WeddingPartyRenderer = ComponentType<SectionRendererProps<WeddingPartySection["data"]>>;
 export type AttireRenderer = ComponentType<SectionRendererProps<AttireSection["data"]>>;
 export type ThingsToDoRenderer = ComponentType<SectionRendererProps<ThingsToDoSection["data"]>>;

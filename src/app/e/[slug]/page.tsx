@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
-import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
+import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO, type ApprovedWishDTO } from "@/components/templates";
 import { summarizeClaims } from "@/lib/registry-claims";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
 import {
@@ -183,6 +183,38 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     }
   }
 
+  // Approved wedding wishes — fetched whenever the wishes section is enabled.
+  // Public visitors see the same approved messages as guests (moderation is
+  // the gate, not access level). Empty array when nothing has been approved
+  // yet; renderer treats that as "render nothing".
+  let approvedWishes: ApprovedWishDTO[] | undefined;
+  const hasWishes = filteredSections.some((s) => s.type === "wishes" && s.enabled);
+  if (hasWishes) {
+    const rows = await db.rSVP.findMany({
+      where: {
+        eventId: event.id,
+        messageStatus: "APPROVED",
+        messageToHost: { not: null },
+      },
+      select: {
+        id: true,
+        guestName: true,
+        messageToHost: true,
+        messageApprovedAt: true,
+        respondedAt: true,
+      },
+      orderBy: [
+        { messageApprovedAt: "desc" },
+        { respondedAt: "desc" },
+      ],
+    });
+    approvedWishes = rows.map((r) => ({
+      id: r.id,
+      message: r.messageToHost ?? "",
+      authorName: r.guestName,
+    }));
+  }
+
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
   return (
@@ -199,6 +231,9 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         registryClaims={registryClaims}
         canClaim={accessLevel === "guest"}
         registryMode="preview"
+        approvedWishes={approvedWishes}
+        wishesMode="preview"
+        inviteToken={tk}
       />
     </div>
   );
