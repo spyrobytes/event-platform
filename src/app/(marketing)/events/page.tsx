@@ -43,6 +43,7 @@ const DISCOVERY_SELECT = {
   slug: true,
   description: true,
   startAt: true,
+  timezone: true,
   venueName: true,
   city: true,
   coverImageUrl: true,

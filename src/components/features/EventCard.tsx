@@ -1,8 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn, formatEventDateTimeMedium } from "@/lib/utils";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -45,11 +44,6 @@ const VISIBILITY_ICONS: Record<EventVisibility, string> = {
   PRIVATE: "🔒",
 };
 
-function formatEventDateTime(date: Date | string): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  return format(dateObj, "EEE, MMM d, yyyy 'at' h:mm a");
-}
-
 export function EventCard({
   event,
   href,
@@ -89,7 +83,7 @@ export function EventCard({
         <CardDescription>
           <span className="flex items-center gap-1">
             <span title={event.visibility}>{VISIBILITY_ICONS[event.visibility]}</span>
-            <span>{formatEventDateTime(event.startAt)}</span>
+            <span>{formatEventDateTimeMedium(event.startAt, event.timezone)}</span>
           </span>
         </CardDescription>
       </CardHeader>
