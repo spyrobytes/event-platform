@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
-import { format } from "date-fns";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { formatEventDateTimeLong } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsSnapshot, RSVPFunnel, VelocityChart } from "@/components/features/Analytics";
@@ -336,12 +336,12 @@ export default function EventDetailPage() {
           <CardContent className="space-y-4">
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Start</h4>
-              <p className="mt-1">{format(new Date(event.startAt), "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
+              <p className="mt-1">{formatEventDateTimeLong(event.startAt, event.timezone)}</p>
             </div>
             {event.endAt && (
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground">End</h4>
-                <p className="mt-1">{format(new Date(event.endAt), "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
+                <p className="mt-1">{formatEventDateTimeLong(event.endAt, event.timezone)}</p>
               </div>
             )}
             <div>

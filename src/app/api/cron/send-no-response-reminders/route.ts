@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { queueNoResponseReminderEmail, processEmail } from "@/lib/email";
+import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
@@ -99,13 +100,14 @@ export async function GET(request: NextRequest) {
       const reminderDays = event.reminderDays!;
       const reminderIntervalMs = reminderDays * 24 * 60 * 60 * 1000;
 
-      // Prepare event details for email
-      const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
-      const eventTime = format(new Date(event.startAt), "h:mm a");
+      // Prepare event details for email — all formatted in event.timezone
+      // so guests see the venue's wall-clock time, not the server's UTC.
+      const eventDate = formatEventDateLong(event.startAt, event.timezone);
+      const eventTime = formatEventTime(event.startAt, event.timezone);
       const eventLocation = event.venueName || event.city || undefined;
       const hostName = event.creator.name || event.creator.email;
       const rsvpDeadline = event.rsvpDeadline
-        ? format(new Date(event.rsvpDeadline), "MMMM d, yyyy")
+        ? formatInTimeZone(event.rsvpDeadline, event.timezone, "MMMM d, yyyy")
         : undefined;
 
       for (const invite of invites) {

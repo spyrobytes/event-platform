@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { format } from "date-fns";
 import { db } from "@/lib/db";
+import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 import { successResponse, handleApiError } from "@/lib/api-response";
 import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
@@ -192,8 +192,8 @@ export async function POST(request: NextRequest) {
           });
 
           if (fullEvent) {
-            const eventDate = format(new Date(fullEvent.startAt), "EEEE, MMMM d, yyyy");
-            const eventTime = format(new Date(fullEvent.startAt), "h:mm a");
+            const eventDate = formatEventDateLong(fullEvent.startAt, fullEvent.timezone);
+            const eventTime = formatEventTime(fullEvent.startAt, fullEvent.timezone);
             const eventLocation = fullEvent.venueName || fullEvent.city || undefined;
             const hostName = fullEvent.creator.name || fullEvent.creator.email;
 
