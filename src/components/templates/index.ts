@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { EventPageConfigV1 } from "@/schemas/event-page";
+import type { EventPageConfigV1, Section } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 // Template imports
@@ -44,6 +44,18 @@ export type RegistryClaimSummaryDTO = {
 };
 
 /**
+ * Approved wedding wish, surfaced to the public-facing template by the
+ * /e/[slug] and /e/[slug]/wishes pages. Source of truth is the RSVP row
+ * (Rsvp.messageToHost + Rsvp.messageStatus="APPROVED"); this DTO is the
+ * minimum subset the renderer needs.
+ */
+export type ApprovedWishDTO = {
+  id: string;
+  message: string;
+  authorName: string;
+};
+
+/**
  * Props that all template components must accept
  */
 export type TemplateProps = {
@@ -65,10 +77,26 @@ export type TemplateProps = {
    * - "preview" (main event page): first 4 items + "View full registry" CTA.
    * - "full" (default, /e/[slug]/registry + organizer preview): all items. */
   registryMode?: "preview" | "full";
-  /** When set, the template is rendering a sub-page (e.g. /e/[slug]/registry).
-   * Nav links for sections not on this page become cross-page links:
-   * `${navLinkBase}#sectionId`. The registry section links stay on-page. */
+  /** Approved wedding wishes — only fetched + passed when the event has a
+   * wishes section enabled. Empty array means "section enabled but no
+   * approved messages yet"; the renderer then renders nothing. */
+  approvedWishes?: ApprovedWishDTO[];
+  /** Wishes rendering mode — mirrors registryMode:
+   * - "preview" (main event page): first previewCount + "View all" CTA.
+   * - "full" (/e/[slug]/wishes): all approved wishes. */
+  wishesMode?: "preview" | "full";
+  /** Guest invite token from the `tk` query param. Forwarded to the wishes
+   * "View all" CTA so the full page preserves authenticated guest context. */
+  inviteToken?: string;
+  /** When set, the template is rendering a sub-page (e.g. /e/[slug]/registry
+   * or /e/[slug]/wishes). Nav links for sections not on this page become
+   * cross-page links: `${navLinkBase}#sectionId`. */
   navLinkBase?: string;
+  /** Names which section type is the focus of the current sub-page render.
+   * When set alongside navLinkBase, only the named section renders in the
+   * body (others appear only as cross-page nav links). Required for
+   * /e/[slug]/registry ("registry") and /e/[slug]/wishes ("wishes"). */
+  subPageSection?: Section["type"];
 };
 
 /**

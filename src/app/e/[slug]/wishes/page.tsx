@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
-import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
-import { summarizeClaims } from "@/lib/registry-claims";
+import { TEMPLATES, type TemporalData, type ApprovedWishDTO } from "@/components/templates";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
 import {
   getEventBySlug,
@@ -34,18 +33,18 @@ export async function generateMetadata({
   const { tk } = await searchParams;
   const event = await getEventBySlug(slug, !!tk);
 
-  if (!event) return { title: "Registry Not Found" };
+  if (!event) return { title: "Wishes Not Found" };
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   return {
-    title: `Gift Registry — ${event.title}`,
-    description: `Gift registry for ${event.title}`,
-    alternates: { canonical: `${baseUrl}/e/${slug}/registry` },
+    title: `Wedding Wishes — ${event.title}`,
+    description: `Wedding wishes for ${event.title}`,
+    alternates: { canonical: `${baseUrl}/e/${slug}/wishes` },
     openGraph: {
-      title: `Gift Registry — ${event.title}`,
-      description: `Gift registry for ${event.title}`,
+      title: `Wedding Wishes — ${event.title}`,
+      description: `Wedding wishes for ${event.title}`,
       type: "website",
-      url: `${baseUrl}/e/${slug}/registry`,
+      url: `${baseUrl}/e/${slug}/wishes`,
     },
     ...(tk && {
       robots: { index: false, follow: false },
@@ -55,19 +54,19 @@ export async function generateMetadata({
 }
 
 /**
- * Full registry page — identical layout to the main event page (hero, nav,
- * all sections, footer) but with the registry section in "full" mode showing
- * all items instead of the 4-item preview. Public-viewable; claim controls
- * only light up for guests with a valid invite token.
+ * Full wedding-wishes page — identical layout to the main event page (hero,
+ * nav, all sections, footer) but with the wishes section in "full" mode
+ * showing every approved message instead of the previewCount preview.
+ * Public-viewable; only approved (moderated) messages are exposed.
  */
-export default async function FullRegistryPage({ params, searchParams }: PageProps) {
+export default async function FullWishesPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { tk } = await searchParams;
 
   const event = await getEventBySlug(slug, !!tk);
   if (!event) notFound();
 
-  const { accessLevel, guestName, tokenInvalid, inviteId } =
+  const { accessLevel, guestName, tokenInvalid } =
     await resolveGuestAccess(tk, event.id);
 
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
@@ -79,11 +78,11 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
   });
 
   // All sections are passed to the template so nav/footer links match the
-  // landing page. The template's renderSection gates on navLinkBase to only
-  // render the registry section in the body. 404 if no registry section.
+  // landing page. The template's renderSection gates on subPageSection to
+  // only render the wishes section in the body. 404 if no wishes section.
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
-  const hasRegistry = filteredSections.some((s) => s.type === "registry" && s.enabled);
-  if (!hasRegistry) notFound();
+  const hasWishes = filteredSections.some((s) => s.type === "wishes" && s.enabled);
+  if (!hasWishes) notFound();
 
   const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
   const navLinkBase = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
@@ -116,26 +115,30 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
 
   const Template = TEMPLATES[resolvedTemplateId];
 
-  // Claim summaries — same logic as /e/[slug]. Guests only; public visitors
-  // get read-only cards.
-  let registryClaims: Record<string, RegistryClaimSummaryDTO> | undefined;
-  if (accessLevel === "guest") {
-    const claims = await db.registryClaim.findMany({
-      where: { eventId: event.id, source: "GUEST" },
-      select: {
-        id: true,
-        itemId: true,
-        inviteId: true,
-        quantity: true,
-        source: true,
-      },
-    });
-    const summary = summarizeClaims({
-      allClaims: claims.map((c) => ({ ...c, source: c.source as "GUEST" | "ORGANIZER" })),
-      myInviteId: inviteId,
-    });
-    registryClaims = Object.fromEntries(summary);
-  }
+  // Fetch all approved wishes — no preview cap on the dedicated page.
+  const rows = await db.rSVP.findMany({
+    where: {
+      eventId: event.id,
+      messageStatus: "APPROVED",
+      messageToHost: { not: null },
+    },
+    select: {
+      id: true,
+      guestName: true,
+      messageToHost: true,
+      messageApprovedAt: true,
+      respondedAt: true,
+    },
+    orderBy: [
+      { messageApprovedAt: "desc" },
+      { respondedAt: "desc" },
+    ],
+  });
+  const approvedWishes: ApprovedWishDTO[] = rows.map((r) => ({
+    id: r.id,
+    message: r.messageToHost ?? "",
+    authorName: r.guestName,
+  }));
 
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
@@ -150,11 +153,12 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
         eventId={event.id}
         eventSlug={slug}
         temporal={temporal}
-        registryClaims={registryClaims}
         canClaim={accessLevel === "guest"}
-        registryMode="full"
+        approvedWishes={approvedWishes}
+        wishesMode="full"
+        inviteToken={tk}
         navLinkBase={navLinkBase}
-        subPageSection="registry"
+        subPageSection="wishes"
       />
     </div>
   );

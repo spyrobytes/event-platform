@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { buildPortalUrl } from "@/lib/guest-access";
+import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import { InvitationShell, InvitationRSVPForm } from "@/components/features/Invitation";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -30,6 +31,7 @@ async function getInviteForRSVP(token: string) {
           slug: true,
           status: true,
           timezone: true,
+          pageConfig: true,
         },
       },
       rsvp: {
@@ -118,6 +120,21 @@ export default async function InviteRSVPPage({ params }: PageProps) {
     redirect(`/invite/${token}`);
   }
 
+  // Derive whether the RSVP form should expose the "Message for the couple"
+  // textarea. Both the wishes section AND its enableSubmissions flag must be
+  // on. Falls back to false when the event has no pageConfig or no wishes.
+  const pageConfig = loadAndMigrateConfig(event.pageConfig, {
+    eventId: event.id,
+    eventTitle: event.title,
+  });
+  const wishesSection = pageConfig.sections.find(
+    (s) => s.type === "wishes" && s.enabled
+  );
+  const enableWishes =
+    wishesSection?.type === "wishes"
+      ? wishesSection.data.enableSubmissions !== false
+      : false;
+
   // Get theme configuration (use defaults if no config)
   const themeId: ThemeId = (invitationConfig?.themeId as ThemeId) || "ivory";
   const typographyPair: TypographyPair =
@@ -201,6 +218,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 plusOnesAllowed={invite.plusOnesAllowed}
                 needsEmail={!invite.email}
                 inviteRef={inviteRef}
+                enableWishes={enableWishes}
                 successMessage="Your response has been recorded. You'll receive a confirmation email shortly."
               />
             )}
