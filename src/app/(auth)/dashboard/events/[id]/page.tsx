@@ -73,8 +73,10 @@ export default function EventDetailPage() {
       try {
         const token = await getIdToken();
         if (!token) return;
+        // limit=1 keeps the response small — the badge only needs counts,
+        // not message bodies.
         const res = await fetch(
-          `/api/events/${params.id}/wishes?status=PENDING`,
+          `/api/events/${params.id}/wishes?status=PENDING&limit=1`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (!res.ok) return;

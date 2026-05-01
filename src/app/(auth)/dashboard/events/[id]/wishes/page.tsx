@@ -54,47 +54,86 @@ export default function WishesModerationPage() {
   const [event, setEvent] = useState<EventBasic | null>(null);
   const [messages, setMessages] = useState<WishMessage[]>([]);
   const [counts, setCounts] = useState<Counts>({ pending: 0, approved: 0, hidden: 0 });
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("PENDING");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (currentFilter: FilterKey) => {
+  // Event metadata is fetched once on mount; the wishes list is fetched on
+  // filter change and on "Load more". Splitting the two avoids a redundant
+  // event refetch every time the moderator clicks a tab.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getIdToken();
+        if (!token) {
+          if (!cancelled) setError("Not authenticated");
+          return;
+        }
+        const res = await fetch(`/api/events/${params.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Event not found");
+        const data = await res.json();
+        if (!cancelled) {
+          setEvent({ id: data.data.id, title: data.data.title });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load event");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id, getIdToken]);
+
+  // `cursor` of null fetches a fresh first page (resets the list); a non-null
+  // cursor appends. Counts are always replaced — they're authoritative from
+  // the server's groupBy.
+  const loadMessages = useCallback(
+    async (currentFilter: FilterKey, cursor: string | null) => {
       setError(null);
+      if (cursor) setLoadingMore(true);
       try {
         const token = await getIdToken();
         if (!token) {
           setError("Not authenticated");
           return;
         }
-        const [eventRes, wishesRes] = await Promise.all([
-          fetch(`/api/events/${params.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`/api/events/${params.id}/wishes?status=${currentFilter}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-        if (!eventRes.ok) throw new Error("Event not found");
-        if (!wishesRes.ok) throw new Error("Failed to load messages");
-        const eventData = await eventRes.json();
-        const wishesData = await wishesRes.json();
-        setEvent({ id: eventData.data.id, title: eventData.data.title });
-        setMessages(wishesData.data.messages as WishMessage[]);
-        setCounts(wishesData.data.counts as Counts);
+        const url = new URL(
+          `/api/events/${params.id}/wishes`,
+          window.location.origin
+        );
+        url.searchParams.set("status", currentFilter);
+        if (cursor) url.searchParams.set("cursor", cursor);
+        const res = await fetch(url.toString(), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to load messages");
+        const { data } = await res.json();
+        const newMessages = data.messages as WishMessage[];
+        setCounts(data.counts as Counts);
+        setNextCursor(data.nextCursor as string | null);
+        setMessages((prev) => (cursor ? [...prev, ...newMessages] : newMessages));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     },
     [params.id, getIdToken]
   );
 
+  // Reset and refetch whenever the active filter changes.
   useEffect(() => {
-    load(filter);
-  }, [load, filter]);
+    loadMessages(filter, null);
+  }, [loadMessages, filter]);
 
   const updateStatus = useCallback(
     async (rsvpId: string, next: MessageStatus) => {
@@ -153,12 +192,12 @@ export default function WishesModerationPage() {
         // Revert optimistic state and reload from server
         setMessages(prevMessages);
         setCounts(prevCounts);
-        load(filter);
+        loadMessages(filter, null);
       } finally {
         setPendingId(null);
       }
     },
-    [params.id, getIdToken, load, filter, messages, counts]
+    [params.id, getIdToken, loadMessages, filter, messages, counts]
   );
 
   if (loading) {
@@ -253,6 +292,17 @@ export default function WishesModerationPage() {
               onUpdate={(next) => updateStatus(m.id, next)}
             />
           ))}
+          {nextCursor && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                onClick={() => loadMessages(filter, nextCursor)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "Loading..." : "Load more"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
