@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner, assertCanPublish } from "@/lib/authorization";
@@ -49,8 +49,12 @@ async function buildInviteEmailContext(eventId: string) {
   if (!event) return null;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
-  const eventDate = format(new Date(event.startAt), "EEEE, MMMM d, yyyy");
-  const eventTime = format(new Date(event.startAt), "h:mm a");
+  // All datetimes are formatted in the event's timezone — Vercel functions
+  // run in UTC, so without this a 23:59 PDT deadline would render as the
+  // following day's date for any guest reading the email.
+  const tz = event.timezone;
+  const eventDate = formatInTimeZone(event.startAt, tz, "EEEE, MMMM d, yyyy");
+  const eventTime = formatInTimeZone(event.startAt, tz, "h:mm a");
   const eventLocation = event.venueName || event.city || undefined;
   const hostName = event.creator.name || event.creator.email;
 
@@ -68,12 +72,12 @@ async function buildInviteEmailContext(eventId: string) {
         ceremonyDate:
           invitationConfig?.ceremonyDate ||
           (invitationConfig?.ceremonyStartAt
-            ? format(new Date(invitationConfig.ceremonyStartAt), "EEEE, MMMM d, yyyy")
+            ? formatInTimeZone(invitationConfig.ceremonyStartAt, tz, "EEEE, MMMM d, yyyy")
             : undefined),
         ceremonyTime:
           invitationConfig?.ceremonyTime ||
           (invitationConfig?.ceremonyStartAt
-            ? format(new Date(invitationConfig.ceremonyStartAt), "h:mm a")
+            ? formatInTimeZone(invitationConfig.ceremonyStartAt, tz, "h:mm a")
             : undefined),
         ceremonyVenue: invitationConfig?.ceremonyVenue || undefined,
         ceremonyAddress: invitationConfig?.ceremonyAddress || undefined,
@@ -90,12 +94,12 @@ async function buildInviteEmailContext(eventId: string) {
         receptionDate:
           invitationConfig?.receptionDate ||
           (invitationConfig?.receptionStartAt
-            ? format(new Date(invitationConfig.receptionStartAt), "EEEE, MMMM d, yyyy")
+            ? formatInTimeZone(invitationConfig.receptionStartAt, tz, "EEEE, MMMM d, yyyy")
             : undefined),
         receptionTime:
           invitationConfig?.receptionTime ||
           (invitationConfig?.receptionStartAt
-            ? format(new Date(invitationConfig.receptionStartAt), "h:mm a")
+            ? formatInTimeZone(invitationConfig.receptionStartAt, tz, "h:mm a")
             : undefined),
         receptionVenue: invitationConfig?.receptionVenue || undefined,
         receptionAddress: invitationConfig?.receptionAddress || undefined,
@@ -104,7 +108,7 @@ async function buildInviteEmailContext(eventId: string) {
 
   const rsvpDeadline =
     invitationConfig?.rsvpDeadline ||
-    (event.rsvpDeadline ? format(new Date(event.rsvpDeadline), "EEEE, MMMM d, yyyy") : undefined);
+    (event.rsvpDeadline ? formatInTimeZone(event.rsvpDeadline, tz, "EEEE, MMMM d, yyyy") : undefined);
 
   return {
     eventTitle: event.title,
