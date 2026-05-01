@@ -493,6 +493,31 @@ export const registrySectionSchema = z.object({
   data: registrySectionDataSchema,
 });
 
+// Wedding Wishes Section — moderated guest messages displayed as a wall of
+// ripped-paper cards. Messages themselves are stored on the RSVP row
+// (see Rsvp.messageToHost / messageStatus); this section config controls
+// only the editorial framing and structural settings around them.
+export const wishesSectionDataSchema = z.object({
+  eyebrow: z.string().max(40, "Eyebrow must be 40 characters or less").optional(),
+  heading: z.string().max(60, "Heading must be 60 characters or less").default("Wedding Wishes"),
+  intro: z.string().max(300, "Intro must be 300 characters or less").optional(),
+  // How many wishes appear on the main event page; remainder spill onto the
+  // dedicated /wishes route. Range matches the visual capacity of the
+  // ripped-paper grid (3 columns × up to 2 rows).
+  previewCount: z.number().int().min(1).max(6).default(3),
+  // When false, the RSVP form will not show the "Message for the couple"
+  // field even if the section is enabled (organizer can collect existing
+  // wishes without inviting more).
+  enableSubmissions: z.boolean().default(true),
+});
+
+export const wishesSectionSchema = z.object({
+  type: z.literal("wishes"),
+  enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
+  data: wishesSectionDataSchema,
+});
+
 // Union of all sections
 export const sectionSchema = z.discriminatedUnion("type", [
   detailsSectionSchema,
@@ -510,6 +535,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   attireSectionSchema,
   thingsToDoSectionSchema,
   registrySectionSchema,
+  wishesSectionSchema,
 ]);
 
 export type Section = z.infer<typeof sectionSchema>;
@@ -544,6 +570,7 @@ export type ActivityCategory = z.infer<typeof activityCategorySchema>;
 // V2 types
 export type RegistrySection = z.infer<typeof registrySectionSchema>;
 export type RegistryItem = z.infer<typeof registryItemSchema>;
+export type WishesSection = z.infer<typeof wishesSectionSchema>;
 export type Milestone = z.infer<typeof milestoneSchema>;
 export type Airport = z.infer<typeof airportSchema>;
 export type PartySide = z.infer<typeof partySideSchema>;

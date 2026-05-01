@@ -32,6 +32,7 @@ import {
   AttireEditor,
   ThingsToDoEditor,
   RegistryEditor,
+  WishesEditor,
   SocialLinksEditor,
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
@@ -56,11 +57,11 @@ const WEDDING_SECTIONS: Section["type"][] = [
   ...GENERIC_SECTIONS, "story", "travelStay", "weddingParty", "attire", "thingsToDo",
 ];
 
-const V3_WEDDING_SECTIONS: Section["type"][] = [...WEDDING_SECTIONS, "registry"];
+const V3_WEDDING_SECTIONS: Section["type"][] = [...WEDDING_SECTIONS, "registry", "wishes"];
 
 const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
   wedding_v1: new Set(WEDDING_SECTIONS),
-  wedding_v2: new Set([...WEDDING_SECTIONS, "registry"]),
+  wedding_v2: new Set([...WEDDING_SECTIONS, "registry", "wishes"]),
   wedding_editorial: new Set(V3_WEDDING_SECTIONS),
   wedding_intimate_note: new Set(V3_WEDDING_SECTIONS),
   wedding_fine_art: new Set(V3_WEDDING_SECTIONS),
@@ -409,6 +410,18 @@ export default function PageEditorPage() {
               data: {
                 heading: "Gift Registry",
                 items: [],
+              },
+            };
+            break;
+          case "wishes":
+            newSection = {
+              type: "wishes",
+              enabled: true,
+              visibility: "guests",
+              data: {
+                heading: "Wedding Wishes",
+                previewCount: 3,
+                enableSubmissions: true,
               },
             };
             break;
@@ -1475,6 +1488,12 @@ export default function PageEditorPage() {
                 onChange={(data) => updateSectionData(index, data)}
               />
             )}
+            {section.type === "wishes" && (
+              <WishesEditor
+                data={section.data}
+                onChange={(data) => updateSectionData(index, data)}
+              />
+            )}
             </div>
           </CardContent>
         </Card>
@@ -1630,6 +1649,16 @@ export default function PageEditorPage() {
                 onClick={() => addSection("registry")}
               >
                 + Gift Registry
+              </Button>
+            )}
+            {supported.has("wishes") && !config.sections.some((s) => s.type === "wishes") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("wishes")}
+              >
+                + Wedding Wishes
               </Button>
             )}
             {config.sections.length >= 12 && (
