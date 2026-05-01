@@ -73,6 +73,18 @@ export function formatEventDateTimeLong(
 }
 
 /**
+ * Compact combined date + time: "Sat, Jun 21, 2026 at 7:00 PM".
+ * Use in space-constrained surfaces (event cards, list rows) where the
+ * long form is too verbose. Always pass `event.timezone`.
+ */
+export function formatEventDateTimeMedium(
+  date: Date | string | number,
+  timezone: string
+): string {
+  return formatInTimeZone(date, timezone, "EEE, MMM d, yyyy 'at' h:mm a");
+}
+
+/**
  * Formats a date range for display.
  */
 export function formatDateRange(

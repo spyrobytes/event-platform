@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { formatInTimeZone } from "date-fns-tz";
+import { cn, formatEventTime } from "@/lib/utils";
 import styles from "./DiscoveryEventCard.module.css";
 
 export type DiscoveryEventCardData = {
@@ -10,6 +10,7 @@ export type DiscoveryEventCardData = {
   slug: string;
   description?: string | null;
   startAt: Date | string;
+  timezone: string;
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
@@ -22,21 +23,17 @@ type DiscoveryEventCardProps = {
   className?: string;
 };
 
-function formatMonth(date: Date): string {
-  return format(date, "MMM").toUpperCase();
-}
-
 export function DiscoveryEventCard({
   event,
   featured = false,
   className,
 }: DiscoveryEventCardProps) {
-  const startAt =
-    typeof event.startAt === "string" ? new Date(event.startAt) : event.startAt;
-
-  const month = formatMonth(startAt);
-  const day = format(startAt, "d");
-  const time = format(startAt, "h:mm a");
+  // All three fragments must render in the venue's timezone — Vercel runs in
+  // UTC, so a NY wedding starting at 7 PM Eastern would otherwise show as
+  // midnight on the next day.
+  const month = formatInTimeZone(event.startAt, event.timezone, "MMM").toUpperCase();
+  const day = formatInTimeZone(event.startAt, event.timezone, "d");
+  const time = formatEventTime(event.startAt, event.timezone);
 
   const location = event.venueName ?? event.city ?? null;
   const attendees = event._count?.rsvps ?? 0;
