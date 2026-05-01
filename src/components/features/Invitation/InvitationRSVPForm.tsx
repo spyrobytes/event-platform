@@ -26,6 +26,9 @@ type InvitationRSVPFormProps = {
   needsEmail?: boolean;
   /** For analytics attribution — first 16 chars of tokenHash */
   inviteRef?: string;
+  /** When true, show the "Message for the couple" field. Set by event pages
+   *  whose page config has the `wishes` section enabled. */
+  enableWishes?: boolean;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -49,6 +52,7 @@ export function InvitationRSVPForm({
   successMessage,
   needsEmail = false,
   inviteRef,
+  enableWishes = false,
 }: InvitationRSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -456,6 +460,27 @@ export function InvitationRSVPForm({
             onFocus={() => handleFormInteraction("notes")}
           />
         </div>
+
+        {/* Message for the couple — only when the wishes section is enabled */}
+        {enableWishes && (
+          <div>
+            <label htmlFor="messageToHost" className={labelStyles}>
+              Message for the couple <span className="text-[var(--inv-text-secondary)]">(optional)</span>
+            </label>
+            <textarea
+              id="messageToHost"
+              placeholder="A few kind words or a blessing for the couple"
+              rows={4}
+              maxLength={1000}
+              className={inputStyles}
+              {...register("messageToHost")}
+              onFocus={() => handleFormInteraction("messageToHost")}
+            />
+            <p className="mt-1 text-xs text-[var(--inv-text-secondary)]">
+              Your message may be shared on the wedding page after review.
+            </p>
+          </div>
+        )}
 
         <button
           type="submit"
