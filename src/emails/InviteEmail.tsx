@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -22,12 +23,16 @@ type InviteEmailProps = {
   hostName: string;
   rsvpUrl: string;
   unsubscribeUrl?: string;
+  logoUrl?: string;
+  rsvpDeadline?: string;
   ceremonyDate?: string;
   ceremonyTime?: string;
   ceremonyVenue?: string;
+  ceremonyAddress?: string;
   receptionDate?: string;
   receptionTime?: string;
   receptionVenue?: string;
+  receptionAddress?: string;
 };
 
 export function InviteEmail({
@@ -40,15 +45,21 @@ export function InviteEmail({
   hostName,
   rsvpUrl,
   unsubscribeUrl,
+  logoUrl,
+  rsvpDeadline,
   ceremonyDate,
   ceremonyTime,
   ceremonyVenue,
+  ceremonyAddress,
   receptionDate,
   receptionTime,
   receptionVenue,
+  receptionAddress,
 }: InviteEmailProps) {
   const previewText = `You're invited to ${eventTitle}`;
-  const hasWeddingEvents = !!(ceremonyDate || receptionDate);
+  const hasCeremony = !!(ceremonyDate || ceremonyTime || ceremonyVenue);
+  const hasReception = !!(receptionDate || receptionTime || receptionVenue);
+  const hasWeddingEvents = hasCeremony || hasReception;
 
   return (
     <Html>
@@ -56,6 +67,18 @@ export function InviteEmail({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
+          {logoUrl && (
+            <Section style={logoContainer}>
+              <Img
+                src={logoUrl}
+                alt="EventFXr"
+                width="56"
+                height="56"
+                style={logoImage}
+              />
+            </Section>
+          )}
+
           <Heading style={heading}>You&apos;re Invited!</Heading>
 
           <Section style={section}>
@@ -74,12 +97,14 @@ export function InviteEmail({
 
               {hasWeddingEvents ? (
                 <>
-                  {ceremonyDate && (
+                  {hasCeremony && (
                     <Section style={subEventBlock}>
                       <Text style={subEventHeading}>Ceremony</Text>
-                      <Text style={eventDetail}>
-                        <strong>Date:</strong> {ceremonyDate}
-                      </Text>
+                      {ceremonyDate && (
+                        <Text style={eventDetail}>
+                          <strong>Date:</strong> {ceremonyDate}
+                        </Text>
+                      )}
                       {ceremonyTime && (
                         <Text style={eventDetail}>
                           <strong>Time:</strong> {ceremonyTime}
@@ -90,14 +115,21 @@ export function InviteEmail({
                           <strong>Venue:</strong> {ceremonyVenue}
                         </Text>
                       )}
+                      {ceremonyAddress && (
+                        <Text style={eventDetail}>
+                          <strong>Address:</strong> {ceremonyAddress}
+                        </Text>
+                      )}
                     </Section>
                   )}
-                  {receptionDate && (
+                  {hasReception && (
                     <Section style={subEventBlock}>
                       <Text style={subEventHeading}>Reception</Text>
-                      <Text style={eventDetail}>
-                        <strong>Date:</strong> {receptionDate}
-                      </Text>
+                      {receptionDate && (
+                        <Text style={eventDetail}>
+                          <strong>Date:</strong> {receptionDate}
+                        </Text>
+                      )}
                       {receptionTime && (
                         <Text style={eventDetail}>
                           <strong>Time:</strong> {receptionTime}
@@ -106,6 +138,11 @@ export function InviteEmail({
                       {receptionVenue && (
                         <Text style={eventDetail}>
                           <strong>Venue:</strong> {receptionVenue}
+                        </Text>
+                      )}
+                      {receptionAddress && (
+                        <Text style={eventDetail}>
+                          <strong>Address:</strong> {receptionAddress}
                         </Text>
                       )}
                     </Section>
@@ -131,6 +168,13 @@ export function InviteEmail({
                 <Text style={eventDescriptionStyle}>{eventDescription}</Text>
               )}
             </Section>
+
+            {rsvpDeadline && (
+              <Section style={deadlineCallout}>
+                <Text style={deadlineLabel}>Please respond by</Text>
+                <Text style={deadlineValue}>{rsvpDeadline}</Text>
+              </Section>
+            )}
 
             <Section style={buttonContainer}>
               <Button style={button} href={rsvpUrl}>
@@ -177,6 +221,41 @@ export function InviteEmail({
 }
 
 // Styles
+const logoContainer = {
+  padding: "0 48px 8px 48px",
+  textAlign: "center" as const,
+};
+
+const logoImage = {
+  display: "block",
+  margin: "0 auto",
+};
+
+const deadlineCallout = {
+  backgroundColor: "#f5f3ff",
+  border: "1px solid #ddd6fe",
+  borderRadius: "8px",
+  padding: "16px 20px",
+  margin: "24px 0 0 0",
+  textAlign: "center" as const,
+};
+
+const deadlineLabel = {
+  fontSize: "12px",
+  fontWeight: "700",
+  color: "#7c3aed",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.08em",
+  margin: "0 0 4px 0",
+};
+
+const deadlineValue = {
+  fontSize: "18px",
+  fontWeight: "600",
+  color: "#1a1a1a",
+  margin: "0",
+};
+
 const main = {
   backgroundColor: "#f6f9fc",
   fontFamily:
