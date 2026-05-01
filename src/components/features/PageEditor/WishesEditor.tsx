@@ -95,8 +95,7 @@ export function WishesEditor({ data, onChange }: WishesEditorProps) {
 
       <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
         Submitted messages start as <strong>pending</strong> and only appear
-        publicly after you approve them. Moderation lives on the dedicated
-        Wishes dashboard.
+        publicly after you approve them.
       </div>
     </div>
   );
