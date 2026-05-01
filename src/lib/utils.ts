@@ -49,6 +49,18 @@ export function formatEventTime(
 }
 
 /**
+ * Medium event-date format: "June 21, 2026".
+ * Use for compact contexts — meta descriptions, secondary copy where the
+ * weekday isn't useful. Always pass `event.timezone`.
+ */
+export function formatEventDateMedium(
+  date: Date | string | number,
+  timezone: string
+): string {
+  return formatInTimeZone(date, timezone, "MMMM d, yyyy");
+}
+
+/**
  * Combined long date + time: "Saturday, June 21, 2026 at 7:00 PM".
  * Used in dashboards and event detail pages.
  * Always pass `event.timezone`.

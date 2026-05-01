@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
-import { formatEventDateLong, formatEventTime } from "@/lib/utils";
+import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventJsonLd } from "@/components/seo/EventJsonLd";
@@ -55,7 +54,7 @@ export async function generateMetadata({ params }: EventPageProps): Promise<Meta
 
   const description = event.description
     ? event.description.slice(0, 160)
-    : `Join us for ${event.title}${event.city ? ` in ${event.city}` : ""} on ${formatInTimeZone(event.startAt, event.timezone, "MMMM d, yyyy")}`;
+    : `Join us for ${event.title}${event.city ? ` in ${event.city}` : ""} on ${formatEventDateMedium(event.startAt, event.timezone)}`;
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
 

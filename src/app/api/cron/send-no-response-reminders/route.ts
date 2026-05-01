@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { queueNoResponseReminderEmail, processEmail } from "@/lib/email";
-import { formatEventDateLong, formatEventTime } from "@/lib/utils";
+import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
@@ -107,7 +106,7 @@ export async function GET(request: NextRequest) {
       const eventLocation = event.venueName || event.city || undefined;
       const hostName = event.creator.name || event.creator.email;
       const rsvpDeadline = event.rsvpDeadline
-        ? formatInTimeZone(event.rsvpDeadline, event.timezone, "MMMM d, yyyy")
+        ? formatEventDateMedium(event.rsvpDeadline, event.timezone)
         : undefined;
 
       for (const invite of invites) {
