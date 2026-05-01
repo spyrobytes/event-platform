@@ -57,11 +57,37 @@ export default function EventDetailPage() {
   const router = useRouter();
   const { getIdToken } = useAuthContext();
   const [event, setEvent] = useState<EventDetail | null>(null);
+  const [pendingWishes, setPendingWishes] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
+
+  // Pending-wishes count is best-effort: it powers the badge on the Wishes
+  // nav button. A fetch failure (e.g. the event has no wishes section) just
+  // leaves the badge hidden — never blocks page render.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getIdToken();
+        if (!token) return;
+        const res = await fetch(
+          `/api/events/${params.id}/wishes?status=PENDING`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setPendingWishes(data.data.counts.pending ?? 0);
+      } catch {
+        // Silent — badge just won't render
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id, getIdToken]);
 
   useEffect(() => {
     async function fetchEvent() {
@@ -242,6 +268,16 @@ export default function EventDetailPage() {
           </Link>
           <Link href={`/dashboard/events/${event.id}/registry`}>
             <Button variant="outline">Registry</Button>
+          </Link>
+          <Link href={`/dashboard/events/${event.id}/wishes`}>
+            <Button variant="outline" className="relative">
+              Wishes
+              {pendingWishes > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-accent px-1.5 py-0.5 text-xs font-semibold text-accent-foreground">
+                  {pendingWishes}
+                </span>
+              )}
+            </Button>
           </Link>
           <Link href={`/dashboard/events/${event.id}/edit`}>
             <Button variant="outline">Edit</Button>
