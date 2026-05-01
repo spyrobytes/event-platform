@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { WishesSection } from "@/schemas/event-page";
 import styles from "./WishesRenderer.module.css";
 
@@ -71,9 +72,9 @@ export function WishesRenderer({
 
       {fullPageHref && (
         <div className={styles.cta}>
-          <a href={fullPageHref} className={styles.ctaLink}>
+          <Link href={fullPageHref} className={styles.ctaLink}>
             View all wishes ({overflowCount} more) →
-          </a>
+          </Link>
         </div>
       )}
     </section>

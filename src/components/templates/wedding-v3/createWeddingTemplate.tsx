@@ -345,8 +345,9 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
               data-template={`wedding-v3-${definition.id}`}
             >
               {/* SVG defs for the Wedding Wishes ripped-paper effect.
-                  Cheap when no wishes section exists; mounted unconditionally
-                  so per-card filter URLs always resolve. */}
+                  Mounted only when a wishes section is enabled; per-card
+                  filter URLs (url(#ww-...)) resolve from inside the
+                  WishesRenderer cards below. */}
               {sections.some((s) => s.type === "wishes" && s.enabled) && (
                 <PaperFilters />
               )}
