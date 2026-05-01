@@ -118,6 +118,13 @@ export async function POST(request: NextRequest) {
             ? data.additionalGuestNames
             : [];
 
+        // Reset wedding-wish moderation state only when the message text
+        // actually changed — re-submitting an unchanged form should not
+        // unapprove an already-approved message.
+        const existingMessage = invite.rsvp?.messageToHost ?? null;
+        const incomingMessage = data.messageToHost ?? null;
+        const messageChanged = existingMessage !== incomingMessage;
+
         // Create or update RSVP
         const rsvpResult = await tx.rSVP.upsert({
           where: {
@@ -133,6 +140,7 @@ export async function POST(request: NextRequest) {
             additionalGuestNames: guestNames,
             dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
+            messageToHost: data.messageToHost,
           },
           update: {
             response: data.response,
@@ -143,6 +151,11 @@ export async function POST(request: NextRequest) {
             dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
             updatedAt: new Date(),
+            ...(messageChanged && {
+              messageToHost: data.messageToHost,
+              messageStatus: "PENDING",
+              messageApprovedAt: null,
+            }),
           },
           select: {
             id: true,
@@ -296,6 +309,11 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingRsvp) {
+          // Reset moderation state only when the message text actually changed.
+          const existingMessage = existingRsvp.messageToHost ?? null;
+          const incomingMessage = data.messageToHost ?? null;
+          const messageChanged = existingMessage !== incomingMessage;
+
           return tx.rSVP.update({
             where: { id: existingRsvp.id },
             data: {
@@ -306,6 +324,11 @@ export async function POST(request: NextRequest) {
               dietaryRestrictions: data.dietaryRestrictions,
               notes: data.notes,
               updatedAt: new Date(),
+              ...(messageChanged && {
+                messageToHost: data.messageToHost,
+                messageStatus: "PENDING",
+                messageApprovedAt: null,
+              }),
             },
             select: {
               id: true,
@@ -328,6 +351,7 @@ export async function POST(request: NextRequest) {
             additionalGuestNames: publicGuestNames,
             dietaryRestrictions: data.dietaryRestrictions,
             notes: data.notes,
+            messageToHost: data.messageToHost,
           },
           select: {
             id: true,

@@ -235,6 +235,14 @@ model RSVP {
   notes                String?
   dietaryRestrictions  String?      @map("dietary_restrictions")
 
+  // Wedding-wishes / message-to-host. Captured on the RSVP form when the
+  // event has a `wishes` page section enabled. Distinct from `notes` so
+  // logistical info (dietary, accessibility) doesn't end up on the public
+  // wishes wall. Moderated: PENDING by default, organizer approves/hides.
+  messageToHost     String?        @map("message_to_host")
+  messageStatus     MessageStatus  @default(PENDING) @map("message_status")
+  messageApprovedAt DateTime?      @map("message_approved_at")
+
   respondedAt DateTime @default(now()) @map("responded_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -242,6 +250,7 @@ model RSVP {
   event  Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId, response])
+  @@index([eventId, messageStatus])
   @@map("rsvps")
 }
 
@@ -249,6 +258,12 @@ enum RSVPResponse {
   YES
   NO
   MAYBE
+}
+
+enum MessageStatus {
+  PENDING
+  APPROVED
+  HIDDEN
 }
 
 // =============================================================================
