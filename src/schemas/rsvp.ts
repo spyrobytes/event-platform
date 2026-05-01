@@ -54,6 +54,10 @@ export function buildSubmitRsvpSchema({
       messageToHost: z
         .string()
         .max(1000, "Message must be less than 1000 characters")
+        .transform((v) => {
+          const trimmed = v.trim();
+          return trimmed.length > 0 ? trimmed : undefined;
+        })
         .optional(),
     })
     .superRefine((data, ctx) => {
@@ -109,6 +113,10 @@ export const publicRsvpSchema = z
     messageToHost: z
       .string()
       .max(1000, "Message must be less than 1000 characters")
+      .transform((v) => {
+        const trimmed = v.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+      })
       .optional(),
   })
   .superRefine((data, ctx) => {
