@@ -37,6 +37,16 @@ export const slugSchema = z
   );
 
 /**
+ * Shape of the /api/events/check-slug response. Shared between the route
+ * handler and the SlugEditor so reason strings stay in sync.
+ */
+export type SlugAvailabilityReason = "invalid" | "reserved" | "taken" | "self";
+
+export type SlugAvailability =
+  | { available: true; reason?: "self" }
+  | { available: false; reason: "invalid" | "reserved" | "taken" };
+
+/**
  * Schema for creating a new event
  */
 export const createEventSchema = z.object({
