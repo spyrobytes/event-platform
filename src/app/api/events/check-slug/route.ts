@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { userCanEditEvent } from "@/lib/authorization";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
-import { SLUG_PATTERN } from "@/schemas/event";
+import { SLUG_PATTERN, type SlugAvailability } from "@/schemas/event";
 import { isReservedSlug } from "@/lib/reserved-slugs";
 
 /**
@@ -24,9 +24,11 @@ import { isReservedSlug } from "@/lib/reserved-slugs";
  * Auth required (organizers only — no need to expose this publicly).
  */
 const querySchema = z.object({
-  slug: z.string().min(1),
+  slug: z.string().min(1).max(100),
   eventId: z.string().optional(),
 });
+
+const ok = (body: SlugAvailability) => successResponse(body);
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,15 +42,10 @@ export async function GET(request: NextRequest) {
       Object.fromEntries(searchParams)
     );
 
-    const candidate = slug.toLowerCase();
+    const candidate = slug.trim().toLowerCase();
 
-    if (!SLUG_PATTERN.test(candidate)) {
-      return successResponse({ available: false, reason: "invalid" as const });
-    }
-
-    if (isReservedSlug(candidate)) {
-      return successResponse({ available: false, reason: "reserved" as const });
-    }
+    if (!SLUG_PATTERN.test(candidate)) return ok({ available: false, reason: "invalid" });
+    if (isReservedSlug(candidate)) return ok({ available: false, reason: "reserved" });
 
     // If caller passed eventId AND can edit it AND the candidate is its
     // current slug, treat as self. Mirrors requireEventOwner so org admins
@@ -63,7 +60,7 @@ export async function GET(request: NextRequest) {
         target.slug === candidate &&
         (await userCanEditEvent(eventId, user.id))
       ) {
-        return successResponse({ available: true, reason: "self" as const });
+        return ok({ available: true, reason: "self" });
       }
     }
 
@@ -75,11 +72,9 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    if (activeHit || historyHit) {
-      return successResponse({ available: false, reason: "taken" as const });
-    }
+    if (activeHit || historyHit) return ok({ available: false, reason: "taken" });
 
-    return successResponse({ available: true });
+    return ok({ available: true });
   } catch (error) {
     return handleApiError(error);
   }

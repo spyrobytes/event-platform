@@ -9,7 +9,7 @@ import { formatEventDateTimeLong } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsSnapshot, RSVPFunnel, VelocityChart } from "@/components/features/Analytics";
-import { RSVPDeadlineInfo } from "@/components/features";
+import { RSVPDeadlineInfo, SlugEditor } from "@/components/features";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
@@ -417,6 +417,22 @@ export default function EventDetailPage() {
             {!event.venueName && !event.address && !event.city && (
               <p className="text-sm text-muted-foreground">No location specified</p>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Public URL</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SlugEditor
+              eventId={event.id}
+              currentSlug={event.slug}
+              getIdToken={getIdToken}
+              onRenamed={(newSlug) =>
+                setEvent((prev) => (prev ? { ...prev, slug: newSlug } : null))
+              }
+            />
           </CardContent>
         </Card>
 
