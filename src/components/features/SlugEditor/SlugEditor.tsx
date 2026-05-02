@@ -14,6 +14,9 @@ const URL_PREFIX = `${BASE_URL.replace(/^https?:\/\//, "")}/e/`;
 type Props = {
   eventId: string;
   currentSlug: string;
+  /** ISO timestamp from the event row. When set, renames are blocked
+   *  server-side and the editor renders a read-only locked state. */
+  lockedAt?: string | null;
   /** Async to allow callers to fetch a fresh Firebase ID token per request. */
   getIdToken: () => Promise<string | null>;
   /** Called after a successful rename so the parent can update local state
@@ -29,7 +32,8 @@ type Check =
 
 const DEBOUNCE_MS = 300;
 
-export function SlugEditor({ eventId, currentSlug, getIdToken, onRenamed }: Props) {
+export function SlugEditor({ eventId, currentSlug, lockedAt, getIdToken, onRenamed }: Props) {
+  const isLocked = !!lockedAt;
   const [mode, setMode] = useState<"read" | "edit">("read");
   const [value, setValue] = useState(currentSlug);
   const [check, setCheck] = useState<Check>({ state: "idle" });
@@ -179,13 +183,19 @@ export function SlugEditor({ eventId, currentSlug, getIdToken, onRenamed }: Prop
               <span className="text-muted-foreground">{URL_PREFIX}</span>
               <span className="font-medium text-foreground">{currentSlug}</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={copyUrl}>
                 {copied ? "Copied" : "Copy URL"}
               </Button>
-              <Button variant="outline" size="sm" onClick={enterEdit}>
-                Change URL
-              </Button>
+              {isLocked ? (
+                <span className="text-xs text-muted-foreground">
+                  Locked — invites have been sent for this event.
+                </span>
+              ) : (
+                <Button variant="outline" size="sm" onClick={enterEdit}>
+                  Change URL
+                </Button>
+              )}
             </div>
           </div>
         ) : (

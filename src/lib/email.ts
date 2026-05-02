@@ -422,12 +422,22 @@ export async function processEmail(emailId: string): Promise<void> {
 
     // Update invite status if this is an invite email
     if (email.inviteId && email.template === "INVITE") {
-      await db.invite.update({
+      const updatedInvite = await db.invite.update({
         where: { id: email.inviteId },
         data: {
           status: "SENT",
           sentAt: new Date(),
         },
+        select: { eventId: true },
+      });
+
+      // Lock the event's URL on the first successful invite send so the
+      // organizer can't rename out from under links that are now in inboxes.
+      // Idempotent via updateMany + `slugLockedAt: null` filter — second and
+      // subsequent sends are no-ops.
+      await db.event.updateMany({
+        where: { id: updatedInvite.eventId, slugLockedAt: null },
+        data: { slugLockedAt: new Date() },
       });
     }
   } catch (error) {
