@@ -19,6 +19,7 @@ type EventDetail = {
   id: string;
   title: string;
   slug: string;
+  slugLockedAt?: string | null;
   description?: string | null;
   startAt: string;
   endAt?: string | null;
@@ -428,6 +429,7 @@ export default function EventDetailPage() {
             <SlugEditor
               eventId={event.id}
               currentSlug={event.slug}
+              lockedAt={event.slugLockedAt ?? null}
               getIdToken={getIdToken}
               onRenamed={(newSlug) =>
                 setEvent((prev) => (prev ? { ...prev, slug: newSlug } : null))

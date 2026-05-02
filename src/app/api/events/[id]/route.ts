@@ -13,6 +13,16 @@ type RouteContext = {
 };
 
 /**
+ * Cap how often an organizer can rename a single event's slug. Counted via
+ * `event_slug_history` rows so the limit survives deploys (the in-memory
+ * `rate-limit.ts` would forget across cold starts, which is wrong for a
+ * window measured in days). Picked to allow typo recovery + a couple of
+ * second-thought changes without enabling churn.
+ */
+const SLUG_RENAME_LIMIT = 3;
+const SLUG_RENAME_WINDOW_DAYS = 7;
+
+/**
  * GET /api/events/[id]
  * Get event details (owner only for drafts)
  */
@@ -92,9 +102,24 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (requestedSlug !== current.slug) {
         if (current.slugLockedAt) {
           return errorResponse(
-            "This event's URL is locked and can no longer be changed.",
+            "This event's URL is locked because invites have been sent. It can no longer be changed.",
             409,
             "SLUG_LOCKED"
+          );
+        }
+
+        // Rate limit renames per event using the durable history table.
+        const windowStart = new Date(
+          Date.now() - SLUG_RENAME_WINDOW_DAYS * 24 * 60 * 60 * 1000
+        );
+        const recentRenameCount = await db.eventSlugHistory.count({
+          where: { eventId: id, createdAt: { gte: windowStart } },
+        });
+        if (recentRenameCount >= SLUG_RENAME_LIMIT) {
+          return errorResponse(
+            `URL changes are limited to ${SLUG_RENAME_LIMIT} per ${SLUG_RENAME_WINDOW_DAYS} days. Try again later.`,
+            429,
+            "SLUG_RATE_LIMITED"
           );
         }
 
