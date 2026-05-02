@@ -9,7 +9,9 @@ export type TemplateId = (typeof VALID_TEMPLATE_IDS)[number];
 
 /**
  * Custom event slug.
- *  - 3–60 chars, lowercase letters/digits/hyphen, no leading/trailing hyphen
+ *  - 3–60 chars, letters/digits/hyphen, no leading/trailing hyphen
+ *  - Input is normalized to lowercase before validation so the schema and
+ *    `check-slug` agree on canonical form
  *  - Not in the reserved list (top-level routes, future surfaces)
  *
  * Generated slugs from `generateSlug()` already conform; this schema is for
@@ -19,15 +21,20 @@ export const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])?$/;
 
 export const slugSchema = z
   .string()
-  .min(3, "Slug must be at least 3 characters")
-  .max(60, "Slug must be 60 characters or fewer")
-  .regex(
-    SLUG_PATTERN,
-    "Use lowercase letters, numbers, and hyphens. Cannot start or end with a hyphen."
-  )
-  .refine((s) => !isReservedSlug(s), {
-    message: "This slug is reserved. Please choose another.",
-  });
+  .transform((s) => s.trim().toLowerCase())
+  .pipe(
+    z
+      .string()
+      .min(3, "Slug must be at least 3 characters")
+      .max(60, "Slug must be 60 characters or fewer")
+      .regex(
+        SLUG_PATTERN,
+        "Use letters, numbers, and hyphens. Cannot start or end with a hyphen."
+      )
+      .refine((s) => !isReservedSlug(s), {
+        message: "This slug is reserved. Please choose another.",
+      })
+  );
 
 /**
  * Schema for creating a new event

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
+import { userCanEditEvent } from "@/lib/authorization";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
 import { SLUG_PATTERN } from "@/schemas/event";
 import { isReservedSlug } from "@/lib/reserved-slugs";
@@ -49,14 +50,19 @@ export async function GET(request: NextRequest) {
       return successResponse({ available: false, reason: "reserved" as const });
     }
 
-    // If caller passed eventId AND owns it AND the candidate is its current
-    // slug, treat as self — no DB lookup needed beyond ownership.
+    // If caller passed eventId AND can edit it AND the candidate is its
+    // current slug, treat as self. Mirrors requireEventOwner so org admins
+    // editing their own org's event don't see "taken" for their own slug.
     if (eventId) {
-      const ownEvent = await db.event.findFirst({
-        where: { id: eventId, creatorId: user.id },
+      const target = await db.event.findUnique({
+        where: { id: eventId },
         select: { slug: true },
       });
-      if (ownEvent && ownEvent.slug === candidate) {
+      if (
+        target &&
+        target.slug === candidate &&
+        (await userCanEditEvent(eventId, user.id))
+      ) {
         return successResponse({ available: true, reason: "self" as const });
       }
     }
