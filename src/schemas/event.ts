@@ -1,10 +1,40 @@
 import { z } from "zod";
+import { isReservedSlug } from "@/lib/reserved-slugs";
 
 /**
  * Valid template IDs
  */
 export const VALID_TEMPLATE_IDS = ["wedding_v1", "wedding_v2", "wedding_editorial", "wedding_intimate_note", "wedding_fine_art", "wedding_garden_house", "wedding_grand_luxe", "wedding_celebration", "conference_v1", "party_v1"] as const;
 export type TemplateId = (typeof VALID_TEMPLATE_IDS)[number];
+
+/**
+ * Custom event slug.
+ *  - 3–60 chars, letters/digits/hyphen, no leading/trailing hyphen
+ *  - Input is normalized to lowercase before validation so the schema and
+ *    `check-slug` agree on canonical form
+ *  - Not in the reserved list (top-level routes, future surfaces)
+ *
+ * Generated slugs from `generateSlug()` already conform; this schema is for
+ * organizer-supplied slugs at the API boundary.
+ */
+export const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])?$/;
+
+export const slugSchema = z
+  .string()
+  .transform((s) => s.trim().toLowerCase())
+  .pipe(
+    z
+      .string()
+      .min(3, "Slug must be at least 3 characters")
+      .max(60, "Slug must be 60 characters or fewer")
+      .regex(
+        SLUG_PATTERN,
+        "Use letters, numbers, and hyphens. Cannot start or end with a hyphen."
+      )
+      .refine((s) => !isReservedSlug(s), {
+        message: "This slug is reserved. Please choose another.",
+      })
+  );
 
 /**
  * Schema for creating a new event

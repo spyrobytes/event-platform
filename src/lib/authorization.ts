@@ -79,6 +79,42 @@ export async function requireEventOwner(
 }
 
 /**
+ * Non-throwing companion to requireEventOwner. Returns true iff the user is
+ * the event creator or an OWNER/ADMIN of the event's organization. Use this
+ * when "no access" is a normal outcome (e.g. UI-side availability checks)
+ * rather than an error.
+ */
+export async function userCanEditEvent(
+  eventId: string,
+  userId: string
+): Promise<boolean> {
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { creatorId: true, organizationId: true },
+  });
+
+  if (!event) return false;
+  if (event.creatorId === userId) return true;
+
+  if (event.organizationId) {
+    const membership = await db.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: event.organizationId,
+          userId,
+        },
+      },
+      select: { role: true },
+    });
+    if (membership?.role === "OWNER" || membership?.role === "ADMIN") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Checks if the user has admin access to the organization
  * Throws NotFoundError if organization doesn't exist
  * Throws ForbiddenError if user doesn't have access
