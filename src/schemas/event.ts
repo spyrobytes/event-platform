@@ -98,6 +98,10 @@ export const updateEventSchema = z.object({
   maxAttendees: z.number().int().positive().max(10000).nullable().optional(),
   coverImageUrl: z.string().url().nullable().optional().or(z.literal("")),
   templateId: z.enum(VALID_TEMPLATE_IDS).nullable().optional(),
+  // Custom URL slug. Optional — when present, the PATCH handler runs the
+  // rename flow (history insert + uniqueness check). Format/normalization
+  // is enforced by slugSchema (lowercased via transform).
+  slug: slugSchema.optional(),
   // RSVP settings
   rsvpDeadline: z.coerce.date().nullable().optional(),
   reminderDays: z.number().int().min(1).max(30).nullable().optional(),

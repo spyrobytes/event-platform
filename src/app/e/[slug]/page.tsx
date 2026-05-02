@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO, type ApprovedWishDTO } from "@/components/templates";
@@ -6,6 +6,7 @@ import { summarizeClaims } from "@/lib/registry-claims";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
 import {
   getEventBySlug,
+  getRedirectForRetiredSlug,
   resolveGuestAccess,
   loadAndMigrateConfig,
 } from "@/lib/event-page-loader";
@@ -108,6 +109,11 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   const event = await getEventBySlug(slug, !!tk);
 
   if (!event) {
+    const renamed = await getRedirectForRetiredSlug(slug);
+    if (renamed) {
+      const qs = tk ? `?tk=${encodeURIComponent(tk)}` : "";
+      permanentRedirect(`/e/${renamed}${qs}`);
+    }
     notFound();
   }
 

@@ -1,10 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type ApprovedWishDTO } from "@/components/templates";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
 import {
   getEventBySlug,
+  getRedirectForRetiredSlug,
   resolveGuestAccess,
   loadAndMigrateConfig,
 } from "@/lib/event-page-loader";
@@ -64,7 +65,14 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
   const { tk } = await searchParams;
 
   const event = await getEventBySlug(slug, !!tk);
-  if (!event) notFound();
+  if (!event) {
+    const renamed = await getRedirectForRetiredSlug(slug);
+    if (renamed) {
+      const qs = tk ? `?tk=${encodeURIComponent(tk)}` : "";
+      permanentRedirect(`/e/${renamed}/wishes${qs}`);
+    }
+    notFound();
+  }
 
   const { accessLevel, guestName, tokenInvalid } =
     await resolveGuestAccess(tk, event.id);

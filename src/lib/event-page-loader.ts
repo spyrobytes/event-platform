@@ -51,6 +51,30 @@ export async function getEventBySlug(slug: string, hasGuestToken: boolean) {
   return event;
 }
 
+/**
+ * Returns the current slug of an event whose previous slug matches `slug`,
+ * or null if no such retired slug exists. Used by the public `/e/*` pages
+ * to 308-redirect old URLs (sent invites, indexed pages, QR codes) to the
+ * organizer's renamed URL.
+ *
+ * Intentionally narrow: callers are responsible for the `permanentRedirect`
+ * call so each sub-route can build the right destination path
+ * (`/e/<new>`, `/e/<new>/wishes`, `/e/<new>/registry`) and preserve `?tk=`.
+ */
+export async function getRedirectForRetiredSlug(
+  slug: string
+): Promise<string | null> {
+  const history = await db.eventSlugHistory.findUnique({
+    where: { slug },
+    select: { event: { select: { slug: true } } },
+  });
+  if (!history?.event) return null;
+  // Defensive: if a stale history row points back at the current slug, don't
+  // emit a self-redirect loop.
+  if (history.event.slug === slug) return null;
+  return history.event.slug;
+}
+
 export type GuestAccessResolution = {
   accessLevel: AccessLevel;
   guestName: string | null;
