@@ -17,6 +17,8 @@ type RosterRow = {
     guestName: string;
     guestCount: number;
     additionalGuestNames: string[];
+    dietaryRestrictions: string | null;
+    musicSuggestions: string | null;
   } | null;
 };
 
@@ -135,6 +137,8 @@ export default function RosterPage() {
             <tr>
               <th scope="col">Guest</th>
               <th scope="col">Seat</th>
+              <th scope="col">Dietary</th>
+              <th scope="col">Song requests</th>
               <th scope="col">Notes</th>
             </tr>
           </thead>
@@ -150,6 +154,8 @@ export default function RosterPage() {
                     )}
                   </td>
                   <td>{row.seatAssignment ?? ""}</td>
+                  <td>{row.rsvp?.dietaryRestrictions ?? ""}</td>
+                  <td>{row.rsvp?.musicSuggestions ?? ""}</td>
                   <td>{row.plannerNotes ?? ""}</td>
                 </tr>
               );

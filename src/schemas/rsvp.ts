@@ -47,6 +47,10 @@ export function buildSubmitRsvpSchema({
         .string()
         .max(500, "Dietary restrictions must be less than 500 characters")
         .optional(),
+      musicSuggestions: z
+        .string()
+        .max(500, "Song requests must be less than 500 characters")
+        .optional(),
       notes: z
         .string()
         .max(1000, "Notes must be less than 1000 characters")
@@ -105,6 +109,10 @@ export const publicRsvpSchema = z
     dietaryRestrictions: z
       .string()
       .max(500, "Dietary restrictions must be less than 500 characters")
+      .optional(),
+    musicSuggestions: z
+      .string()
+      .max(500, "Song requests must be less than 500 characters")
       .optional(),
     notes: z
       .string()

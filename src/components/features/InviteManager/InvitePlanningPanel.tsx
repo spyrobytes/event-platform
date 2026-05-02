@@ -25,6 +25,8 @@ export type PanelInvite = {
     response: RsvpResponse;
     guestName: string;
     guestCount: number;
+    dietaryRestrictions?: string | null;
+    musicSuggestions?: string | null;
   } | null;
 };
 
@@ -302,6 +304,39 @@ export function InvitePlanningPanel({
               )}
             </dl>
           </section>
+
+          {/* Guest responses — only shown when the guest has RSVP'd and provided
+              free-text details. Read-only here; editable on the guest's RSVP form. */}
+          {invite.rsvp &&
+            (invite.rsvp.dietaryRestrictions || invite.rsvp.musicSuggestions) && (
+              <section className="border-b border-border p-4">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Guest responses
+                </h3>
+                <dl className="space-y-3 text-sm">
+                  {invite.rsvp.dietaryRestrictions && (
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">
+                        Dietary restrictions
+                      </dt>
+                      <dd className="mt-0.5 whitespace-pre-wrap break-words">
+                        {invite.rsvp.dietaryRestrictions}
+                      </dd>
+                    </div>
+                  )}
+                  {invite.rsvp.musicSuggestions && (
+                    <div>
+                      <dt className="text-xs font-medium text-muted-foreground">
+                        Song requests
+                      </dt>
+                      <dd className="mt-0.5 whitespace-pre-wrap break-words">
+                        {invite.rsvp.musicSuggestions}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </section>
+            )}
 
           {/* Invite link */}
           <section className="border-b border-border p-4">
