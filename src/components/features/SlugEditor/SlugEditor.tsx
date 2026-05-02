@@ -39,6 +39,15 @@ export function SlugEditor({ eventId, currentSlug, getIdToken, onRenamed }: Prop
   const [copied, setCopied] = useState(false);
   const inputId = useId();
 
+  // Hold getIdToken in a ref so the debounce effect doesn't restart whenever
+  // the parent re-renders. AuthProvider memoizes today, but a future tick-y
+  // parent (or an unmemoized auth refactor) would otherwise abort the
+  // in-flight check on every render and the badge would never settle.
+  const getIdTokenRef = useRef(getIdToken);
+  useEffect(() => {
+    getIdTokenRef.current = getIdToken;
+  }, [getIdToken]);
+
   // Debounced availability check. Runs on every value change while in edit
   // mode. Cancels the in-flight request when the value changes again.
   const abortRef = useRef<AbortController | null>(null);
@@ -67,7 +76,7 @@ export function SlugEditor({ eventId, currentSlug, getIdToken, onRenamed }: Prop
     abortRef.current = ac;
     const timer = setTimeout(async () => {
       try {
-        const token = await getIdToken();
+        const token = await getIdTokenRef.current();
         if (!token) return;
         const res = await fetch(
           `/api/events/check-slug?slug=${encodeURIComponent(candidate)}&eventId=${encodeURIComponent(eventId)}`,
@@ -90,7 +99,7 @@ export function SlugEditor({ eventId, currentSlug, getIdToken, onRenamed }: Prop
       clearTimeout(timer);
       ac.abort();
     };
-  }, [value, mode, currentSlug, eventId, getIdToken]);
+  }, [value, mode, currentSlug, eventId]);
 
   const enterEdit = () => {
     setValue(currentSlug);
