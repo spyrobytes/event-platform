@@ -435,10 +435,23 @@ export async function processEmail(emailId: string): Promise<void> {
       // organizer can't rename out from under links that are now in inboxes.
       // Idempotent via updateMany + `slugLockedAt: null` filter — second and
       // subsequent sends are no-ops.
-      await db.event.updateMany({
-        where: { id: updatedInvite.eventId, slugLockedAt: null },
-        data: { slugLockedAt: new Date() },
-      });
+      //
+      // Best-effort: the email already shipped and the invite is marked SENT.
+      // Swallowing here prevents a DB blip on this update from propagating up
+      // to the worker (which would re-attempt an already-sent email). If this
+      // fires, the rate limit (3 per 7 days) is the secondary guardrail and
+      // a future invite-send for the same event will set the lock then.
+      try {
+        await db.event.updateMany({
+          where: { id: updatedInvite.eventId, slugLockedAt: null },
+          data: { slugLockedAt: new Date() },
+        });
+      } catch (lockErr) {
+        console.error("[slug-lock] failed to set slugLockedAt", {
+          eventId: updatedInvite.eventId,
+          error: lockErr,
+        });
+      }
     }
   } catch (error) {
     // Only flip to FAILED if the row hasn't already reached SENT — otherwise a
