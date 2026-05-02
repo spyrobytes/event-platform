@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
@@ -101,6 +101,9 @@ export default function PageEditorPage() {
   const [isPreviewingVersion, setIsPreviewingVersion] = useState(false);
   const [savedConfig, setSavedConfig] = useState<EventPageConfigV1 | null>(null);
   const [viewAs, setViewAs] = useState<"organizer" | "public" | "guest">("organizer");
+
+  // Section card refs, keyed by current index — used to scroll a moved card into view.
+  const sectionRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
   useEffect(() => {
     async function fetchPageConfig() {
@@ -440,6 +443,25 @@ export default function PageEditorPage() {
     setConfig((prev) => {
       if (!prev) return prev;
       return { ...prev, sections: prev.sections.filter((_, i) => i !== index) };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const moveSection = useCallback((index: number, direction: "up" | "down") => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= prev.sections.length) return prev;
+      const next = [...prev.sections];
+      [next[index], next[newIndex]] = [next[newIndex], next[index]];
+      // After React commits, scroll the moved card into view (it now lives at newIndex).
+      requestAnimationFrame(() => {
+        sectionRefs.current.get(newIndex)?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      });
+      return { ...prev, sections: next };
     });
     setHasChanges(true);
   }, []);
@@ -1132,7 +1154,14 @@ export default function PageEditorPage() {
         const isOrphaned = supported ? !supported.has(section.type) : false;
 
         return (
-        <Card key={`${section.type}-${index}`} className={hiddenForView ? "opacity-40 pointer-events-none" : ""}>
+        <Card
+          key={`${section.type}-${index}`}
+          ref={(el) => {
+            if (el) sectionRefs.current.set(index, el);
+            else sectionRefs.current.delete(index);
+          }}
+          className={hiddenForView ? "opacity-40 pointer-events-none" : ""}
+        >
           {hiddenForView && (
             <div className="px-6 pt-4 pb-0">
               <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -1175,6 +1204,30 @@ export default function PageEditorPage() {
                   <option value="guests">Guests only</option>
                   <option value="hidden">Hidden</option>
                 </Select>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => moveSection(index, "up")}
+                  disabled={index === 0}
+                  className="h-8 w-8 p-0"
+                  aria-label="Move section up"
+                  title="Move section up"
+                >
+                  ↑
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => moveSection(index, "down")}
+                  disabled={index === config.sections.length - 1}
+                  className="h-8 w-8 p-0"
+                  aria-label="Move section down"
+                  title="Move section down"
+                >
+                  ↓
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
