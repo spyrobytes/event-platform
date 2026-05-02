@@ -50,7 +50,7 @@ export function WishesRenderer({
   const heading = data.heading || "Wedding Wishes";
 
   return (
-    <section className={styles.section} aria-labelledby="wedding-wishes-heading">
+    <section id="wishes" className={styles.section} aria-labelledby="wedding-wishes-heading">
       <div className={styles.header}>
         {data.eyebrow && <p className={styles.eyebrow}>{data.eyebrow}</p>}
         <h2 id="wedding-wishes-heading" className={styles.heading}>

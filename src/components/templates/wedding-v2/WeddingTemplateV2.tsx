@@ -39,6 +39,12 @@ import {
 import { ScrapbookCollage } from "../wedding-v3/renderers/gallery/ScrapbookCollage";
 import { ScrapbookWeddingParty } from "../wedding-v3/renderers/wedding-party/ScrapbookWeddingParty";
 
+// V3 wedding-wishes renderer + ripped-paper filter SVG defs.
+// Reused here so v2 events that enable a wishes section actually render it.
+import { WishesRenderer } from "../wedding-v3/renderers/wishes/WishesRenderer";
+import { PaperFilters } from "../wedding-v3/renderers/wishes/PaperFilters";
+import type { ApprovedWishDTO } from "../index";
+
 // V2 tokens + variants + footer + global styles
 import { getV2CSSVariables, getV2GlassVariables, getV2FontUrl, v2TokensToInline } from "./tokens";
 import { getV2Variant } from "./variants";
@@ -62,7 +68,14 @@ type WeddingTemplateV2Props = {
   }>;
   canClaim?: boolean;
   registryMode?: "preview" | "full";
+  approvedWishes?: ApprovedWishDTO[];
+  wishesMode?: "preview" | "full";
+  inviteToken?: string;
   navLinkBase?: string;
+  /** When set with `navLinkBase`, only this section type renders inline;
+   *  others link back via the nav. Used by `/e/[slug]/registry` and
+   *  `/e/[slug]/wishes` sub-pages. */
+  subPageSection?: string;
 };
 
 const V2_LABEL_OVERRIDES: Record<string, string> = {
@@ -91,6 +104,7 @@ function getSectionId(type: string): string {
     speakers: "speakers",
     sponsors: "sponsors",
     map: "map",
+    wishes: "wishes",
   };
   return ids[type] || type;
 }
@@ -109,7 +123,21 @@ function getSectionId(type: string): string {
  * - Full footer with monogram, nav, credits
  * - User-configurable accent color, font pair, and chrome toggles
  */
-export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal, registryClaims, canClaim, registryMode = "full", navLinkBase }: WeddingTemplateV2Props) {
+export function WeddingTemplateV2({
+  config,
+  assets,
+  eventId,
+  eventSlug,
+  temporal,
+  registryClaims,
+  canClaim,
+  registryMode = "full",
+  approvedWishes,
+  wishesMode = "full",
+  inviteToken,
+  navLinkBase,
+  subPageSection,
+}: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
   // Resolve variant (if set)
@@ -185,12 +213,11 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
       .map((s) => {
         const id = getSectionId(s.type);
         const label = getSectionLabel(s.type);
-        const href = navLinkBase && s.type !== "registry"
-          ? `${navLinkBase}#${id}`
-          : `#${id}`;
+        const isOnPage = !navLinkBase || s.type === subPageSection;
+        const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
         return { id, label, href };
       });
-  }, [sections, navLinkBase]);
+  }, [sections, navLinkBase, subPageSection]);
 
   // Date text for topbar/footer
   const dateText = hero.subtitle || "";
@@ -199,7 +226,7 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
 
   const renderSection = (section: (typeof sections)[number], arrayIndex: number) => {
     if (!section.enabled) return null;
-    if (navLinkBase && section.type !== "registry") return null;
+    if (navLinkBase && section.type !== subPageSection) return null;
 
     const key = `${section.type}-${arrayIndex}`;
     const currentSectionIndex = sectionIndex++;
@@ -328,6 +355,17 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
           <ThingsToDoV2 data={section.data} />
         ));
 
+      case "wishes":
+        return wrapWithChrome(wrapWithAnimation(
+          <WishesRenderer
+            data={section.data}
+            approvedWishes={approvedWishes}
+            wishesMode={wishesMode}
+            eventSlug={eventSlug}
+            inviteToken={inviteToken}
+          />
+        ));
+
       default:
         return null;
     }
@@ -363,6 +401,14 @@ export function WeddingTemplateV2({ config, assets, eventId, eventSlug, temporal
             }}
             data-template="wedding-v2"
           >
+            {/* SVG defs for the Wedding Wishes ripped-paper effect.
+                Mounted only when a wishes section is enabled; per-card
+                filter URLs (url(#ww-...)) resolve from inside the
+                WishesRenderer cards below. */}
+            {sections.some((s) => s.type === "wishes" && s.enabled) && (
+              <PaperFilters />
+            )}
+
             {/* Chrome: Topbar */}
             {chrome.topbar && (
               <Topbar
