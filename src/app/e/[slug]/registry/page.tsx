@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
@@ -6,6 +6,7 @@ import { summarizeClaims } from "@/lib/registry-claims";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
 import {
   getEventBySlug,
+  getRedirectForRetiredSlug,
   resolveGuestAccess,
   loadAndMigrateConfig,
 } from "@/lib/event-page-loader";
@@ -65,7 +66,14 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
   const { tk } = await searchParams;
 
   const event = await getEventBySlug(slug, !!tk);
-  if (!event) notFound();
+  if (!event) {
+    const renamed = await getRedirectForRetiredSlug(slug);
+    if (renamed) {
+      const qs = tk ? `?tk=${encodeURIComponent(tk)}` : "";
+      permanentRedirect(`/e/${renamed}/registry${qs}`);
+    }
+    notFound();
+  }
 
   const { accessLevel, guestName, tokenInvalid, inviteId } =
     await resolveGuestAccess(tk, event.id);
