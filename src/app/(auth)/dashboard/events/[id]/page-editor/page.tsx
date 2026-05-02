@@ -448,22 +448,23 @@ export default function PageEditorPage() {
   }, []);
 
   const moveSection = useCallback((index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
     setConfig((prev) => {
       if (!prev) return prev;
-      const newIndex = direction === "up" ? index - 1 : index + 1;
       if (newIndex < 0 || newIndex >= prev.sections.length) return prev;
       const next = [...prev.sections];
       [next[index], next[newIndex]] = [next[newIndex], next[index]];
-      // After React commits, scroll the moved card into view (it now lives at newIndex).
-      requestAnimationFrame(() => {
-        sectionRefs.current.get(newIndex)?.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      });
       return { ...prev, sections: next };
     });
     setHasChanges(true);
+    // After React commits, scroll the moved card into view (it now lives at newIndex).
+    // Out-of-bounds is harmless: the ref lookup returns undefined and ?. no-ops.
+    requestAnimationFrame(() => {
+      sectionRefs.current.get(newIndex)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
   }, []);
 
   const handleVersionPreview = useCallback(
