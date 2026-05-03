@@ -440,6 +440,7 @@ export function InvitationRSVPForm({
               id="dietaryRestrictions"
               placeholder="Any food allergies or dietary requirements?"
               rows={2}
+              maxLength={500}
               className={inputStyles}
               {...register("dietaryRestrictions")}
               onFocus={() => handleFormInteraction("dietaryRestrictions")}
