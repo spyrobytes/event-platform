@@ -207,6 +207,12 @@ export function WeddingTemplateV2({
 
   // Build nav sections from enabled sections. On sub-pages (navLinkBase set),
   // non-registry links point back to the main event page.
+  //
+  // The RSVP entry is special-cased: it links directly to the code-gated
+  // portal at /e/[slug]/rsvp (skipping the on-page section's redundant
+  // scroll-then-click) and is flagged as a CTA so the Topbar styles it as a
+  // pill button. When eventSlug is unavailable (preview without slug context),
+  // we fall back to the standard anchor scroll.
   const navSections = useMemo(() => {
     return sections
       .filter((s) => s.enabled)
@@ -214,10 +220,15 @@ export function WeddingTemplateV2({
         const id = getSectionId(s.type);
         const label = getSectionLabel(s.type);
         const isOnPage = !navLinkBase || s.type === subPageSection;
-        const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
-        return { id, label, href };
+        const isRsvp = s.type === "rsvp";
+        const href = isRsvp && eventSlug
+          ? `/e/${eventSlug}/rsvp`
+          : isOnPage
+            ? `#${id}`
+            : `${navLinkBase}#${id}`;
+        return { id, label, href, isCta: isRsvp };
       });
-  }, [sections, navLinkBase, subPageSection]);
+  }, [sections, navLinkBase, subPageSection, eventSlug]);
 
   // Date text for topbar/footer
   const dateText = hero.subtitle || "";

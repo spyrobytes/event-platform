@@ -7,6 +7,10 @@ type NavSection = {
   id: string;
   label: string;
   href?: string;
+  /** When true, renders this entry as a pill CTA button (filled accent
+   *  background, white text). Used for the RSVP entry to make it the
+   *  primary action in the topbar. */
+  isCta?: boolean;
 };
 
 type TopbarProps = {
@@ -112,11 +116,17 @@ export function Topbar({
             className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
             aria-label="Page sections"
           >
-            {sections.map(({ id, label, href }) => (
+            {sections.map(({ id, label, href, isCta }) => (
               <a
                 key={id}
                 href={href ?? `#${id}`}
-                className={`${styles.navLink} ${activeSection === id ? styles.navLinkActive : ""}`}
+                className={[
+                  styles.navLink,
+                  activeSection === id && !isCta ? styles.navLinkActive : "",
+                  isCta ? styles.navLinkCta : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={handleNavClick}
               >
                 {label}
