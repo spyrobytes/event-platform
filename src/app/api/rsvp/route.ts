@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 import { successResponse, handleApiError } from "@/lib/api-response";
-import { submitRsvpSchema, publicRsvpSchema } from "@/schemas/rsvp";
+import { submitRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
 import { queueConfirmationEmail, processEmail, buildUnsubscribeUrl } from "@/lib/email";
 import { NotFoundError, ValidationError } from "@/lib/errors";
@@ -10,21 +10,26 @@ import { buildPortalUrl } from "@/lib/guest-access";
 
 /**
  * POST /api/rsvp
- * Submit an RSVP (public endpoint)
- * Supports both invite-based and public RSVPs
+ * Submit an RSVP via the email-link path (invite token in body).
+ *
+ * The previous `eventId`-only public branch was removed in PR 6 of the
+ * public-portal RSVP rollout — public submissions now go through the
+ * code-gated portal at `/api/rsvp/public/submit`. Submissions without an
+ * invite token are rejected.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Determine if this is an invite-based or public RSVP
-    const isInviteBased = !!body.inviteToken || !!body.token;
+    const inviteToken = body.inviteToken || body.token;
+    if (!inviteToken) {
+      throw new ValidationError(
+        "This endpoint requires an invite token. Public RSVPs go through /e/[slug]/rsvp."
+      );
+    }
 
-    if (isInviteBased) {
-      // Invite-based RSVP
-      const inviteToken = body.inviteToken || body.token;
-      const data = submitRsvpSchema.parse(body);
-      const tokenHash = hashToken(inviteToken as string);
+    const data = submitRsvpSchema.parse(body);
+    const tokenHash = hashToken(inviteToken as string);
 
       // Find the invite (without capacity — that's checked under lock in the transaction)
       const invite = await db.invite.findUnique({
@@ -244,144 +249,6 @@ export async function POST(request: NextRequest) {
               ? "Thanks for letting us know. Your personal link will stay active if you'd like to browse the gift registry."
               : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
       });
-    } else {
-      // Public RSVP (for public events without invite)
-      const data = publicRsvpSchema.parse(body);
-
-      // Get the event
-      const event = await db.event.findUnique({
-        where: { id: data.eventId },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          visibility: true,
-          maxAttendees: true,
-          rsvpDeadline: true,
-        },
-      });
-
-      if (!event) {
-        throw new NotFoundError("Event not found");
-      }
-
-      // Check if event allows public RSVPs
-      if (event.visibility === "PRIVATE") {
-        throw new ValidationError("This event requires an invitation");
-      }
-
-      if (event.status !== "PUBLISHED") {
-        throw new ValidationError("This event is not accepting RSVPs");
-      }
-
-      // Check if RSVP deadline has passed
-      if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
-        throw new ValidationError("The RSVP deadline for this event has passed");
-      }
-
-      // Atomic transaction: capacity check under lock + RSVP upsert
-      const rsvp = await db.$transaction(async (tx) => {
-        // Check capacity under row lock to prevent overselling
-        if (data.response === "YES" && event.maxAttendees) {
-          await tx.$queryRaw`SELECT id FROM events WHERE id = ${event.id} FOR UPDATE`;
-
-          const [{ count: currentAttendees }] = await tx.$queryRaw<
-            { count: bigint }[]
-          >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${event.id} AND response = 'YES'`;
-
-          if (Number(currentAttendees) + data.guestCount > event.maxAttendees) {
-            throw new ValidationError(
-              "Sorry, this event has reached its maximum capacity"
-            );
-          }
-        }
-
-        // Clear guest names if not attending or only 1 guest
-        const publicGuestNames =
-          data.response === "YES" && data.guestCount > 1
-            ? data.additionalGuestNames
-            : [];
-
-        // Check for existing RSVP with same email
-        const existingRsvp = await tx.rSVP.findFirst({
-          where: {
-            eventId: data.eventId,
-            guestEmail: data.guestEmail,
-          },
-        });
-
-        if (existingRsvp) {
-          // Reset moderation state only when the message text actually changed.
-          const existingMessage = existingRsvp.messageToHost ?? null;
-          const incomingMessage = data.messageToHost ?? null;
-          const messageChanged = existingMessage !== incomingMessage;
-
-          return tx.rSVP.update({
-            where: { id: existingRsvp.id },
-            data: {
-              response: data.response,
-              guestName: data.guestName,
-              guestCount: data.guestCount,
-              additionalGuestNames: publicGuestNames,
-              dietaryRestrictions: data.dietaryRestrictions,
-              musicSuggestions: data.musicSuggestions,
-              notes: data.notes,
-              updatedAt: new Date(),
-              ...(messageChanged && {
-                messageToHost: data.messageToHost,
-                messageStatus: "PENDING",
-                messageApprovedAt: null,
-              }),
-            },
-            select: {
-              id: true,
-              response: true,
-              guestName: true,
-              guestCount: true,
-              additionalGuestNames: true,
-              respondedAt: true,
-            },
-          });
-        }
-
-        return tx.rSVP.create({
-          data: {
-            eventId: data.eventId,
-            response: data.response,
-            guestName: data.guestName,
-            guestEmail: data.guestEmail,
-            guestCount: data.guestCount,
-            additionalGuestNames: publicGuestNames,
-            dietaryRestrictions: data.dietaryRestrictions,
-            musicSuggestions: data.musicSuggestions,
-            notes: data.notes,
-            messageToHost: data.messageToHost,
-          },
-          select: {
-            id: true,
-            response: true,
-            guestName: true,
-            guestCount: true,
-            additionalGuestNames: true,
-            respondedAt: true,
-          },
-        });
-      });
-
-      return successResponse({
-        rsvp,
-        event: {
-          id: event.id,
-          title: event.title,
-        },
-        message:
-          data.response === "YES"
-            ? "You're confirmed! We'll see you there."
-            : data.response === "NO"
-              ? "Thanks for letting us know."
-              : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
-      });
-    }
   } catch (error) {
     return handleApiError(error);
   }

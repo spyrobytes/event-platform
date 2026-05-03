@@ -149,6 +149,10 @@ type InviteEmailPayload = {
   receptionTime?: string;
   receptionVenue?: string;
   receptionAddress?: string;
+  // Public-portal RSVP code — guests can also RSVP at publicRsvpUrl by typing
+  // this code. Both fields must be present for the code block to render.
+  rsvpCode?: string;
+  publicRsvpUrl?: string;
 };
 
 type ConfirmationEmailPayload = {

@@ -49,6 +49,8 @@ type Invite = {
   seatAssignment: string | null;
   plannerNotes: string | null;
   tokenRegenerateCount?: number;
+  rsvpCodeIssuedAt?: string | null;
+  rsvpCodeRegenerateCount?: number;
   sentAt?: string | null;
   openedAt?: string | null;
   createdAt: string;
@@ -390,6 +392,50 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
     }
   };
 
+  const handleRegenerateRsvpCode = async (
+    invite: Invite
+  ): Promise<{ rsvpCode: string } | null> => {
+    try {
+      const authToken = await getIdToken();
+      if (!authToken) throw new Error("Not authenticated");
+
+      const response = await fetch(
+        `/api/events/${eventId}/invites/${invite.id}/rsvp-code/regenerate`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${authToken}` },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to regenerate RSVP code");
+      }
+
+      const result = await response.json();
+      const rsvpCode = result.data?.rsvpCode as string | undefined;
+
+      // Bump the regenerate count + issued timestamp locally so the panel
+      // reflects the new state without a refetch.
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === invite.id
+            ? {
+                ...i,
+                rsvpCodeIssuedAt: new Date().toISOString(),
+                rsvpCodeRegenerateCount: (i.rsvpCodeRegenerateCount ?? 0) + 1,
+              }
+            : i
+        )
+      );
+
+      return rsvpCode ? { rsvpCode } : null;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to regenerate RSVP code");
+      return null;
+    }
+  };
+
   const handleRevoke = async (invite: Invite) => {
     try {
       const token = await getIdToken();
@@ -665,6 +711,9 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
           return handleSavePlanning(panelInvite.id, data);
         }}
         onRegenerate={panelInvite ? () => handleRegenerate(panelInvite) : undefined}
+        onRegenerateRsvpCode={
+          panelInvite ? () => handleRegenerateRsvpCode(panelInvite) : undefined
+        }
         onRevoke={panelInvite ? () => handleRevoke(panelInvite) : undefined}
       />
     </div>

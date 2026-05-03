@@ -6,6 +6,7 @@ import { requireEventOwner, assertCanPublish } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
+import { generateGuestRsvpCode, hashRsvpCode } from "@/lib/rsvp-code";
 import { queueInviteEmail, processEmail, buildUnsubscribeUrl } from "@/lib/email";
 import { ConflictError } from "@/lib/errors";
 
@@ -19,6 +20,7 @@ async function buildInviteEmailContext(eventId: string) {
       where: { id: eventId },
       select: {
         title: true,
+        slug: true,
         description: true,
         startAt: true,
         timezone: true,
@@ -118,6 +120,7 @@ async function buildInviteEmailContext(eventId: string) {
     eventDescription: event.description || undefined,
     hostName,
     baseUrl,
+    publicRsvpUrl: `${baseUrl}/e/${event.slug}/rsvp`,
     logoUrl: `${baseUrl}/brand/eventfxr-logo.png`,
     rsvpDeadline,
     ...ceremony,
@@ -165,6 +168,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
           expiresAt: true,
           createdAt: true,
           tokenRegenerateCount: true,
+          rsvpCodeIssuedAt: true,
+          rsvpCodeRegenerateCount: true,
           rsvp: {
             select: {
               id: true,
@@ -303,39 +308,47 @@ export async function POST(request: NextRequest, context: RouteContext) {
         );
       }
 
-      // Create invites with tokens
+      // Create invites with tokens + public-portal RSVP codes. Both are
+      // generated up-front; the raw values flow into the email payload and
+      // never persist outside their hashes.
+      const issuedAt = new Date();
       const invitesData = data.invites.map((invite) => {
         const { token, hash } = generateTokenPair();
+        const rsvpCode = generateGuestRsvpCode();
         return {
           eventId,
           email: invite.email?.toLowerCase() ?? null,
           phone: invite.phone ?? null,
           name: invite.name,
           tokenHash: hash,
+          rsvpCodeHash: hashRsvpCode(rsvpCode),
+          rsvpCodeIssuedAt: issuedAt,
           plusOnesAllowed: invite.plusOnesAllowed ?? 0,
           expiresAt: invite.expiresAt,
           _rawToken: token,
+          _rawRsvpCode: rsvpCode,
         };
       });
 
-      // Insert invites (exclude raw tokens from DB insert)
+      // Insert invites (exclude raw tokens + raw codes from DB insert).
       const createdInvites = await db.$transaction(
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        invitesData.map(({ _rawToken, ...inviteData }) =>
-          db.invite.create({
-            data: inviteData,
-            select: {
-              id: true,
-              email: true,
-              phone: true,
-              name: true,
-              status: true,
-              plusOnesAllowed: true,
-              seatAssignment: true,
-              plannerNotes: true,
-              createdAt: true,
-            },
-          })
+        invitesData.map(
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          ({ _rawToken, _rawRsvpCode, ...inviteData }) =>
+            db.invite.create({
+              data: inviteData,
+              select: {
+                id: true,
+                email: true,
+                phone: true,
+                name: true,
+                status: true,
+                plusOnesAllowed: true,
+                seatAssignment: true,
+                plannerNotes: true,
+                createdAt: true,
+              },
+            })
         )
       );
 
@@ -349,7 +362,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       let emailsQueued = 0;
       if (data.sendImmediately) {
         const invitesWithEmail = createdInvites
-          .map((invite, i) => ({ invite, token: invitesData[i]._rawToken }))
+          .map((invite, i) => ({
+            invite,
+            token: invitesData[i]._rawToken,
+            rsvpCode: invitesData[i]._rawRsvpCode,
+          }))
           .filter((item) => !!item.invite.email);
 
         if (invitesWithEmail.length > 0) {
@@ -358,12 +375,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
           if (ctx) {
             const { baseUrl, ...emailFields } = ctx;
 
-            for (const { invite, token } of invitesWithEmail) {
+            for (const { invite, token, rsvpCode } of invitesWithEmail) {
               const emailId = await queueInviteEmail(invite.id, invite.email!, {
                 guestName: invite.name || undefined,
                 ...emailFields,
                 rsvpUrl: `${baseUrl}/rsvp/${token}`,
                 unsubscribeUrl: buildUnsubscribeUrl(token),
+                rsvpCode,
               });
 
               processEmail(emailId).catch((err) => {
@@ -414,6 +432,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
 
       const { token, hash } = generateTokenPair();
+      const rsvpCode = generateGuestRsvpCode();
 
       const invite = await db.invite.create({
         data: {
@@ -422,6 +441,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone,
           name: data.name,
           tokenHash: hash,
+          rsvpCodeHash: hashRsvpCode(rsvpCode),
+          rsvpCodeIssuedAt: new Date(),
           plusOnesAllowed: data.plusOnesAllowed ?? 0,
           expiresAt: data.expiresAt,
         },
@@ -453,6 +474,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             ...emailFields,
             rsvpUrl: `${baseUrl}/rsvp/${token}`,
             unsubscribeUrl: buildUnsubscribeUrl(token),
+            rsvpCode,
           });
 
           processEmail(emailId).catch((err) => {

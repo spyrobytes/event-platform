@@ -33,6 +33,10 @@ type InviteEmailProps = {
   receptionTime?: string;
   receptionVenue?: string;
   receptionAddress?: string;
+  /** Public-portal RSVP code. Rendered as an alternative entry point along
+   *  with `publicRsvpUrl` — both must be present to show the code block. */
+  rsvpCode?: string;
+  publicRsvpUrl?: string;
 };
 
 export function InviteEmail({
@@ -55,7 +59,10 @@ export function InviteEmail({
   receptionTime,
   receptionVenue,
   receptionAddress,
+  rsvpCode,
+  publicRsvpUrl,
 }: InviteEmailProps) {
+  const showCodeBlock = !!(rsvpCode && publicRsvpUrl);
   const previewText = `You're invited to ${eventTitle}`;
   const hasCeremony = !!(ceremonyDate || ceremonyTime || ceremonyVenue);
   const hasReception = !!(receptionDate || receptionTime || receptionVenue);
@@ -186,10 +193,24 @@ export function InviteEmail({
               Click the button above to let us know if you can make it!
             </Text>
 
+            {showCodeBlock && (
+              <Section style={codeBlock}>
+                <Text style={codeBlockIntro}>
+                  Or visit{" "}
+                  <Link href={publicRsvpUrl} style={link}>
+                    {publicRsvpUrl}
+                  </Link>{" "}
+                  and enter your invitation code:
+                </Text>
+                <Text style={codeValue}>{rsvpCode}</Text>
+              </Section>
+            )}
+
             <Text style={keepLinkNote}>
-              <strong>Keep this email.</strong> The link above is personal to
-              you — it&apos;s how you RSVP, claim gifts from the registry, and
-              revisit the event page.
+              <strong>Keep this email.</strong>{" "}
+              {showCodeBlock
+                ? "Both the link above and the code below are personal to you — either one lets you RSVP, claim gifts from the registry, and revisit the event page."
+                : "The link above is personal to you — it's how you RSVP, claim gifts from the registry, and revisit the event page."}
             </Text>
           </Section>
 
@@ -297,6 +318,32 @@ const keepLinkNote = {
   borderRadius: "6px",
   padding: "12px 16px",
   margin: "16px 0 0 0",
+};
+
+const codeBlock = {
+  backgroundColor: "#f5f3ff",
+  border: "1px solid #ddd6fe",
+  borderRadius: "8px",
+  padding: "16px 20px",
+  margin: "20px 0 0 0",
+  textAlign: "center" as const,
+};
+
+const codeBlockIntro = {
+  fontSize: "14px",
+  lineHeight: "22px",
+  color: "#525252",
+  margin: "0 0 12px 0",
+};
+
+const codeValue = {
+  fontFamily:
+    'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+  fontSize: "20px",
+  fontWeight: "700",
+  letterSpacing: "0.06em",
+  color: "#1a1a1a",
+  margin: "0",
 };
 
 const eventCard = {
