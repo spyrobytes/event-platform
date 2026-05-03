@@ -31,224 +31,224 @@ export async function POST(request: NextRequest) {
     const data = submitRsvpSchema.parse(body);
     const tokenHash = hashToken(inviteToken as string);
 
-      // Find the invite (without capacity — that's checked under lock in the transaction)
-      const invite = await db.invite.findUnique({
-        where: { tokenHash },
-        include: {
-          event: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              status: true,
-              maxAttendees: true,
-              rsvpDeadline: true,
-            },
-          },
-          rsvp: true,
-        },
-      });
-
-      if (!invite) {
-        throw new NotFoundError("Invite not found or has expired");
-      }
-
-      // Phone-only invites: email is optional at invite creation but required
-      // at RSVP time so we have somewhere to send the confirmation. This check
-      // layers on top of the permissive schema parse above.
-      if (!invite.email && !data.guestEmail) {
-        throw new ValidationError(
-          "Please provide an email address so we can send your confirmation."
-        );
-      }
-
-      // Check if invite has expired
-      if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
-        throw new ValidationError("This invite has expired");
-      }
-
-      // Check if invite has been revoked
-      if (invite.status === "REVOKED") {
-        throw new ValidationError("This invitation is no longer valid");
-      }
-
-      // Check if event is valid
-      if (invite.event.status === "CANCELLED") {
-        throw new ValidationError("This event has been cancelled");
-      }
-
-      // Check if RSVP deadline has passed
-      if (invite.event.rsvpDeadline && new Date(invite.event.rsvpDeadline) < new Date()) {
-        throw new ValidationError("The RSVP deadline for this event has passed");
-      }
-
-      // Validate guest count against plus ones allowed
-      if (data.guestCount > invite.plusOnesAllowed + 1) {
-        throw new ValidationError(
-          `You can only bring up to ${invite.plusOnesAllowed} additional guest(s)`
-        );
-      }
-
-      // Build portal URL for emails and API response
-      const portalUrl = buildPortalUrl(invite.event.slug, inviteToken as string);
-
-      // Atomic transaction: capacity check under lock + RSVP upsert + invite status + email outbox
-      const { rsvp, emailId } = await db.$transaction(async (tx) => {
-        // Lock the event row to prevent concurrent capacity overflows
-        if (data.response === "YES" && invite.event.maxAttendees) {
-          const [lockedEvent] = await tx.$queryRaw<
-            { max_attendees: number | null }[]
-          >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
-
-          const maxAttendees = lockedEvent?.max_attendees;
-          if (maxAttendees) {
-            const [{ count: currentAttendees }] = await tx.$queryRaw<
-              { count: bigint }[]
-            >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
-
-            const existingGuestCount = invite.rsvp?.guestCount || 0;
-            const newGuests = data.guestCount - existingGuestCount;
-
-            if (Number(currentAttendees) + newGuests > maxAttendees) {
-              throw new ValidationError(
-                "Sorry, this event has reached its maximum capacity"
-              );
-            }
-          }
-        }
-
-        // Clear guest names if not attending or only 1 guest
-        const guestNames =
-          data.response === "YES" && data.guestCount > 1
-            ? data.additionalGuestNames
-            : [];
-
-        // Reset wedding-wish moderation state only when the message text
-        // actually changed — re-submitting an unchanged form should not
-        // unapprove an already-approved message.
-        const existingMessage = invite.rsvp?.messageToHost ?? null;
-        const incomingMessage = data.messageToHost ?? null;
-        const messageChanged = existingMessage !== incomingMessage;
-
-        // Create or update RSVP
-        const rsvpResult = await tx.rSVP.upsert({
-          where: {
-            inviteId: invite.id,
-          },
-          create: {
-            inviteId: invite.id,
-            eventId: invite.event.id,
-            response: data.response,
-            guestName: data.guestName,
-            guestEmail: data.guestEmail,
-            guestCount: data.guestCount,
-            additionalGuestNames: guestNames,
-            dietaryRestrictions: data.dietaryRestrictions,
-            musicSuggestions: data.musicSuggestions,
-            notes: data.notes,
-            messageToHost: data.messageToHost,
-          },
-          update: {
-            response: data.response,
-            guestName: data.guestName,
-            guestEmail: data.guestEmail,
-            guestCount: data.guestCount,
-            additionalGuestNames: guestNames,
-            dietaryRestrictions: data.dietaryRestrictions,
-            musicSuggestions: data.musicSuggestions,
-            notes: data.notes,
-            updatedAt: new Date(),
-            ...(messageChanged && {
-              messageToHost: data.messageToHost,
-              messageStatus: "PENDING",
-              messageApprovedAt: null,
-            }),
-          },
+    // Find the invite (without capacity — that's checked under lock in the transaction)
+    const invite = await db.invite.findUnique({
+      where: { tokenHash },
+      include: {
+        event: {
           select: {
             id: true,
-            response: true,
-            guestName: true,
-            guestCount: true,
-            additionalGuestNames: true,
-            respondedAt: true,
+            title: true,
+            slug: true,
+            status: true,
+            maxAttendees: true,
+            rsvpDeadline: true,
           },
-        });
+        },
+        rsvp: true,
+      },
+    });
 
-        // Update invite status + curate guest-provided email for phone-only invites
-        await tx.invite.update({
-          where: { id: invite.id },
-          data: {
-            status: "RESPONDED",
-            ...(data.guestEmail && !invite.email && { email: data.guestEmail }),
-          },
-        });
+    if (!invite) {
+      throw new NotFoundError("Invite not found or has expired");
+    }
 
-        // Queue confirmation email inside the transaction
-        let queuedEmailId: string | null = null;
-        const recipientEmail = data.guestEmail || invite.email;
-        if (recipientEmail) {
-          const fullEvent = await tx.event.findUnique({
-            where: { id: invite.event.id },
-            select: {
-              startAt: true,
-              timezone: true,
-              venueName: true,
-              city: true,
-              creator: { select: { name: true, email: true } },
-            },
-          });
+    // Phone-only invites: email is optional at invite creation but required
+    // at RSVP time so we have somewhere to send the confirmation. This check
+    // layers on top of the permissive schema parse above.
+    if (!invite.email && !data.guestEmail) {
+      throw new ValidationError(
+        "Please provide an email address so we can send your confirmation."
+      );
+    }
 
-          if (fullEvent) {
-            const eventDate = formatEventDateLong(fullEvent.startAt, fullEvent.timezone);
-            const eventTime = formatEventTime(fullEvent.startAt, fullEvent.timezone);
-            const eventLocation = fullEvent.venueName || fullEvent.city || undefined;
-            const hostName = fullEvent.creator.name || fullEvent.creator.email;
+    // Check if invite has expired
+    if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+      throw new ValidationError("This invite has expired");
+    }
 
-            queuedEmailId = await queueConfirmationEmail(
-              invite.id,
-              recipientEmail,
-              {
-                guestName: data.guestName,
-                eventTitle: invite.event.title,
-                eventDate,
-                eventTime,
-                eventLocation,
-                response: data.response,
-                guestCount: data.guestCount || 1,
-                hostName,
-                portalUrl,
-                unsubscribeUrl: buildUnsubscribeUrl(inviteToken as string),
-              },
-              tx
+    // Check if invite has been revoked
+    if (invite.status === "REVOKED") {
+      throw new ValidationError("This invitation is no longer valid");
+    }
+
+    // Check if event is valid
+    if (invite.event.status === "CANCELLED") {
+      throw new ValidationError("This event has been cancelled");
+    }
+
+    // Check if RSVP deadline has passed
+    if (invite.event.rsvpDeadline && new Date(invite.event.rsvpDeadline) < new Date()) {
+      throw new ValidationError("The RSVP deadline for this event has passed");
+    }
+
+    // Validate guest count against plus ones allowed
+    if (data.guestCount > invite.plusOnesAllowed + 1) {
+      throw new ValidationError(
+        `You can only bring up to ${invite.plusOnesAllowed} additional guest(s)`
+      );
+    }
+
+    // Build portal URL for emails and API response
+    const portalUrl = buildPortalUrl(invite.event.slug, inviteToken as string);
+
+    // Atomic transaction: capacity check under lock + RSVP upsert + invite status + email outbox
+    const { rsvp, emailId } = await db.$transaction(async (tx) => {
+      // Lock the event row to prevent concurrent capacity overflows
+      if (data.response === "YES" && invite.event.maxAttendees) {
+        const [lockedEvent] = await tx.$queryRaw<
+          { max_attendees: number | null }[]
+        >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
+
+        const maxAttendees = lockedEvent?.max_attendees;
+        if (maxAttendees) {
+          const [{ count: currentAttendees }] = await tx.$queryRaw<
+            { count: bigint }[]
+          >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
+
+          const existingGuestCount = invite.rsvp?.guestCount || 0;
+          const newGuests = data.guestCount - existingGuestCount;
+
+          if (Number(currentAttendees) + newGuests > maxAttendees) {
+            throw new ValidationError(
+              "Sorry, this event has reached its maximum capacity"
             );
           }
         }
-
-        return { rsvp: rsvpResult, emailId: queuedEmailId };
-      });
-
-      // Fire-and-forget email delivery (outside transaction — outbox row is committed)
-      if (emailId) {
-        processEmail(emailId).catch((err) => {
-          console.error(`Failed to send confirmation email ${emailId}:`, err);
-        });
       }
 
-      return successResponse({
-        rsvp,
-        event: {
-          id: invite.event.id,
-          title: invite.event.title,
-          slug: invite.event.slug,
+      // Clear guest names if not attending or only 1 guest
+      const guestNames =
+        data.response === "YES" && data.guestCount > 1
+          ? data.additionalGuestNames
+          : [];
+
+      // Reset wedding-wish moderation state only when the message text
+      // actually changed — re-submitting an unchanged form should not
+      // unapprove an already-approved message.
+      const existingMessage = invite.rsvp?.messageToHost ?? null;
+      const incomingMessage = data.messageToHost ?? null;
+      const messageChanged = existingMessage !== incomingMessage;
+
+      // Create or update RSVP
+      const rsvpResult = await tx.rSVP.upsert({
+        where: {
+          inviteId: invite.id,
         },
-        portalUrl,
-        message:
-          data.response === "YES"
-            ? "You're confirmed! We'll see you there."
-            : data.response === "NO"
-              ? "Thanks for letting us know. Your personal link will stay active if you'd like to browse the gift registry."
-              : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
+        create: {
+          inviteId: invite.id,
+          eventId: invite.event.id,
+          response: data.response,
+          guestName: data.guestName,
+          guestEmail: data.guestEmail,
+          guestCount: data.guestCount,
+          additionalGuestNames: guestNames,
+          dietaryRestrictions: data.dietaryRestrictions,
+          musicSuggestions: data.musicSuggestions,
+          notes: data.notes,
+          messageToHost: data.messageToHost,
+        },
+        update: {
+          response: data.response,
+          guestName: data.guestName,
+          guestEmail: data.guestEmail,
+          guestCount: data.guestCount,
+          additionalGuestNames: guestNames,
+          dietaryRestrictions: data.dietaryRestrictions,
+          musicSuggestions: data.musicSuggestions,
+          notes: data.notes,
+          updatedAt: new Date(),
+          ...(messageChanged && {
+            messageToHost: data.messageToHost,
+            messageStatus: "PENDING",
+            messageApprovedAt: null,
+          }),
+        },
+        select: {
+          id: true,
+          response: true,
+          guestName: true,
+          guestCount: true,
+          additionalGuestNames: true,
+          respondedAt: true,
+        },
       });
+
+      // Update invite status + curate guest-provided email for phone-only invites
+      await tx.invite.update({
+        where: { id: invite.id },
+        data: {
+          status: "RESPONDED",
+          ...(data.guestEmail && !invite.email && { email: data.guestEmail }),
+        },
+      });
+
+      // Queue confirmation email inside the transaction
+      let queuedEmailId: string | null = null;
+      const recipientEmail = data.guestEmail || invite.email;
+      if (recipientEmail) {
+        const fullEvent = await tx.event.findUnique({
+          where: { id: invite.event.id },
+          select: {
+            startAt: true,
+            timezone: true,
+            venueName: true,
+            city: true,
+            creator: { select: { name: true, email: true } },
+          },
+        });
+
+        if (fullEvent) {
+          const eventDate = formatEventDateLong(fullEvent.startAt, fullEvent.timezone);
+          const eventTime = formatEventTime(fullEvent.startAt, fullEvent.timezone);
+          const eventLocation = fullEvent.venueName || fullEvent.city || undefined;
+          const hostName = fullEvent.creator.name || fullEvent.creator.email;
+
+          queuedEmailId = await queueConfirmationEmail(
+            invite.id,
+            recipientEmail,
+            {
+              guestName: data.guestName,
+              eventTitle: invite.event.title,
+              eventDate,
+              eventTime,
+              eventLocation,
+              response: data.response,
+              guestCount: data.guestCount || 1,
+              hostName,
+              portalUrl,
+              unsubscribeUrl: buildUnsubscribeUrl(inviteToken as string),
+            },
+            tx
+          );
+        }
+      }
+
+      return { rsvp: rsvpResult, emailId: queuedEmailId };
+    });
+
+    // Fire-and-forget email delivery (outside transaction — outbox row is committed)
+    if (emailId) {
+      processEmail(emailId).catch((err) => {
+        console.error(`Failed to send confirmation email ${emailId}:`, err);
+      });
+    }
+
+    return successResponse({
+      rsvp,
+      event: {
+        id: invite.event.id,
+        title: invite.event.title,
+        slug: invite.event.slug,
+      },
+      portalUrl,
+      message:
+        data.response === "YES"
+          ? "You're confirmed! We'll see you there."
+          : data.response === "NO"
+            ? "Thanks for letting us know. Your personal link will stay active if you'd like to browse the gift registry."
+            : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
+    });
   } catch (error) {
     return handleApiError(error);
   }

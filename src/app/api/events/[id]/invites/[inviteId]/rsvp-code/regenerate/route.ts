@@ -22,6 +22,20 @@ type RouteContext = {
  * Capped at 3 regenerations per invite, mirroring the invite-link regenerate
  * counter (`Invite.tokenRegenerateCount`). Past the cap, organizers should
  * revoke the invite and create a new one.
+ *
+ * **Known limitation — stale-code-in-queued-email:** when an invite's INVITE
+ * email row is still QUEUED (cron hasn't picked it up yet), regenerate does
+ * not patch the row's payload. The guest may still receive the OLD code if
+ * the cron sends before the regenerate. Practical impact is bounded — the
+ * cron runs every 5 minutes and email creation → delivery is usually under
+ * a minute, so regenerate is overwhelmingly used for *post-delivery* fixes.
+ * If this becomes a real problem, update QUEUED outbox rows here:
+ *   tx.emailOutbox.updateMany({ where: { inviteId, template: "INVITE",
+ *     status: "QUEUED" }, data: { payload: { ...old, rsvpCode: newCode } } })
+ *
+ * In-flight RSVP sessions created with the OLD code remain valid: the submit
+ * endpoint validates `RsvpSession.tokenHash`, not `Invite.rsvpCodeHash`, so
+ * regenerating doesn't kick guests mid-RSVP.
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
