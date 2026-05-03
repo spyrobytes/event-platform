@@ -1,0 +1,341 @@
+import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
+import { db } from "@/lib/db";
+import { env } from "@/env";
+import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
+import { publicPortalSubmitSchema } from "@/schemas/rsvp";
+import {
+  consumeRsvpSession,
+  lookupRsvpSession,
+  RSVP_SESSION_COOKIE,
+} from "@/lib/rsvp-session";
+import {
+  queueConfirmationEmail,
+  processEmail,
+} from "@/lib/email";
+import { formatEventDateLong, formatEventTime } from "@/lib/utils";
+import { AppError } from "@/lib/errors";
+
+const GENERIC_INVALID_MESSAGE =
+  "Your RSVP couldn't be processed. Please re-enter your invitation code and try again.";
+
+function genericInvalid(): NextResponse {
+  return errorResponse(GENERIC_INVALID_MESSAGE, 400, "INVALID");
+}
+
+function clearSessionCookie(response: NextResponse): NextResponse {
+  // The session is single-submit; clear the cookie regardless of outcome so
+  // the browser doesn't keep sending a now-consumed (or invalid) token.
+  response.cookies.set(RSVP_SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/rsvp/public",
+    maxAge: 0,
+  });
+  return response;
+}
+
+/**
+ * POST /api/rsvp/public/submit
+ * Public endpoint. Consumes an RsvpSession created by verify-code and writes
+ * the RSVP. Mirrors the invite-token path's transaction semantics (capacity
+ * lock, atomic email-outbox queueing) but identifies the invite via the
+ * session rather than a raw token.
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const data = publicPortalSubmitSchema.parse(body);
+
+    // Honeypot — collapse to the same generic error as a malformed body so
+    // a bot can't differentiate "field tripped" from "invalid input."
+    if (data.hp && data.hp.length > 0) {
+      return clearSessionCookie(genericInvalid());
+    }
+
+    // Cookie is the primary transport (httpOnly, scoped to /api/rsvp/public);
+    // the body field is a fallback for clients that strip cookies.
+    const sessionToken =
+      request.cookies.get(RSVP_SESSION_COOKIE)?.value ?? data.rsvpSessionToken;
+    if (!sessionToken) {
+      return clearSessionCookie(
+        errorResponse(
+          "Session expired. Please re-enter your invitation code.",
+          401,
+          "SESSION_INVALID"
+        )
+      );
+    }
+
+    const { rsvp, eventSummary, emailId } = await db.$transaction(async (tx) => {
+      // 1. Re-validate the session inside the transaction. lookupRsvpSession
+      //    returns null for missing / expired / already-consumed.
+      const session = await lookupRsvpSession(tx, sessionToken);
+      if (!session) {
+        throw new AppError(
+          "Session expired. Please re-enter your invitation code.",
+          "SESSION_INVALID",
+          401
+        );
+      }
+
+      // 2. Re-fetch invite + event. State could have changed between
+      //    verify-code and submit (organizer revoke, deadline pass, capacity
+      //    fill via concurrent RSVPs). Don't trust session-only state.
+      const invite = await tx.invite.findUnique({
+        where: { id: session.inviteId },
+        include: {
+          event: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              status: true,
+              maxAttendees: true,
+              rsvpDeadline: true,
+              startAt: true,
+              timezone: true,
+              venueName: true,
+              city: true,
+              creator: { select: { name: true, email: true } },
+            },
+          },
+          rsvp: true,
+        },
+      });
+
+      if (!invite || invite.status === "REVOKED") {
+        throw new AppError("This invitation is no longer valid.", "INVITE_INVALID", 400);
+      }
+      if (invite.expiresAt && invite.expiresAt < new Date()) {
+        throw new AppError("This invitation has expired.", "INVITE_INVALID", 400);
+      }
+      if (invite.event.status !== "PUBLISHED") {
+        throw new AppError(
+          "This event is no longer accepting RSVPs.",
+          "INVITE_INVALID",
+          400
+        );
+      }
+      if (invite.event.rsvpDeadline && invite.event.rsvpDeadline < new Date()) {
+        throw new AppError(
+          "RSVPs for this event are closed.",
+          "DEADLINE_PASSED",
+          400
+        );
+      }
+      if (invite.event.startAt < new Date()) {
+        throw new AppError(
+          "This event has already taken place.",
+          "EVENT_ENDED",
+          400
+        );
+      }
+
+      // 3. Party size against this invite's plus-ones allowance.
+      if (data.guestCount > invite.plusOnesAllowed + 1) {
+        throw new AppError(
+          `You can bring up to ${invite.plusOnesAllowed} additional guest${invite.plusOnesAllowed === 1 ? "" : "s"}.`,
+          "PARTY_SIZE_INVALID",
+          400
+        );
+      }
+
+      // 4. Capacity check under row lock — matches the invite-token path so
+      //    both entry points produce identical state under contention.
+      if (data.response === "YES" && invite.event.maxAttendees) {
+        const [lockedEvent] = await tx.$queryRaw<
+          { max_attendees: number | null }[]
+        >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
+
+        const maxAttendees = lockedEvent?.max_attendees;
+        if (maxAttendees) {
+          const [{ count: currentAttendees }] = await tx.$queryRaw<
+            { count: bigint }[]
+          >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
+          const existingGuestCount = invite.rsvp?.guestCount ?? 0;
+          const newGuests = data.guestCount - existingGuestCount;
+          if (Number(currentAttendees) + newGuests > maxAttendees) {
+            throw new AppError(
+              "Sorry, this event has reached its maximum capacity.",
+              "CAPACITY_FULL",
+              400
+            );
+          }
+        }
+      }
+
+      // 5. Email conflict guard. If the guest provides an email that matches
+      //    a different (non-revoked) invite for the same event, reject — this
+      //    prevents linking two invitees through the public flow.
+      const normalizedEmail = data.guestEmail
+        ? data.guestEmail.trim().toLowerCase()
+        : undefined;
+      if (normalizedEmail) {
+        const conflict = await tx.invite.findFirst({
+          where: {
+            eventId: invite.eventId,
+            email: normalizedEmail,
+            id: { not: invite.id },
+            status: { not: "REVOKED" },
+          },
+          select: { id: true },
+        });
+        if (conflict) {
+          throw new AppError(
+            "We already have an RSVP for this email — please check your inbox for the original invitation.",
+            "EMAIL_CONFLICT",
+            400
+          );
+        }
+      }
+
+      // 6. Upsert RSVP. Mirrors the invite-token path; adds `source` so the
+      //    organizer can tell which entry point produced the response.
+      const guestNames =
+        data.response === "YES" && data.guestCount > 1
+          ? data.additionalGuestNames
+          : [];
+
+      const existingMessage = invite.rsvp?.messageToHost ?? null;
+      const incomingMessage = data.messageToHost ?? null;
+      const messageChanged = existingMessage !== incomingMessage;
+
+      const rsvpResult = await tx.rSVP.upsert({
+        where: { inviteId: invite.id },
+        create: {
+          inviteId: invite.id,
+          eventId: invite.event.id,
+          response: data.response,
+          guestName: data.guestName,
+          guestEmail: normalizedEmail,
+          guestCount: data.guestCount,
+          additionalGuestNames: guestNames,
+          dietaryRestrictions: data.dietaryRestrictions,
+          musicSuggestions: data.musicSuggestions,
+          notes: data.notes,
+          messageToHost: data.messageToHost,
+          source: "PUBLIC_PORTAL_CODE",
+        },
+        update: {
+          response: data.response,
+          guestName: data.guestName,
+          guestEmail: normalizedEmail ?? invite.rsvp?.guestEmail,
+          guestCount: data.guestCount,
+          additionalGuestNames: guestNames,
+          dietaryRestrictions: data.dietaryRestrictions,
+          musicSuggestions: data.musicSuggestions,
+          notes: data.notes,
+          source: "PUBLIC_PORTAL_CODE",
+          updatedAt: new Date(),
+          ...(messageChanged && {
+            messageToHost: data.messageToHost,
+            messageStatus: "PENDING",
+            messageApprovedAt: null,
+          }),
+        },
+        select: {
+          id: true,
+          response: true,
+          guestName: true,
+          guestCount: true,
+          additionalGuestNames: true,
+          respondedAt: true,
+        },
+      });
+
+      // 7. Update invite. RSVP code consumption is recorded once; a re-RSVP
+      //    via session doesn't reset the original `rsvpCodeUsedAt` time.
+      await tx.invite.update({
+        where: { id: invite.id },
+        data: {
+          status: "RESPONDED",
+          rsvpCodeUsedAt: invite.rsvpCodeUsedAt ?? new Date(),
+          ...(normalizedEmail && !invite.email && { email: normalizedEmail }),
+        },
+      });
+
+      // 8. Consume the session — single-submit invariant.
+      await consumeRsvpSession(tx, session.id);
+
+      // 9. Queue confirmation email inside the transaction (atomic with the
+      //    write above, like the invite-token path). Public-portal users
+      //    don't get a portalUrl or unsubscribeUrl — those rely on the raw
+      //    invite token, which the public flow never sees.
+      let queuedEmailId: string | null = null;
+      const recipientEmail = normalizedEmail || invite.email;
+      if (recipientEmail) {
+        const eventDate = formatEventDateLong(
+          invite.event.startAt,
+          invite.event.timezone
+        );
+        const eventTime = formatEventTime(
+          invite.event.startAt,
+          invite.event.timezone
+        );
+        const eventLocation =
+          invite.event.venueName || invite.event.city || undefined;
+        const hostName =
+          invite.event.creator.name || invite.event.creator.email;
+
+        queuedEmailId = await queueConfirmationEmail(
+          invite.id,
+          recipientEmail,
+          {
+            guestName: data.guestName,
+            eventTitle: invite.event.title,
+            eventDate,
+            eventTime,
+            eventLocation,
+            response: data.response,
+            guestCount: data.guestCount,
+            hostName,
+          },
+          tx
+        );
+      }
+
+      return {
+        rsvp: rsvpResult,
+        eventSummary: {
+          id: invite.event.id,
+          title: invite.event.title,
+          slug: invite.event.slug,
+        },
+        emailId: queuedEmailId,
+      };
+    });
+
+    // Fire-and-forget email delivery — outbox row is committed.
+    if (emailId) {
+      processEmail(emailId).catch((err) => {
+        console.error(`[public-submit] confirmation email ${emailId} failed:`, err);
+      });
+    }
+
+    return clearSessionCookie(
+      successResponse({
+        rsvp,
+        event: eventSummary,
+        message:
+          rsvp.response === "YES"
+            ? "You're confirmed! We'll see you there."
+            : rsvp.response === "NO"
+              ? "Thanks for letting us know."
+              : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
+      })
+    );
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return clearSessionCookie(genericInvalid());
+    }
+    if (error instanceof AppError) {
+      // AppError carries the structured code + status we set when throwing.
+      return clearSessionCookie(
+        errorResponse(error.message, error.statusCode, error.code)
+      );
+    }
+    return handleApiError(error);
+  }
+}

@@ -161,6 +161,67 @@ export const verifyRsvpCodeSchema = z.object({
 export type VerifyRsvpCodeInput = z.infer<typeof verifyRsvpCodeSchema>;
 
 /**
+ * Public-portal submit request. Mirrors `submitRsvpSchema` field-for-field
+ * (so the planning panel / roster / CSV surfaces don't need branching), and
+ * adds a session token + honeypot. The session token is normally read from
+ * the `rsvp_session` httpOnly cookie set by verify-code; the body field is
+ * a fallback for clients without cookie support.
+ */
+export const publicPortalSubmitSchema = z
+  .object({
+    rsvpSessionToken: z.string().optional(),
+    guestName: z
+      .string()
+      .min(1, "Name is required")
+      .max(200, "Name must be less than 200 characters"),
+    guestEmail: z
+      .string()
+      .transform((v) => (v === "" ? undefined : v))
+      .pipe(z.string().email("Invalid email address").optional()),
+    response: z.enum(["YES", "NO", "MAYBE"], {
+      message: "Please select a response",
+    }),
+    guestCount: z.number().int().min(1).max(11).optional().default(1),
+    additionalGuestNames: additionalGuestNamesField,
+    dietaryRestrictions: z
+      .string()
+      .max(500, "Dietary restrictions must be less than 500 characters")
+      .optional(),
+    musicSuggestions: z
+      .string()
+      .max(500, "Song requests must be less than 500 characters")
+      .optional(),
+    notes: z
+      .string()
+      .max(1000, "Notes must be less than 1000 characters")
+      .optional(),
+    messageToHost: z
+      .string()
+      .max(1000, "Message must be less than 1000 characters")
+      .transform((v) => {
+        const trimmed = v.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+      })
+      .optional(),
+    hp: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.response === "YES" && data.guestCount > 1) {
+      const expected = data.guestCount - 1;
+      const provided = data.additionalGuestNames.length;
+      if (provided !== expected) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Please provide names for all ${expected} additional guest${expected > 1 ? "s" : ""}`,
+          path: ["additionalGuestNames"],
+        });
+      }
+    }
+  });
+
+export type PublicPortalSubmitInput = z.infer<typeof publicPortalSubmitSchema>;
+
+/**
  * Schema for RSVP query parameters
  */
 export const rsvpQuerySchema = z.object({
