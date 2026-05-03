@@ -1,6 +1,13 @@
 /**
- * Simple in-memory rate limiter
- * For production, use Redis-based rate limiting (Upstash)
+ * Rate limiting — two backends:
+ *   - In-memory (this file's original `checkRateLimit` + `RATE_LIMITS`),
+ *     used by `src/proxy.ts`. Per-instance only; suitable for the proxy.
+ *   - Upstash Redis (`upstashLimiter` / `checkUpstashLimit` below), shared
+ *     across instances. Use this for new endpoints where multi-instance
+ *     coordination matters (e.g. anti-enumeration on public endpoints).
+ *
+ * Production requires `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+ * to be set; missing config throws at module load. Dev/test no-ops.
  */
 
 type RateLimitEntry = {
@@ -131,4 +138,91 @@ export function getClientIp(request: Request): string {
 
   // Fallback to a default (useful for development)
   return "127.0.0.1";
+}
+
+// ---------------------------------------------------------------------------
+// Upstash Redis–backed limiter (multi-instance coordination)
+// ---------------------------------------------------------------------------
+
+import { createHash } from "crypto";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { env } from "@/env";
+
+type Window = `${number} ${"s" | "m" | "h" | "d"}`;
+
+// In dev/test, Upstash env vars are optional — the limiter no-ops so local
+// development doesn't depend on Redis. In production, missing config is a
+// configuration error and we throw at module load to fail fast rather than
+// silently disable rate limiting.
+const upstashRedis: Redis | null =
+  env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
+    ? Redis.fromEnv()
+    : null;
+
+if (env.NODE_ENV === "production" && !upstashRedis) {
+  throw new Error(
+    "Upstash rate limiter required in production: set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN."
+  );
+}
+
+/**
+ * Build a sliding-window Upstash limiter for a given key prefix. Returns
+ * null when Upstash isn't configured (dev only — prod throws above).
+ */
+export function upstashLimiter(
+  prefix: string,
+  limit: number,
+  window: Window
+): Ratelimit | null {
+  if (!upstashRedis) return null;
+  return new Ratelimit({
+    redis: upstashRedis,
+    prefix,
+    limiter: Ratelimit.slidingWindow(limit, window),
+    analytics: false,
+  });
+}
+
+/**
+ * Check a request against an Upstash limiter. Returns `true` if allowed.
+ * In dev with no Upstash configured (`limiter === null`), always returns
+ * `true` — local development is not bound by production limits.
+ */
+export async function checkUpstashLimit(
+  limiter: Ratelimit | null,
+  key: string
+): Promise<boolean> {
+  if (!limiter) return true;
+  const { success } = await limiter.limit(key);
+  return success;
+}
+
+/**
+ * Normalize a raw IP address into a rate-limit key. IPv6 addresses are
+ * truncated to a /64 prefix so a single user can't sidestep limits by
+ * cycling through addresses in their allocation.
+ */
+export function ipKey(ip: string): string {
+  if (!ip) return "unknown";
+  if (!ip.includes(":")) return ip; // IPv4
+
+  // IPv6: expand `::` compression to a full 8-hextet form, then keep the
+  // first four (the /64 routing prefix). Without expansion, abbreviated
+  // forms like `fe80::1` would slice incorrectly.
+  const parts = ip.split("::");
+  const head = parts[0] ? parts[0].split(":") : [];
+  const tail = parts.length > 1 && parts[1] ? parts[1].split(":") : [];
+  const zerosNeeded = Math.max(0, 8 - head.length - tail.length);
+  const expanded = [...head, ...Array(zerosNeeded).fill("0"), ...tail];
+  return expanded.slice(0, 4).join(":") + "::/64";
+}
+
+/**
+ * Hash an IP key with SHA-256 for log lines. Logs shouldn't carry raw
+ * IP/identifier material; the hash preserves uniqueness for correlation
+ * without storing the address itself.
+ */
+export function hashedIpKey(ip: string): string {
+  return createHash("sha256").update(ipKey(ip)).digest("hex").slice(0, 16);
 }
