@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { queueReminderEmail } from "@/lib/email";
 import { formatEventDate } from "@/lib/utils";
+import { purgeExpiredRsvpSessions } from "@/lib/rsvp-session";
 
 /**
  * Cron job endpoint for sending event reminders.
@@ -152,11 +153,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Side-task: purge expired RSVP sessions (20-min TTL; once expired they
+    // serve no purpose). Failures here should not fail the reminder cron.
+    let rsvpSessionsPurged = 0;
+    try {
+      rsvpSessionsPurged = await purgeExpiredRsvpSessions(db);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      errors.push(`RSVP session purge: ${errorMessage}`);
+      console.error("Failed to purge expired RSVP sessions:", error);
+    }
+
     const duration = Date.now() - startTime;
 
     console.log("Reminder cron completed", {
       eventsProcessed,
       remindersQueued,
+      rsvpSessionsPurged,
       errors: errors.length,
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
@@ -166,6 +179,7 @@ export async function GET(request: NextRequest) {
       success: true,
       eventsProcessed,
       remindersQueued,
+      rsvpSessionsPurged,
       errors: errors.length > 0 ? errors : undefined,
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),

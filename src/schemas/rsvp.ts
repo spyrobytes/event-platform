@@ -144,6 +144,23 @@ export const publicRsvpSchema = z
 export type PublicRsvpInput = z.infer<typeof publicRsvpSchema>;
 
 /**
+ * Public-portal verify-code request. Validates raw input shape; the actual
+ * code-shape check (length, alphabet) lives in `src/lib/rsvp-code.ts` after
+ * `normalizeRsvpCode`. The honeypot field `hp` should always be empty —
+ * non-empty submissions are silently rejected by the route handler.
+ */
+export const verifyRsvpCodeSchema = z.object({
+  eventId: z.string().min(1, "Event ID is required"),
+  code: z
+    .string()
+    .min(1, "Invitation code is required")
+    .max(64, "Invitation code is too long"),
+  hp: z.string().optional(),
+});
+
+export type VerifyRsvpCodeInput = z.infer<typeof verifyRsvpCodeSchema>;
+
+/**
  * Schema for RSVP query parameters
  */
 export const rsvpQuerySchema = z.object({
