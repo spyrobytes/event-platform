@@ -21,6 +21,8 @@ export type PanelInvite = {
   seatAssignment: string | null;
   plannerNotes: string | null;
   tokenRegenerateCount?: number;
+  rsvpCodeIssuedAt?: string | null;
+  rsvpCodeRegenerateCount?: number;
   rsvp?: {
     response: RsvpResponse;
     guestName: string;
@@ -43,6 +45,7 @@ export type InvitePlanningPanelProps = {
   onClose: () => void;
   onSavePlanning: (data: PlanningFields) => Promise<void>;
   onRegenerate?: () => Promise<void>;
+  onRegenerateRsvpCode?: () => Promise<{ rsvpCode: string } | null>;
   onRevoke?: () => Promise<void>;
 };
 
@@ -92,6 +95,7 @@ export function InvitePlanningPanel({
   onClose,
   onSavePlanning,
   onRegenerate,
+  onRegenerateRsvpCode,
   onRevoke,
 }: InvitePlanningPanelProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -102,6 +106,9 @@ export function InvitePlanningPanel({
   const [copied, setCopied] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [regeneratingCode, setRegeneratingCode] = useState(false);
+  const [freshRsvpCode, setFreshRsvpCode] = useState<string | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const currentInviteIdRef = useRef<string | null>(invite?.id ?? null);
   useEffect(() => {
@@ -110,6 +117,9 @@ export function InvitePlanningPanel({
       setSeat(invite.seatAssignment ?? "");
       setNotes(invite.plannerNotes ?? "");
       setCopied(false);
+      // Newly-issued code is single-use display — clear when switching invites.
+      setFreshRsvpCode(null);
+      setCodeCopied(false);
     }
   }, [invite]);
 
@@ -167,6 +177,25 @@ export function InvitePlanningPanel({
       setRegenerating(false);
     }
   }, [onRegenerate]);
+
+  const handleRegenerateRsvpCodeClick = useCallback(async () => {
+    if (!onRegenerateRsvpCode) return;
+    try {
+      setRegeneratingCode(true);
+      setCodeCopied(false);
+      const result = await onRegenerateRsvpCode();
+      if (result) setFreshRsvpCode(result.rsvpCode);
+    } finally {
+      setRegeneratingCode(false);
+    }
+  }, [onRegenerateRsvpCode]);
+
+  const handleCopyRsvpCode = useCallback(async () => {
+    if (!freshRsvpCode) return;
+    await navigator.clipboard.writeText(freshRsvpCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  }, [freshRsvpCode]);
 
   const handleRevokeClick = useCallback(async () => {
     if (!onRevoke) return;
@@ -365,6 +394,49 @@ export function InvitePlanningPanel({
             )}
           </section>
 
+          {/* RSVP code — public-portal entry point, paired with the invite link */}
+          {onRegenerateRsvpCode && !isRevoked && (
+            <section className="border-b border-border p-4">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                RSVP code
+              </h3>
+              {freshRsvpCode ? (
+                // Just-issued code — visible once. After the panel closes or
+                // the user switches invites, it's gone (only the hash persists).
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    New code issued. Copy it now — for security, it won&apos;t be shown again.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded-md border border-border bg-muted px-3 py-2 font-mono text-sm tracking-wider">
+                      {freshRsvpCode}
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyRsvpCode}
+                      disabled={codeCopied}
+                    >
+                      {codeCopied ? "Copied ✓" : "Copy"}
+                    </Button>
+                  </div>
+                </div>
+              ) : invite.rsvpCodeIssuedAt ? (
+                <p className="text-xs text-muted-foreground">
+                  A code is set on this invite (sent in the invite email). The raw value
+                  isn&apos;t stored server-side — use{" "}
+                  <span className="font-medium">Regenerate RSVP code</span> below to issue a fresh
+                  one if the guest needs it again.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No public-portal code has been issued yet. Use{" "}
+                  <span className="font-medium">Regenerate RSVP code</span> below to create one.
+                </p>
+              )}
+            </section>
+          )}
+
           {/* Planning */}
           <section className="border-b border-border p-4">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -416,7 +488,7 @@ export function InvitePlanningPanel({
           </section>
 
           {/* Manage invite */}
-          {(onRegenerate || onRevoke) && !isRevoked && (
+          {(onRegenerate || onRegenerateRsvpCode || onRevoke) && !isRevoked && (
             <section className="p-4">
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Manage invite
@@ -452,6 +524,42 @@ export function InvitePlanningPanel({
                             Creates a new invite link and invalidates the old one. The new link is
                             copied to your clipboard. You can regenerate up to {MAX_REGENERATIONS}{" "}
                             times per invite.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })()}
+                {onRegenerateRsvpCode && (() => {
+                  const used = invite.rsvpCodeRegenerateCount ?? 0;
+                  const remaining = Math.max(0, MAX_REGENERATIONS - used);
+                  const limitReached = remaining <= 0;
+                  const label = regeneratingCode
+                    ? "Regenerating code…"
+                    : limitReached
+                      ? "Code limit reached"
+                      : `Regenerate RSVP code (${remaining} left)`;
+                  return (
+                    <div className="space-y-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRegenerateRsvpCodeClick}
+                        disabled={regeneratingCode || limitReached}
+                      >
+                        {label}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        {limitReached ? (
+                          <>
+                            This invite&apos;s RSVP code has been regenerated{" "}
+                            {MAX_REGENERATIONS} times. Revoke and re-create the invite if the
+                            guest still needs a working code.
+                          </>
+                        ) : (
+                          <>
+                            Issues a new public-portal code and invalidates the old one. The new
+                            code appears once above — copy it before closing the panel.
                           </>
                         )}
                       </p>

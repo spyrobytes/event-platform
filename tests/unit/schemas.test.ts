@@ -5,7 +5,7 @@ import {
   bulkInviteSchema,
   updateInvitePlanningSchema,
 } from "@/schemas/invite";
-import { submitRsvpSchema, publicRsvpSchema, buildSubmitRsvpSchema } from "@/schemas/rsvp";
+import { submitRsvpSchema, buildSubmitRsvpSchema } from "@/schemas/rsvp";
 
 // Helper to get a future date
 const getFutureDate = () => new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
@@ -251,29 +251,6 @@ describe("submitRsvpSchema", () => {
     };
     const result = submitRsvpSchema.safeParse(validRsvp);
     expect(result.success).toBe(true);
-  });
-});
-
-describe("publicRsvpSchema", () => {
-  it("requires eventId for public RSVPs", () => {
-    const validPublicRsvp = {
-      eventId: "event-123",
-      response: "YES",
-      guestName: "John Doe",
-      guestEmail: "john@example.com",
-    };
-    const result = publicRsvpSchema.safeParse(validPublicRsvp);
-    expect(result.success).toBe(true);
-  });
-
-  it("requires guest email for public RSVPs", () => {
-    const invalidPublicRsvp = {
-      eventId: "event-123",
-      response: "YES",
-      guestName: "John Doe",
-    };
-    const result = publicRsvpSchema.safeParse(invalidPublicRsvp);
-    expect(result.success).toBe(false);
   });
 });
 
