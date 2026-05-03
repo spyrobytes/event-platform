@@ -44,6 +44,12 @@ export const serverEnvSchema = z.object({
     .string()
     .min(32, "CRON_SECRET must be at least 32 characters"),
 
+  // Public-portal RSVP code pepper (HMAC key). Treat as a long-lived secret —
+  // rotating it invalidates every issued code. Generate with `openssl rand -base64 32`.
+  RSVP_CODE_HMAC_KEY: z
+    .string()
+    .min(32, "RSVP_CODE_HMAC_KEY must be at least 32 characters"),
+
   // Supabase Storage (server-side privileged access)
   SUPABASE_SERVICE_ROLE_KEY: z
     .string()
