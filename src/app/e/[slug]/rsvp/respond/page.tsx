@@ -15,6 +15,16 @@ const getSnapshot = (): InvitePreview | null => readInvitePreview();
 // server, then hydrates with the real value on the client.
 const getServerSnapshot = (): InvitePreview | null => null;
 
+// Separate hook to track hydration state. Returns false on the server +
+// during the initial client render that hydrates against the server's HTML,
+// then true on subsequent renders. Using `typeof window` for this would
+// disagree between server and client during hydration and trigger a
+// hydration-mismatch warning; useSyncExternalStore handles the transition
+// cleanly because React knows to re-read after hydration.
+const subscribeHydrated = () => () => {};
+const getHydratedSnapshot = () => true;
+const getHydratedServerSnapshot = () => false;
+
 /**
  * Client page because we need to read sessionStorage (set by code-form after
  * a successful verify-code). If the preview is missing — direct navigation,
@@ -24,13 +34,16 @@ export default function RespondPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const preview = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-
-  // Distinguish "not yet hydrated" (preview is null AND we're SSR) from "no
-  // preview after hydration." On the client after hydration, getSnapshot
-  // returns the actual sessionStorage state — null then triggers redirect.
-  const isHydrated = typeof window !== "undefined";
+  const isHydrated = useSyncExternalStore(
+    subscribeHydrated,
+    getHydratedSnapshot,
+    getHydratedServerSnapshot
+  );
 
   useEffect(() => {
+    // Only act after hydration. During the initial render the snapshot still
+    // reflects the server (preview === null) — redirecting then would kick
+    // valid users back even when sessionStorage has the right data.
     if (isHydrated && preview === null) {
       router.replace(`/e/${params.slug}/rsvp`);
     }
