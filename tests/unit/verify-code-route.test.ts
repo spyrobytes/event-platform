@@ -16,9 +16,18 @@ vi.mock("@/lib/db", () => ({ db: dbMock }));
 
 // Mock the session layer — we only verify that the route calls into it
 // correctly; rsvp-session itself has its own unit tests.
-const createSessionMock = vi.fn(async () => ({
+type CreateSessionArgs = Parameters<
+  typeof import("@/lib/rsvp-session").createRsvpSession
+>;
+type CreateSessionReturn = ReturnType<
+  typeof import("@/lib/rsvp-session").createRsvpSession
+>;
+const createSessionMock = vi.fn<
+  (...args: CreateSessionArgs) => CreateSessionReturn
+>(async () => ({
   rawToken: "raw-session-token",
-  session: { id: "sess-1" },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: { id: "sess-1" } as any,
 }));
 vi.mock("@/lib/rsvp-session", async () => {
   const actual = await vi.importActual<typeof import("@/lib/rsvp-session")>(
