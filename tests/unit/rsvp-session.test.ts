@@ -17,7 +17,7 @@ type MockTx = {
   rsvpSession: {
     create: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
   };
 };
@@ -27,7 +27,7 @@ function makeMockTx(): MockTx {
     rsvpSession: {
       create: vi.fn(),
       findUnique: vi.fn(),
-      update: vi.fn(),
+      updateMany: vi.fn(),
       deleteMany: vi.fn(),
     },
   };
@@ -162,14 +162,31 @@ describe("lookupRsvpSession", () => {
 });
 
 describe("consumeRsvpSession", () => {
-  it("marks the session as used by id", async () => {
+  it("uses a conditional updateMany with where usedAt IS NULL", async () => {
     const tx = makeMockTx();
-    tx.rsvpSession.update.mockResolvedValue({});
+    tx.rsvpSession.updateMany.mockResolvedValue({ count: 1 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await consumeRsvpSession(tx as any, "session-id-xyz");
-    const call = tx.rsvpSession.update.mock.calls[0][0];
+    const call = tx.rsvpSession.updateMany.mock.calls[0][0];
     expect(call.where.id).toBe("session-id-xyz");
+    expect(call.where.usedAt).toBeNull();
     expect(call.data.usedAt).toBeInstanceOf(Date);
+  });
+
+  it("returns true when the consume wins the race (count: 1)", async () => {
+    const tx = makeMockTx();
+    tx.rsvpSession.updateMany.mockResolvedValue({ count: 1 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await consumeRsvpSession(tx as any, "session-id");
+    expect(result).toBe(true);
+  });
+
+  it("returns false when another transaction already consumed (count: 0)", async () => {
+    const tx = makeMockTx();
+    tx.rsvpSession.updateMany.mockResolvedValue({ count: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await consumeRsvpSession(tx as any, "session-id");
+    expect(result).toBe(false);
   });
 });
 
