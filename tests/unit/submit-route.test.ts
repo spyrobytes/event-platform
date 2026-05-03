@@ -11,7 +11,7 @@ const dbMock = {
   invite: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   rSVP: { upsert: vi.fn() },
   emailOutbox: { create: vi.fn() },
-  rsvpSession: { findUnique: vi.fn(), update: vi.fn() },
+  rsvpSession: { findUnique: vi.fn(), updateMany: vi.fn() },
   $queryRaw: vi.fn(),
   $transaction: vi.fn(async (fn) => {
     // Run the callback against `dbMock` itself — call sites use `tx.X`, and
@@ -110,7 +110,7 @@ beforeEach(() => {
     })
   );
   dbMock.invite.update.mockResolvedValue({});
-  dbMock.rsvpSession.update.mockResolvedValue({});
+  dbMock.rsvpSession.updateMany.mockResolvedValue({ count: 1 });
   dbMock.$queryRaw.mockResolvedValue([{ max_attendees: null }]);
   // $transaction comes pre-wired in the mock declaration.
   dbMock.$transaction.mockImplementation(async (fn) => fn(dbMock));
@@ -141,9 +141,9 @@ describe("POST /api/rsvp/public/submit — happy path", () => {
     expect(inviteUpdate.data.status).toBe("RESPONDED");
     expect(inviteUpdate.data.rsvpCodeUsedAt).toBeInstanceOf(Date);
 
-    // Session consumed
-    expect(dbMock.rsvpSession.update).toHaveBeenCalledWith({
-      where: { id: "sess_1" },
+    // Session consumed via conditional updateMany (usedAt IS NULL guard)
+    expect(dbMock.rsvpSession.updateMany).toHaveBeenCalledWith({
+      where: { id: "sess_1", usedAt: null },
       data: { usedAt: expect.any(Date) },
     });
 
@@ -225,6 +225,30 @@ describe("session validity", () => {
     expect(res.status).toBe(401);
     const setCookie = res.headers.get("set-cookie");
     expect(setCookie).toMatch(/Max-Age=0/);
+  });
+
+  it("rejects the LOSER of a concurrent-submit race (consume returns count: 0)", async () => {
+    // Setup: session lookup succeeds (the race window opened), but by the
+    // time we conditionally consume, the WINNER already stamped usedAt.
+    // The conditional updateMany returns count: 0 → SESSION_INVALID.
+    dbMock.rsvpSession.updateMany.mockResolvedValue({ count: 0 });
+
+    const res = await POST(makeRequest(validBody, { sessionCookie: "tok" }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).code).toBe("SESSION_INVALID");
+
+    // Critical: the heavy work must NOT have run for the loser. No RSVP
+    // upsert, no invite update, no email queue — the rollback unwinds the
+    // partial work.
+    expect(dbMock.rSVP.upsert).not.toHaveBeenCalled();
+    expect(dbMock.invite.update).not.toHaveBeenCalled();
+    expect(queueConfirmationEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("uses a conditional updateMany (where usedAt: null) for consume", async () => {
+    await POST(makeRequest(validBody, { sessionCookie: "tok" }));
+    const consumeCall = dbMock.rsvpSession.updateMany.mock.calls[0][0];
+    expect(consumeCall.where.usedAt).toBeNull();
   });
 });
 

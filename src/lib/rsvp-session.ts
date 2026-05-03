@@ -55,18 +55,26 @@ export async function lookupRsvpSession(
 }
 
 /**
- * Mark a session as consumed. Single-submit invariant: a session that has
- * already been used cannot be re-used, even within its TTL window. The
- * caller should run this inside the same transaction as the RSVP write.
+ * Mark a session as consumed. Returns `true` when this call won the race
+ * (the row was unused and is now stamped), `false` when another transaction
+ * already consumed it. The conditional `where: { usedAt: null }` makes the
+ * check + update atomic at the row-lock level — Postgres serializes two
+ * concurrent `updateMany`s on the same row, so exactly one returns count: 1.
+ *
+ * Callers MUST run this inside the same transaction as the RSVP write AND
+ * MUST treat a `false` return as session-invalid (throw → rollback). Without
+ * the rowcount check, a double-submit race could enqueue two confirmation
+ * emails for the same session.
  */
 export async function consumeRsvpSession(
   tx: Tx,
   sessionId: string
-): Promise<void> {
-  await tx.rsvpSession.update({
-    where: { id: sessionId },
+): Promise<boolean> {
+  const result = await tx.rsvpSession.updateMany({
+    where: { id: sessionId, usedAt: null },
     data: { usedAt: new Date() },
   });
+  return result.count === 1;
 }
 
 /**

@@ -142,7 +142,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 4. Capacity check under row lock — matches the invite-token path so
+      // 4. Consume the session BEFORE any heavy work. Conditional update
+      //    (where usedAt IS NULL) serializes two concurrent submits at the
+      //    row lock level — exactly one wins. The loser rolls back here, so
+      //    no double upsert and no double email queue.
+      const consumed = await consumeRsvpSession(tx, session.id);
+      if (!consumed) {
+        throw new AppError(
+          "Session expired. Please re-enter your invitation code.",
+          "SESSION_INVALID",
+          401
+        );
+      }
+
+      // 5. Capacity check under row lock — matches the invite-token path so
       //    both entry points produce identical state under contention.
       if (data.response === "YES" && invite.event.maxAttendees) {
         const [lockedEvent] = await tx.$queryRaw<
@@ -166,7 +179,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 5. Email conflict guard. If the guest provides an email that matches
+      // 6. Email conflict guard. If the guest provides an email that matches
       //    a different (non-revoked) invite for the same event, reject — this
       //    prevents linking two invitees through the public flow.
       const normalizedEmail = data.guestEmail
@@ -191,7 +204,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 6. Upsert RSVP. Mirrors the invite-token path; adds `source` so the
+      // 7. Upsert RSVP. Mirrors the invite-token path; adds `source` so the
       //    organizer can tell which entry point produced the response.
       const guestNames =
         data.response === "YES" && data.guestCount > 1
@@ -245,7 +258,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 7. Update invite. RSVP code consumption is recorded once; a re-RSVP
+      // 8. Update invite. RSVP code consumption is recorded once; a re-RSVP
       //    via session doesn't reset the original `rsvpCodeUsedAt` time.
       await tx.invite.update({
         where: { id: invite.id },
@@ -255,9 +268,6 @@ export async function POST(request: NextRequest) {
           ...(normalizedEmail && !invite.email && { email: normalizedEmail }),
         },
       });
-
-      // 8. Consume the session — single-submit invariant.
-      await consumeRsvpSession(tx, session.id);
 
       // 9. Queue confirmation email inside the transaction (atomic with the
       //    write above, like the invite-token path). Public-portal users
