@@ -237,10 +237,10 @@ export type HeroRendererProps = {
   eventRsvpDeadline?: string;
 };
 
-/** RSVP needs eventId */
+/** RSVP needs eventSlug for the code-gated portal CTA */
 export type RSVPRendererProps = {
   data: RSVPSection["data"];
-  eventId: string;
+  eventSlug: string;
 };
 
 /** Nav needs navigation data */

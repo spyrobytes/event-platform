@@ -326,8 +326,8 @@ export function WeddingTemplateV2({
         ));
 
       case "rsvp":
-        return eventId ? wrapWithChrome(wrapWithAnimation(
-          <RSVPV2 data={section.data} eventId={eventId} />
+        return eventSlug ? wrapWithChrome(wrapWithAnimation(
+          <RSVPV2 data={section.data} eventSlug={eventSlug} />
         )) : null;
 
       case "speakers":

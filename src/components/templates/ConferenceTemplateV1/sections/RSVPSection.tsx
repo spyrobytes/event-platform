@@ -1,34 +1,22 @@
-"use client";
-
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 import { SectionWrapper, SectionTitle } from "../../shared";
 
 type RSVPSectionProps = {
   data: {
     heading?: string;
     description?: string;
-    showMaybeOption?: boolean;
-    allowPlusOnes?: boolean;
-    maxPlusOnes?: number;
-    successMessage?: string;
   };
-  eventId: string;
+  eventSlug: string;
   primaryColor: string;
 };
 
 /**
- * RSVP Section for Conference template
- * Professional styling with clean lines
+ * RSVP Section for Conference template — preview + CTA. The full code-gated
+ * registration flow lives at `/e/[slug]/rsvp`. See WeddingTemplateV1 for the
+ * security rationale behind the inline-form removal.
  */
-export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
-  const {
-    heading = "Register Your Attendance",
-    description,
-    showMaybeOption = true,
-    allowPlusOnes = false,
-    maxPlusOnes = 0,
-    successMessage,
-  } = data;
+export function RSVPSection({ data, eventSlug, primaryColor }: RSVPSectionProps) {
+  const { heading = "Register Your Attendance", description } = data;
 
   return (
     <SectionWrapper ariaLabel="Registration">
@@ -44,7 +32,6 @@ export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
           className="mx-auto max-w-lg rounded-xl border-2 bg-card p-8 shadow-lg"
           style={{ borderColor: primaryColor }}
         >
-          {/* Professional badge */}
           <div
             className="mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium"
             style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
@@ -65,13 +52,7 @@ export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
             Secure Registration
           </div>
 
-          <RSVPForm
-            eventId={eventId}
-            showMaybeOption={showMaybeOption}
-            plusOnesAllowed={allowPlusOnes ? maxPlusOnes : 0}
-            successMessage={successMessage}
-            hideCard
-          />
+          <RsvpCta eventSlug={eventSlug} label="Register" />
         </div>
       </div>
     </SectionWrapper>

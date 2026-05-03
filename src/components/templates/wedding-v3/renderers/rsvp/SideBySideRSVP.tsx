@@ -1,17 +1,15 @@
-"use client";
-
 /**
  * Side-by-Side RSVP — The Editorial
  *
- * Two-column layout: left column has the form,
+ * Two-column layout: left column has the CTA,
  * right column has event summary/info panel.
  * Clean, editorial presentation with thin rules and no shadows.
  */
 
 import type { RSVPRendererProps } from "../../types";
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
-export function SideBySideRSVP({ data, eventId }: RSVPRendererProps) {
+export function SideBySideRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
 
   return (
@@ -78,20 +76,14 @@ export function SideBySideRSVP({ data, eventId }: RSVPRendererProps) {
             alignItems: "start",
           }}
         >
-          {/* Left: Form */}
+          {/* Left: RSVP CTA */}
           <div
             style={{
               borderTop: "1px solid var(--border, #e8e1d6)",
               paddingTop: "clamp(24px, 3vw, 40px)",
             }}
           >
-            <RSVPForm
-              eventId={eventId}
-              showMaybeOption={data.showMaybeOption}
-              plusOnesAllowed={data.allowPlusOnes ? data.maxPlusOnes : 0}
-              successMessage={data.successMessage}
-              hideCard
-            />
+            <RsvpCta eventSlug={eventSlug} />
           </div>
 
           {/* Right: Info panel */}

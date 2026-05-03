@@ -178,6 +178,6 @@ export function CinematicMapAdapter({ data }: SectionRendererProps<MapSection["d
   return <MapV2 data={data} />;
 }
 
-export function CinematicRSVPAdapter({ data, eventId }: RSVPRendererProps) {
-  return <RSVPV2 data={data} eventId={eventId} />;
+export function CinematicRSVPAdapter({ data, eventSlug }: RSVPRendererProps) {
+  return <RSVPV2 data={data} eventSlug={eventSlug} />;
 }

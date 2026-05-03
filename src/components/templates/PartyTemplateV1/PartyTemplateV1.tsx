@@ -19,6 +19,7 @@ type PartyTemplateV1Props = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
   eventId?: string;
+  eventSlug?: string;
 };
 
 import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
@@ -44,7 +45,7 @@ function getSectionLabel(type: string): string {
  * - Staggered section reveals for polished appearance
  * - Reduced motion preference support
  */
-export function PartyTemplateV1({ config, assets, eventId }: PartyTemplateV1Props) {
+export function PartyTemplateV1({ config, assets, eventId, eventSlug }: PartyTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
@@ -123,10 +124,10 @@ export function PartyTemplateV1({ config, assets, eventId }: PartyTemplateV1Prop
                 );
 
               case "rsvp":
-                return eventId ? wrapWithAnimation(
+                return eventSlug ? wrapWithAnimation(
                   <RSVPSection
                     data={section.data}
-                    eventId={eventId}
+                    eventSlug={eventSlug}
                     primaryColor={theme.primaryColor}
                   />
                 ) : null;

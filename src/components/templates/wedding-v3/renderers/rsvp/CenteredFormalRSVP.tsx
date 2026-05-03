@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Centered Formal RSVP — The Fine Art Romance
  *
@@ -8,9 +6,9 @@
  */
 
 import type { RSVPRendererProps } from "../../types";
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
-export function CenteredFormalRSVP({ data, eventId }: RSVPRendererProps) {
+export function CenteredFormalRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
 
   return (
@@ -90,13 +88,7 @@ export function CenteredFormalRSVP({ data, eventId }: RSVPRendererProps) {
               opacity: 0.5,
             }}
           />
-          <RSVPForm
-            eventId={eventId}
-            showMaybeOption={data.showMaybeOption}
-            plusOnesAllowed={data.allowPlusOnes ? data.maxPlusOnes : 0}
-            successMessage={data.successMessage}
-            hideCard
-          />
+          <RsvpCta eventSlug={eventSlug} />
         </div>
       </div>
     </section>
