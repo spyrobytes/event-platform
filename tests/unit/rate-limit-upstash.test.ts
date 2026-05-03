@@ -1,13 +1,12 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 
-// env.ts bypasses validation in NODE_ENV=test and returns process.env directly.
-// We deliberately leave UPSTASH_* unset so the limiter goes into no-op mode —
-// that's the dev/test contract. Production behavior (throw on missing config)
-// is exercised by tsc on the module's top-level guard, not by a unit test.
-beforeAll(() => {
-  delete process.env.UPSTASH_REDIS_REST_URL;
-  delete process.env.UPSTASH_REDIS_REST_TOKEN;
-});
+// Clear UPSTASH_* BEFORE importing the module under test. The module reads
+// env once at load time (`upstashRedis` is a module-level constant), so any
+// `beforeAll` that mutates process.env runs too late — the import has already
+// resolved. Hoisting the clear here keeps the test deterministic regardless
+// of what the developer has in `.env.local`.
+delete process.env.UPSTASH_REDIS_REST_URL;
+delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
 const {
   upstashLimiter,

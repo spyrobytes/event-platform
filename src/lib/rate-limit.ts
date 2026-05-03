@@ -6,8 +6,17 @@
  *     across instances. Use this for new endpoints where multi-instance
  *     coordination matters (e.g. anti-enumeration on public endpoints).
  *
- * Production requires `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
- * to be set; missing config throws at module load. Dev/test no-ops.
+ * **Upstash status (deferred until pre-GA):** Upstash Redis is not yet
+ * provisioned. When `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`
+ * are absent, the Upstash helpers no-op in every environment — including
+ * production — and emit a single boot-time warning to the server logs.
+ * Pre-GA, provision Upstash and set the two env vars in Vercel; that flips
+ * activation on with no code change. Existing call sites (PR 3+ public
+ * RSVP endpoints) become real rate limits the moment the secrets land.
+ *
+ * Until then, public endpoints rely on defense-in-depth (HMAC-pepper'd
+ * code space, honeypot fields, generic error responses) instead of rate
+ * limiting. See `project_launch_plan.md` memory for the pre-GA TODO.
  */
 
 type RateLimitEntry = {
@@ -151,18 +160,20 @@ import { env } from "@/env";
 
 type Window = `${number} ${"s" | "m" | "h" | "d"}`;
 
-// In dev/test, Upstash env vars are optional — the limiter no-ops so local
-// development doesn't depend on Redis. In production, missing config is a
-// configuration error and we throw at module load to fail fast rather than
-// silently disable rate limiting.
+// Upstash is deferred until pre-GA (see file-level JSDoc). When env vars are
+// absent, the limiter no-ops in every environment — including production —
+// and we log a single boot-time warning so operators can see in Vercel logs
+// that rate limiting is currently disabled.
 const upstashRedis: Redis | null =
   env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN
     ? Redis.fromEnv()
     : null;
 
 if (env.NODE_ENV === "production" && !upstashRedis) {
-  throw new Error(
-    "Upstash rate limiter required in production: set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN."
+  console.warn(
+    "[rate-limit] Upstash Redis not configured — Upstash rate limiters are " +
+      "disabled in production. Provision Upstash and set " +
+      "UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN to activate."
   );
 }
 
