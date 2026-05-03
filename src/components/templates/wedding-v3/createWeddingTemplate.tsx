@@ -287,8 +287,8 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
             <FAQRenderer data={section.data} assets={assets} />
           ));
         case "rsvp":
-          return eventId ? wrapWithChrome(wrapWithAnimation(
-            <RSVPComponent data={section.data} eventId={eventId} />
+          return eventSlug ? wrapWithChrome(wrapWithAnimation(
+            <RSVPComponent data={section.data} eventSlug={eventSlug} />
           )) : null;
         case "speakers":
           return wrapWithChrome(wrapWithAnimation(

@@ -19,6 +19,7 @@ type WeddingTemplateV1Props = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
   eventId?: string;
+  eventSlug?: string;
 };
 
 import { getSectionLabel } from "@/lib/guest-access";
@@ -37,7 +38,7 @@ import { getSectionLabel } from "@/lib/guest-access";
  * - Staggered section reveals for polished appearance
  * - Reduced motion preference support
  */
-export function WeddingTemplateV1({ config, assets, eventId }: WeddingTemplateV1Props) {
+export function WeddingTemplateV1({ config, assets, eventId, eventSlug }: WeddingTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
@@ -116,10 +117,10 @@ export function WeddingTemplateV1({ config, assets, eventId }: WeddingTemplateV1
                 );
 
               case "rsvp":
-                return eventId ? wrapWithAnimation(
+                return eventSlug ? wrapWithAnimation(
                   <RSVPSection
                     data={section.data}
-                    eventId={eventId}
+                    eventSlug={eventSlug}
                     primaryColor={theme.primaryColor}
                   />
                 ) : null;

@@ -45,6 +45,7 @@ type WeddingTemplateProps = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
   eventId?: string;
+  eventSlug?: string;
   /** Temporal data for time-aware rendering */
   temporal?: TemporalData;
 };
@@ -64,7 +65,7 @@ import { getSectionLabel } from "@/lib/guest-access";
  *
  * Variants: classic, modern_minimal, rustic_outdoor, destination, intimate_micro
  */
-export function WeddingTemplate({ config, assets, eventId, temporal }: WeddingTemplateProps) {
+export function WeddingTemplate({ config, assets, eventId, eventSlug, temporal }: WeddingTemplateProps) {
   const { theme, hero, sections, variantId } = config;
 
   // Get variant configuration
@@ -189,10 +190,10 @@ export function WeddingTemplate({ config, assets, eventId, temporal }: WeddingTe
         ));
 
       case "rsvp":
-        return eventId ? wrapWithChapter(wrapWithAnimation(
+        return eventSlug ? wrapWithChapter(wrapWithAnimation(
           <RSVPSection
             data={section.data}
-            eventId={eventId}
+            eventSlug={eventSlug}
             primaryColor={primaryColor}
           />
         )) : null;

@@ -1,14 +1,12 @@
-"use client";
-
 import type { RSVPSection } from "@/schemas/event-page";
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
 type RSVPV2Props = {
   data: RSVPSection["data"];
-  eventId: string;
+  eventSlug: string;
 };
 
-export function RSVPV2({ data, eventId }: RSVPV2Props) {
+export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
   const heading = data.heading || "RSVP";
   const kickerText = "RSVP";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
@@ -98,13 +96,7 @@ export function RSVPV2({ data, eventId }: RSVPV2Props) {
           />
 
           <div style={{ padding: "clamp(24px, 4vw, 40px)" }}>
-            <RSVPForm
-              eventId={eventId}
-              showMaybeOption={data.showMaybeOption}
-              plusOnesAllowed={data.allowPlusOnes ? data.maxPlusOnes : 0}
-              successMessage={data.successMessage}
-              hideCard
-            />
+            <RsvpCta eventSlug={eventSlug} />
           </div>
         </div>
       </div>

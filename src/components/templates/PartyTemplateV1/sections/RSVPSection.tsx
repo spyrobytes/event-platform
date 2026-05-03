@@ -1,34 +1,21 @@
-"use client";
-
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 import { SectionWrapper, SectionTitle } from "../../shared";
 
 type RSVPSectionProps = {
   data: {
     heading?: string;
     description?: string;
-    showMaybeOption?: boolean;
-    allowPlusOnes?: boolean;
-    maxPlusOnes?: number;
-    successMessage?: string;
   };
-  eventId: string;
+  eventSlug: string;
   primaryColor: string;
 };
 
 /**
- * RSVP Section for Party template
- * Fun, vibrant styling with playful elements
+ * RSVP Section for Party template — preview + CTA. Full code-gated flow at
+ * `/e/[slug]/rsvp`. See WeddingTemplateV1 for the security rationale.
  */
-export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
-  const {
-    heading = "Join the Party!",
-    description,
-    showMaybeOption = true,
-    allowPlusOnes = false,
-    maxPlusOnes = 0,
-    successMessage,
-  } = data;
+export function RSVPSection({ data, eventSlug, primaryColor }: RSVPSectionProps) {
+  const { heading = "Join the Party!", description } = data;
 
   return (
     <SectionWrapper ariaLabel="RSVP">
@@ -45,7 +32,6 @@ export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
           className="relative mx-auto max-w-lg overflow-hidden rounded-3xl border-4 bg-card p-8 shadow-xl"
           style={{ borderColor: primaryColor }}
         >
-          {/* Decorative corner elements */}
           <div
             className="absolute -right-4 -top-4 h-16 w-16 rounded-full opacity-20"
             style={{ backgroundColor: primaryColor }}
@@ -55,7 +41,6 @@ export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
             style={{ backgroundColor: primaryColor }}
           />
 
-          {/* Fun header */}
           <div className="mb-6 text-center">
             <span className="text-2xl">✨</span>
             <span
@@ -67,13 +52,7 @@ export function RSVPSection({ data, eventId, primaryColor }: RSVPSectionProps) {
             <span className="text-2xl">✨</span>
           </div>
 
-          <RSVPForm
-            eventId={eventId}
-            showMaybeOption={showMaybeOption}
-            plusOnesAllowed={allowPlusOnes ? maxPlusOnes : 0}
-            successMessage={successMessage || "Woohoo! 🎊 Can't wait to see you there!"}
-            hideCard
-          />
+          <RsvpCta eventSlug={eventSlug} label="RSVP →" />
         </div>
       </div>
     </SectionWrapper>

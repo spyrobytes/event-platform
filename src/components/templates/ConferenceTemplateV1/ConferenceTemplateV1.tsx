@@ -19,6 +19,7 @@ type ConferenceTemplateV1Props = {
   config: EventPageConfigV1;
   assets: MediaAsset[];
   eventId?: string;
+  eventSlug?: string;
 };
 
 import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
@@ -44,7 +45,7 @@ function getSectionLabel(type: string): string {
  * - Staggered section reveals for polished appearance
  * - Reduced motion preference support
  */
-export function ConferenceTemplateV1({ config, assets, eventId }: ConferenceTemplateV1Props) {
+export function ConferenceTemplateV1({ config, assets, eventId, eventSlug }: ConferenceTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
@@ -123,10 +124,10 @@ export function ConferenceTemplateV1({ config, assets, eventId }: ConferenceTemp
                 );
 
               case "rsvp":
-                return eventId ? wrapWithAnimation(
+                return eventSlug ? wrapWithAnimation(
                   <RSVPSection
                     data={section.data}
-                    eventId={eventId}
+                    eventSlug={eventSlug}
                     primaryColor={theme.primaryColor}
                   />
                 ) : null;

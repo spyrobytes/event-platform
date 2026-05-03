@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Streamlined RSVP — The Intimate Note
  *
@@ -9,9 +7,9 @@
  */
 
 import type { RSVPRendererProps } from "../../types";
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
-export function StreamlinedRSVP({ data, eventId }: RSVPRendererProps) {
+export function StreamlinedRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
 
   return (
@@ -65,13 +63,7 @@ export function StreamlinedRSVP({ data, eventId }: RSVPRendererProps) {
             textAlign: "left",
           }}
         >
-          <RSVPForm
-            eventId={eventId}
-            showMaybeOption={data.showMaybeOption}
-            plusOnesAllowed={data.allowPlusOnes ? data.maxPlusOnes : 0}
-            successMessage={data.successMessage}
-            hideCard
-          />
+          <RsvpCta eventSlug={eventSlug} />
         </div>
       </div>
     </section>

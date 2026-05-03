@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Stepper RSVP — The Celebration House
  *
@@ -9,9 +7,9 @@
  */
 
 import type { RSVPRendererProps } from "../../types";
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
-export function StepperRSVP({ data, eventId }: RSVPRendererProps) {
+export function StepperRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
 
   return (
@@ -100,13 +98,7 @@ export function StepperRSVP({ data, eventId }: RSVPRendererProps) {
             boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
           }}
         >
-          <RSVPForm
-            eventId={eventId}
-            showMaybeOption={data.showMaybeOption}
-            plusOnesAllowed={data.allowPlusOnes ? data.maxPlusOnes : 0}
-            successMessage={data.successMessage}
-            hideCard
-          />
+          <RsvpCta eventSlug={eventSlug} />
         </div>
       </div>
     </section>

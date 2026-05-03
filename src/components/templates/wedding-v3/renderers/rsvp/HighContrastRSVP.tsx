@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * High Contrast RSVP — The Grand Luxe
  *
@@ -8,9 +6,9 @@
  */
 
 import type { RSVPRendererProps } from "../../types";
-import { RSVPForm } from "@/components/features/RSVPForm";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
-export function HighContrastRSVP({ data, eventId }: RSVPRendererProps) {
+export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
 
   return (
@@ -57,13 +55,7 @@ export function HighContrastRSVP({ data, eventId }: RSVPRendererProps) {
           }}
         >
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--accent, #c5a55a), transparent)" }} />
-          <RSVPForm
-            eventId={eventId}
-            showMaybeOption={data.showMaybeOption}
-            plusOnesAllowed={data.allowPlusOnes ? data.maxPlusOnes : 0}
-            successMessage={data.successMessage}
-            hideCard
-          />
+          <RsvpCta eventSlug={eventSlug} />
         </div>
       </div>
     </section>
