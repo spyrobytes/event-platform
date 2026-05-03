@@ -88,19 +88,29 @@ describe("hashRsvpCode", () => {
     expect(hash).toMatch(/^[0-9a-f]+$/);
   });
 
-  it("different peppers produce different hashes", async () => {
+  it("different peppers produce different hashes", () => {
     const original = hashRsvpCode("EVG-ABCD-EFGH-IJKL");
 
     process.env.RSVP_CODE_HMAC_KEY = "different-pepper-with-at-least-32-chars-padding";
-    // Re-import to pick up the new env value (the module reads env at call time
-    // via the env Proxy, so a fresh import isn't strictly required — but we
-    // verify the lookup is dynamic).
-    const { hashRsvpCode: hashWithNewPepper } = await import("@/lib/rsvp-code");
-    const rotated = hashWithNewPepper("EVG-ABCD-EFGH-IJKL");
+    try {
+      // env Proxy reads process.env on each access in NODE_ENV=test, so the
+      // existing function picks up the rotated pepper without re-importing.
+      expect(hashRsvpCode("EVG-ABCD-EFGH-IJKL")).not.toBe(original);
+    } finally {
+      // Always restore even if the assertion above throws.
+      process.env.RSVP_CODE_HMAC_KEY = "test-pepper-with-at-least-32-characters-padding";
+    }
+  });
 
-    expect(rotated).not.toBe(original);
-
-    // Restore for downstream tests in the same run.
-    process.env.RSVP_CODE_HMAC_KEY = "test-pepper-with-at-least-32-characters-padding";
+  it("throws a clear error when the pepper is missing", () => {
+    const saved = process.env.RSVP_CODE_HMAC_KEY;
+    delete process.env.RSVP_CODE_HMAC_KEY;
+    try {
+      expect(() => hashRsvpCode("EVG-ABCD-EFGH-IJKL")).toThrow(
+        /RSVP_CODE_HMAC_KEY is not configured/
+      );
+    } finally {
+      process.env.RSVP_CODE_HMAC_KEY = saved;
+    }
   });
 });

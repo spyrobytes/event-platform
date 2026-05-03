@@ -32,9 +32,19 @@ export function normalizeRsvpCode(input: string): string {
 /**
  * HMAC-SHA-256 the normalized code with the server-side pepper. The pepper
  * lives only in env, so a full DB leak does not expose codes.
+ *
+ * Throws at call time if `RSVP_CODE_HMAC_KEY` is unset — keeps PR 1 mergeable
+ * without the env var (no callers yet) while still failing loudly the moment
+ * a real caller lands without the secret configured.
  */
 export function hashRsvpCode(rawCode: string): string {
-  return createHmac("sha256", env.RSVP_CODE_HMAC_KEY)
+  const pepper = env.RSVP_CODE_HMAC_KEY;
+  if (!pepper) {
+    throw new Error(
+      "RSVP_CODE_HMAC_KEY is not configured — cannot hash RSVP codes."
+    );
+  }
+  return createHmac("sha256", pepper)
     .update(normalizeRsvpCode(rawCode))
     .digest("hex");
 }
