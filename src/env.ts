@@ -9,6 +9,21 @@ import { z } from "zod";
  *   const apiKey = env.MAILGUN_API_KEY; // Type-safe!
  */
 
+/**
+ * Optional URL field that treats an empty string the same as `undefined`.
+ *
+ * Plain `z.string().url().optional()` rejects `""` because the empty string
+ * passes `.string()`, fails `.optional()`'s `undefined` gate, and then fails
+ * `.url()`. `.env.example` ships these variables blank (e.g. `SENTRY_DSN=`),
+ * which expands to `""` at process.env read time — and validation rejects
+ * the blank line. Using this helper makes the blank line equivalent to
+ * "not set," matching `.env.example`'s implicit contract.
+ */
+const optionalUrl = z
+  .string()
+  .transform((v) => (v === "" ? undefined : v))
+  .pipe(z.string().url().optional());
+
 // Schema for server-side environment variables
 export const serverEnvSchema = z.object({
   // Database (Supabase Postgres)
@@ -58,9 +73,9 @@ export const serverEnvSchema = z.object({
     .min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
 
   // Optional services
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_URL: optionalUrl,
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_DSN: optionalUrl,
 
   // Local development (optional)
   SMTP_HOST: z.string().optional(),
