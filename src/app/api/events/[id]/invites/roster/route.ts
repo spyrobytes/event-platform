@@ -45,6 +45,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
             guestName: true,
             guestCount: true,
             additionalGuestNames: true,
+            dietaryRestrictions: true,
+            musicSuggestions: true,
           },
         },
       },

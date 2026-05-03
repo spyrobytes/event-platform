@@ -253,6 +253,7 @@ model RSVP {
   additionalGuestNames String[]     @default([]) @map("additional_guest_names")
   notes                String?
   dietaryRestrictions  String?      @map("dietary_restrictions")
+  musicSuggestions     String?      @map("music_suggestions")
 
   // Wedding-wishes / message-to-host. Captured on the RSVP form when the
   // event has a `wishes` page section enabled. Distinct from `notes` so

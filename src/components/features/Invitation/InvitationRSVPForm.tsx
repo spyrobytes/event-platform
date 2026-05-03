@@ -122,6 +122,7 @@ export function InvitationRSVPForm({
       guestEmail: guestEmail || "",
       additionalGuestNames: [] as string[],
       dietaryRestrictions: "",
+      musicSuggestions: "",
       notes: "",
     },
   });
@@ -439,9 +440,28 @@ export function InvitationRSVPForm({
               id="dietaryRestrictions"
               placeholder="Any food allergies or dietary requirements?"
               rows={2}
+              maxLength={500}
               className={inputStyles}
               {...register("dietaryRestrictions")}
               onFocus={() => handleFormInteraction("dietaryRestrictions")}
+            />
+          </div>
+        )}
+
+        {/* Song Requests */}
+        {selectedResponse === "YES" && (
+          <div>
+            <label htmlFor="musicSuggestions" className={labelStyles}>
+              Song Requests <span className="text-[var(--inv-text-secondary)]">(optional)</span>
+            </label>
+            <textarea
+              id="musicSuggestions"
+              placeholder="Any songs you'd love to hear? Helps the host plan the playlist."
+              rows={2}
+              maxLength={500}
+              className={inputStyles}
+              {...register("musicSuggestions")}
+              onFocus={() => handleFormInteraction("musicSuggestions")}
             />
           </div>
         )}

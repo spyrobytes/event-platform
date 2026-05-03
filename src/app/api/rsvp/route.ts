@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
             guestCount: data.guestCount,
             additionalGuestNames: guestNames,
             dietaryRestrictions: data.dietaryRestrictions,
+            musicSuggestions: data.musicSuggestions,
             notes: data.notes,
             messageToHost: data.messageToHost,
           },
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
             guestCount: data.guestCount,
             additionalGuestNames: guestNames,
             dietaryRestrictions: data.dietaryRestrictions,
+            musicSuggestions: data.musicSuggestions,
             notes: data.notes,
             updatedAt: new Date(),
             ...(messageChanged && {
@@ -322,6 +324,7 @@ export async function POST(request: NextRequest) {
               guestCount: data.guestCount,
               additionalGuestNames: publicGuestNames,
               dietaryRestrictions: data.dietaryRestrictions,
+              musicSuggestions: data.musicSuggestions,
               notes: data.notes,
               updatedAt: new Date(),
               ...(messageChanged && {
@@ -350,6 +353,7 @@ export async function POST(request: NextRequest) {
             guestCount: data.guestCount,
             additionalGuestNames: publicGuestNames,
             dietaryRestrictions: data.dietaryRestrictions,
+            musicSuggestions: data.musicSuggestions,
             notes: data.notes,
             messageToHost: data.messageToHost,
           },

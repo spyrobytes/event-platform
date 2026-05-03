@@ -124,6 +124,7 @@ export function RSVPForm({
       guestEmail: guestEmail || "",
       additionalGuestNames: [] as string[],
       dietaryRestrictions: "",
+      musicSuggestions: "",
       notes: "",
     },
   });
@@ -410,8 +411,24 @@ export function RSVPForm({
               id="dietaryRestrictions"
               placeholder="Any food allergies or dietary requirements?"
               rows={2}
+              maxLength={500}
               {...register("dietaryRestrictions")}
               onFocus={() => handleFormInteraction("dietaryRestrictions")}
+            />
+          </div>
+        )}
+
+        {/* Song Requests */}
+        {selectedResponse === "YES" && (
+          <div className="space-y-2">
+            <Label htmlFor="musicSuggestions">Song Requests (optional)</Label>
+            <Textarea
+              id="musicSuggestions"
+              placeholder="Any songs you'd love to hear? Helps the host plan the playlist."
+              rows={2}
+              maxLength={500}
+              {...register("musicSuggestions")}
+              onFocus={() => handleFormInteraction("musicSuggestions")}
             />
           </div>
         )}

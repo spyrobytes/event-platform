@@ -59,6 +59,8 @@ type Invite = {
     guestName: string;
     guestCount: number;
     additionalGuestNames?: string[];
+    dietaryRestrictions?: string | null;
+    musicSuggestions?: string | null;
     respondedAt: string;
   } | null;
   emails?: {
