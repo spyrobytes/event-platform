@@ -5,6 +5,7 @@ import { env } from "@/env";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
 import { verifyRsvpCodeSchema } from "@/schemas/rsvp";
 import { hashRsvpCode, normalizeRsvpCode } from "@/lib/rsvp-code";
+import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import {
   createRsvpSession,
   RSVP_SESSION_COOKIE,
@@ -84,9 +85,11 @@ export async function POST(request: NextRequest) {
       where: { id: data.eventId },
       select: {
         id: true,
+        title: true,
         status: true,
         rsvpDeadline: true,
         startAt: true,
+        pageConfig: true,
       },
     });
 
@@ -139,6 +142,21 @@ export async function POST(request: NextRequest) {
       inviteId: invite.id,
     });
 
+    // Mirror the invite-token flow: surface "Message for the couple" only
+    // when the wishes section is on AND accepting submissions. Either off
+    // → field hidden. Falls back to false on missing/invalid pageConfig.
+    const pageConfig = loadAndMigrateConfig(event.pageConfig, {
+      eventId: event.id,
+      eventTitle: event.title,
+    });
+    const wishesSection = pageConfig.sections.find(
+      (s) => s.type === "wishes" && s.enabled
+    );
+    const enableWishes =
+      wishesSection?.type === "wishes"
+        ? wishesSection.data.enableSubmissions !== false
+        : false;
+
     const response = successResponse({
       // Body-fallback for clients without cookie support (per v3 §5.3 the
       // submit endpoint accepts the session token from cookie OR body).
@@ -147,6 +165,7 @@ export async function POST(request: NextRequest) {
         name: invite.name,
         hasEmail: !!invite.email,
         plusOnesAllowed: invite.plusOnesAllowed,
+        enableWishes,
       },
     });
 

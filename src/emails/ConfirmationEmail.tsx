@@ -5,6 +5,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -16,14 +17,11 @@ type RsvpResponse = "YES" | "NO" | "MAYBE";
 type ConfirmationEmailProps = {
   guestName: string;
   eventTitle: string;
-  eventDate: string;
-  eventTime: string;
-  eventLocation?: string;
   response: RsvpResponse;
   guestCount: number;
-  hostName: string;
   portalUrl?: string;
   unsubscribeUrl?: string;
+  logoUrl?: string;
 };
 
 const RESPONSE_CONFIG: Record<
@@ -68,14 +66,11 @@ const RESPONSE_CONFIG: Record<
 export function ConfirmationEmail({
   guestName,
   eventTitle,
-  eventDate,
-  eventTime,
-  eventLocation,
   response,
   guestCount,
-  hostName,
   portalUrl,
   unsubscribeUrl,
+  logoUrl,
 }: ConfirmationEmailProps) {
   const config = RESPONSE_CONFIG[response];
   const previewText =
@@ -91,6 +86,18 @@ export function ConfirmationEmail({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
+          {logoUrl && (
+            <Section style={logoContainer}>
+              <Img
+                src={logoUrl}
+                alt="EventFXr"
+                width="56"
+                height="56"
+                style={logoImage}
+              />
+            </Section>
+          )}
+
           <Heading style={heading}>{config.title}</Heading>
 
           <Section style={section}>
@@ -105,7 +112,7 @@ export function ConfirmationEmail({
                 borderColor: config.cardBorder,
               }}
             >
-              <Text style={confirmationLabel}>Your RSVP</Text>
+              <Text style={confirmationLabel}>Your RSVP — {eventTitle}</Text>
               <Text style={{ ...confirmationResponse, color: config.statusColor }}>
                 {config.statusLabel}
               </Text>
@@ -115,29 +122,6 @@ export function ConfirmationEmail({
                 </Text>
               )}
             </Section>
-
-            {response !== "NO" && (
-              <Section style={eventCard}>
-                <Heading as="h2" style={eventTitleStyle}>
-                  {eventTitle}
-                </Heading>
-
-                <Text style={eventDetail}>
-                  <strong>Date:</strong> {eventDate}
-                </Text>
-                <Text style={eventDetail}>
-                  <strong>Time:</strong> {eventTime}
-                </Text>
-                {eventLocation && (
-                  <Text style={eventDetail}>
-                    <strong>Location:</strong> {eventLocation}
-                  </Text>
-                )}
-                <Text style={eventDetail}>
-                  <strong>Hosted by:</strong> {hostName}
-                </Text>
-              </Section>
-            )}
 
             {portalUrl && (
               <Section style={portalSection}>
@@ -198,6 +182,16 @@ export function ConfirmationEmail({
 }
 
 // Styles
+const logoContainer = {
+  padding: "0 48px 8px 48px",
+  textAlign: "center" as const,
+};
+
+const logoImage = {
+  display: "block",
+  margin: "0 auto",
+};
+
 const main = {
   backgroundColor: "#f6f9fc",
   fontFamily:
@@ -258,28 +252,6 @@ const guestCountText = {
   fontSize: "14px",
   color: "#6b7280",
   margin: "8px 0 0 0",
-};
-
-const eventCard = {
-  backgroundColor: "#f9fafb",
-  borderRadius: "8px",
-  padding: "24px",
-  margin: "24px 0",
-  border: "1px solid #e5e7eb",
-};
-
-const eventTitleStyle = {
-  fontSize: "20px",
-  fontWeight: "600",
-  color: "#1a1a1a",
-  margin: "0 0 16px 0",
-};
-
-const eventDetail = {
-  fontSize: "14px",
-  lineHeight: "20px",
-  color: "#484848",
-  margin: "4px 0",
 };
 
 const portalSection = {

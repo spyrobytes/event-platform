@@ -43,6 +43,21 @@ vi.mock("@/lib/rsvp-session", async () => {
 // env set), so checkUpstashLimit always returns true. We don't need to mock
 // this; the dev-fallback path is exactly what the test sees.
 
+// Stub loadAndMigrateConfig so tests can drive the wishes-section detection
+// without constructing a fully-valid EventPageConfigV1. Tests override the
+// return value when they need an enabled wishes section.
+type LoadConfig = typeof import("@/lib/event-page-loader").loadAndMigrateConfig;
+const loadConfigMock = vi.fn<LoadConfig>(() => ({
+  schemaVersion: 1,
+  theme: {},
+  hero: {},
+  sections: [],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any));
+vi.mock("@/lib/event-page-loader", () => ({
+  loadAndMigrateConfig: loadConfigMock,
+}));
+
 const { POST } = await import("@/app/api/rsvp/public/verify-code/route");
 
 function makeRequest(body: unknown, ip = "203.0.113.42"): NextRequest {
@@ -58,9 +73,11 @@ const pastDate = new Date(Date.now() - 1000);
 
 const validEvent = {
   id: "evt_1",
+  title: "Test Event",
   status: "PUBLISHED",
   rsvpDeadline: futureDate,
   startAt: futureDate,
+  pageConfig: null,
 };
 
 const validInvite = {
@@ -77,6 +94,16 @@ beforeEach(() => {
   dbMock.event.findUnique.mockReset();
   dbMock.invite.findUnique.mockReset();
   createSessionMock.mockClear();
+  loadConfigMock.mockReset();
+  // Default: empty sections → enableWishes resolves to false. Individual
+  // tests override this for the wishes-on path.
+  loadConfigMock.mockReturnValue({
+    schemaVersion: 1,
+    theme: {},
+    hero: {},
+    sections: [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 });
 
 describe("POST /api/rsvp/public/verify-code", () => {
@@ -92,6 +119,7 @@ describe("POST /api/rsvp/public/verify-code", () => {
       name: "Alice",
       hasEmail: true,
       plusOnesAllowed: 2,
+      enableWishes: false,
     });
     expect(body.data.rsvpSessionToken).toBe("raw-session-token");
 
@@ -101,6 +129,52 @@ describe("POST /api/rsvp/public/verify-code", () => {
     expect(setCookie).toMatch(/SameSite=lax/i);
     expect(setCookie).toMatch(/Path=\/api\/rsvp\/public/);
     expect(setCookie).toMatch(/Max-Age=1200/);
+  });
+
+  it("surfaces enableWishes=true when the wishes section is enabled and accepting submissions", async () => {
+    dbMock.event.findUnique.mockResolvedValue(validEvent);
+    dbMock.invite.findUnique.mockResolvedValue(validInvite);
+    loadConfigMock.mockReturnValue({
+      schemaVersion: 1,
+      theme: {},
+      hero: {},
+      sections: [
+        {
+          type: "wishes",
+          enabled: true,
+          data: { heading: "Wishes", previewCount: 3, enableSubmissions: true },
+        },
+      ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    const res = await POST(makeRequest({ eventId: "evt_1", code: "EVG-ABCD-EFGH-IJKL" }));
+    const body = await res.json();
+    expect(body.data.invitePreview.enableWishes).toBe(true);
+  });
+
+  it("keeps enableWishes=false when the wishes section is enabled but submissions are off", async () => {
+    // Organizer can show existing wishes without inviting more — the form
+    // hides the "Message for the couple" field in this case.
+    dbMock.event.findUnique.mockResolvedValue(validEvent);
+    dbMock.invite.findUnique.mockResolvedValue(validInvite);
+    loadConfigMock.mockReturnValue({
+      schemaVersion: 1,
+      theme: {},
+      hero: {},
+      sections: [
+        {
+          type: "wishes",
+          enabled: true,
+          data: { heading: "Wishes", previewCount: 3, enableSubmissions: false },
+        },
+      ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    const res = await POST(makeRequest({ eventId: "evt_1", code: "EVG-ABCD-EFGH-IJKL" }));
+    const body = await res.json();
+    expect(body.data.invitePreview.enableWishes).toBe(false);
   });
 
   it("doesn't leak email when invite has no email on file", async () => {

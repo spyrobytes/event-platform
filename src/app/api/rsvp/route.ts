@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 import { successResponse, handleApiError } from "@/lib/api-response";
 import { submitRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
@@ -183,45 +182,27 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Queue confirmation email inside the transaction
+      // Queue confirmation email inside the transaction. The template no
+      // longer renders event date/time/location — the View Event Details
+      // CTA (portalUrl) is the authoritative source of event info.
       let queuedEmailId: string | null = null;
       const recipientEmail = data.guestEmail || invite.email;
       if (recipientEmail) {
-        const fullEvent = await tx.event.findUnique({
-          where: { id: invite.event.id },
-          select: {
-            startAt: true,
-            timezone: true,
-            venueName: true,
-            city: true,
-            creator: { select: { name: true, email: true } },
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
+        queuedEmailId = await queueConfirmationEmail(
+          invite.id,
+          recipientEmail,
+          {
+            guestName: data.guestName,
+            eventTitle: invite.event.title,
+            response: data.response,
+            guestCount: data.guestCount || 1,
+            portalUrl,
+            unsubscribeUrl: buildUnsubscribeUrl(inviteToken as string),
+            logoUrl: `${baseUrl}/brand/eventfxr-logo.png`,
           },
-        });
-
-        if (fullEvent) {
-          const eventDate = formatEventDateLong(fullEvent.startAt, fullEvent.timezone);
-          const eventTime = formatEventTime(fullEvent.startAt, fullEvent.timezone);
-          const eventLocation = fullEvent.venueName || fullEvent.city || undefined;
-          const hostName = fullEvent.creator.name || fullEvent.creator.email;
-
-          queuedEmailId = await queueConfirmationEmail(
-            invite.id,
-            recipientEmail,
-            {
-              guestName: data.guestName,
-              eventTitle: invite.event.title,
-              eventDate,
-              eventTime,
-              eventLocation,
-              response: data.response,
-              guestCount: data.guestCount || 1,
-              hostName,
-              portalUrl,
-              unsubscribeUrl: buildUnsubscribeUrl(inviteToken as string),
-            },
-            tx
-          );
-        }
+          tx
+        );
       }
 
       return { rsvp: rsvpResult, emailId: queuedEmailId };

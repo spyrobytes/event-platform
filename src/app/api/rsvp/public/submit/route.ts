@@ -12,9 +12,11 @@ import {
 import {
   queueConfirmationEmail,
   processEmail,
+  buildUnsubscribeUrl,
 } from "@/lib/email";
-import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 import { AppError } from "@/lib/errors";
+import { generateTokenPair } from "@/lib/tokens";
+import { buildPortalUrl } from "@/lib/guest-access";
 
 const GENERIC_INVALID_MESSAGE =
   "Your RSVP couldn't be processed. Please re-enter your invitation code and try again.";
@@ -67,6 +69,18 @@ export async function POST(request: NextRequest) {
         )
       );
     }
+
+    // Mint a fresh portal-access token. The public flow never receives the
+    // original raw invite token (only an HMAC'd RSVP code), so we issue one
+    // now and rotate the invite's `tokenHash` to its hash. This matches the
+    // /regenerate pattern (tokenHash is already designed to be rotated) and
+    // gives us a raw token to embed in the confirmation email's "View Event
+    // Details" link, the unsubscribe link, and the post-submit redirect URL.
+    // Note: rotating invalidates any previously-sent tokenized email link
+    // for this invite — acceptable here because (a) the guest just RSVP'd, so
+    // the old link would only show "Already Responded", and (b) the new
+    // confirmation email carries the replacement link.
+    const { token: portalToken, hash: portalTokenHash } = generateTokenPair();
 
     const { rsvp, eventSummary, emailId } = await db.$transaction(async (tx) => {
       // 1. Re-validate the session inside the transaction. lookupRsvpSession
@@ -260,47 +274,41 @@ export async function POST(request: NextRequest) {
 
       // 8. Update invite. RSVP code consumption is recorded once; a re-RSVP
       //    via session doesn't reset the original `rsvpCodeUsedAt` time.
+      //    Rotate `tokenHash` to the freshly-minted portal token's hash so
+      //    the raw token below can address the guest's portal view.
       await tx.invite.update({
         where: { id: invite.id },
         data: {
           status: "RESPONDED",
           rsvpCodeUsedAt: invite.rsvpCodeUsedAt ?? new Date(),
+          tokenHash: portalTokenHash,
           ...(normalizedEmail && !invite.email && { email: normalizedEmail }),
         },
       });
 
       // 9. Queue confirmation email inside the transaction (atomic with the
-      //    write above, like the invite-token path). Public-portal users
-      //    don't get a portalUrl or unsubscribeUrl — those rely on the raw
-      //    invite token, which the public flow never sees.
+      //    write above, like the invite-token path). The freshly-rotated
+      //    tokenHash backs the portalUrl / unsubscribeUrl, so the public
+      //    flow can match the regular flow's email template. The template
+      //    no longer renders event date/time/location — the View Event
+      //    Details CTA (portalUrl) is the authoritative source of event
+      //    info, which avoids stale or partial sub-event listings.
       let queuedEmailId: string | null = null;
       const recipientEmail = normalizedEmail || invite.email;
       if (recipientEmail) {
-        const eventDate = formatEventDateLong(
-          invite.event.startAt,
-          invite.event.timezone
-        );
-        const eventTime = formatEventTime(
-          invite.event.startAt,
-          invite.event.timezone
-        );
-        const eventLocation =
-          invite.event.venueName || invite.event.city || undefined;
-        const hostName =
-          invite.event.creator.name || invite.event.creator.email;
-
+        const baseUrl =
+          process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
         queuedEmailId = await queueConfirmationEmail(
           invite.id,
           recipientEmail,
           {
             guestName: data.guestName,
             eventTitle: invite.event.title,
-            eventDate,
-            eventTime,
-            eventLocation,
             response: data.response,
             guestCount: data.guestCount,
-            hostName,
+            portalUrl: buildPortalUrl(invite.event.slug, portalToken),
+            unsubscribeUrl: buildUnsubscribeUrl(portalToken),
+            logoUrl: `${baseUrl}/brand/eventfxr-logo.png`,
           },
           tx
         );
@@ -328,6 +336,12 @@ export async function POST(request: NextRequest) {
       successResponse({
         rsvp,
         event: eventSummary,
+        // Raw portal token. The respond form passes it onward to the
+        // confirmed page so its "View Event Details" CTA can deep-link with
+        // `?tk=`, matching the regular invite-token flow. The fully-assembled
+        // portalUrl lives only in the confirmation email (the client builds
+        // its own URL from the slug + token).
+        portalToken,
         message:
           rsvp.response === "YES"
             ? "You're confirmed! We'll see you there."

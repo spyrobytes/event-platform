@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ r?: string }>;
+  searchParams: Promise<{ r?: string; tk?: string }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -39,7 +39,7 @@ const BODIES: Record<string, string> = {
 
 export default async function ConfirmedPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { r } = await searchParams;
+  const { r, tk } = await searchParams;
 
   const event = await getEventBySlug(slug, false);
   if (!event) notFound();
@@ -47,6 +47,17 @@ export default async function ConfirmedPage({ params, searchParams }: PageProps)
   const response = r && r in HEADINGS ? r : "YES";
   const heading = HEADINGS[response];
   const body = BODIES[response];
+
+  // Public-portal submit issues a fresh portal token; this page receives it
+  // via `tk` and deep-links the CTA into the tokenized guest portal — same
+  // shape as the invite-token flow's "View Event Details" link. Falls back to
+  // the un-tokenized public page if the param is missing or empty.
+  // Re-encode: Next.js delivers search params already URL-decoded, so emitting
+  // them raw could mangle anything outside base64url's charset.
+  const portalHref =
+    tk && tk.length > 0
+      ? `/e/${slug}?tk=${encodeURIComponent(tk)}`
+      : `/e/${slug}`;
 
   return (
     <main className="min-h-screen bg-background">
@@ -74,8 +85,8 @@ export default async function ConfirmedPage({ params, searchParams }: PageProps)
         </div>
 
         <div className="mt-6 text-center">
-          <Link href={`/e/${slug}`} className="inline-block">
-            <Button type="button" variant="outline">Back to event page</Button>
+          <Link href={portalHref} className="inline-block">
+            <Button type="button">View Event Details</Button>
           </Link>
         </div>
       </div>
