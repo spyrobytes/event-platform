@@ -14,6 +14,10 @@ export type InvitePreview = {
   name: string | null;
   hasEmail: boolean;
   plusOnesAllowed: number;
+  /** Mirrors the regular flow's `enableWishes`: true when the event's
+   *  `wishes` section is enabled and accepting submissions. Surfaces the
+   *  "Message for the couple" textarea on the respond form. */
+  enableWishes: boolean;
 };
 
 export function readInvitePreview(): InvitePreview | null {
@@ -26,7 +30,12 @@ export function readInvitePreview(): InvitePreview | null {
       typeof parsed?.hasEmail === "boolean" &&
       typeof parsed?.plusOnesAllowed === "number"
     ) {
-      return parsed as InvitePreview;
+      // `enableWishes` was added after initial rollout; default to false for
+      // sessions written by older clients still in sessionStorage.
+      return {
+        ...parsed,
+        enableWishes: typeof parsed?.enableWishes === "boolean" ? parsed.enableWishes : false,
+      } as InvitePreview;
     }
     return null;
   } catch {

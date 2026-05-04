@@ -25,6 +25,13 @@ type InviteEmailProps = {
   unsubscribeUrl?: string;
   logoUrl?: string;
   rsvpDeadline?: string;
+  /** Optional pre-ceremony "Traditional" sub-event. Set when the main
+   *  Event row's start time precedes the ceremony — e.g. the wedding has a
+   *  separate cultural / traditional ceremony before the main one. */
+  traditionalDate?: string;
+  traditionalTime?: string;
+  traditionalVenue?: string;
+  traditionalAddress?: string;
   ceremonyDate?: string;
   ceremonyTime?: string;
   ceremonyVenue?: string;
@@ -51,6 +58,10 @@ export function InviteEmail({
   unsubscribeUrl,
   logoUrl,
   rsvpDeadline,
+  traditionalDate,
+  traditionalTime,
+  traditionalVenue,
+  traditionalAddress,
   ceremonyDate,
   ceremonyTime,
   ceremonyVenue,
@@ -64,9 +75,10 @@ export function InviteEmail({
 }: InviteEmailProps) {
   const showCodeBlock = !!(rsvpCode && publicRsvpUrl);
   const previewText = `You're invited to ${eventTitle}`;
+  const hasTraditional = !!(traditionalDate || traditionalTime || traditionalVenue);
   const hasCeremony = !!(ceremonyDate || ceremonyTime || ceremonyVenue);
   const hasReception = !!(receptionDate || receptionTime || receptionVenue);
-  const hasWeddingEvents = hasCeremony || hasReception;
+  const hasWeddingEvents = hasTraditional || hasCeremony || hasReception;
 
   return (
     <Html>
@@ -104,6 +116,31 @@ export function InviteEmail({
 
               {hasWeddingEvents ? (
                 <>
+                  {hasTraditional && (
+                    <Section style={subEventBlock}>
+                      <Text style={subEventHeading}>Traditional</Text>
+                      {traditionalDate && (
+                        <Text style={eventDetail}>
+                          <strong>Date:</strong> {traditionalDate}
+                        </Text>
+                      )}
+                      {traditionalTime && (
+                        <Text style={eventDetail}>
+                          <strong>Time:</strong> {traditionalTime}
+                        </Text>
+                      )}
+                      {traditionalVenue && (
+                        <Text style={eventDetail}>
+                          <strong>Venue:</strong> {traditionalVenue}
+                        </Text>
+                      )}
+                      {traditionalAddress && (
+                        <Text style={eventDetail}>
+                          <strong>Address:</strong> {traditionalAddress}
+                        </Text>
+                      )}
+                    </Section>
+                  )}
                   {hasCeremony && (
                     <Section style={subEventBlock}>
                       <Text style={subEventHeading}>Ceremony</Text>

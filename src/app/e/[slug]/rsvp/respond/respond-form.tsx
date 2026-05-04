@@ -36,7 +36,10 @@ type Props = {
 };
 
 type SubmitResponseBody = {
-  data?: { rsvp: { response: RsvpResponse } };
+  data?: {
+    rsvp: { response: RsvpResponse };
+    portalToken?: string;
+  };
   error?: string;
   code?: string;
 };
@@ -53,6 +56,7 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
   const [dietaryRestrictions, setDietaryRestrictions] = useState("");
   const [musicSuggestions, setMusicSuggestions] = useState("");
   const [notes, setNotes] = useState("");
+  const [messageToHost, setMessageToHost] = useState("");
   const [hp, setHp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +95,7 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
           dietaryRestrictions: dietaryRestrictions.trim() || undefined,
           musicSuggestions: musicSuggestions.trim() || undefined,
           notes: notes.trim() || undefined,
+          messageToHost: messageToHost.trim() || undefined,
           hp: hp || undefined,
         }),
       });
@@ -112,7 +117,13 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
 
       clearInvitePreview();
       const submittedResponse = json.data?.rsvp.response ?? response;
-      router.push(`/e/${eventSlug}/rsvp/confirmed?r=${submittedResponse}`);
+      const portalToken = json.data?.portalToken;
+      const tkParam = portalToken
+        ? `&tk=${encodeURIComponent(portalToken)}`
+        : "";
+      router.push(
+        `/e/${eventSlug}/rsvp/confirmed?r=${submittedResponse}${tkParam}`
+      );
     } catch {
       setError(FALLBACK_ERROR);
       setSubmitting(false);
@@ -131,8 +142,8 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
               onClick={() => setResponse(option.value)}
               className={`rounded-lg border p-4 text-left transition-colors ${
                 response === option.value
-                  ? "border-primary bg-primary/10"
-                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+                  ? "border-ring ring-2 ring-ring ring-offset-2 bg-accent/10"
+                  : "border-border hover:border-ring/50 hover:bg-muted/50"
               }`}
               disabled={submitting}
             >
@@ -261,6 +272,24 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
           disabled={submitting}
         />
       </div>
+
+      {invitePreview.enableWishes && (
+        <div className="space-y-2">
+          <Label htmlFor="messageToHost">Message for the couple (optional)</Label>
+          <Textarea
+            id="messageToHost"
+            value={messageToHost}
+            onChange={(e) => setMessageToHost(e.target.value)}
+            placeholder="A few kind words or a blessing for the couple"
+            rows={4}
+            maxLength={1000}
+            disabled={submitting}
+          />
+          <p className="text-xs text-muted-foreground">
+            Your message may be shared on the wedding page after review.
+          </p>
+        </div>
+      )}
 
       {/* Honeypot */}
       <div aria-hidden="true" className="absolute left-[-10000px] h-px w-px overflow-hidden">

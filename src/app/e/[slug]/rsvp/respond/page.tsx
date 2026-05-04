@@ -3,14 +3,30 @@
 import { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { readInvitePreview, type InvitePreview } from "@/lib/public-rsvp-portal";
+import {
+  SESSION_PREVIEW_KEY,
+  readInvitePreview,
+  type InvitePreview,
+} from "@/lib/public-rsvp-portal";
 import { RespondForm } from "./respond-form";
 
 // We read InvitePreview from sessionStorage. Using useSyncExternalStore keeps
 // the read aligned with React's hydration model and avoids the synchronous
 // setState-in-effect pattern that the linter flags.
 const subscribe = () => () => {};
-const getSnapshot = (): InvitePreview | null => readInvitePreview();
+// useSyncExternalStore requires a stable reference across reads — returning
+// a freshly parsed object every call triggers "result of getSnapshot should
+// be cached" and an infinite render loop. Cache against the raw string.
+let cachedRaw: string | null = null;
+let cachedPreview: InvitePreview | null = null;
+const getSnapshot = (): InvitePreview | null => {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(SESSION_PREVIEW_KEY);
+  if (raw === cachedRaw) return cachedPreview;
+  cachedRaw = raw;
+  cachedPreview = readInvitePreview();
+  return cachedPreview;
+};
 // Server snapshot returns null — the page renders a loading shell on the
 // server, then hydrates with the real value on the client.
 const getServerSnapshot = (): InvitePreview | null => null;

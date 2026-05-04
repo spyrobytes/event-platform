@@ -141,6 +141,13 @@ type InviteEmailPayload = {
   unsubscribeUrl?: string;
   logoUrl?: string;
   rsvpDeadline?: string;
+  // Optional pre-ceremony "Traditional" sub-event — populated when the main
+  // Event row's start time precedes the ceremony (i.e. there's a separate
+  // cultural / traditional ceremony before the formal one).
+  traditionalDate?: string;
+  traditionalTime?: string;
+  traditionalVenue?: string;
+  traditionalAddress?: string;
   ceremonyDate?: string;
   ceremonyTime?: string;
   ceremonyVenue?: string;
@@ -158,14 +165,16 @@ type InviteEmailPayload = {
 type ConfirmationEmailPayload = {
   guestName: string;
   eventTitle: string;
-  eventDate: string;
-  eventTime: string;
-  eventLocation?: string;
   response: "YES" | "NO" | "MAYBE";
   guestCount: number;
-  hostName: string;
+  // Event date/time/location were dropped from this template — the
+  // confirmation acknowledges the RSVP and routes guests to the View Event
+  // Details portal CTA, which is always authoritative. Listing dates here
+  // duplicated the invite email and went stale for events with multiple
+  // sub-events (ceremony / reception / pre-ceremony "traditional").
   portalUrl?: string;
   unsubscribeUrl?: string;
+  logoUrl?: string;
 };
 
 type ReminderEmailPayload = {

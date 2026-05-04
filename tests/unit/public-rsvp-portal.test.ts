@@ -17,6 +17,7 @@ describe("public-rsvp-portal sessionStorage helpers", () => {
       name: "Alice",
       hasEmail: true,
       plusOnesAllowed: 2,
+      enableWishes: true,
     };
     writeInvitePreview(preview);
     expect(readInvitePreview()).toEqual(preview);
@@ -56,19 +57,52 @@ describe("public-rsvp-portal sessionStorage helpers", () => {
   });
 
   it("clearInvitePreview removes the stored value", () => {
-    writeInvitePreview({ name: "Alice", hasEmail: true, plusOnesAllowed: 0 });
+    writeInvitePreview({
+      name: "Alice",
+      hasEmail: true,
+      plusOnesAllowed: 0,
+      enableWishes: false,
+    });
     clearInvitePreview();
     expect(readInvitePreview()).toBeNull();
   });
 
   it("preserves null name", () => {
-    writeInvitePreview({ name: null, hasEmail: false, plusOnesAllowed: 0 });
+    writeInvitePreview({
+      name: null,
+      hasEmail: false,
+      plusOnesAllowed: 0,
+      enableWishes: false,
+    });
     expect(readInvitePreview()?.name).toBeNull();
   });
 
   it("survives the boolean-zero edge case (hasEmail: false, plusOnesAllowed: 0)", () => {
-    writeInvitePreview({ name: null, hasEmail: false, plusOnesAllowed: 0 });
+    writeInvitePreview({
+      name: null,
+      hasEmail: false,
+      plusOnesAllowed: 0,
+      enableWishes: false,
+    });
     const result = readInvitePreview();
-    expect(result).toEqual({ name: null, hasEmail: false, plusOnesAllowed: 0 });
+    expect(result).toEqual({
+      name: null,
+      hasEmail: false,
+      plusOnesAllowed: 0,
+      enableWishes: false,
+    });
+  });
+
+  it("defaults enableWishes to false when missing from stored value (back-compat)", () => {
+    sessionStorage.setItem(
+      SESSION_PREVIEW_KEY,
+      JSON.stringify({ name: "Alice", hasEmail: true, plusOnesAllowed: 0 })
+    );
+    expect(readInvitePreview()).toEqual({
+      name: "Alice",
+      hasEmail: true,
+      plusOnesAllowed: 0,
+      enableWishes: false,
+    });
   });
 });

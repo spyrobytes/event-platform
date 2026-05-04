@@ -33,6 +33,10 @@ const processEmailMock = vi.fn<ProcessEmail>(async () => undefined);
 vi.mock("@/lib/email", () => ({
   queueConfirmationEmail: queueConfirmationEmailMock,
   processEmail: processEmailMock,
+  // Real buildUnsubscribeUrl is a pure formatter — keep the mock equivalently
+  // pure so the route's email payload assertions can match the URL shape.
+  buildUnsubscribeUrl: (rawToken: string) =>
+    `https://eventfxr.test/unsubscribe/${rawToken}`,
 }));
 
 const { POST } = await import("@/app/api/rsvp/public/submit/route");
@@ -479,11 +483,46 @@ describe("confirmation email", () => {
     expect(queueConfirmationEmailMock.mock.calls[0][1]).toBe("fresh@example.com");
   });
 
-  it("does NOT include portalUrl or unsubscribeUrl (public portal lacks raw token)", async () => {
-    await POST(makeRequest(validBody, { sessionCookie: "tok" }));
+  it("includes portalUrl + unsubscribeUrl built from a freshly-rotated token", async () => {
+    const res = await POST(makeRequest(validBody, { sessionCookie: "tok" }));
+    expect(res.status).toBe(200);
+
+    // The route mints a portal token, rotates Invite.tokenHash to its hash,
+    // and embeds the raw token in both the email payload and the response
+    // body so the confirmed page can deep-link with `?tk=`.
     const payload = queueConfirmationEmailMock.mock.calls[0][2];
-    expect(payload.portalUrl).toBeUndefined();
-    expect(payload.unsubscribeUrl).toBeUndefined();
+    expect(payload.portalUrl).toMatch(
+      /\/e\/alice-bob-wedding\?tk=[A-Za-z0-9_-]+$/
+    );
+    expect(payload.unsubscribeUrl).toMatch(/\/unsubscribe\/[A-Za-z0-9_-]+$/);
+
+    // Same token comes back in the response so the client can forward it to
+    // /e/[slug]/rsvp/confirmed?tk=...
+    const body = await res.json();
+    expect(typeof body.data.portalToken).toBe("string");
+    expect(body.data.portalToken.length).toBeGreaterThan(0);
+
+    // Invite.tokenHash gets rotated as part of the same update that marks
+    // the invite RESPONDED. The hash in the DB matches the raw portalToken.
+    const inviteUpdate = dbMock.invite.update.mock.calls[0][0];
+    expect(typeof inviteUpdate.data.tokenHash).toBe("string");
+    expect(inviteUpdate.data.tokenHash).toHaveLength(64); // sha256 hex
+  });
+
+  it("rotates Invite.tokenHash to hashToken(response.portalToken) — body and DB agree", async () => {
+    // Regression guard: if the route ever hashes a different value than the
+    // one it returns, the email's portal link would 404 because the DB hash
+    // wouldn't match the raw token. Verify they're consistent.
+    const { hashToken } = await import("@/lib/tokens");
+    const res = await POST(makeRequest(validBody, { sessionCookie: "tok" }));
+    const body = await res.json();
+    const inviteUpdate = dbMock.invite.update.mock.calls[0][0];
+    expect(hashToken(body.data.portalToken)).toBe(inviteUpdate.data.tokenHash);
+
+    // The email payload's portalUrl embeds the same raw token.
+    const payload = queueConfirmationEmailMock.mock.calls[0][2];
+    expect(payload.portalUrl).toContain(`tk=${body.data.portalToken}`);
+    expect(payload.unsubscribeUrl).toContain(body.data.portalToken);
   });
 
   it("kicks off processEmail outside the transaction (fire-and-forget)", async () => {
