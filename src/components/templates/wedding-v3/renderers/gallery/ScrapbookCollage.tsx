@@ -148,7 +148,7 @@ export function ScrapbookCollage({
                     alt={item.caption || item.title || ""}
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"
-                    style={{ objectFit: "cover" }}
+                    style={{ objectFit: "cover", objectPosition: "center 25%" }}
                     blurDataURL={item.blurDataUrl}
                   />
                 </div>
