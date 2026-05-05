@@ -70,7 +70,7 @@ export function PhotoProse({
                         src={img.publicUrl}
                         alt={m.title || ""}
                         loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
                       />
                     </div>
                   )}
@@ -124,7 +124,7 @@ export function PhotoProse({
                   marginBottom: "clamp(24px, 3vw, 40px)",
                 }}
               >
-                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }} />
               </div>
             )}
             <p

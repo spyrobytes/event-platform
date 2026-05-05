@@ -75,6 +75,7 @@
 
 .slideImg {
   object-fit: cover;
+  object-position: center 25%;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

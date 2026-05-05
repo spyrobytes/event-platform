@@ -107,6 +107,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 25%;
   transition: transform 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
   will-change: transform;
 }
@@ -282,6 +283,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 25%;
 }
 
 /* Transition: fade */
@@ -492,6 +494,7 @@
 
 .carouselCard img {
   object-fit: cover;
+  object-position: center 25%;
   display: block;
   transition: transform 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }

@@ -94,7 +94,7 @@ export function QuoteLed({
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             {mainImage?.publicUrl && (
               <div style={{ aspectRatio: "16 / 9", borderRadius: 2, overflow: "hidden", marginBottom: "clamp(32px, 4vw, 48px)" }}>
-                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }} />
               </div>
             )}
             <p style={{ fontFamily: "var(--sans)", fontSize: "var(--body)", lineHeight: 1.85, color: "var(--text-2)", whiteSpace: "pre-line", textAlign: "left" }}>

@@ -70,7 +70,7 @@ export function MilestoneMosaic({
                         src={img.publicUrl}
                         alt={m.title || ""}
                         loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
                       />
                     </div>
                   )}
@@ -112,7 +112,7 @@ export function MilestoneMosaic({
           <div style={{ maxWidth: 620, margin: "0 auto" }}>
             {mainImage?.publicUrl && (
               <div style={{ aspectRatio: "16 / 10", borderRadius: "var(--r, 16px)", overflow: "hidden", marginBottom: "clamp(24px, 3vw, 40px)" }}>
-                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }} />
               </div>
             )}
             <p style={{ fontFamily: "var(--sans)", fontSize: "var(--body)", lineHeight: 1.85, color: "var(--text-2)", whiteSpace: "pre-line", textAlign: "left" }}>

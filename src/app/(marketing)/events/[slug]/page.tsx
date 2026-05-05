@@ -101,12 +101,12 @@ export default async function EventPage({ params }: EventPageProps) {
       <article className="container py-8">
         {/* Hero Section */}
         {event.coverImageUrl && (
-          <div className="relative mb-8 aspect-[21/9] overflow-hidden rounded-xl">
+          <div className="relative mb-8 aspect-[21/9] overflow-hidden rounded-xl bg-surface-3">
             <Image
               src={event.coverImageUrl}
               alt={event.title}
               fill
-              className="object-cover"
+              className="object-contain"
               priority
             />
           </div>
