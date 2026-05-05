@@ -3,6 +3,7 @@ import type { V2VariantConfig } from "./types";
 export const plumBlush: V2VariantConfig = {
   id: "plum_blush",
   displayName: "Plum & Blush",
+  family: "original",
   description: "Rich plum depths with dusty rose accents for romantic evening affairs",
   category: "bold",
   bestFor: ["romantic evening", "wine country", "autumn harvest", "vineyard", "intimate dinner"],
@@ -57,4 +58,6 @@ export const plumBlush: V2VariantConfig = {
     { hex: "#c8b0a0", label: "Warm Sand" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #b87878, #d4a0a0, #e4baba)",
+  heroImageTip:
+    "This variant works best with a dark or moody hero image — bright photos can clash with the deep plum page and reduce contrast on overlay text.",
 };

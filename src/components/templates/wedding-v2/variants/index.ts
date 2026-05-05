@@ -5,6 +5,9 @@ import { midnightGold } from "./midnight-gold";
 import { emeraldIvory } from "./emerald-ivory";
 import { plumBlush } from "./plum-blush";
 import { scrapbookEdition } from "./scrapbook-edition";
+import { scrapbookMidnight } from "./scrapbook-midnight";
+import { scrapbookEmerald } from "./scrapbook-emerald";
+import { scrapbookPlum } from "./scrapbook-plum";
 
 // Legacy variants — kept for backward compatibility with existing events
 import { gardenRomance } from "./garden-romance";
@@ -29,6 +32,9 @@ export const V2_VARIANTS: Record<V2VariantId, V2VariantConfig> = {
   emerald_ivory: emeraldIvory,
   plum_blush: plumBlush,
   scrapbook_edition: scrapbookEdition,
+  scrapbook_midnight: scrapbookMidnight,
+  scrapbook_emerald: scrapbookEmerald,
+  scrapbook_plum: scrapbookPlum,
   // Legacy (still renderable, hidden from picker)
   garden_romance: gardenRomance,
   black_tie: blackTie,
@@ -44,14 +50,20 @@ export const V2_VARIANTS: Record<V2VariantId, V2VariantConfig> = {
 };
 
 /**
- * The 3 curated dark skins shown in the variant picker.
- * Legacy variants are not shown for new events.
+ * Curated skins shown in the variant picker, in display order within each
+ * family. Picker partitions on the `family` field to render Original and
+ * Scrapbook sections; the "no variant" Original card is rendered separately.
  */
 export const CURATED_SKINS: V2VariantConfig[] = [
-  scrapbookEdition,
+  // Original family — dark skins layered over the default light template
   midnightGold,
   emeraldIvory,
   plumBlush,
+  // Scrapbook family — Cream is the family default, then dark skins
+  scrapbookEdition,
+  scrapbookMidnight,
+  scrapbookEmerald,
+  scrapbookPlum,
 ];
 
 export const V2_VARIANT_IDS = Object.keys(V2_VARIANTS) as V2VariantId[];
@@ -70,4 +82,4 @@ export function getCuratedSkins(): V2VariantConfig[] {
   return CURATED_SKINS;
 }
 
-export type { V2VariantConfig, V2VariantId, V2VariantCategory, V2BotanicalVariant, V2CuratedSwatch } from "./types";
+export type { V2VariantConfig, V2VariantId, V2VariantCategory, V2VariantFamily, V2BotanicalVariant, V2CuratedSwatch } from "./types";

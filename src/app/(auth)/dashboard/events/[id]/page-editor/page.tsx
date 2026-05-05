@@ -996,12 +996,17 @@ export default function PageEditorPage() {
             </p>
             {(() => {
               const v3Tip = getV3Definition(templateId)?.heroImageTip;
-              return v3Tip ? (
+              const v2Tip =
+                templateId === "wedding_v2" && config?.variantId
+                  ? getV2Variant(config.variantId)?.heroImageTip
+                  : undefined;
+              const tip = v3Tip || v2Tip;
+              return tip ? (
                 <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
                   <svg className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
-                  <span>{v3Tip}</span>
+                  <span>{tip}</span>
                 </p>
               ) : null;
             })()}
