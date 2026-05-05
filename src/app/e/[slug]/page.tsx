@@ -12,6 +12,7 @@ import {
 } from "@/lib/event-page-loader";
 import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
+import { EventJsonLd } from "@/components/seo/EventJsonLd";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -223,8 +224,15 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
 
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
+  // Event JSON-LD only renders for indexable views. Token-bearing requests
+  // are noindex (see generateMetadata above) and PRIVATE events 404 before
+  // we get here, so any path that reaches this render is a candidate for
+  // structured data.
+  const includeJsonLd = !tk;
+
   return (
     <div style={bannerOffset}>
+      {includeJsonLd && <EventJsonLd event={event} />}
       <PageViewTracker eventId={event.id} source="event_page" />
       {tokenInvalid && <InvalidTokenBanner />}
       {accessLevel === "guest" && guestName && <GuestBar guestName={guestName} eventSlug={slug} />}

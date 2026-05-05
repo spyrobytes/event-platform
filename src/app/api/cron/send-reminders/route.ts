@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
             eventTime,
             eventLocation,
             hostName: event.creator.name || "Event Organizer",
-            eventUrl: `${baseUrl}/events/${event.slug}`,
+            eventUrl: `${baseUrl}/e/${event.slug}`,
             guestCount: invite.rsvp?.guestCount || 1,
             unsubscribeUrl,
           });

@@ -40,7 +40,7 @@ export function DiscoveryEventCard({
 
   return (
     <Link
-      href={`/events/${event.slug}`}
+      href={`/e/${event.slug}`}
       className={cn(
         styles.card,
         "group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-surface-2 transition-all duration-200 hover:-translate-y-0.5",

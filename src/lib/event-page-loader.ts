@@ -17,18 +17,25 @@ export async function getEventBySlug(slug: string, hasGuestToken: boolean) {
     select: {
       id: true,
       title: true,
+      slug: true,
       description: true,
       startAt: true,
       endAt: true,
       timezone: true,
       venueName: true,
+      address: true,
       city: true,
+      country: true,
+      coverImageUrl: true,
       status: true,
       visibility: true,
       pageConfig: true,
       templateId: true,
       publishedAt: true,
       rsvpDeadline: true,
+      // Surfaced for EventJsonLd structured data on the page route.
+      creator: { select: { name: true } },
+      organization: { select: { name: true } },
       mediaAssets: {
         select: {
           id: true,
