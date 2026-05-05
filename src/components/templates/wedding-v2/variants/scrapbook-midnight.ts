@@ -1,38 +1,53 @@
 import type { V2VariantConfig } from "./types";
 
-export const midnightGold: V2VariantConfig = {
-  id: "midnight_gold",
-  displayName: "Midnight & Gold",
-  family: "original",
-  description: "Dramatic navy and gold for glamorous evening celebrations",
+export const scrapbookMidnight: V2VariantConfig = {
+  id: "scrapbook_midnight",
+  displayName: "Midnight Scrapbook",
+  family: "scrapbook",
+  description: "Polaroid gallery and flip-card party on a deep midnight navy page",
   category: "bold",
-  bestFor: ["evening wedding", "ballroom", "formal", "winter", "New Year"],
-  fontPair: "playfair_dmsans",
+  bestFor: [
+    "evening wedding",
+    "ballroom",
+    "formal photo-rich event",
+    "winter",
+    "New Year",
+  ],
+  fontPair: "dmsans_sourceserif",
   palette: {
+    // Page-level dark neutrals (V2 default sections render against these)
+    bg: "#0d1b2a",
     ivory: "#0d1b2a",
     cream: "#1b2838",
     linen: "#243447",
     sand: "#3d5a80",
+    border: "#1a2940",
+    // Page-level light text neutrals (topbar, section titles, body)
+    text: "#f1ece2",
+    text2: "#b0c4de",
+    text3: "#8da9c4",
     stone: "#8da9c4",
     earth: "#b0c4de",
-    charcoal: "#e8e8e8",
+    charcoal: "#f1ece2",
     night: "#ffffff",
+    // Polaroid card surface (Scrapbook renderers only)
+    surface: "#fbf8f3",
+    // On-card overrides — dark text on cream polaroid + cream back face
+    textOnCard: "#2a2622",
+    text2OnCard: "#5a544c",
+    stoneOnCard: "#a39a8e",
+    creamOnCard: "#f1ece2",
+    // Accent family — champagne gold (works on both navy bg and cream surface)
+    accent: "#c5a55a",
+    accent2: "#ddc07a",
+    gold: "#c5a55a",
+    goldLight: "#ddc07a",
+    goldDark: "#9e7e3a",
     sage: "#c5a55a",
     sageLight: "#ddc07a",
     sageDark: "#9e7e3a",
     forest: "#c5a55a",
-    gold: "#c5a55a",
-    goldLight: "#ddc07a",
-    goldDark: "#9e7e3a",
     rose: "#c5a55a",
-    bg: "#0d1b2a",
-    surface: "#1b2838",
-    text: "#e8e8e8",
-    text2: "#b0c4de",
-    text3: "#8da9c4",
-    border: "#243447",
-    accent: "#c5a55a",
-    accent2: "#ddc07a",
   },
   glass: {
     frostedBg: "rgba(13, 27, 42, 0.55)",
@@ -45,8 +60,8 @@ export const midnightGold: V2VariantConfig = {
   chromeDefaults: {
     topbar: true,
     scrollProgress: true,
-    mountainDividers: false,
-    footerSkyline: false,
+    mountainDividers: true,
+    footerSkyline: true,
     botanicals: false,
     botanicalVariant: "none",
   },
@@ -58,6 +73,8 @@ export const midnightGold: V2VariantConfig = {
     { hex: "#e8d5b7", label: "Ivory Gold" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #9e7e3a, #c5a55a, #ddc07a)",
+  galleryRenderer: "scrapbook",
+  weddingPartyRenderer: "scrapbook",
   heroImageTip:
     "This variant works best with a dark or moody hero image — bright photos can clash with the deep navy page and reduce contrast on overlay text.",
 };

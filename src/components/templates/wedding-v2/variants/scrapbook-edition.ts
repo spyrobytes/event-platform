@@ -2,7 +2,8 @@ import type { V2VariantConfig } from "./types";
 
 export const scrapbookEdition: V2VariantConfig = {
   id: "scrapbook_edition",
-  displayName: "Scrapbook Edition",
+  displayName: "Cream Scrapbook",
+  family: "scrapbook",
   description: "Playful polaroid gallery and flip-card bridal party on warm cream",
   category: "romantic",
   bestFor: [

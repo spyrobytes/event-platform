@@ -1,0 +1,80 @@
+import type { V2VariantConfig } from "./types";
+
+export const scrapbookPlum: V2VariantConfig = {
+  id: "scrapbook_plum",
+  displayName: "Plum Scrapbook",
+  family: "scrapbook",
+  description: "Polaroid gallery and flip-card party on rich plum with dusty rose accents",
+  category: "bold",
+  bestFor: [
+    "romantic evening",
+    "wine country",
+    "vineyard wedding",
+    "intimate dinner",
+    "photo-rich celebration",
+  ],
+  fontPair: "dmsans_sourceserif",
+  palette: {
+    // Page-level dark neutrals (V2 default sections render against these)
+    bg: "#1a0f1e",
+    ivory: "#1a0f1e",
+    cream: "#251828",
+    linen: "#322236",
+    sand: "#4e3856",
+    border: "#2a1d30",
+    // Page-level light text neutrals (topbar, section titles, body)
+    text: "#f0e8e6",
+    text2: "#b098b6",
+    text3: "#8a6e90",
+    stone: "#8a6e90",
+    earth: "#b098b6",
+    charcoal: "#f0e8e6",
+    night: "#ffffff",
+    // Polaroid card surface (Scrapbook renderers only)
+    surface: "#fbf6f4",
+    // On-card overrides — dark text on cream polaroid + cream back face
+    textOnCard: "#2c2528",
+    text2OnCard: "#5c4f54",
+    stoneOnCard: "#a39298",
+    creamOnCard: "#f0e8e6",
+    // Accent family — dusty rose (works on both plum bg and cream surface)
+    accent: "#d4a0a0",
+    accent2: "#e4baba",
+    gold: "#d4a0a0",
+    goldLight: "#e4baba",
+    goldDark: "#b87878",
+    sage: "#d4a0a0",
+    sageLight: "#e4baba",
+    sageDark: "#b87878",
+    forest: "#d4a0a0",
+    rose: "#d4a0a0",
+  },
+  glass: {
+    frostedBg: "rgba(26, 15, 30, 0.55)",
+    frostedBgScrolled: "rgba(26, 15, 30, 0.92)",
+    mobileNavBg: "rgba(26, 15, 30, 0.97)",
+    heroOverlayColor: "#1a0f1e",
+    accentTint: "rgba(212, 160, 160, 0.12)",
+    accentHoverBg: "rgba(212, 160, 160, 0.08)",
+  },
+  chromeDefaults: {
+    topbar: true,
+    scrollProgress: true,
+    mountainDividers: true,
+    footerSkyline: true,
+    botanicals: false,
+    botanicalVariant: "none",
+  },
+  accentSwatches: [
+    { hex: "#d4a0a0", label: "Dusty Rose" },
+    { hex: "#e4baba", label: "Blush" },
+    { hex: "#b87878", label: "Rosewood" },
+    { hex: "#8a6e90", label: "Lavender Mist" },
+    { hex: "#c8b0a0", label: "Warm Sand" },
+  ],
+  scrollProgressGradient: "linear-gradient(90deg, #b87878, #d4a0a0, #e4baba)",
+  galleryRenderer: "scrapbook",
+  weddingPartyRenderer: "scrapbook",
+  heroImageTip:
+    "This variant works best with a dark or moody hero image — bright photos can clash with the deep plum page and reduce contrast on overlay text.",
+};

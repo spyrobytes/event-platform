@@ -137,6 +137,13 @@ export type V2PaletteOverrides = Partial<{
   border: string;
   accent: string;
   accent2: string;
+  // On-card overrides. Default to text/text-2/stone/cream. Used by Scrapbook
+  // renderers for polaroid captions, flip-card content, and back-face surface
+  // where a dark page bg coexists with light polaroid surfaces.
+  textOnCard: string;
+  text2OnCard: string;
+  stoneOnCard: string;
+  creamOnCard: string;
 }>;
 
 /**
@@ -222,6 +229,10 @@ export function getV2CSSVariables(
   const text3 = p.text3 || stone;
   const border = p.border || linen;
   const accent2 = p.accent2 || gold;
+  const textOnCard = p.textOnCard || text;
+  const text2OnCard = p.text2OnCard || text2;
+  const stoneOnCard = p.stoneOnCard || stone;
+  const creamOnCard = p.creamOnCard || cream;
 
   return {
     // Raw palette
@@ -251,6 +262,10 @@ export function getV2CSSVariables(
     "--border": border,
     "--accent": accent,
     "--accent-2": accent2,
+    "--text-on-card": textOnCard,
+    "--text-2-on-card": text2OnCard,
+    "--stone-on-card": stoneOnCard,
+    "--cream-on-card": creamOnCard,
 
     // Typography (clamp-based responsive)
     "--serif": fonts.serif,

@@ -157,7 +157,7 @@ export function ScrapbookCollage({
                     style={{
                       fontFamily: "var(--sans)",
                       fontSize: "var(--sm, 0.85rem)",
-                      color: "var(--text-2, #786f65)",
+                      color: "var(--text-2-on-card, var(--text-2, #786f65))",
                       marginTop: "clamp(8px, 1vw, 12px)",
                       textAlign: "center",
                     }}

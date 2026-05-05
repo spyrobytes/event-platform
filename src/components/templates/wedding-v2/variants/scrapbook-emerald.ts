@@ -1,38 +1,53 @@
 import type { V2VariantConfig } from "./types";
 
-export const emeraldIvory: V2VariantConfig = {
-  id: "emerald_ivory",
-  displayName: "Emerald & Ivory",
-  family: "original",
-  description: "Deep forest greens and warm ivory for enchanted evening celebrations",
+export const scrapbookEmerald: V2VariantConfig = {
+  id: "scrapbook_emerald",
+  displayName: "Emerald Scrapbook",
+  family: "scrapbook",
+  description: "Polaroid gallery and flip-card party on deep forest greens",
   category: "bold",
-  bestFor: ["garden evening", "enchanted forest", "botanical luxury", "autumn", "estate wedding"],
-  fontPair: "playfair_dmsans",
+  bestFor: [
+    "garden evening",
+    "enchanted forest",
+    "estate wedding",
+    "autumn",
+    "photo-rich celebration",
+  ],
+  fontPair: "dmsans_sourceserif",
   palette: {
+    // Page-level dark neutrals (V2 default sections render against these)
+    bg: "#0a1f16",
     ivory: "#0a1f16",
     cream: "#122b1f",
     linen: "#1a3829",
     sand: "#2d5a42",
+    border: "#16321f",
+    // Page-level light text neutrals (topbar, section titles, body)
+    text: "#f1ede5",
+    text2: "#96bea6",
+    text3: "#6b9a7e",
     stone: "#6b9a7e",
     earth: "#96bea6",
-    charcoal: "#e4e8e5",
+    charcoal: "#f1ede5",
     night: "#ffffff",
+    // Polaroid card surface (Scrapbook renderers only)
+    surface: "#fbf9f4",
+    // On-card overrides — dark text on cream polaroid + cream back face
+    textOnCard: "#2a2820",
+    text2OnCard: "#5a564a",
+    stoneOnCard: "#a39c8a",
+    creamOnCard: "#f1ede5",
+    // Accent family — warm ivory gold (works on both emerald bg and cream surface)
+    accent: "#c9b88c",
+    accent2: "#ddd0a8",
+    gold: "#c9b88c",
+    goldLight: "#ddd0a8",
+    goldDark: "#a89868",
     sage: "#c9b88c",
     sageLight: "#ddd0a8",
     sageDark: "#a89868",
     forest: "#c9b88c",
-    gold: "#c9b88c",
-    goldLight: "#ddd0a8",
-    goldDark: "#a89868",
     rose: "#c9b88c",
-    bg: "#0a1f16",
-    surface: "#122b1f",
-    text: "#e4e8e5",
-    text2: "#96bea6",
-    text3: "#6b9a7e",
-    border: "#1a3829",
-    accent: "#c9b88c",
-    accent2: "#ddd0a8",
   },
   glass: {
     frostedBg: "rgba(10, 31, 22, 0.55)",
@@ -45,8 +60,8 @@ export const emeraldIvory: V2VariantConfig = {
   chromeDefaults: {
     topbar: true,
     scrollProgress: true,
-    mountainDividers: false,
-    footerSkyline: false,
+    mountainDividers: true,
+    footerSkyline: true,
     botanicals: false,
     botanicalVariant: "none",
   },
@@ -58,6 +73,8 @@ export const emeraldIvory: V2VariantConfig = {
     { hex: "#96bea6", label: "Celadon" },
   ],
   scrollProgressGradient: "linear-gradient(90deg, #a89868, #c9b88c, #ddd0a8)",
+  galleryRenderer: "scrapbook",
+  weddingPartyRenderer: "scrapbook",
   heroImageTip:
     "This variant works best with a dark or moody hero image — bright photos can clash with the deep forest page and reduce contrast on overlay text.",
 };

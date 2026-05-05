@@ -6,6 +6,9 @@ export type V2VariantId =
   | "emerald_ivory"
   | "plum_blush"
   | "scrapbook_edition"
+  | "scrapbook_midnight"
+  | "scrapbook_emerald"
+  | "scrapbook_plum"
   // Legacy IDs — kept for backward compatibility with existing events
   | "garden_romance"
   | "black_tie"
@@ -21,6 +24,8 @@ export type V2VariantId =
 
 export type V2GalleryRendererOverride = "default" | "scrapbook";
 export type V2WeddingPartyRendererOverride = "default" | "scrapbook";
+
+export type V2VariantFamily = "original" | "scrapbook";
 
 export type V2VariantCategory = "classic" | "modern" | "romantic" | "earthy" | "bold";
 
@@ -55,4 +60,8 @@ export type V2VariantConfig = {
   galleryRenderer?: V2GalleryRendererOverride;
   /** Override wedding party section renderer (default: V2 WeddingPartyV2) */
   weddingPartyRenderer?: V2WeddingPartyRendererOverride;
+  /** Picker family — groups derivative skins under their structural base */
+  family?: V2VariantFamily;
+  /** Optional guidance shown next to the hero image picker for this variant */
+  heroImageTip?: string;
 };
