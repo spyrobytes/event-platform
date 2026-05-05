@@ -94,7 +94,7 @@ export function ChapterCards({
                         src={img.publicUrl}
                         alt={m.title || ""}
                         loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%" }}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
                       />
                     </div>
                   )}
@@ -160,7 +160,7 @@ export function ChapterCards({
                   src={mainImage.publicUrl}
                   alt=""
                   loading="lazy"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%" }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
                 />
               </div>
             )}
