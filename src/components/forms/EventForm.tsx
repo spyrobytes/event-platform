@@ -80,7 +80,14 @@ export function EventForm({
       country: defaultValues?.country ?? "",
       maxAttendees: defaultValues?.maxAttendees,
       coverImageUrl: defaultValues?.coverImageUrl ?? "",
-      templateId: defaultValues?.templateId ?? getDefaultTemplateId(),
+      // Seeded only in create mode — TemplateSelector (the only UI for this
+      // field) renders only when mode === "create". In edit mode the template
+      // is owned by the page editor; seeding a default here would let it
+      // leak into the PATCH body and overwrite the organizer's choice.
+      templateId:
+        mode === "create"
+          ? defaultValues?.templateId ?? getDefaultTemplateId()
+          : undefined,
       reminderDays: defaultValues?.reminderDays,
       reminderEnabled: defaultValues?.reminderEnabled ?? false,
       // Date fields are stored in RHF state as formatted strings so they
@@ -117,14 +124,7 @@ export function EventForm({
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
-      // TemplateSelector only renders in create mode (see below), so the
-      // templateId in form state is the seeded default in edit mode — not an
-      // authoritative user choice. Setting it to undefined drops it from the
-      // JSON body so the PATCH doesn't silently overwrite whatever template
-      // was set in the page editor.
-      const payload =
-        mode === "edit" ? { ...data, templateId: undefined } : data;
-      await onSubmit(payload);
+      await onSubmit(data);
     } catch (error) {
       console.error("Form submission error:", error);
     }
