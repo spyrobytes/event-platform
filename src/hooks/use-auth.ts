@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  updateProfile,
   type User as FirebaseUser,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -52,18 +53,28 @@ export function useAuth() {
     }
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    try {
-      setState((prev) => ({ ...prev, loading: true, error: null }));
-      const auth = getFirebaseAuth();
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      return result.user;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Sign up failed";
-      setState((prev) => ({ ...prev, loading: false, error: message }));
-      throw error;
-    }
-  }, []);
+  const signUp = useCallback(
+    async (email: string, password: string, displayName?: string) => {
+      try {
+        setState((prev) => ({ ...prev, loading: true, error: null }));
+        const auth = getFirebaseAuth();
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        // Set displayName so it appears in the Firebase ID token's `name`
+        // claim. lib/auth.ts:verifyAuth lazily provisions the DB user from
+        // the decoded token, so the name flows through to user.name on the
+        // first authenticated request after signup.
+        if (displayName) {
+          await updateProfile(result.user, { displayName });
+        }
+        return result.user;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Sign up failed";
+        setState((prev) => ({ ...prev, loading: false, error: message }));
+        throw error;
+      }
+    },
+    []
+  );
 
   const signOut = useCallback(async () => {
     try {
