@@ -80,7 +80,14 @@ export function EventForm({
       country: defaultValues?.country ?? "",
       maxAttendees: defaultValues?.maxAttendees,
       coverImageUrl: defaultValues?.coverImageUrl ?? "",
-      templateId: defaultValues?.templateId ?? getDefaultTemplateId(),
+      // Seeded only in create mode — TemplateSelector (the only UI for this
+      // field) renders only when mode === "create". In edit mode the template
+      // is owned by the page editor; seeding a default here would let it
+      // leak into the PATCH body and overwrite the organizer's choice.
+      templateId:
+        mode === "create"
+          ? defaultValues?.templateId ?? getDefaultTemplateId()
+          : undefined,
       reminderDays: defaultValues?.reminderDays,
       reminderEnabled: defaultValues?.reminderEnabled ?? false,
       // Date fields are stored in RHF state as formatted strings so they
