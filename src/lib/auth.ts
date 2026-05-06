@@ -92,14 +92,14 @@ export async function verifyAuth(request: NextRequest): Promise<User | null> {
         : null;
 
       if (existingByEmail) {
-        // Update existing user's firebaseUid (emulator generated new UID for same email)
+        // Update existing user's firebaseUid (emulator generated new UID for
+        // same email). Only the firebaseUid is rewritten — `name` and
+        // `avatarUrl` stay DB-authoritative for the same reason as the
+        // existing-user branch above: if the organizer edited their profile
+        // here, a stale token from the prior auth session shouldn't undo it.
         user = await db.user.update({
           where: { id: existingByEmail.id },
-          data: {
-            firebaseUid: decoded.uid,
-            name: decoded.name ?? null,
-            avatarUrl: decoded.picture ?? null,
-          },
+          data: { firebaseUid: decoded.uid },
         });
       } else {
         // Create new user

@@ -46,10 +46,12 @@ export async function PATCH(request: NextRequest) {
       select: { id: true, email: true, name: true },
     });
 
-    // Best-effort sync to Firebase. If this fails, the DB row still has the
-    // new name and the next ID-token refresh will see verifyAuth update it
-    // back from `decoded.name` — which would clobber the new value. So we
-    // log loudly but don't fail the request; the operator can investigate.
+    // Best-effort sync to Firebase. The DB write above is canonical —
+    // verifyAuth no longer re-syncs `name` from the token, so a sync
+    // failure here doesn't risk a clobber. The cost is data drift: future
+    // ID-token issuers (Firebase console, other apps sharing this project)
+    // would still see the old displayName until corrected. Log loudly so
+    // the operator can investigate.
     try {
       getFirebaseAdmin();
       await getAuth().updateUser(user.firebaseUid, {
