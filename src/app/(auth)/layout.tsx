@@ -51,9 +51,12 @@ function DashboardNav() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
+          <Link
+            href="/dashboard/profile"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
             {user?.email}
-          </span>
+          </Link>
           <Button variant="outline" size="sm" onClick={handleSignOut}>
             Sign Out
           </Button>
@@ -109,12 +112,53 @@ function StatusBanner() {
   return null;
 }
 
+function ProfileBanner() {
+  const { getIdToken, loading, isAuthenticated } = useAuthContext();
+  const [needsName, setNeedsName] = useState(false);
+
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const token = await getIdToken();
+        if (!token || cancelled) return;
+        const res = await fetch("/api/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok && !cancelled) {
+          const { data } = await res.json();
+          setNeedsName(!data.name?.trim());
+        }
+      } catch {
+        // Non-critical — banner just won't show
+      }
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [loading, isAuthenticated, getIdToken]);
+
+  if (!needsName) return null;
+
+  return (
+    <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-800 dark:text-amber-300">
+      Add your name in{" "}
+      <Link href="/dashboard/profile" className="font-medium underline hover:no-underline">
+        profile settings
+      </Link>
+      {" "}so guests see it on invitations and reminders.
+    </div>
+  );
+}
+
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background">
         <DashboardNav />
         <StatusBanner />
+        <ProfileBanner />
         <main className="container py-6">{children}</main>
       </div>
     </AuthGuard>

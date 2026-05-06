@@ -72,23 +72,17 @@ export async function verifyAuth(request: NextRequest): Promise<User | null> {
     });
 
     if (user) {
-      // Only update if profile data actually changed
+      // Once the user exists in the DB, only `email` syncs from the token —
+      // it's Firebase-authoritative since it's the auth identifier. `name`
+      // and `avatarUrl` become DB-authoritative after creation; the profile
+      // page (PATCH /api/users/me) is the writer, and it pushes updates
+      // back to Firebase via Admin SDK. Otherwise a stale cached token
+      // could clobber a freshly-edited name on the next authed request.
       const newEmail = decoded.email ?? "";
-      const newName = decoded.name ?? null;
-      const newAvatarUrl = decoded.picture ?? null;
-
-      if (
-        user.email !== newEmail ||
-        user.name !== newName ||
-        user.avatarUrl !== newAvatarUrl
-      ) {
+      if (user.email !== newEmail) {
         user = await db.user.update({
           where: { id: user.id },
-          data: {
-            email: newEmail,
-            name: newName,
-            avatarUrl: newAvatarUrl,
-          },
+          data: { email: newEmail },
         });
       }
     } else {

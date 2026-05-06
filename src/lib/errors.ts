@@ -63,6 +63,19 @@ export class AccountUnderReviewError extends ForbiddenError {
 }
 
 /**
+ * Profile incomplete error (400) — organizer must set a name before
+ * sending invites. Surfaces in the UI as a CTA to /dashboard/profile.
+ */
+export class ProfileIncompleteError extends AppError {
+  constructor(
+    message: string = "Set your name in profile settings before sending invites."
+  ) {
+    super(message, "PROFILE_INCOMPLETE", 400);
+    this.name = "ProfileIncompleteError";
+  }
+}
+
+/**
  * Validation error (400)
  */
 export class ValidationError extends AppError {
