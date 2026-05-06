@@ -14,6 +14,7 @@ export function SignupPageContent() {
   const searchParams = useSearchParams();
   const inviteCode = searchParams.get("invite") || "";
   const { signUp, isAuthenticated, loading: authLoading } = useAuthContext();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,6 +41,12 @@ export function SignupPageContent() {
     // Hard gate: no invite code, no signup
     if (!inviteCode) {
       setError("An invite code is required to sign up");
+      return;
+    }
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError("Name is required");
       return;
     }
 
@@ -70,9 +77,12 @@ export function SignupPageContent() {
         return;
       }
 
-      // Step 2: Create Firebase account
-      const firebaseUser = await signUp(email, password);
-      const token = await firebaseUser.getIdToken();
+      // Step 2: Create Firebase account (sets displayName via updateProfile
+      // inside signUp). Force-refresh the ID token so the next API call
+      // carries the new `name` claim — verifyAuth lazily provisions the DB
+      // user from that claim.
+      const firebaseUser = await signUp(email, password, trimmedName);
+      const token = await firebaseUser.getIdToken(true);
 
       // Step 3: Claim invite (blocking — must succeed)
       const claimRes = await fetch("/api/launch-invites/claim", {
@@ -139,6 +149,23 @@ export function SignupPageContent() {
                 <p className="text-sm text-destructive">{error}</p>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your full name"
+                value={name}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                autoComplete="name"
+                maxLength={100}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown to your guests in invitations and reminders.
+              </p>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
