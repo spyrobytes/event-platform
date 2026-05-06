@@ -104,6 +104,7 @@ export default function PageEditorPage() {
   const [savedConfig, setSavedConfig] = useState<EventPageConfigV1 | null>(null);
   const [viewAs, setViewAs] = useState<"organizer" | "public" | "guest">("organizer");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // Section card refs, keyed by current index — used to scroll a moved card into view.
   const sectionRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -625,6 +626,39 @@ export default function PageEditorPage() {
     }
   };
 
+  // Back / Cancel both navigate to the same target — the event detail page.
+  // Guarded with a destructive "Discard?" dialog when there are unsaved
+  // edits; cleared edits go straight through.
+  const leaveEditor = useCallback(() => {
+    router.push(`/dashboard/events/${params.id}`);
+  }, [router, params.id]);
+
+  const handleLeave = () => {
+    if (hasChanges) {
+      setShowDiscardDialog(true);
+    } else {
+      leaveEditor();
+    }
+  };
+
+  const handleDiscardAndLeave = () => {
+    setShowDiscardDialog(false);
+    leaveEditor();
+  };
+
+  // Browser-level guard for tab close, refresh, and history navigation.
+  // Only attached while there are unsaved changes; modern browsers ignore
+  // any custom message and show their own generic prompt.
+  useEffect(() => {
+    if (!hasChanges) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasChanges]);
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -659,11 +693,9 @@ export default function PageEditorPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={`/dashboard/events/${params.id}`}>
-            <Button variant="ghost" size="sm">
-              ← Back
-            </Button>
-          </Link>
+          <Button variant="ghost" size="sm" onClick={handleLeave}>
+            ← Back
+          </Button>
           <h1 className="text-2xl font-bold">Page Editor</h1>
           {hasChanges && (
             <span className="text-sm text-muted-foreground">(unsaved changes)</span>
@@ -1760,9 +1792,9 @@ export default function PageEditorPage() {
 
       {/* Bottom actions (visible at end of page) */}
       <div className="flex justify-between pt-4 pb-20">
-        <Link href={`/dashboard/events/${params.id}`}>
-          <Button variant="outline">Cancel</Button>
-        </Link>
+        <Button variant="outline" onClick={handleLeave}>
+          Cancel
+        </Button>
         <Button onClick={handleSave} disabled={saving || !hasChanges}>
           {saving ? "Saving..." : "Save Changes"}
         </Button>
@@ -1859,6 +1891,17 @@ export default function PageEditorPage() {
         description="You have unsaved changes that won't appear in the preview. Would you like to save first?"
         confirmLabel="Save & Preview"
         cancelLabel="Cancel"
+      />
+
+      <ConfirmDialog
+        open={showDiscardDialog}
+        onConfirm={handleDiscardAndLeave}
+        onCancel={() => setShowDiscardDialog(false)}
+        title="Discard unsaved changes?"
+        description="Your unsaved changes will be lost."
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        variant="destructive"
       />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,7 @@ const TEXT_DIRECTION_OPTIONS: { value: TextDirection; label: string }[] = [
 
 export default function InvitationConfigPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const { getIdToken } = useAuthContext();
 
   const [event, setEvent] = useState<EventBasic | null>(null);
@@ -149,6 +150,7 @@ export default function InvitationConfigPage() {
   // Track if form has been modified
   const [isDirty, setIsDirty] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // Fetch event and config
   useEffect(() => {
@@ -360,6 +362,38 @@ export default function InvitationConfigPage() {
     }
   };
 
+  // "Back to Event" guard — prompt for confirmation when there are unsaved
+  // edits, then navigate back to the event detail page.
+  const leaveEditor = useCallback(() => {
+    router.push(`/dashboard/events/${params.id}`);
+  }, [router, params.id]);
+
+  const handleLeave = () => {
+    if (isDirty) {
+      setShowDiscardDialog(true);
+    } else {
+      leaveEditor();
+    }
+  };
+
+  const handleDiscardAndLeave = () => {
+    setShowDiscardDialog(false);
+    leaveEditor();
+  };
+
+  // Browser-level guard for tab close, refresh, and history navigation.
+  // Only attached while there are unsaved changes; modern browsers ignore
+  // any custom message and show their own generic prompt.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
   // Delete configuration
   const handleDelete = async () => {
     if (deleting || !config) return;
@@ -474,9 +508,9 @@ export default function InvitationConfigPage() {
               Preview
             </Button>
           )}
-          <Link href={`/dashboard/events/${params.id}`}>
-            <Button variant="outline">Back to Event</Button>
-          </Link>
+          <Button variant="outline" onClick={handleLeave}>
+            Back to Event
+          </Button>
         </div>
       </div>
 
@@ -1323,6 +1357,17 @@ export default function InvitationConfigPage() {
         description="You have unsaved changes that won't appear in the preview. Would you like to save first?"
         confirmLabel="Save & Preview"
         cancelLabel="Cancel"
+      />
+
+      <ConfirmDialog
+        open={showDiscardDialog}
+        onConfirm={handleDiscardAndLeave}
+        onCancel={() => setShowDiscardDialog(false)}
+        title="Discard unsaved changes?"
+        description="Your unsaved changes will be lost."
+        confirmLabel="Discard"
+        cancelLabel="Keep editing"
+        variant="destructive"
       />
     </div>
   );
