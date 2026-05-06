@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner, assertCanPublish } from "@/lib/authorization";
+import { requireEventOwner, assertCanPublish, assertProfileComplete } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
@@ -286,6 +286,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     await requireEventOwner(eventId, user.id);
     assertCanPublish(user);
+    assertProfileComplete(user);
 
     const body = await request.json();
 

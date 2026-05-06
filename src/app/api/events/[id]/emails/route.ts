@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
+import { requireEventOwner, assertCanMutate, assertProfileComplete } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { getEmailStats, processEmail, resendEmail } from "@/lib/email";
 import { NotFoundError } from "@/lib/errors";
@@ -80,6 +80,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     await requireEventOwner(eventId, user.id);
     assertCanMutate(user);
+    assertProfileComplete(user);
 
     // Validate and handle actions
     const data = emailActionSchema.parse(body);

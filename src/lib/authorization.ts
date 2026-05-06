@@ -1,6 +1,12 @@
 import type { User } from "@prisma/client";
 import { db } from "./db";
-import { NotFoundError, ForbiddenError, AccountSuspendedError, AccountUnderReviewError } from "./errors";
+import {
+  NotFoundError,
+  ForbiddenError,
+  AccountSuspendedError,
+  AccountUnderReviewError,
+  ProfileIncompleteError,
+} from "./errors";
 
 // =============================================================================
 // ORGANIZER STATUS ASSERTIONS
@@ -25,6 +31,18 @@ export function assertCanPublish(user: User): void {
   assertCanMutate(user);
   if (user.status === "UNDER_REVIEW") {
     throw new AccountUnderReviewError();
+  }
+}
+
+/**
+ * Refuses guest-facing actions when the organizer hasn't set a display name.
+ * Without this, invite/reminder emails fall back to the organizer's email
+ * address as the "host" — guests see "john@example.com is inviting you to ..."
+ * Pair with assertCanPublish for any path that ultimately sends to a guest.
+ */
+export function assertProfileComplete(user: User): void {
+  if (!user.name?.trim()) {
+    throw new ProfileIncompleteError();
   }
 }
 
