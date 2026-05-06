@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,6 +150,11 @@ export default function InvitationConfigPage() {
   // Track if form has been modified
   const [isDirty, setIsDirty] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+
+  const { requestLeave, discardDialogProps } = useUnsavedChangesGuard({
+    isDirty,
+    redirectTo: `/dashboard/events/${params.id}`,
+  });
 
   // Fetch event and config
   useEffect(() => {
@@ -474,9 +480,9 @@ export default function InvitationConfigPage() {
               Preview
             </Button>
           )}
-          <Link href={`/dashboard/events/${params.id}`}>
-            <Button variant="outline">Back to Event</Button>
-          </Link>
+          <Button variant="outline" onClick={requestLeave}>
+            Back to Event
+          </Button>
         </div>
       </div>
 
@@ -1324,6 +1330,8 @@ export default function InvitationConfigPage() {
         confirmLabel="Save & Preview"
         cancelLabel="Cancel"
       />
+
+      <ConfirmDialog {...discardDialogProps} />
     </div>
   );
 }

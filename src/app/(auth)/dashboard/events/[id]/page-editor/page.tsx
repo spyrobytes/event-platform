@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,11 @@ export default function PageEditorPage() {
   const [savedConfig, setSavedConfig] = useState<EventPageConfigV1 | null>(null);
   const [viewAs, setViewAs] = useState<"organizer" | "public" | "guest">("organizer");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+
+  const { requestLeave, discardDialogProps } = useUnsavedChangesGuard({
+    isDirty: hasChanges,
+    redirectTo: `/dashboard/events/${params.id}`,
+  });
 
   // Section card refs, keyed by current index — used to scroll a moved card into view.
   const sectionRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -659,11 +665,9 @@ export default function PageEditorPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={`/dashboard/events/${params.id}`}>
-            <Button variant="ghost" size="sm">
-              ← Back
-            </Button>
-          </Link>
+          <Button variant="ghost" size="sm" onClick={requestLeave}>
+            ← Back
+          </Button>
           <h1 className="text-2xl font-bold">Page Editor</h1>
           {hasChanges && (
             <span className="text-sm text-muted-foreground">(unsaved changes)</span>
@@ -1760,9 +1764,9 @@ export default function PageEditorPage() {
 
       {/* Bottom actions (visible at end of page) */}
       <div className="flex justify-between pt-4 pb-20">
-        <Link href={`/dashboard/events/${params.id}`}>
-          <Button variant="outline">Cancel</Button>
-        </Link>
+        <Button variant="outline" onClick={requestLeave}>
+          Cancel
+        </Button>
         <Button onClick={handleSave} disabled={saving || !hasChanges}>
           {saving ? "Saving..." : "Save Changes"}
         </Button>
@@ -1860,6 +1864,8 @@ export default function PageEditorPage() {
         confirmLabel="Save & Preview"
         cancelLabel="Cancel"
       />
+
+      <ConfirmDialog {...discardDialogProps} />
     </div>
   );
 }
