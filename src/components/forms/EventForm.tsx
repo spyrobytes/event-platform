@@ -117,7 +117,14 @@ export function EventForm({
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
-      await onSubmit(data);
+      // TemplateSelector only renders in create mode (see below), so the
+      // templateId in form state is the seeded default in edit mode — not an
+      // authoritative user choice. Setting it to undefined drops it from the
+      // JSON body so the PATCH doesn't silently overwrite whatever template
+      // was set in the page editor.
+      const payload =
+        mode === "edit" ? { ...data, templateId: undefined } : data;
+      await onSubmit(payload);
     } catch (error) {
       console.error("Form submission error:", error);
     }
