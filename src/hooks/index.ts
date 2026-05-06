@@ -46,3 +46,6 @@ export {
 
 // Animation completion detection
 export { useAnimationComplete } from "./use-animation-complete";
+
+// Unsaved-changes guard for editor pages
+export { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";

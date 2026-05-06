@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,7 +96,6 @@ const TEXT_DIRECTION_OPTIONS: { value: TextDirection; label: string }[] = [
 
 export default function InvitationConfigPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const { getIdToken } = useAuthContext();
 
   const [event, setEvent] = useState<EventBasic | null>(null);
@@ -150,7 +150,11 @@ export default function InvitationConfigPage() {
   // Track if form has been modified
   const [isDirty, setIsDirty] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
+  const { requestLeave, discardDialogProps } = useUnsavedChangesGuard({
+    isDirty,
+    redirectTo: `/dashboard/events/${params.id}`,
+  });
 
   // Fetch event and config
   useEffect(() => {
@@ -362,38 +366,6 @@ export default function InvitationConfigPage() {
     }
   };
 
-  // "Back to Event" guard — prompt for confirmation when there are unsaved
-  // edits, then navigate back to the event detail page.
-  const leaveEditor = useCallback(() => {
-    router.push(`/dashboard/events/${params.id}`);
-  }, [router, params.id]);
-
-  const handleLeave = () => {
-    if (isDirty) {
-      setShowDiscardDialog(true);
-    } else {
-      leaveEditor();
-    }
-  };
-
-  const handleDiscardAndLeave = () => {
-    setShowDiscardDialog(false);
-    leaveEditor();
-  };
-
-  // Browser-level guard for tab close, refresh, and history navigation.
-  // Only attached while there are unsaved changes; modern browsers ignore
-  // any custom message and show their own generic prompt.
-  useEffect(() => {
-    if (!isDirty) return;
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
-
   // Delete configuration
   const handleDelete = async () => {
     if (deleting || !config) return;
@@ -508,7 +480,7 @@ export default function InvitationConfigPage() {
               Preview
             </Button>
           )}
-          <Button variant="outline" onClick={handleLeave}>
+          <Button variant="outline" onClick={requestLeave}>
             Back to Event
           </Button>
         </div>
@@ -1359,16 +1331,7 @@ export default function InvitationConfigPage() {
         cancelLabel="Cancel"
       />
 
-      <ConfirmDialog
-        open={showDiscardDialog}
-        onConfirm={handleDiscardAndLeave}
-        onCancel={() => setShowDiscardDialog(false)}
-        title="Discard unsaved changes?"
-        description="Your unsaved changes will be lost."
-        confirmLabel="Discard"
-        cancelLabel="Keep editing"
-        variant="destructive"
-      />
+      <ConfirmDialog {...discardDialogProps} />
     </div>
   );
 }
