@@ -49,6 +49,12 @@ function DashboardNav() {
             >
               Create Event
             </Link>
+            <Link
+              href="/dashboard/profile"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Profile
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
