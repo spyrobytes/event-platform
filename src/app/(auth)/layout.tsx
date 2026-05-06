@@ -3,6 +3,7 @@
 import { type ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { UserProfileProvider, useUserProfile } from "@/components/providers/UserProfileProvider";
 import { AuthGuard } from "@/components/auth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
@@ -113,33 +114,9 @@ function StatusBanner() {
 }
 
 function ProfileBanner() {
-  const { getIdToken, loading, isAuthenticated } = useAuthContext();
-  const [needsName, setNeedsName] = useState(false);
+  const { profile, loading } = useUserProfile();
 
-  useEffect(() => {
-    if (loading || !isAuthenticated) return;
-
-    let cancelled = false;
-    const check = async () => {
-      try {
-        const token = await getIdToken();
-        if (!token || cancelled) return;
-        const res = await fetch("/api/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok && !cancelled) {
-          const { data } = await res.json();
-          setNeedsName(!data.name?.trim());
-        }
-      } catch {
-        // Non-critical — banner just won't show
-      }
-    };
-    check();
-    return () => { cancelled = true; };
-  }, [loading, isAuthenticated, getIdToken]);
-
-  if (!needsName) return null;
+  if (loading || profile?.name?.trim()) return null;
 
   return (
     <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-800 dark:text-amber-300">
@@ -155,12 +132,14 @@ function ProfileBanner() {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-background">
-        <DashboardNav />
-        <StatusBanner />
-        <ProfileBanner />
-        <main className="container py-6">{children}</main>
-      </div>
+      <UserProfileProvider>
+        <div className="min-h-screen bg-background">
+          <DashboardNav />
+          <StatusBanner />
+          <ProfileBanner />
+          <main className="container py-6">{children}</main>
+        </div>
+      </UserProfileProvider>
     </AuthGuard>
   );
 }

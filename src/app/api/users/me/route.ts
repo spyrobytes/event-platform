@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { getAuth } from "firebase-admin/auth";
 import { db } from "@/lib/db";
-import { verifyAuth, getFirebaseAdmin } from "@/lib/auth";
+import { verifyAuth, setFirebaseDisplayName } from "@/lib/auth";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
 import { updateUserProfileSchema } from "@/schemas/user";
 
@@ -46,17 +45,12 @@ export async function PATCH(request: NextRequest) {
       select: { id: true, email: true, name: true },
     });
 
-    // Best-effort sync to Firebase. The DB write above is canonical —
-    // verifyAuth no longer re-syncs `name` from the token, so a sync
-    // failure here doesn't risk a clobber. The cost is data drift: future
-    // ID-token issuers (Firebase console, other apps sharing this project)
-    // would still see the old displayName until corrected. Log loudly so
-    // the operator can investigate.
+    // Best-effort sync to Firebase. The DB write above is canonical, so a
+    // sync failure costs data drift (Firebase console / other apps sharing
+    // this project see the old displayName) but not correctness for our
+    // own auth flow.
     try {
-      getFirebaseAdmin();
-      await getAuth().updateUser(user.firebaseUid, {
-        displayName: data.name,
-      });
+      await setFirebaseDisplayName(user.firebaseUid, data.name);
     } catch (syncError) {
       console.error("[profile] failed to sync displayName to Firebase", {
         userId: user.id,

@@ -92,11 +92,9 @@ export async function verifyAuth(request: NextRequest): Promise<User | null> {
         : null;
 
       if (existingByEmail) {
-        // Update existing user's firebaseUid (emulator generated new UID for
-        // same email). Only the firebaseUid is rewritten — `name` and
-        // `avatarUrl` stay DB-authoritative for the same reason as the
-        // existing-user branch above: if the organizer edited their profile
-        // here, a stale token from the prior auth session shouldn't undo it.
+        // Emulator-restart path: same email, new firebaseUid. Rewrite the
+        // UID only — see existing-user branch above for why name/avatarUrl
+        // stay DB-authoritative.
         user = await db.user.update({
           where: { id: existingByEmail.id },
           data: { firebaseUid: decoded.uid },
@@ -137,4 +135,16 @@ export async function requireAuth(request: NextRequest): Promise<User> {
   }
 
   return user;
+}
+
+/**
+ * Updates the Firebase Auth user's displayName. Centralizes init+call so
+ * route handlers don't import firebase-admin/auth directly.
+ */
+export async function setFirebaseDisplayName(
+  firebaseUid: string,
+  displayName: string
+): Promise<void> {
+  getFirebaseAdmin();
+  await getAuth().updateUser(firebaseUid, { displayName });
 }

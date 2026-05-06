@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useUserProfile } from "@/components/providers/UserProfileProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,49 +14,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type ProfileData = {
-  id: string;
-  email: string;
-  name: string | null;
-};
-
 export default function ProfilePage() {
   const { getIdToken, user: firebaseUser } = useAuthContext();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const { profile, loading, setProfile } = useUserProfile();
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Seed the form once when the profile arrives. Subsequent context updates
+  // (e.g. setProfile after a successful save here) shouldn't reset the
+  // user's draft, so this only fires when name is empty and profile.name
+  // is non-null.
   useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const token = await getIdToken();
-        if (!token) {
-          setError("Not authenticated");
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch("/api/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) throw new Error("Failed to load profile");
-
-        const body = await res.json();
-        setProfile(body.data);
-        setName(body.data.name ?? "");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
+    if (profile && !name) {
+      setName(profile.name ?? "");
     }
+  }, [profile, name]);
 
-    fetchProfile();
-  }, [getIdToken]);
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    setSuccess(false);
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -164,9 +145,7 @@ export default function ProfilePage() {
                 type="text"
                 placeholder="Your full name"
                 value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setName(e.target.value)
-                }
+                onChange={handleNameChange}
                 autoComplete="name"
                 maxLength={100}
                 required
