@@ -28,7 +28,7 @@ type EventListProps = {
   emptyMessage?: string;
   className?: string;
   cardClassName?: string;
-  /** Base path for event links. Use ":slug" or ":id" as placeholder. Default: "/events/:slug" */
+  /** Base path for event links. Use ":slug" or ":id" as placeholder. Default: "/e/:slug" */
   hrefPattern?: string;
 };
 
@@ -42,7 +42,7 @@ export function EventList({
   emptyMessage = "No events found",
   className,
   cardClassName,
-  hrefPattern = "/events/:slug",
+  hrefPattern = "/e/:slug",
 }: EventListProps) {
   if (events.length === 0) {
     return (

@@ -56,7 +56,7 @@ export function EventJsonLd({ event }: EventJsonLdProps) {
     description: event.description || undefined,
     startDate: event.startAt.toISOString(),
     endDate: event.endAt?.toISOString() || undefined,
-    url: `${baseUrl}/events/${event.slug}`,
+    url: `${baseUrl}/e/${event.slug}`,
     image: event.coverImageUrl || undefined,
     location,
     organizer,
