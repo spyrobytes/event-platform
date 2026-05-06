@@ -184,7 +184,11 @@ export function EventForm({
             <Select
               id="visibility"
               value={visibility}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setValue("visibility", e.target.value as CreateEventInput["visibility"])}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setValue("visibility", e.target.value as CreateEventInput["visibility"], {
+                  shouldDirty: true,
+                })
+              }
               aria-invalid={!!errors.visibility}
             >
               {VISIBILITY_OPTIONS.map((option) => (
@@ -260,7 +264,9 @@ export function EventForm({
             <Select
               id="timezone"
               value={timezone}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setValue("timezone", e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setValue("timezone", e.target.value, { shouldDirty: true })
+              }
             >
               {COMMON_TIMEZONES.map((tz) => (
                 <option key={tz.value} value={tz.value}>

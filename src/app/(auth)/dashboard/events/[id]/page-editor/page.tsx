@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -90,6 +91,7 @@ type PageConfigResponse = {
 
 export default function PageEditorPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const { getIdToken } = useAuthContext();
   const [pageData, setPageData] = useState<PageConfigResponse | null>(null);
   const [config, setConfig] = useState<EventPageConfigV1 | null>(null);
@@ -101,6 +103,7 @@ export default function PageEditorPage() {
   const [isPreviewingVersion, setIsPreviewingVersion] = useState(false);
   const [savedConfig, setSavedConfig] = useState<EventPageConfigV1 | null>(null);
   const [viewAs, setViewAs] = useState<"organizer" | "public" | "guest">("organizer");
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
   // Section card refs, keyed by current index — used to scroll a moved card into view.
   const sectionRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -561,8 +564,8 @@ export default function PageEditorPage() {
     []
   );
 
-  const handleSave = async () => {
-    if (!config || saving) return;
+  const handleSave = async (): Promise<boolean> => {
+    if (!config || saving) return false;
 
     setSaving(true);
     setError(null);
@@ -589,10 +592,36 @@ export default function PageEditorPage() {
       }
 
       setHasChanges(false);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Preview navigation gates on dirty state — same pattern as the invitation
+  // editor (see invitation/page.tsx). The preview page reads pageConfig from
+  // the DB, so navigating away with unsaved edits silently drops them from
+  // view (and from in-memory state on remount).
+  const openPreview = useCallback(() => {
+    router.push(`/dashboard/events/${params.id}/page-preview`);
+  }, [router, params.id]);
+
+  const handlePreview = () => {
+    if (hasChanges) {
+      setShowPreviewDialog(true);
+    } else {
+      openPreview();
+    }
+  };
+
+  const handleSaveAndPreview = async () => {
+    setShowPreviewDialog(false);
+    const saved = await handleSave();
+    if (saved) {
+      openPreview();
     }
   };
 
@@ -663,9 +692,9 @@ export default function PageEditorPage() {
               </button>
             ))}
           </div>
-          <Link href={`/dashboard/events/${params.id}/page-preview`}>
-            <Button variant="outline">Preview</Button>
-          </Link>
+          <Button variant="outline" onClick={handlePreview}>
+            Preview
+          </Button>
           <Button onClick={handleSave} disabled={saving || !hasChanges || isPreviewingVersion}>
             {saving ? "Saving..." : "Save Changes"}
           </Button>
@@ -1748,30 +1777,28 @@ export default function PageEditorPage() {
               <span className="text-muted-foreground">Unsaved changes</span>
             </div>
             <div className="flex items-center gap-2">
-              <Link href={`/dashboard/events/${params.id}/page-preview`}>
-                <Button variant="outline" size="sm">
-                  <svg
-                    className="mr-1.5 h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  Preview
-                </Button>
-              </Link>
+              <Button variant="outline" size="sm" onClick={handlePreview}>
+                <svg
+                  className="mr-1.5 h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+                Preview
+              </Button>
               <Button
                 onClick={handleSave}
                 disabled={saving || isPreviewingVersion}
@@ -1823,6 +1850,16 @@ export default function PageEditorPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showPreviewDialog}
+        onConfirm={handleSaveAndPreview}
+        onCancel={() => setShowPreviewDialog(false)}
+        title="Unsaved Changes"
+        description="You have unsaved changes that won't appear in the preview. Would you like to save first?"
+        confirmLabel="Save & Preview"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }
