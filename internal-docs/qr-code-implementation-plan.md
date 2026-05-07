@@ -6,6 +6,8 @@
 **Owner:** _TBD_
 **Status:** Ready to pick up
 
+> **Sixth revision (2026-05-07).** Slims Task 5 — drops the dashboard modal (image preview, focus trap, Esc handling, Download PNG action) in favor of a single "Copy pass link" row action gated on `rsvp.response === "YES"`. Rationale: organizers don't browse the dashboard to admire QRs, and the only real use case is failure-mode recovery (YES-RSVP'd guest whose confirmation email bounced/got lost — organizer copies the pass URL and shares via SMS/AirDrop). A copy-link action covers it without the UI weight. The dropped modal/PNG functionality moves to §8 Out of Scope as an opt-in for organizers who later want to print physical passes or supply images to phone-only invitees who refuse email at RSVP time. Updates §1 Goals, Task 5 spec, §6 Rollout, §8 Out of Scope.
+>
 > **Fifth revision (2026-05-07).** **Architectural correction:** the QR moves from INVITE emails to CONFIRMATION emails, gated on `response === "YES"`. Surfaced in production review of #73 / #75 — the QR is a venue access credential, and sending it to invitees who haven't confirmed (or who decline) is premature commitment for the ~30–50% who never attend. Adds Task 7 (migration); flips §1 Goals first bullet; adds §2.10 (email-type decision); removes the "QR codes in CONFIRMATION emails" line from §1 Non-Goals and §8 Out of Scope (REMINDER stays out); updates §4 count, §6 Rollout, §10 Reviewer Checklist. The QR generation pipeline (Task 1) and `sendEmail` attachment plumbing (Task 2a) are reusable as-is; only the trigger point changes.
 >
 > **Fourth revision (2026-05-07).** Adds Task 6 — per-event opt-out for QR attachment in invite emails (boolean column on `Event`, dashboard toggle, `processEmail()` short-circuit when off). Per-send override is intentionally deferred. Updates §1 Goals, §4 Task Breakdown count, §6 Rollout, §8 Out of Scope.
@@ -19,12 +21,12 @@
 **Goals**
 
 - Every `CONFIRMATION` email sent to a guest who responded **YES** includes an inline QR code that, when scanned at the venue, opens a **"pass view"** showing guest identity and RSVP status — optimized for door staff glancing at a phone, not for animated delight. INVITE emails do not carry the QR (see §2.10). MAYBE and NO confirmations also do not — staff can look up MAYBE attendees by name from the dashboard if they show.
-- Organizers can view and download each invite's QR from the dashboard (Pattern 2: action-menu + modal). The dashboard QR is available for **every** invite uniformly — including invites created before the feature shipped — because the lookup key (`passId`) is in the database, not held only in client memory.
-- Organizers can opt out of the email QR attachment per event (Task 6). The dashboard QR modal and pass view are unaffected — the toggle gates the CONFIRMATION-email attachment only.
+- Organizers can copy a YES-RSVP'd guest's pass link from the dashboard (single "Copy pass link" row action — Task 5). Used for failure-mode recovery: a guest whose confirmation email bounced or got lost can be sent the pass URL via SMS/AirDrop. The action is greyed-out on pre-RSVP, MAYBE, and NO rows because the pass URL would show "pending" or "declined" status, which isn't useful to share.
+- Organizers can opt out of the email QR attachment per event (Task 6). The pass view and dashboard "Copy pass link" action are unaffected — the toggle gates the CONFIRMATION-email attachment only.
 - Implementation respects existing email queue / retry semantics (no duplicate sends, no orphaned jobs).
 - Feature is additive: no changes to existing RSVP or email flows for guests. The email body's "RSVP Now" CTA continues to point at the animated invitation card (`/invite/[token]`); only the QR encodes the pass URL.
 - QR URL is **durable** — the encoded pass URL is keyed on `Invite.passId`, which is generated at row creation and never rotated. Token regenerations leave previously-distributed QRs intact. Reusable when pre-GA check-in infrastructure ships.
-- **Phone-only invite handling.** Invitees created without an email address (`Invite.email === null`) do not receive a QR via automated delivery in the MVP. The organizer-driven workflow (manually copy the invite link from the dashboard, send via SMS/WhatsApp) continues to function: the tokenized link the guest receives opens the animated invite directly on their phone. Organizers who want to supply a QR image to phone-only invitees can download the PNG from the dashboard modal and attach it to the message, or share the pass URL directly. Automated SMS/WhatsApp delivery via Twilio is deferred to GA.
+- **Phone-only invite handling.** Invitees created without an email address (`Invite.email === null`) do not receive a QR via automated delivery in the MVP. The organizer-driven workflow (manually copy the invite link from the dashboard, send via SMS/WhatsApp) continues to function: the tokenized link the guest receives opens the animated invite directly on their phone. Once a phone-only invitee RSVPs YES (supplying email at the public portal), they receive a confirmation email with the inline QR. If they decline to supply an email, organizers can copy the pass link from the dashboard row action and share it via SMS/WhatsApp instead. Sending a QR image directly (PNG download) is deferred — see §8 Out of Scope. Automated SMS/WhatsApp delivery via Twilio is deferred to GA.
 
 **Non-Goals (for this plan)**
 
@@ -530,46 +532,38 @@ No client JS required for MVP. No animations.
 
 ---
 
-### Task 5 — Dashboard display (action-menu + modal)
+### Task 5 — Dashboard "Copy pass link" row action
 
-**Branch:** `feat/qr-dashboard-display`
-**PR title:** `feat: show QR code per invite in dashboard`
-**Depends on:** Task 4
+> **Slimmed (sixth revision, 2026-05-07).** The original spec was an action-menu + modal with QR image preview, Download PNG button, focus trap, and Esc handling. Slimmed to a single "Copy pass link" row action — covers failure-mode recovery (bounced/lost confirmation email) without the UI weight. Image preview + PNG download moved to §8 Out of Scope; revisit when organizers ask for printable badges or phone-only invitees who refuse email become a meaningful cohort.
+
+**Branch:** `feat/qr-pass-link-action`
+**PR title:** `feat: add Copy pass link row action to invite manager`
+**Depends on:** Task 0 (`passId` column).
 
 **Files**
 
-- `src/app/api/events/[id]/invites/route.ts` _(edit — include `passId` in the GET select)_
-- `src/components/features/InviteManager/InviteManager.tsx` _(edit — extend the `Invite` type, thread `passId` through)_
-- `src/components/features/InviteManager/InviteTable.tsx` _(edit — add action-menu item)_
-- `src/components/features/InviteManager/InviteQrModal.tsx` _(new)_
+- `src/app/api/events/[id]/invites/route.ts` _(edit — include `passId` in the GET select; thread it through to the response)_
+- `src/components/features/InviteManager/InviteManager.tsx` _(edit — extend the `Invite` type with `passId`; add a `handleCopyPassLink` handler matching the existing `handleCopyLink` pattern)_
+- `src/components/features/InviteManager/InviteTable.tsx` _(edit — add "Copy pass link" action sibling to the existing "Copy Link" entry; gate enabled state on `rsvp?.response === "YES"`)_
 
-**Changes**
-
-Pattern chosen: **action-menu + modal** (not inline thumbnail). Reasons captured in the plan revision thread: row density, per-row HTTP cost, mobile friendliness.
+**Behavior**
 
 - Surface `passId` in the GET invites response and the client-side `Invite` type. (No extra round-trips: it's a column on the row already being selected.)
-- Add a "View QR" entry to each row's Actions menu in `InviteTable`. The action is **enabled for every invite** — including invites created before this feature shipped. There is no token-in-scope dependency.
-- Click opens `InviteQrModal`, which renders:
-  - Guest name (matching the row).
-  - QR image loaded from `/api/qr/${passId}` (SVG for display).
-  - Event title (so screenshots are self-contained at the door).
-  - **Copy pass link** button (equal visual weight to Download PNG) → `navigator.clipboard.writeText(buildPassUrl(passId))`; swap label to `"Copied ✓"` for ~2s after click, then revert. This is the primary tool for phone-only invites (see §1 Goals): organizers texting the link manually need the URL on their clipboard, not a file.
-  - **Download PNG** button → targets `?format=png` with `download={buildQrFilename(guestName, passId)}`. Use the shared helper from `src/lib/qr.ts` (Task 1) rather than ad-hoc sanitization here.
-  - **Close** button; focus trap; `Esc` closes.
-- Explicit `width`/`height` on the `<img>` inside the modal to prevent layout shift while the SVG loads.
+- Add a "Copy pass link" entry to the row's action menu, sibling to the existing "Copy Link" action.
+- **Enabled** only when `invite.rsvp?.response === "YES"`. Pre-RSVP, MAYBE, and NO rows show the action **greyed-out / disabled** with a tooltip — e.g. *"Available after guest confirms attendance"*. Shown rather than hidden so organizers learn the action exists.
+- Click → `navigator.clipboard.writeText(buildPassUrl(invite.passId))`; swap label to `"Copied ✓"` for ~2s after click, then revert (matches the existing `handleCopyLink` pattern at `InviteManager.tsx:315-323`).
+- `buildPassUrl` from `src/lib/qr.ts` (Task 1) is the single source of truth for URL construction.
 
-**Note on terminology — keep "pass link" and "invite link" distinct.** The dashboard already has a separate "Copy invite link" action (in `InvitePlanningPanel`, `src/components/features/InviteManager/InvitePlanningPanel.tsx:159-169`) that copies the *write-credential* URL (`/invite/[token]`). The QR modal's "Copy pass link" button copies the *read-only pass URL* (`/invite/pass/[passId]`). They serve different audiences (guest reveal vs. door scan); keep them visually and verbally distinct so an organizer doesn't paste the wrong one into an SMS.
+**Note on terminology — keep "Copy pass link" and "Copy Link" distinct.** The dashboard already has a "Copy Link" action (`InviteManager.tsx:315-323`) that copies the *write-credential invite URL* (`/e/<slug>?tk=<token>` for email invitees, `/rsvp/<token>` for phone-only). The new "Copy pass link" action copies the *read-only pass URL* (`/invite/pass/<passId>`). They serve different audiences (pre-RSVP guest vs YES-RSVP'd guest at venue) and have different security models (256-bit write token vs UUID-v4 read identifier). Visually distinct labels are required so an organizer doesn't paste the wrong one into an SMS.
 
 **Acceptance criteria**
 
-- [ ] "View QR" action is discoverable and enabled on every invite row, including those created in prior sessions.
-- [ ] Modal opens with QR, guest name, event title; focus is trapped inside.
-- [ ] "Copy pass link" button copies the `/invite/pass/[passId]` URL and shows a visible confirmation (`"Copied ✓"`) for ~2s, then reverts.
-- [ ] Download produces a usable PNG file; filename is generated by `buildQrFilename`, not a per-PR re-implementation.
-- [ ] `Esc` and the Close button both dismiss the modal.
-- [ ] Mobile dashboard layout is not broken.
-- [ ] No cumulative layout shift on modal open.
-- [ ] Verified manually: regenerating an invite's token (via the planning panel) does NOT change the QR image or the pass URL — passId is stable.
+- [ ] "Copy pass link" appears in the row action menu, distinct from the existing "Copy Link".
+- [ ] Action is enabled only when `invite.rsvp?.response === "YES"`. Pre-RSVP / MAYBE / NO rows show the action greyed-out with an explanatory tooltip.
+- [ ] Click copies the pass URL (`/invite/pass/<passId>`) to clipboard and shows `"Copied ✓"` feedback for ~2s.
+- [ ] No new modal, no image preview, no PNG download.
+- [ ] Verified manually: regenerating an invite's token does NOT change the pass URL — passId is stable.
+- [ ] Existing "Copy Link" action behavior is unchanged.
 
 ---
 
@@ -745,7 +739,7 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 | Task 4 | QR API route callable (no UI references it yet) | None |
 | Task 2b + Task 3 (together) | INVITE emails include QR attachment + conditional template block | _Shipped against INVITE in #73/#75; superseded by Task 7 (see §2.10)._ |
 | Task 7 | QR migrates from INVITE to CONFIRMATION (YES responses only) | Newly-sent INVITE emails revert to pre-feature behavior (no QR). New CONFIRMATION emails for YES responses include the QR; MAYBE/NO confirmations do not. Already-sent INVITE emails with QRs in inboxes remain functional — `passId` is durable, the linked pass view still resolves. |
-| Task 5 | Dashboard action-menu "View QR" appears in every invite row | Organizers see QR per invite for **all** invites (including pre-feature ones), with passId already backfilled by Task 0. Independent of email-delivery changes. |
+| Task 5 | Dashboard "Copy pass link" row action enabled on YES-RSVP'd invites | Organizers can copy the pass URL for confirmed guests — covers failure-mode recovery (bounced/lost confirmation email). Greyed out for pre-RSVP / MAYBE / NO rows. No image preview or PNG download (slim scope; see §8). |
 | Task 6 | Per-event "Include QR in confirmation email" toggle (default on) | No change to existing events. New events can opt out before any invites are sent. Toggling mid-flight skips the QR on subsequent CONFIRMATION sends only. |
 
 **Rollback**
@@ -794,6 +788,7 @@ Deliberately deferred; all reusable with the MVP QRs (passId is stable, no rotat
 - **QR code on the pass view itself.** Not useful for MVP (visual verification only). Becomes valuable when backend check-in ships because scanning the pass-view QR from a staff scanner would then trigger a state write rather than re-display the same information.
 - **QR codes in REMINDER emails.** Once the QR ships in CONFIRMATION (Task 7), reminder emails for confirmed YES guests carry low marginal value — the recipient already has the QR. Revisit only if guests report misplacing the confirmation email closer to the event.
 - **Apple / Google Wallet passes.** Significant infra lift; only worth doing once check-in is live and demand is proven.
+- **Dashboard QR image preview and PNG download.** The original Task 5 spec included an action-menu modal with the QR image rendered from `/api/qr/<passId>` and a Download PNG button. Slimmed in the sixth revision to a copy-link-only row action. Reintroducing image preview / PNG download is justified if (a) organizers need to print physical badges pre-event or (b) phone-only invitees who refuse to supply email at RSVP become a meaningful cohort and SMS-able images become preferred over SMS-able links. Both are realistic but unproven; defer until asked. The QR API route (Task 4) remains in place — reintroducing the modal is purely a UI addition, no backend work.
 - **Token-regeneration UX polish.** Schema has `Invite.tokenRegenerateCount`. Under Option B, regenerating a token does **not** invalidate the QR (pass URL is keyed on the stable `passId`) — the prior revision's "QR rotated by regen" warning no longer applies. Remaining polish: (1) the pass view 404 should render a branded *"This invitation is no longer valid — contact the organizer"* page instead of a generic Next.js 404 (relevant if an invite is deleted entirely); (2) the dashboard regen flow should clarify that the *RSVP link* is invalidated by regen, separate from the *pass link*, so organizers know what they're rotating. Neither is a ship blocker.
 - **`passId` in the CSV export.** The invite CSV export at `/api/events/[id]/invites/export` deliberately omits `passId` for MVP. Including it would put a public-by-design lookup key into spreadsheets that organizers commonly share (with co-organizers, venues, vendors), and the `passId` is a bearer credential for guest-name + RSVP-state disclosure. If organizers ask for a row identifier in exports, either (a) include `Invite.id` (already private-by-default), or (b) include `passId` with explicit "treat this column as sensitive" framing in the export UI. Defer until a real ask appears.
 
@@ -830,4 +825,4 @@ In addition to the standard reviewer expectations in `CLAUDE.md` and `CONTRIBUTI
 
 ---
 
-_Last updated: 2026-05-07 (added Task 7 — migrate QR from INVITE to CONFIRMATION emails, YES responses only; supersedes Tasks 2b/3 target email type)_
+_Last updated: 2026-05-07 (sixth revision: slim Task 5 to copy-link-only row action gated on YES; modal + PNG download deferred to §8)_
