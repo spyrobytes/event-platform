@@ -90,6 +90,7 @@ export function EventForm({
           : undefined,
       reminderDays: defaultValues?.reminderDays,
       reminderEnabled: defaultValues?.reminderEnabled ?? false,
+      attachQrToConfirmation: defaultValues?.attachQrToConfirmation ?? true,
       // Date fields are stored in RHF state as formatted strings so they
       // render correctly in <input type="datetime-local">. The setValueAs
       // option on each register() call coerces them back to Date on submit.
@@ -441,6 +442,25 @@ export function EventForm({
                 </p>
               </div>
             )}
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="attachQrToConfirmation" className="text-base">
+                  Include scannable QR code in confirmation email
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Confirmed guests receive an inline QR code they can show at the venue.
+                </p>
+              </div>
+              <input
+                id="attachQrToConfirmation"
+                type="checkbox"
+                className="h-5 w-5 rounded border-border"
+                {...register("attachQrToConfirmation")}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>

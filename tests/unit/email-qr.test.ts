@@ -53,9 +53,14 @@ type EmailRow = {
   status: string;
 };
 
+type InviteWithEvent = {
+  passId: string;
+  event: { attachQrToConfirmation: boolean };
+};
+
 const dbState = {
   email: null as EmailRow | null,
-  inviteRow: null as { passId: string } | null,
+  inviteRow: null as InviteWithEvent | null,
 };
 
 const emailOutboxUpdateManyMock =
@@ -65,7 +70,7 @@ const emailOutboxFindUniqueMock =
 const emailOutboxUpdateMock =
   vi.fn<(arg: unknown) => Promise<unknown>>(async () => ({}));
 const inviteFindUniqueMock =
-  vi.fn<(arg: unknown) => Promise<{ passId: string } | null>>(async () => dbState.inviteRow);
+  vi.fn<(arg: unknown) => Promise<InviteWithEvent | null>>(async () => dbState.inviteRow);
 const inviteUpdateMock =
   vi.fn<(arg: unknown) => Promise<{ eventId: string }>>(async () => ({ eventId: "evt-1" }));
 const eventUpdateManyMock =
@@ -156,17 +161,36 @@ function confirmationRow(opts: ConfirmationOverrides = {}): EmailRow {
   };
 }
 
+function defaultInviteRow(
+  overrides?: { passId?: string; attachQrToConfirmation?: boolean }
+): InviteWithEvent {
+  return {
+    passId: overrides?.passId ?? "pass-abc",
+    event: { attachQrToConfirmation: overrides?.attachQrToConfirmation ?? true },
+  };
+}
+
 describe("processEmail() — CONFIRMATION branch QR attachment", () => {
-  it("attaches inline QR PNG and renders with qrAvailable: true when response=YES and passId is in payload", async () => {
+  it("attaches inline QR PNG and renders with qrAvailable: true when response=YES, passId in payload, and flag is on", async () => {
     dbState.email = confirmationRow();
+    // The combined Invite+event lookup runs on every YES — we need the
+    // attachQrToConfirmation flag live, so passId optimization is gone.
+    dbState.inviteRow = defaultInviteRow();
     const { processEmail } = await import("@/lib/email");
 
     await processEmail("outbox-1");
 
-    // QR generated against the payload's passId — no fallback DB lookup.
+    // QR generated against the payload's passId (preferred over DB row).
     expect(generateQrPngBufferMock).toHaveBeenCalledTimes(1);
     expect(buildPassUrlMock).toHaveBeenCalledWith("pass-abc");
-    expect(inviteFindUniqueMock).not.toHaveBeenCalled();
+    expect(inviteFindUniqueMock).toHaveBeenCalledTimes(1);
+    expect(inviteFindUniqueMock).toHaveBeenCalledWith({
+      where: { id: "invite-1" },
+      select: {
+        passId: true,
+        event: { select: { attachQrToConfirmation: true } },
+      },
+    });
 
     // Template received qrAvailable: true.
     expect(renderMock).toHaveBeenCalledTimes(1);
@@ -228,18 +252,14 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
     expect(sendArg.attachments).toBeUndefined();
   });
 
-  it("response=YES, payload omits passId → fallback Invite lookup, then attaches QR", async () => {
+  it("response=YES, payload omits passId → falls back to DB row's passId and attaches QR", async () => {
     dbState.email = confirmationRow({ withPassId: false });
-    dbState.inviteRow = { passId: "pass-from-db" };
+    dbState.inviteRow = defaultInviteRow({ passId: "pass-from-db" });
 
     const { processEmail } = await import("@/lib/email");
     await processEmail("outbox-1");
 
     expect(inviteFindUniqueMock).toHaveBeenCalledTimes(1);
-    expect(inviteFindUniqueMock).toHaveBeenCalledWith({
-      where: { id: "invite-1" },
-      select: { passId: true },
-    });
     expect(buildPassUrlMock).toHaveBeenCalledWith("pass-from-db");
 
     const renderedArg = renderMock.mock.calls[0][0] as { props: { qrAvailable: boolean } };
@@ -247,6 +267,28 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
 
     const sendArg = sendMailMock.mock.calls[0][0] as { attachments?: unknown[] };
     expect(sendArg.attachments).toHaveLength(1);
+  });
+
+  it("response=YES with attachQrToConfirmation=false → skips QR pipeline silently (no warn, no attachment)", async () => {
+    dbState.email = confirmationRow();
+    dbState.inviteRow = defaultInviteRow({ attachQrToConfirmation: false });
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { processEmail } = await import("@/lib/email");
+
+    await processEmail("outbox-1");
+
+    // Per-event opt-out is a deliberate choice, not a degraded state.
+    expect(warn).not.toHaveBeenCalled();
+    expect(generateQrPngBufferMock).not.toHaveBeenCalled();
+
+    const renderedArg = renderMock.mock.calls[0][0] as { props: { qrAvailable: boolean } };
+    expect(renderedArg.props.qrAvailable).toBe(false);
+
+    const sendArg = sendMailMock.mock.calls[0][0] as { attachments?: unknown[] };
+    expect(sendArg.attachments).toBeUndefined();
+
+    warn.mockRestore();
   });
 
   it("response=YES, fallback lookup misses → confirmation sends with qrAvailable: false, no attachment", async () => {
@@ -298,6 +340,7 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
 
   it("response=YES, QR generation throws → confirmation still sends with qrAvailable: false", async () => {
     dbState.email = confirmationRow();
+    dbState.inviteRow = defaultInviteRow();
     generateQrPngBufferMock.mockRejectedValueOnce(new Error("qrcode boom"));
 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
