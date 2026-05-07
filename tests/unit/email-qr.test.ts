@@ -142,7 +142,7 @@ function confirmationRow(opts: ConfirmationOverrides = {}): EmailRow {
     response,
     guestCount: 1,
   };
-  if (opts.withPassId !== false) {
+  if (opts.withPassId ?? true) {
     basePayload.passId = "pass-abc";
   }
   return {

@@ -23,8 +23,8 @@ type ConfirmationEmailProps = {
   portalUrl?: string;
   unsubscribeUrl?: string;
   logoUrl?: string;
-  /** When true, render the inline QR code block. processEmail() sets this
-   *  only for YES responses; the template trusts that contract. */
+  /** When true, render the inline QR code block. Caller guarantees this
+   *  is set only for YES responses. */
   qrAvailable?: boolean;
 };
 
