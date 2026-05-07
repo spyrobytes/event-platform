@@ -10,6 +10,8 @@ vi.mock("@/lib/db", () => ({
 const VALID_PASS_ID = "0123abcd-aaaa-bbbb-cccc-ddddeeeeffff";
 const ANOTHER_PASS_ID = "ffff1111-2222-3333-4444-555566667777";
 
+// Top-level await: vi.mock is hoisted, so the db mock above is in place
+// before the route module evaluates its imports.
 const { GET } = await import("@/app/api/qr/[passId]/route");
 
 beforeEach(() => {
@@ -103,15 +105,13 @@ describe("GET /api/qr/[passId]", () => {
   });
 
   it("returns 200 with QR for a revoked invite (image isn't revoked, pass view is)", async () => {
-    // The route only checks existence; revokedAt is irrelevant here.
+    // The route only checks existence; revokedAt is irrelevant here. Cache
+    // headers + body shape are already covered by the SVG-default test.
     findUniqueMock.mockResolvedValue({ id: "inv_revoked" });
     const { request, context } = makeRequest(VALID_PASS_ID);
 
     const res = await GET(request, context);
 
     expect(res.status).toBe(200);
-    expect(res.headers.get("Cache-Control")).toBe(
-      "public, max-age=31536000, immutable"
-    );
   });
 });
