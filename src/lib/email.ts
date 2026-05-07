@@ -7,6 +7,7 @@ import { ReminderEmail } from "@/emails/ReminderEmail";
 import { VerificationEmail } from "@/emails/VerificationEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
+import { buildPassUrl, generateQrPngBuffer } from "./qr";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration (production)
@@ -186,6 +187,10 @@ type InviteEmailPayload = {
   unsubscribeUrl?: string;
   logoUrl?: string;
   rsvpDeadline?: string;
+  // Optional because legacy outbox rows queued before passId existed
+  // still pass through this type at read-time.
+  passId?: string;
+  qrAvailable?: boolean;
   // Optional pre-ceremony "Traditional" sub-event — populated when the main
   // Event row's start time precedes the ceremony (i.e. there's a separate
   // cultural / traditional ceremony before the formal one).
@@ -437,11 +442,53 @@ export async function processEmail(emailId: string): Promise<void> {
   try {
     const payload = email.payload as Record<string, unknown>;
     let html: string;
+    let attachments: EmailAttachment[] | undefined;
 
     switch (email.template) {
-      case "INVITE":
-        html = await render(InviteEmail(payload as unknown as InviteEmailPayload));
+      case "INVITE": {
+        const invitePayload = payload as unknown as InviteEmailPayload;
+        let qrAvailable = false;
+        // QR failures (lookup OR generation) must not cascade — a missing
+        // QR is a degraded experience; a failed email is a lost invite.
+        try {
+          let passId =
+            typeof payload.passId === "string" && payload.passId.length > 0
+              ? payload.passId
+              : null;
+          if (!passId && email.inviteId) {
+            const invite = await db.invite.findUnique({
+              where: { id: email.inviteId },
+              select: { passId: true },
+            });
+            passId = invite?.passId ?? null;
+          }
+
+          if (!passId) {
+            console.warn("[email] passId unavailable; sending invite without QR", {
+              inviteId: email.inviteId,
+            });
+          } else {
+            const png = await generateQrPngBuffer(buildPassUrl(passId));
+            attachments = [
+              {
+                filename: "rsvp-qr.png",
+                content: png,
+                inline: true,
+                contentType: "image/png",
+              },
+            ];
+            qrAvailable = true;
+          }
+        } catch (qrError) {
+          console.warn("[email] QR pipeline failed; sending invite without QR", {
+            inviteId: email.inviteId,
+            error: qrError instanceof Error ? qrError.message : qrError,
+          });
+        }
+
+        html = await render(InviteEmail({ ...invitePayload, qrAvailable }));
         break;
+      }
       case "CONFIRMATION":
         html = await render(ConfirmationEmail(payload as unknown as ConfirmationEmailPayload));
         break;
@@ -466,6 +513,7 @@ export async function processEmail(emailId: string): Promise<void> {
       subject: email.subject,
       html,
       tags: [email.template.toLowerCase()],
+      attachments,
     });
 
     // Update status to sent
