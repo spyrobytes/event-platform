@@ -12,6 +12,13 @@ const DEFAULT_ERROR_CORRECTION = "M" as const;
 
 const DEFAULT_SIZE_PX = 512;
 
+/**
+ * Filename used for the inline QR PNG attached to invite emails. Must
+ * match the `cid:` reference in the email template — kept here as the
+ * single source of truth so a rename in one place can't desync the other.
+ */
+export const QR_ATTACHMENT_FILENAME = "rsvp-qr.png";
+
 function getBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_BASE_URL;
   if (!raw) {

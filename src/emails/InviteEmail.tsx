@@ -12,6 +12,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { QR_ATTACHMENT_FILENAME } from "@/lib/qr";
 
 type InviteEmailProps = {
   guestName?: string;
@@ -227,7 +228,7 @@ export function InviteEmail({
               <Section style={qrCallout}>
                 <Text style={qrLabel}>Your access pass</Text>
                 <Img
-                  src="cid:rsvp-qr.png"
+                  src={`cid:${QR_ATTACHMENT_FILENAME}`}
                   alt={`Access pass QR code for ${eventTitle}`}
                   width="200"
                   height="200"

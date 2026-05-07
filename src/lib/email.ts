@@ -7,7 +7,7 @@ import { ReminderEmail } from "@/emails/ReminderEmail";
 import { VerificationEmail } from "@/emails/VerificationEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
-import { buildPassUrl, generateQrPngBuffer } from "./qr";
+import { buildPassUrl, generateQrPngBuffer, QR_ATTACHMENT_FILENAME } from "./qr";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration (production)
@@ -471,7 +471,7 @@ export async function processEmail(emailId: string): Promise<void> {
             const png = await generateQrPngBuffer(buildPassUrl(passId));
             attachments = [
               {
-                filename: "rsvp-qr.png",
+                filename: QR_ATTACHMENT_FILENAME,
                 content: png,
                 inline: true,
                 contentType: "image/png",
