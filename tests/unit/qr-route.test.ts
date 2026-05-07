@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const findUniqueMock = vi.fn();
@@ -14,7 +14,11 @@ const { GET } = await import("@/app/api/qr/[passId]/route");
 
 beforeEach(() => {
   findUniqueMock.mockReset();
-  process.env.NEXT_PUBLIC_BASE_URL = "https://eventfxr.com";
+  vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://eventfxr.com");
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 function makeRequest(passId: string, query = ""): {
