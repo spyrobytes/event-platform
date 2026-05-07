@@ -276,6 +276,7 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
 
     await expect(processEmail("outbox-1")).resolves.toBeUndefined();
 
+    // Generation never ran (lookup failed before reaching it).
     expect(generateQrPngBufferMock).not.toHaveBeenCalled();
 
     const renderedArg = renderMock.mock.calls[0][0] as { props: { qrAvailable: boolean } };
@@ -284,6 +285,8 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
     const sendArg = sendMailMock.mock.calls[0][0] as { attachments?: unknown[] };
     expect(sendArg.attachments).toBeUndefined();
 
+    // Outbox row was marked SENT — the DB blip did NOT cascade into the
+    // outer processEmail catch.
     const updateArg = emailOutboxUpdateMock.mock.calls[0][0] as {
       data: { status: string };
     };
@@ -308,6 +311,7 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
     const sendArg = sendMailMock.mock.calls[0][0] as { attachments?: unknown[] };
     expect(sendArg.attachments).toBeUndefined();
 
+    // Email row was marked SENT (success path), not FAILED.
     expect(emailOutboxUpdateMock).toHaveBeenCalledTimes(1);
     const updateArg = emailOutboxUpdateMock.mock.calls[0][0] as {
       data: { status: string };

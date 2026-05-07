@@ -36,12 +36,7 @@ describe("ConfirmationEmail — QR block", () => {
     expect(html).not.toContain("Show this QR at the venue");
   });
 
-  it("MAYBE response does not render the QR block even if qrAvailable=true is somehow passed", async () => {
-    // Defense-in-depth: the pipeline never sets qrAvailable=true for non-YES,
-    // but if it did, the template should not render the QR. Currently the
-    // template gates only on qrAvailable, so this test documents that the
-    // pipeline contract is the source of truth — qrAvailable: true on a
-    // non-YES would render the block.
+  it("MAYBE response without qrAvailable does not render the QR block", async () => {
     const html = await render(
       ConfirmationEmail({ ...baseProps, response: "MAYBE", qrAvailable: false })
     );
