@@ -84,7 +84,7 @@ The fix: introduce `Invite.passId` — a non-secret, stable, public-by-design id
 **Consequences:**
 - One schema migration (`add_invite_pass_id`, Task 0). One column, one unique index, one backfill statement.
 - Token regenerations leave QRs untouched.
-- Dashboard returns `passId` in the invite list response; "View QR" works for every row uniformly.
+- Dashboard returns `passId` in the invite list response; the "Copy pass link" action (Task 5) reads it directly, gated on YES-RSVP'd rows.
 - Pre-GA check-in still gates *write* actions behind staff auth — `passId` only identifies which row a staff scan refers to, not what staff is allowed to do with it.
 - The pass URL has fewer entropy bits than a token URL (122 vs 256). Still infeasible to enumerate, and the worst case if guessed is "stranger sees a guest's name + RSVP status." No write capability follows from possession of a `passId`.
 
@@ -134,7 +134,7 @@ The trigger moves to the CONFIRMATION email, gated on `payload.response === "YES
 | MAYBE | no QR | too ambiguous to issue a credential; staff look up by name from the dashboard if the guest shows |
 | NO | no QR | guest declined; no venue use case |
 
-The pass view (`/invite/pass/[passId]`), the QR API route (`/api/qr/[passId]`), and the dashboard "View QR" modal (Task 5) are **unchanged** — they remain available to organizers for every invite regardless of RSVP state, so phone-only invitees and offline workflows still work.
+The pass view (`/invite/pass/[passId]`) and the QR API route (`/api/qr/[passId]`) are **unchanged** — they remain available to organizers for every invite regardless of RSVP state. The dashboard surface is the slim "Copy pass link" row action (Task 5), which is enabled only on YES-RSVP'd rows so organizers don't accidentally share a "pending" or "declined" pass URL.
 
 This decision supersedes the original Tasks 2b/3 framing. The migration is captured as Task 7. Reusable as-is: the QR utility module (Task 1), the `sendEmail` attachment plumbing (Task 2a), the failure-handling contract (§2.4), and the URL/identifier model (§2.5). Only the trigger point in `processEmail()` changes.
 
@@ -247,7 +247,7 @@ buildQrFilename(guestName: string | null, passId: string): string
 
 `buildPassUrl(passId)` returns `${NEXT_PUBLIC_BASE_URL}/invite/pass/${passId}`.
 
-`buildQrFilename(guestName, passId)` centralizes download filename sanitization so the dashboard modal, future bulk-export, and any ad-hoc tooling all produce the same shape. Reference implementation:
+`buildQrFilename(guestName, passId)` centralizes download filename sanitization so the deferred PNG-download surface (§8 Out of Scope), future bulk-export, and any ad-hoc tooling all produce the same shape. Reference implementation:
 
 ```ts
 export function buildQrFilename(guestName: string | null, passId: string): string {
@@ -607,7 +607,7 @@ The DEFAULT is constant (not volatile like `gen_random_uuid()`), so Postgres can
   - Skips both the `Invite.findUnique` fallback (for `passId`) and `generateQrPngBuffer`, even when `response === "YES"`.
   - Renders the template with `qrAvailable: false`.
   - Sends without `attachments`.
-- The pass view (`/invite/pass/[passId]`), QR API route (`/api/qr/[passId]`), and dashboard "View QR" modal (Task 5) are **not** gated. Organizers can still get a PNG from the dashboard for offline use even when email attachment is disabled.
+- The pass view (`/invite/pass/[passId]`), QR API route (`/api/qr/[passId]`), and dashboard "Copy pass link" row action (Task 5) are **not** gated by this flag. Organizers can still copy the pass URL for confirmed guests even when email attachment is disabled.
 - MAYBE/NO confirmations are unaffected — they never carried a QR regardless of the flag (see §2.10).
 
 **Reading the flag — payload vs. live lookup**
@@ -628,7 +628,7 @@ A single toggle in the invitation design panel: *"Include scannable QR code in c
 - [ ] Migration applies cleanly. Existing rows have `attach_qr_to_confirmation = true`.
 - [ ] `processEmail()` CONFIRMATION branch skips the QR pipeline when the flag is false; the email still sends; `qrAvailable: false` reaches the template; no `attachments` on the send call.
 - [ ] Dashboard toggle persists across reloads.
-- [ ] Pass view and dashboard QR modal continue to work regardless of the flag.
+- [ ] Pass view and dashboard "Copy pass link" row action continue to work regardless of the flag.
 - [ ] New test in `email-qr.test.ts`: with `response: "YES"` and flag-off, zero calls to `generateQrPngBuffer` and zero calls to `Invite.findUnique` for passId.
 - [ ] Existing Task 7 tests unchanged when flag is `true` (default preserves YES-response QR behavior).
 
@@ -713,10 +713,10 @@ Two reviewer expectations specific to this PR:
 5. Hold the phone at arm's length — guest name and RSVP badge readable without zoom on a 6.1" display.
 6. Visit `/api/qr/<passId>` directly in a browser → SVG renders inline.
 7. Visit `?format=png` → PNG renders / downloads.
-8. Dashboard action-menu "View QR" → modal opens **for both newly-created invites and pre-existing invites in the list**; download produces a valid PNG.
+8. Dashboard "Copy pass link" row action → enabled on YES-RSVP'd rows; click copies `/invite/pass/<passId>` to clipboard with `"Copied ✓"` feedback; greyed-out with tooltip on pre-RSVP / MAYBE / NO rows.
 9. Force a QR generation error (e.g. temporarily throw in `generateQrPngBuffer`) → verify email still sends, no broken-image icon, warning logged.
 10. Revoke an invite (`UPDATE invites SET revoked_at = now() WHERE id = …`) → scan its QR → pass view shows the "revoked" banner.
-11. **Regenerate an invite's token** (via the planning panel's Regenerate action) → confirm the previously-distributed QR still resolves to the pass view (passId unchanged); confirm the dashboard QR modal still renders the same image.
+11. **Regenerate an invite's token** (via the planning panel's Regenerate action) → confirm the previously-distributed QR still resolves to the pass view (passId unchanged); confirm the dashboard "Copy pass link" action still copies the same URL.
 
 **Accessibility**
 
@@ -820,8 +820,8 @@ In addition to the standard reviewer expectations in `CLAUDE.md` and `CONTRIBUTI
 - [ ] Email cases other than the one the PR targets are provably unchanged (test evidence, not just claim) — e.g. for Task 7, all non-CONFIRMATION cases must be byte-for-byte stable.
 - [ ] Pass view is dynamically rendered (`force-dynamic`), reads DB live by `passId` in a single query, validates UUID shape before DB hit, correctly renders revoked / cancelled / expired / event-ended states, applies the documented guest-name fallback chain, and does not leak guest identity in OG metadata.
 - [ ] `sendEmail` attachment extension uses the `inline` boolean abstraction (no `cid` field); inline attachments render correctly on both SMTP and Mailgun paths; no manual Content-Type header set on the Mailgun FormData request.
-- [ ] Dashboard Pattern 2 (action-menu + modal) is implemented as specified; **"View QR" is enabled on every invite row** with no token-in-scope dependency; "Copy pass link" and "Download PNG" actions are both present; "Copy pass link" is verbally and visually distinct from the existing "Copy invite link" (§Task 5 terminology note); download filename comes from `buildQrFilename`, not ad-hoc code.
-- [ ] Token regeneration spot-check: regenerating an invite's token does NOT change the pass URL, the QR image, or the dashboard's "View QR" output (passId is the source of truth for the pass-view layer).
+- [ ] Dashboard slim Task 5 is implemented as specified: a "Copy pass link" row action sibling to the existing "Copy Link", **enabled only when `rsvp?.response === "YES"`** (greyed-out with tooltip on pre-RSVP / MAYBE / NO rows); copy uses `buildPassUrl` from `src/lib/qr.ts` and shows `"Copied ✓"` feedback for ~2s; verbally and visually distinct from the existing "Copy Link" (§Task 5 terminology note). No modal, no image preview, no PNG download.
+- [ ] Token regeneration spot-check: regenerating an invite's token does NOT change the pass URL or what the dashboard's "Copy pass link" action copies (passId is the source of truth for the pass-view layer).
 
 ---
 
