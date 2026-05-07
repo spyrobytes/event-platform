@@ -1,6 +1,6 @@
 # QR Codes in Invitation Emails — Implementation Plan
 
-**Feature:** Embed scannable QR codes in invite emails. The QR doubles as an "access pass" at the venue — door staff scan a guest's QR, see guest identity + RSVP status, and grant access based on visual verification.
+**Feature:** Embed scannable QR codes in RSVP confirmation emails for guests who responded YES. The QR doubles as an "access pass" at the venue — door staff scan a guest's QR, see guest identity + RSVP status, and grant access based on visual verification.
 **Scope:** Email attachment + dashboard display + dedicated pass view. Full backend check-in (record check-in timestamps, prevent double-entry) remains **pre-GA**, not MVP.
 **Effort estimate:** ~2 dev days across 10 small PRs
 **Owner:** _TBD_
@@ -321,6 +321,8 @@ The 8-char passId prefix disambiguates when organizers download multiple guests 
 
 ### Task 2b — Wire QR into `processEmail()` for INVITE
 
+> **⚠ Superseded.** Shipped in #73 against INVITE; superseded by Task 7 (§2.10) which moved the trigger to CONFIRMATION (YES responses only). Section retained as historical context — do not implement against INVITE again.
+
 **Branch:** `feat/qr-email-integration`
 **PR title:** `feat: attach QR code to invite emails`
 **Depends on:** Task 1, Task 2a
@@ -356,6 +358,8 @@ The 8-char passId prefix disambiguates when organizers download multiple guests 
 ---
 
 ### Task 3 — Update `InviteEmail` template (conditional QR block)
+
+> **⚠ Superseded.** Shipped in #75 against `InviteEmail.tsx`; superseded by Task 7 (§2.10) which moved the QR block to `ConfirmationEmail.tsx` (YES responses only). Section retained as historical context.
 
 **Branch:** `feat/qr-invite-email-template`
 **PR title:** `feat: render QR code in invite email`
@@ -572,14 +576,14 @@ Pattern chosen: **action-menu + modal** (not inline thumbnail). Reasons captured
 ### Task 6 — Per-event QR opt-out
 
 **Branch:** `feat/qr-event-toggle`
-**PR title:** `feat: per-event toggle to skip QR attachment in invite emails`
-**Depends on:** Task 0 (schema), Task 2b (QR pipeline). **Merge order: ship after Task 3** so the on/off email branches are verified end-to-end before the gating switch lands.
+**PR title:** `feat: per-event toggle to skip QR attachment in confirmation emails`
+**Depends on:** Task 0 (schema), Task 7 (QR pipeline now lives in CONFIRMATION branch). **Merge order: ship after Task 7** so the on/off branches are verified end-to-end before the gating switch lands.
 
 **Files**
 
-- `prisma/schema.prisma` _(edit — add `attachQrToInviteEmail` to `Event`)_
+- `prisma/schema.prisma` _(edit — add `attachQrToConfirmation` to `Event`)_
 - `prisma/migrations/<timestamp>_add_event_attach_qr/migration.sql` _(new)_
-- `src/lib/email.ts` _(edit — read flag in `processEmail()` INVITE branch; short-circuit QR pipeline when false)_
+- `src/lib/email.ts` _(edit — read flag in `processEmail()` CONFIRMATION branch; short-circuit QR pipeline when false)_
 - `src/schemas/event.ts` _(edit — accept the new field on event update)_
 - `src/app/api/events/[id]/route.ts` _(edit — pass field through to update)_
 - Invitation design panel page _(edit — toggle in the dashboard)_
@@ -590,7 +594,7 @@ Pattern chosen: **action-menu + modal** (not inline thumbnail). Reasons captured
 ```prisma
 model Event {
   // ... existing fields
-  attachQrToInviteEmail Boolean @default(true) @map("attach_qr_to_invite_email")
+  attachQrToConfirmation Boolean @default(true) @map("attach_qr_to_confirmation")
 }
 ```
 
@@ -598,40 +602,41 @@ model Event {
 
 ```sql
 ALTER TABLE "events"
-  ADD COLUMN "attach_qr_to_invite_email" BOOLEAN NOT NULL DEFAULT TRUE;
+  ADD COLUMN "attach_qr_to_confirmation" BOOLEAN NOT NULL DEFAULT TRUE;
 ```
 
 The DEFAULT is constant (not volatile like `gen_random_uuid()`), so Postgres can fast-path this without rewriting the table. Existing events default to opted-in — no behavior change for any current event.
 
 **Behavior**
 
-- When `event.attachQrToInviteEmail === false`, `processEmail()` INVITE branch:
-  - Skips both the `Invite.findUnique` fallback and `generateQrPngBuffer`.
+- When `event.attachQrToConfirmation === false`, `processEmail()` CONFIRMATION branch:
+  - Skips both the `Invite.findUnique` fallback (for `passId`) and `generateQrPngBuffer`, even when `response === "YES"`.
   - Renders the template with `qrAvailable: false`.
   - Sends without `attachments`.
 - The pass view (`/invite/pass/[passId]`), QR API route (`/api/qr/[passId]`), and dashboard "View QR" modal (Task 5) are **not** gated. Organizers can still get a PNG from the dashboard for offline use even when email attachment is disabled.
+- MAYBE/NO confirmations are unaffected — they never carried a QR regardless of the flag (see §2.10).
 
 **Reading the flag — payload vs. live lookup**
 
 The flag must be read at send-time, not queue-time, so a toggle made between queue and send is honored (≤5 min window, but real). Implementation can either:
 
-1. Add one column to whatever event lookup `processEmail()` already does (preferred — none today, so this means one new query per INVITE send), or
+1. Add one column to whatever event lookup `processEmail()` already does (preferred — none today, so this means one new query per CONFIRMATION send for YES responses), or
 2. Embed the flag in the queued payload and accept the read-after-write tear (organizer toggling after queue does not affect the in-flight send).
 
 Pick option 1 unless the extra query shows up in cron-tick timing. ~1ms cost on a small column read is well within the 50ms cron budget.
 
 **Dashboard surface**
 
-A single toggle in the invitation design panel: *"Include scannable QR code in invite email"*, default on. Persisted via the existing event update endpoint — no new write surface.
+A single toggle in the invitation design panel: *"Include scannable QR code in confirmation email"*, default on. Persisted via the existing event update endpoint — no new write surface.
 
 **Acceptance criteria**
 
-- [ ] Migration applies cleanly. Existing rows have `attach_qr_to_invite_email = true`.
-- [ ] `processEmail()` skips the QR pipeline when the flag is false; the email still sends; `qrAvailable: false` reaches the template; no `attachments` on the send call.
+- [ ] Migration applies cleanly. Existing rows have `attach_qr_to_confirmation = true`.
+- [ ] `processEmail()` CONFIRMATION branch skips the QR pipeline when the flag is false; the email still sends; `qrAvailable: false` reaches the template; no `attachments` on the send call.
 - [ ] Dashboard toggle persists across reloads.
 - [ ] Pass view and dashboard QR modal continue to work regardless of the flag.
-- [ ] New test in `email-qr.test.ts`: flag-off path makes zero calls to `generateQrPngBuffer` and zero calls to `Invite.findUnique` for passId.
-- [ ] Existing tests unchanged (default `true` preserves current behavior).
+- [ ] New test in `email-qr.test.ts`: with `response: "YES"` and flag-off, zero calls to `generateQrPngBuffer` and zero calls to `Invite.findUnique` for passId.
+- [ ] Existing Task 7 tests unchanged when flag is `true` (default preserves YES-response QR behavior).
 
 **Out of scope (intentional)**
 
@@ -745,8 +750,7 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 
 **Rollback**
 
-- Task 0 is the only schema migration. Rolling it back is a `DROP COLUMN pass_id` — non-destructive in the sense that no other data depends on it. Roll back later tasks in reverse order without touching the column.
-- No DB migrations beyond Task 0.
+- Two schema migrations across the plan: Task 0 (`add_invite_pass_id`) and Task 6 (`add_event_attach_qr`). Both are additive — rolling either back is a `DROP COLUMN`, non-destructive because no other data depends on them. Roll back later tasks in reverse order without touching the columns.
 - Emails already delivered with a QR remain functional forever — `passId` is stable and the URL is durable across token regenerations.
 
 ### 6.5 Post-ship monitoring (stub)
@@ -754,7 +758,7 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 Not in scope for the MVP tasks above, but worth capturing so the owner of observability picks it up alongside ship. Define dashboards / alerts for:
 
 - **QR generation failure rate** (count of `processEmail()` CONFIRMATION branch that logged `"QR generation failed"` / `"QR pipeline failed"`). Target <0.1%.
-- **INVITE emails sent with `qrAvailable: false`** — counter; should be ~0. Non-zero indicates a systematic issue (e.g. env var drift, fallback DB lookup failing).
+- **CONFIRMATION emails sent with `response: "YES"` and `qrAvailable: false`** — counter; should be ~0. Non-zero indicates a systematic issue (e.g. env var drift, fallback DB lookup failing). Excludes events with the per-event opt-out from Task 6 — query should filter on `event.attachQrToConfirmation = true`.
 - **Pass view 404 rate** — baseline, then alert on sustained spikes. Under Option B, the most likely cause of a 404 is a deleted invite or a malformed URL — *not* a regenerated token (which can no longer break the QR).
 - **Mailgun bounce / complaint delta** — compare 7-day pre/post-ship. Investigate if +0.5pp or more, especially bounce — PNG attachments can affect spam scoring.
 
@@ -818,7 +822,7 @@ In addition to the standard reviewer expectations in `CLAUDE.md` and `CONTRIBUTI
 - [ ] Architectural decisions in §2 are respected (especially: send-time generation, `inline: true` attachments per §2.6, non-fatal QR failures, **passId-keyed pass view per §2.5**, **CONFIRMATION-not-INVITE delivery per §2.10**, timestamp-driven state detection per §2.8).
 - [ ] No new environment variables introduced.
 - [ ] One schema migration only (`add_invite_pass_id`, Task 0). No changes to `EmailOutbox` schema or shape. Migration form (default vs safe) is justified in PR description against staging row counts.
-- [ ] Non-INVITE email cases are provably unchanged (test evidence, not just claim).
+- [ ] Email cases other than the one the PR targets are provably unchanged (test evidence, not just claim) — e.g. for Task 7, all non-CONFIRMATION cases must be byte-for-byte stable.
 - [ ] Pass view is dynamically rendered (`force-dynamic`), reads DB live by `passId` in a single query, validates UUID shape before DB hit, correctly renders revoked / cancelled / expired / event-ended states, applies the documented guest-name fallback chain, and does not leak guest identity in OG metadata.
 - [ ] `sendEmail` attachment extension uses the `inline` boolean abstraction (no `cid` field); inline attachments render correctly on both SMTP and Mailgun paths; no manual Content-Type header set on the Mailgun FormData request.
 - [ ] Dashboard Pattern 2 (action-menu + modal) is implemented as specified; **"View QR" is enabled on every invite row** with no token-in-scope dependency; "Copy pass link" and "Download PNG" actions are both present; "Copy pass link" is verbally and visually distinct from the existing "Copy invite link" (§Task 5 terminology note); download filename comes from `buildQrFilename`, not ad-hoc code.
