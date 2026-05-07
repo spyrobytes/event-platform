@@ -33,12 +33,7 @@ export function buildPassUrl(passId: string): string {
   return `${getBaseUrl()}/invite/pass/${passId}`;
 }
 
-/**
- * Render a QR code as an SVG string.
- *
- * Use for in-browser display where vector scaling matters. ~500 bytes,
- * crisp at any zoom level.
- */
+/** SVG output — for in-browser display where vector scaling matters. */
 export async function generateQrSvg(
   url: string,
   size: number = DEFAULT_SIZE_PX
@@ -51,12 +46,7 @@ export async function generateQrSvg(
   });
 }
 
-/**
- * Render a QR code as a PNG buffer.
- *
- * Use for email attachments — PNG is the only image format reliably
- * rendered across Outlook, Gmail, and Apple Mail.
- */
+/** PNG buffer — for email attachments (only format reliable across Outlook/Gmail/Apple Mail). */
 export async function generateQrPngBuffer(
   url: string,
   size: number = DEFAULT_SIZE_PX
@@ -69,16 +59,16 @@ export async function generateQrPngBuffer(
 }
 
 /**
- * Render a QR code as a `data:image/png;base64,…` URL.
- *
- * Convenience for inline previews where a buffer round-trip would add
- * boilerplate. Not suitable for emails (use {@link generateQrPngBuffer}
- * with CID-inline attachments instead).
+ * `data:image/png;base64,…` URL for inline previews. Not for emails — use
+ * {@link generateQrPngBuffer} with CID-inline attachments instead.
  */
-export async function generateQrDataUrl(url: string): Promise<string> {
+export async function generateQrDataUrl(
+  url: string,
+  size: number = DEFAULT_SIZE_PX
+): Promise<string> {
   return QRCode.toDataURL(url, {
     errorCorrectionLevel: DEFAULT_ERROR_CORRECTION,
-    width: DEFAULT_SIZE_PX,
+    width: size,
     margin: 1,
   });
 }

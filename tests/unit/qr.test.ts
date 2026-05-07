@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   buildPassUrl,
   buildQrFilename,
@@ -7,19 +7,13 @@ import {
   generateQrDataUrl,
 } from "@/lib/qr";
 
-const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-
 describe("buildPassUrl", () => {
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_BASE_URL = "https://eventfxr.com";
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://eventfxr.com");
   });
 
   afterEach(() => {
-    if (ORIGINAL_BASE_URL === undefined) {
-      delete process.env.NEXT_PUBLIC_BASE_URL;
-    } else {
-      process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
-    }
+    vi.unstubAllEnvs();
   });
 
   it("builds a pass URL keyed on passId", () => {
@@ -27,17 +21,17 @@ describe("buildPassUrl", () => {
   });
 
   it("strips a trailing slash from the base URL", () => {
-    process.env.NEXT_PUBLIC_BASE_URL = "https://eventfxr.com/";
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://eventfxr.com/");
     expect(buildPassUrl("abc-123")).toBe("https://eventfxr.com/invite/pass/abc-123");
   });
 
   it("strips multiple trailing slashes", () => {
-    process.env.NEXT_PUBLIC_BASE_URL = "https://eventfxr.com///";
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://eventfxr.com///");
     expect(buildPassUrl("abc-123")).toBe("https://eventfxr.com/invite/pass/abc-123");
   });
 
   it("throws a clear error when NEXT_PUBLIC_BASE_URL is unset", () => {
-    delete process.env.NEXT_PUBLIC_BASE_URL;
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
     expect(() => buildPassUrl("abc-123")).toThrow(/NEXT_PUBLIC_BASE_URL/);
   });
 });
