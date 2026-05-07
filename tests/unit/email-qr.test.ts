@@ -106,6 +106,14 @@ function resetEnv() {
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
+const PAYLOAD_WITHOUT_PASS_ID = {
+  eventTitle: "T",
+  eventDate: "d",
+  eventTime: "t",
+  hostName: "h",
+  rsvpUrl: "u",
+};
+
 beforeEach(() => {
   vi.resetModules();
   sendMailMock.mockReset();
@@ -147,7 +155,6 @@ function inviteRow(overrides: Partial<Pick<EmailRow, "payload" | "inviteId">> = 
       hostName: "Host",
       rsvpUrl: "https://example.test/rsvp/tok",
       passId: "pass-abc",
-      ...(overrides.payload ?? {}),
     },
     ...overrides,
   };
@@ -185,7 +192,7 @@ describe("processEmail() — INVITE branch QR attachment", () => {
   });
 
   it("falls back to a single Invite lookup when payload omits passId, then attaches QR", async () => {
-    dbState.email = inviteRow({ payload: { eventTitle: "T", eventDate: "d", eventTime: "t", hostName: "h", rsvpUrl: "u" } });
+    dbState.email = inviteRow({ payload: PAYLOAD_WITHOUT_PASS_ID });
     dbState.inviteRow = { passId: "pass-from-db" };
 
     const { processEmail } = await import("@/lib/email");
@@ -206,7 +213,7 @@ describe("processEmail() — INVITE branch QR attachment", () => {
   });
 
   it("sends without QR (qrAvailable: false, no attachment) when fallback lookup misses", async () => {
-    dbState.email = inviteRow({ payload: { eventTitle: "T", eventDate: "d", eventTime: "t", hostName: "h", rsvpUrl: "u" } });
+    dbState.email = inviteRow({ payload: PAYLOAD_WITHOUT_PASS_ID });
     dbState.inviteRow = null;
 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

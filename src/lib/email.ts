@@ -187,12 +187,9 @@ type InviteEmailPayload = {
   unsubscribeUrl?: string;
   logoUrl?: string;
   rsvpDeadline?: string;
-  // Stable, non-secret pass-view identifier (Invite.passId). The QR code
-  // attached to this email encodes /invite/pass/<passId>.
-  passId: string;
-  // Set by processEmail() at send-time. The InviteEmail template renders
-  // the inline QR <Img> only when this is true; on failure the email still
-  // ships, just without the QR block.
+  // Optional because legacy outbox rows queued before passId existed
+  // still pass through this type at read-time.
+  passId?: string;
   qrAvailable?: boolean;
   // Optional pre-ceremony "Traditional" sub-event — populated when the main
   // Event row's start time precedes the ceremony (i.e. there's a separate
@@ -451,19 +448,13 @@ export async function processEmail(emailId: string): Promise<void> {
       case "INVITE": {
         const invitePayload = payload as unknown as InviteEmailPayload;
         let qrAvailable = false;
-        // Single guard around the entire QR pipeline (passId resolution +
-        // image generation). Per §2.4: a missing QR is a degraded experience;
-        // a failed email is a lost invite. A transient DB blip on the
-        // fallback lookup must not cascade into the outer catch and mark
-        // the outbox row FAILED.
+        // QR failures (lookup OR generation) must not cascade — a missing
+        // QR is a degraded experience; a failed email is a lost invite.
         try {
           let passId =
             typeof payload.passId === "string" && payload.passId.length > 0
               ? payload.passId
               : null;
-          // passId may be absent on legacy outbox rows queued before this
-          // feature shipped — fall back to a single Invite lookup. Keeps
-          // the recovery sweep's re-queued rows working without a backfill.
           if (!passId && email.inviteId) {
             const invite = await db.invite.findUnique({
               where: { id: email.inviteId },

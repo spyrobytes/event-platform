@@ -44,8 +44,7 @@ type InviteEmailProps = {
    *  with `publicRsvpUrl` — both must be present to show the code block. */
   rsvpCode?: string;
   publicRsvpUrl?: string;
-  /** Set by `processEmail()` at send-time. The conditional QR block (Task 3)
-   *  renders the inline `cid:rsvp-qr.png` Img only when this is true. */
+  /** When true, render the inline `cid:rsvp-qr.png` Img block. */
   qrAvailable?: boolean;
 };
 
