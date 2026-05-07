@@ -373,6 +373,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 seatAssignment: true,
                 plannerNotes: true,
                 createdAt: true,
+                passId: true,
               },
             })
         )
@@ -408,6 +409,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 rsvpUrl: `${baseUrl}/rsvp/${token}`,
                 unsubscribeUrl: buildUnsubscribeUrl(token),
                 rsvpCode,
+                passId: invite.passId,
               });
 
               processEmail(emailId).catch((err) => {
@@ -482,6 +484,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           seatAssignment: true,
           plannerNotes: true,
           createdAt: true,
+          passId: true,
         },
       });
 
@@ -501,6 +504,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             rsvpUrl: `${baseUrl}/rsvp/${token}`,
             unsubscribeUrl: buildUnsubscribeUrl(token),
             rsvpCode,
+            passId: invite.passId,
           });
 
           processEmail(emailId).catch((err) => {
