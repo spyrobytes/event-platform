@@ -2,10 +2,12 @@
 
 **Feature:** Embed scannable QR codes in invite emails. The QR doubles as an "access pass" at the venue — door staff scan a guest's QR, see guest identity + RSVP status, and grant access based on visual verification.
 **Scope:** Email attachment + dashboard display + dedicated pass view. Full backend check-in (record check-in timestamps, prevent double-entry) remains **pre-GA**, not MVP.
-**Effort estimate:** ~2 dev days across 9 small PRs
+**Effort estimate:** ~2 dev days across 10 small PRs
 **Owner:** _TBD_
 **Status:** Ready to pick up
 
+> **Fifth revision (2026-05-07).** **Architectural correction:** the QR moves from INVITE emails to CONFIRMATION emails, gated on `response === "YES"`. Surfaced in production review of #73 / #75 — the QR is a venue access credential, and sending it to invitees who haven't confirmed (or who decline) is premature commitment for the ~30–50% who never attend. Adds Task 7 (migration); flips §1 Goals first bullet; adds §2.10 (email-type decision); removes the "QR codes in CONFIRMATION emails" line from §1 Non-Goals and §8 Out of Scope (REMINDER stays out); updates §4 count, §6 Rollout, §10 Reviewer Checklist. The QR generation pipeline (Task 1) and `sendEmail` attachment plumbing (Task 2a) are reusable as-is; only the trigger point changes.
+>
 > **Fourth revision (2026-05-07).** Adds Task 6 — per-event opt-out for QR attachment in invite emails (boolean column on `Event`, dashboard toggle, `processEmail()` short-circuit when off). Per-send override is intentionally deferred. Updates §1 Goals, §4 Task Breakdown count, §6 Rollout, §8 Out of Scope.
 >
 > **Revision note.** This version supersedes the original draft (kept out-of-repo). Initial revision: adds pass-view route, attachment-plumbing task, broken-image fallback, revoked-invite handling in the QR route; switches QR target URL from `/rsvp/[token]` to `/invite/[token]/pass`; fixes factual error about the Mailgun SDK; narrows dashboard UX to Pattern 2 (action-menu + modal). Second revision (2026-04-23) applies reviewer feedback: B1 (inline-attachment abstraction), B2 (`force-dynamic`), B3 (phone-only cohort), B4 (copy-link action), S1–S4 (pass-view state & fields), S5 (OG privacy), S6 (email copy), S7 (multipart boundary), S8 (single Prisma call), and selected polish items (N1, N2, N4, N6, N7, N8). **Third revision (2026-05-06) — Option B.** Switches the pass-view URL from `/invite/[token]/pass` to `/invite/pass/[passId]`, where `passId` is a new non-secret `Invite` column. Rationale: (a) makes QRs durable across token regenerations (token-keyed URLs broke on regen, contradicting the plan's own durability goal); (b) eliminates the dashboard's chicken-and-egg with raw tokens — the invite list never carries raw tokens for previously-created invites, so a token-keyed QR endpoint couldn't serve them; (c) decouples the read-only display credential (`passId`) from the write-action token (raw token); (d) keeps pass URLs stable into the pre-GA check-in feature. Adds Task 0 (schema migration). Updates Tasks 1, 2b, 3.5, 4, 5; rollout, risks, reviewer checklist. Fix-up after PR review: §2.5 records why `passId` is intentionally non-rotatable; §2.9 documents the `/invite/pass` literal-path collision (graceful 404); §8 captures the CSV-export deferral.
@@ -16,9 +18,9 @@
 
 **Goals**
 
-- Every `INVITE` email includes an inline QR code that, when scanned at the venue, opens a **"pass view"** showing guest identity and RSVP status — optimized for door staff glancing at a phone, not for animated delight.
+- Every `CONFIRMATION` email sent to a guest who responded **YES** includes an inline QR code that, when scanned at the venue, opens a **"pass view"** showing guest identity and RSVP status — optimized for door staff glancing at a phone, not for animated delight. INVITE emails do not carry the QR (see §2.10). MAYBE and NO confirmations also do not — staff can look up MAYBE attendees by name from the dashboard if they show.
 - Organizers can view and download each invite's QR from the dashboard (Pattern 2: action-menu + modal). The dashboard QR is available for **every** invite uniformly — including invites created before the feature shipped — because the lookup key (`passId`) is in the database, not held only in client memory.
-- Organizers can opt out of the email QR attachment per event (Task 6). The dashboard QR modal and pass view are unaffected — the toggle gates the email attachment only.
+- Organizers can opt out of the email QR attachment per event (Task 6). The dashboard QR modal and pass view are unaffected — the toggle gates the CONFIRMATION-email attachment only.
 - Implementation respects existing email queue / retry semantics (no duplicate sends, no orphaned jobs).
 - Feature is additive: no changes to existing RSVP or email flows for guests. The email body's "RSVP Now" CTA continues to point at the animated invitation card (`/invite/[token]`); only the QR encodes the pass URL.
 - QR URL is **durable** — the encoded pass URL is keyed on `Invite.passId`, which is generated at row creation and never rotated. Token regenerations leave previously-distributed QRs intact. Reusable when pre-GA check-in infrastructure ships.
@@ -27,7 +29,7 @@
 **Non-Goals (for this plan)**
 
 - **Backend check-in state** (scanning writes a `checkedInAt` timestamp, prevents double-entry). Pre-GA work. The MVP is visual verification only.
-- QR codes in `CONFIRMATION` or `REMINDER` emails — low marginal value; guest already has the invite email.
+- QR codes in `REMINDER` emails — low marginal value once it ships in `CONFIRMATION`. Could help phone-only invitees who supply an email at RSVP time, but adds payload-type complexity; revisit if phone-only invitees report difficulty at venues in practice.
 - Branded QR codes with logo overlay — requires bumping error correction to `H` and design input. Deferred until organizers request it.
 - Apple / Google Wallet passes — significant infra lift; only worth doing once pre-GA check-in is live and demand is proven.
 - Staff scanner UI (camera-based scan page) — pre-GA, if the check-in flow needs it.
@@ -118,6 +120,22 @@ The split is intentional: the *animated invite* and the *RSVP write flow* both g
 
 **Route-collision note.** Next.js's App Router resolves the longer-prefix segment first, so `/invite/pass/<uuid>` always reaches the pass-view page and `/invite/<token>` always reaches the animated card. The one edge case worth naming: the literal path `/invite/pass` (no third segment) routes to `/invite/[token]/page.tsx` with `token = "pass"` — the existing handler hashes that, fails to find a row, and returns 404. Graceful but not obvious; documenting here so future maintainers don't burn time diagramming it.
 
+### 2.10 QR ships with confirmation, not invitation
+
+Tasks 2b and 3 originally attached the QR to INVITE emails. Production review surfaced an operational issue: the QR is a venue access credential, and an invite is sent before the recipient has agreed to attend. Distributing a credential to the ~30–50% of any guest list who decline or never respond is premature commitment that clutters their inbox and confuses the act of "I'm thinking about attending" with "I have a pass."
+
+The trigger moves to the CONFIRMATION email, gated on `payload.response === "YES"`:
+
+| Response | CONFIRMATION email | Why |
+|---|---|---|
+| YES | inline QR + visible block | guest committed to attending; pass is meaningful |
+| MAYBE | no QR | too ambiguous to issue a credential; staff look up by name from the dashboard if the guest shows |
+| NO | no QR | guest declined; no venue use case |
+
+The pass view (`/invite/pass/[passId]`), the QR API route (`/api/qr/[passId]`), and the dashboard "View QR" modal (Task 5) are **unchanged** — they remain available to organizers for every invite regardless of RSVP state, so phone-only invitees and offline workflows still work.
+
+This decision supersedes the original Tasks 2b/3 framing. The migration is captured as Task 7. Reusable as-is: the QR utility module (Task 1), the `sendEmail` attachment plumbing (Task 2a), the failure-handling contract (§2.4), and the URL/identifier model (§2.5). Only the trigger point in `processEmail()` changes.
+
 ---
 
 ## 3. Prerequisites
@@ -139,7 +157,7 @@ npm install -D @types/qrcode
 
 ## 4. Task Breakdown
 
-Nine atomic, independently-mergeable PRs. Each PR should be under ~300 lines of diff. Task 0 must merge first; after that, Tasks 1, 2a, 3.5, and 4 can be parallelized by multiple developers. Task 6 lands last (after Task 3) so the on/off branches are visually verified end-to-end before the gating switch is added.
+Ten atomic, independently-mergeable PRs. Each PR should be under ~300 lines of diff. Task 0 must merge first; after that, Tasks 1, 2a, 3.5, and 4 can be parallelized by multiple developers. **Task 7 supersedes Tasks 2b and 3** as the source of truth for QR email delivery — those tasks shipped against INVITE and Task 7 migrates them to CONFIRMATION (see §2.10). Task 6 lands after Task 7 once the new on/off branches are verified end-to-end.
 
 ### Task 0 — Schema migration: add `Invite.passId`
 
@@ -621,6 +639,64 @@ Per-send override (e.g. a checkbox in the "Send invites" dialog). Not in this it
 
 ---
 
+### Task 7 — Migrate QR from INVITE to CONFIRMATION emails
+
+**Branch:** `feat/qr-in-confirmation`
+**PR title:** `feat: send QR with confirmation email instead of invitation`
+**Depends on:** Tasks 2b (#73) and 3 (#75) — already shipped against INVITE. Supersedes their target email type (see §2.10).
+
+**Background**
+
+In production review of #73 and #75 the team caught that the QR — a venue access credential — was being attached to invitations, before the recipient had agreed to attend. The correct trigger is a positive RSVP. This task migrates the pipeline + template block from INVITE to CONFIRMATION, gated on `response === "YES"`.
+
+**Files**
+
+- `src/lib/email.ts` _(edit)_:
+  - Remove `passId` and `qrAvailable` from `InviteEmailPayload`.
+  - Remove the QR pipeline from the INVITE branch in `processEmail()` (revert most of the Task 2b changes).
+  - Add `passId?: string` and `qrAvailable?: boolean` to `ConfirmationEmailPayload`.
+  - Add the QR pipeline to the CONFIRMATION branch in `processEmail()`, gated on `payload.response === "YES"`. Same try/catch contract as before — failures degrade to no-QR, never throw.
+- `src/emails/InviteEmail.tsx` _(edit)_:
+  - Remove the conditional QR `<Section>`, the four `qr*` style objects, the `QR_ATTACHMENT_FILENAME` import, and the `qrAvailable` prop.
+- `src/emails/ConfirmationEmail.tsx` _(edit)_:
+  - Add the conditional QR `<Section>` (mirror the styling from the InviteEmail version), the four `qr*` styles, the `QR_ATTACHMENT_FILENAME` import, and the `qrAvailable` prop.
+- `src/app/api/events/[id]/invites/route.ts` _(edit)_:
+  - Drop `passId: invite.passId` from the INVITE payload threading. The select can also drop `passId: true` if no other consumer needs it (verify before removing).
+- RSVP submission path _(edit)_:
+  - Wherever `queueConfirmationEmail` is called (likely under `src/app/api/rsvp/...` or similar), thread `passId: invite.passId` into the payload. The Invite row is already in scope for the RSVP write — adding `passId: true` to the existing select is a one-line change.
+- `tests/unit/email-qr.test.ts` _(rewrite)_:
+  - INVITE-branch QR tests become CONFIRMATION-branch QR tests.
+  - Add coverage: `response: "YES"` triggers QR pipeline; `response: "MAYBE"` and `response: "NO"` do not.
+  - Drop tests that asserted INVITE attachment behavior — those facts no longer hold.
+- `tests/unit/invite-email-template.test.ts` _(delete)_:
+  - InviteEmail no longer renders QR. The four tests in this file are obsolete.
+- `tests/unit/confirmation-email-template.test.ts` _(new)_:
+  - Render the ConfirmationEmail template with `qrAvailable: true` + `response: "YES"` → block renders. With `qrAvailable: false`, with `response: "MAYBE"`, with `response: "NO"` → block omitted. RSVP details remain present in all cases.
+
+**Behavior**
+
+- **INVITE emails** revert to pre-#73 behavior: no QR attachment, no QR template block.
+- **CONFIRMATION emails** for `response === "YES"`: generate QR PNG via `generateQrPngBuffer(buildPassUrl(passId))`, attach as inline `cid:rsvp-qr.png`, render block in template. Failure → log warn, ship confirmation without QR.
+- **CONFIRMATION emails** for `response === "MAYBE"` or `response === "NO"`: no QR pipeline, no attachment, no template block. The confirmation acknowledges the response and routes to the portal CTA as before.
+
+**Acceptance criteria**
+
+- [ ] Rendered INVITE HTML contains zero references to `cid:rsvp-qr.png`. (Add a regression test if not implicit.)
+- [ ] Rendered CONFIRMATION HTML contains the QR block iff `response === "YES"` AND `qrAvailable === true`.
+- [ ] `processEmail()` CONFIRMATION branch generates QR only on YES; never on MAYBE/NO. Asserted via mocked `generateQrPngBuffer`.
+- [ ] CONFIRMATION email for YES response includes the inline attachment `{ filename: QR_ATTACHMENT_FILENAME, inline: true, contentType: "image/png" }`.
+- [ ] Same try/catch contract as Task 2b: a failed lookup or generation produces a warn log and a QR-less email — never throws.
+- [ ] `queueConfirmationEmail` callers thread `passId` into the payload. Fallback `Invite.findUnique` retained in `processEmail()` for legacy queued rows that predate this PR.
+- [ ] All existing tests rewritten or deleted; full suite passes; lint + typecheck clean.
+
+**Reviewer note**
+
+Two reviewer expectations specific to this PR:
+1. Confirm INVITE email rendered HTML is byte-for-byte identical to its pre-#73 form (modulo unrelated changes in main since then).
+2. Confirm the gate is on `response === "YES"` — not on truthy `response` (which would also let MAYBE through). The `response` field is a `RsvpResponse` enum (`YES` | `MAYBE` | `NO`); strict equality is the intended check.
+
+---
+
 ## 5. Testing Strategy
 
 **Unit tests (Vitest)** — covered in each task's AC above. No shared fixtures needed beyond the existing `email.test.ts` mock Mailgun client.
@@ -662,9 +738,10 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 | Task 1 + Task 2a (parallel) | Utilities + attachment plumbing (unused by any email yet) | None |
 | Task 3.5 | Pass view reachable at `/invite/pass/[passId]` (not yet referenced by any email) | None |
 | Task 4 | QR API route callable (no UI references it yet) | None |
-| Task 2b + Task 3 (together) | Emails include QR attachment + conditional template block | Next invite send includes QR. Already-queued-but-unsent invites also get the QR on send. Already-sent invites do **not** retroactively gain a QR in the recipient's inbox — organizer can re-send if needed. Their dashboard QR is available regardless. |
-| Task 5 | Dashboard action-menu "View QR" appears in every invite row | Organizers see QR per invite for **all** invites (including pre-feature ones), with passId already backfilled by Task 0 |
-| Task 6 | Per-event "Include QR in invite email" toggle (default on) | No change to existing events. New events can opt out before any invites are sent. Toggling mid-flight skips the QR on subsequent sends only. |
+| Task 2b + Task 3 (together) | INVITE emails include QR attachment + conditional template block | _Shipped against INVITE in #73/#75; superseded by Task 7 (see §2.10)._ |
+| Task 7 | QR migrates from INVITE to CONFIRMATION (YES responses only) | Newly-sent INVITE emails revert to pre-feature behavior (no QR). New CONFIRMATION emails for YES responses include the QR; MAYBE/NO confirmations do not. Already-sent INVITE emails with QRs in inboxes remain functional — `passId` is durable, the linked pass view still resolves. |
+| Task 5 | Dashboard action-menu "View QR" appears in every invite row | Organizers see QR per invite for **all** invites (including pre-feature ones), with passId already backfilled by Task 0. Independent of email-delivery changes. |
+| Task 6 | Per-event "Include QR in confirmation email" toggle (default on) | No change to existing events. New events can opt out before any invites are sent. Toggling mid-flight skips the QR on subsequent CONFIRMATION sends only. |
 
 **Rollback**
 
@@ -676,7 +753,7 @@ Ship in task order. Tasks are additive and non-breaking; rollback of any single 
 
 Not in scope for the MVP tasks above, but worth capturing so the owner of observability picks it up alongside ship. Define dashboards / alerts for:
 
-- **QR generation failure rate** (count of `processEmail()` INVITE branch that logged `"QR generation failed"`). Target <0.1%.
+- **QR generation failure rate** (count of `processEmail()` CONFIRMATION branch that logged `"QR generation failed"` / `"QR pipeline failed"`). Target <0.1%.
 - **INVITE emails sent with `qrAvailable: false`** — counter; should be ~0. Non-zero indicates a systematic issue (e.g. env var drift, fallback DB lookup failing).
 - **Pass view 404 rate** — baseline, then alert on sustained spikes. Under Option B, the most likely cause of a 404 is a deleted invite or a malformed URL — *not* a regenerated token (which can no longer break the QR).
 - **Mailgun bounce / complaint delta** — compare 7-day pre/post-ship. Investigate if +0.5pp or more, especially bounce — PNG attachments can affect spam scoring.
@@ -711,7 +788,7 @@ Deliberately deferred; all reusable with the MVP QRs (passId is stable, no rotat
 - **Staff scanner UI.** Dedicated `/admin/events/[id]/check-in` page that uses the browser camera API to scan QRs directly. Only needed once the backend check-in flow exists and venues request faster throughput than the "open phone, hold for staff" flow.
 - **Branded QR codes with logo overlay.** Requires error correction `H` and design input.
 - **QR code on the pass view itself.** Not useful for MVP (visual verification only). Becomes valuable when backend check-in ships because scanning the pass-view QR from a staff scanner would then trigger a state write rather than re-display the same information.
-- **QR codes in CONFIRMATION / REMINDER emails.** Redundant for email invitees who already have the invite email with the QR. Could help phone-only invitees who provide an email at RSVP time, but adds payload-type complexity; revisit if phone-only invitees report difficulty at venues in practice.
+- **QR codes in REMINDER emails.** Once the QR ships in CONFIRMATION (Task 7), reminder emails for confirmed YES guests carry low marginal value — the recipient already has the QR. Revisit only if guests report misplacing the confirmation email closer to the event.
 - **Apple / Google Wallet passes.** Significant infra lift; only worth doing once check-in is live and demand is proven.
 - **Token-regeneration UX polish.** Schema has `Invite.tokenRegenerateCount`. Under Option B, regenerating a token does **not** invalidate the QR (pass URL is keyed on the stable `passId`) — the prior revision's "QR rotated by regen" warning no longer applies. Remaining polish: (1) the pass view 404 should render a branded *"This invitation is no longer valid — contact the organizer"* page instead of a generic Next.js 404 (relevant if an invite is deleted entirely); (2) the dashboard regen flow should clarify that the *RSVP link* is invalidated by regen, separate from the *pass link*, so organizers know what they're rotating. Neither is a ship blocker.
 - **`passId` in the CSV export.** The invite CSV export at `/api/events/[id]/invites/export` deliberately omits `passId` for MVP. Including it would put a public-by-design lookup key into spreadsheets that organizers commonly share (with co-organizers, venues, vendors), and the `passId` is a bearer credential for guest-name + RSVP-state disclosure. If organizers ask for a row identifier in exports, either (a) include `Invite.id` (already private-by-default), or (b) include `passId` with explicit "treat this column as sensitive" framing in the export UI. Defer until a real ask appears.
@@ -738,7 +815,7 @@ This section describes how the pre-GA check-in feature builds on the MVP. Not in
 
 In addition to the standard reviewer expectations in `CLAUDE.md` and `CONTRIBUTING.md`:
 
-- [ ] Architectural decisions in §2 are respected (especially: send-time generation, `inline: true` attachments per §2.6, non-fatal QR failures, **passId-keyed pass view per §2.5**, timestamp-driven state detection per §2.8).
+- [ ] Architectural decisions in §2 are respected (especially: send-time generation, `inline: true` attachments per §2.6, non-fatal QR failures, **passId-keyed pass view per §2.5**, **CONFIRMATION-not-INVITE delivery per §2.10**, timestamp-driven state detection per §2.8).
 - [ ] No new environment variables introduced.
 - [ ] One schema migration only (`add_invite_pass_id`, Task 0). No changes to `EmailOutbox` schema or shape. Migration form (default vs safe) is justified in PR description against staging row counts.
 - [ ] Non-INVITE email cases are provably unchanged (test evidence, not just claim).
@@ -749,4 +826,4 @@ In addition to the standard reviewer expectations in `CLAUDE.md` and `CONTRIBUTI
 
 ---
 
-_Last updated: 2026-05-07 (added Task 6 — per-event opt-out for QR email attachment; per-send override deferred)_
+_Last updated: 2026-05-07 (added Task 7 — migrate QR from INVITE to CONFIRMATION emails, YES responses only; supersedes Tasks 2b/3 target email type)_
