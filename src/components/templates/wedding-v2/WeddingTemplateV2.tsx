@@ -440,7 +440,7 @@ export function WeddingTemplateV2({
                 sections={navSections}
                 accentColor={primaryColor}
                 homeHref={navLinkBase ? `${navLinkBase}#top` : undefined}
-                shareEnabled={canShare ?? false}
+                canShare={canShare ?? false}
                 shareTitle={hero.coupleNames || ""}
                 shareUrl={shareUrl}
               />

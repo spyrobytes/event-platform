@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./ShareButton.module.css";
 
 type ShareButtonProps = {
@@ -38,7 +38,18 @@ export function ShareButton({
   className,
   ariaLabel = "Share this page",
 }: ShareButtonProps) {
-  const [copied, setCopied] = useState(false);
+  // Use a click counter rather than a boolean so each successful copy
+  // restarts the "Copied!" window cleanly. The effect cleanup clears the
+  // pending timer on unmount and on every re-click, avoiding stacked
+  // timers and stale setState on unmounted components.
+  const [copyTick, setCopyTick] = useState(0);
+  const copied = copyTick > 0;
+
+  useEffect(() => {
+    if (copyTick === 0) return;
+    const id = window.setTimeout(() => setCopyTick(0), 1800);
+    return () => window.clearTimeout(id);
+  }, [copyTick]);
 
   const handleClick = async () => {
     if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
@@ -54,8 +65,7 @@ export function ShareButton({
 
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      setCopyTick((n) => n + 1);
     } catch {
       // Final silent fallback. Clipboard requires a secure context + user
       // gesture; both hold for a click handler over HTTPS, so this is rare

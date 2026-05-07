@@ -21,11 +21,13 @@ type TopbarProps = {
   sections?: NavSection[];
   accentColor?: string;
   homeHref?: string;
-  /** When true, replaces the legacy copy-link icon with a full ShareButton
-   *  (navigator.share + clipboard fallback). Caller is responsible for
-   *  gating on visibility — we only render the button when this is true
-   *  AND a shareUrl is provided. */
-  shareEnabled?: boolean;
+  /** When true, renders a ShareButton (navigator.share + clipboard fallback)
+   *  in the actions slot. Caller is responsible for gating on visibility —
+   *  we only render the button when this is true AND a shareUrl is provided.
+   *  Defaults to false; consumers must opt in explicitly so this Topbar can
+   *  be reused in non-public surfaces (preview, storybook) without leaking
+   *  a share affordance. */
+  canShare?: boolean;
   /** Title sent to the OS share sheet. Typically the event/couple name. */
   shareTitle?: string;
   /** Canonical URL to share (always /e/[slug], even on sub-pages). */
@@ -45,7 +47,7 @@ export function Topbar({
   dateText,
   sections = [],
   homeHref,
-  shareEnabled = false,
+  canShare = false,
   shareTitle,
   shareUrl,
 }: TopbarProps) {
@@ -142,7 +144,7 @@ export function Topbar({
 
         {/* Actions */}
         <div className={styles.actions}>
-          {shareEnabled && shareUrl && (
+          {canShare && shareUrl && (
             <ShareButton
               title={shareTitle || "Event"}
               url={shareUrl}
