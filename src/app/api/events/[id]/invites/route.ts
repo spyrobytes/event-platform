@@ -195,6 +195,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           tokenRegenerateCount: true,
           rsvpCodeIssuedAt: true,
           rsvpCodeRegenerateCount: true,
+          passId: true,
           rsvp: {
             select: {
               id: true,
