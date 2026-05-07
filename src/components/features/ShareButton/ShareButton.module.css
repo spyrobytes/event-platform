@@ -1,0 +1,20 @@
+/* Minimal baseline — templates skin the visual via the className prop.
+   We only ensure the button is a click target with no default browser
+   chrome leaking through; everything else (border, size, hover) is
+   delegated to the consumer's class. */
+.button {
+  display: inline-grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+}
+
+.button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

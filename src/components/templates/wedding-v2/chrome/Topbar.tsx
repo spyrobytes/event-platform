@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ShareButton } from "@/components/features/ShareButton";
 import styles from "./Topbar.module.css";
 
 type NavSection = {
@@ -20,6 +21,17 @@ type TopbarProps = {
   sections?: NavSection[];
   accentColor?: string;
   homeHref?: string;
+  /** When true, renders a ShareButton (navigator.share + clipboard fallback)
+   *  in the actions slot. Caller is responsible for gating on visibility —
+   *  we only render the button when this is true AND a shareUrl is provided.
+   *  Defaults to false; consumers must opt in explicitly so this Topbar can
+   *  be reused in non-public surfaces (preview, storybook) without leaking
+   *  a share affordance. */
+  canShare?: boolean;
+  /** Title sent to the OS share sheet. Typically the event/couple name. */
+  shareTitle?: string;
+  /** Canonical URL to share (always /e/[slug], even on sub-pages). */
+  shareUrl?: string;
 };
 
 /**
@@ -35,6 +47,9 @@ export function Topbar({
   dateText,
   sections = [],
   homeHref,
+  canShare = false,
+  shareTitle,
+  shareUrl,
 }: TopbarProps) {
   const [scrolled, setScrolled] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -75,14 +90,6 @@ export function Topbar({
 
     return () => observer.disconnect();
   }, [sections]);
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-    } catch {
-      // Fallback: silently fail
-    }
-  };
 
   const handleNavClick = () => {
     setMobileNavOpen(false);
@@ -137,25 +144,14 @@ export function Topbar({
 
         {/* Actions */}
         <div className={styles.actions}>
-          <button
-            className={styles.iconBtn}
-            onClick={handleCopyLink}
-            title="Copy page link"
-            aria-label="Copy page link"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              width={18}
-              height={18}
-            >
-              <path d="M10 14a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 5.43" />
-              <path d="M14 10a5 5 0 0 0-7.07 0L4.1 12.83a5 5 0 0 0 7.07 7.07L12.5 18.57" />
-            </svg>
-          </button>
+          {canShare && shareUrl && (
+            <ShareButton
+              title={shareTitle || "Event"}
+              url={shareUrl}
+              className={styles.iconBtn}
+              ariaLabel="Share this event"
+            />
+          )}
 
           {sections.length > 0 && (
             <button

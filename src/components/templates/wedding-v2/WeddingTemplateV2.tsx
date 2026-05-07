@@ -76,6 +76,9 @@ type WeddingTemplateV2Props = {
    *  others link back via the nav. Used by `/e/[slug]/registry` and
    *  `/e/[slug]/wishes` sub-pages. */
   subPageSection?: string;
+  /** True when the event is PUBLIC; the Topbar then renders a share
+   *  button alongside its other actions. */
+  canShare?: boolean;
 };
 
 const V2_LABEL_OVERRIDES: Record<string, string> = {
@@ -137,6 +140,7 @@ export function WeddingTemplateV2({
   inviteToken,
   navLinkBase,
   subPageSection,
+  canShare,
 }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
@@ -163,6 +167,13 @@ export function WeddingTemplateV2({
 
   // Botanical variant from variant config
   const botanicalVariant: V2BotanicalVariant = variant?.chromeDefaults?.botanicalVariant || "sage";
+
+  // Canonical share URL — always points at /e/[slug], even on sub-pages
+  // (registry/wishes), since that's the indexable, shareable surface.
+  // Falls back to an empty string when slug is absent (template preview);
+  // the Topbar declines to render the share button without a URL.
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
+  const shareUrl = eventSlug ? `${baseUrl}/e/${eventSlug}` : "";
 
   // Find hero asset
   const heroAsset = hero.heroImageAssetId
@@ -429,6 +440,9 @@ export function WeddingTemplateV2({
                 sections={navSections}
                 accentColor={primaryColor}
                 homeHref={navLinkBase ? `${navLinkBase}#top` : undefined}
+                canShare={canShare ?? false}
+                shareTitle={hero.coupleNames || ""}
+                shareUrl={shareUrl}
               />
             )}
 

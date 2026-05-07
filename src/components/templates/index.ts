@@ -97,6 +97,11 @@ export type TemplateProps = {
    * body (others appear only as cross-page nav links). Required for
    * /e/[slug]/registry ("registry") and /e/[slug]/wishes ("wishes"). */
   subPageSection?: Section["type"];
+  /** True when the event is PUBLIC and may surface a share affordance.
+   * Templates pass this through to chrome (topbar/footer share buttons).
+   * UNLISTED and PRIVATE events stay false — broadcasting them defeats
+   * the visibility contract. */
+  canShare?: boolean;
 };
 
 /**
