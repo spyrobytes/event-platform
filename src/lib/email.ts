@@ -140,6 +140,10 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
   if (options.attachments) {
     for (const att of options.attachments) {
       const field = att.inline ? "inline" : "attachment";
+      // Wrap in a fresh Uint8Array to force a tight copy — a Buffer can be a
+      // view onto a larger ArrayBuffer (e.g. when produced via `.subarray()`),
+      // and passing it directly to Blob would include trailing bytes from the
+      // backing store.
       const blob = new Blob([new Uint8Array(att.content)], {
         type: att.contentType ?? "application/octet-stream",
       });
