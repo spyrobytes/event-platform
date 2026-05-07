@@ -187,10 +187,6 @@ type InviteEmailPayload = {
   unsubscribeUrl?: string;
   logoUrl?: string;
   rsvpDeadline?: string;
-  // Optional because legacy outbox rows queued before passId existed
-  // still pass through this type at read-time.
-  passId?: string;
-  qrAvailable?: boolean;
   // Optional pre-ceremony "Traditional" sub-event — populated when the main
   // Event row's start time precedes the ceremony (i.e. there's a separate
   // cultural / traditional ceremony before the formal one).
@@ -223,6 +219,12 @@ type ConfirmationEmailPayload = {
   // duplicated the invite email and went stale for events with multiple
   // sub-events (ceremony / reception / pre-ceremony "traditional").
   portalUrl?: string;
+  // Stable, non-secret pass-view identifier (Invite.passId). The QR code
+  // attached to a YES-response confirmation encodes /invite/pass/<passId>.
+  // Optional because legacy outbox rows queued before this feature pass
+  // through this type at read-time.
+  passId?: string;
+  qrAvailable?: boolean;
   unsubscribeUrl?: string;
   logoUrl?: string;
 };
@@ -445,53 +447,57 @@ export async function processEmail(emailId: string): Promise<void> {
     let attachments: EmailAttachment[] | undefined;
 
     switch (email.template) {
-      case "INVITE": {
-        const invitePayload = payload as unknown as InviteEmailPayload;
+      case "INVITE":
+        html = await render(InviteEmail(payload as unknown as InviteEmailPayload));
+        break;
+      case "CONFIRMATION": {
+        const confirmationPayload = payload as unknown as ConfirmationEmailPayload;
         let qrAvailable = false;
-        // QR failures (lookup OR generation) must not cascade — a missing
-        // QR is a degraded experience; a failed email is a lost invite.
-        try {
-          let passId =
-            typeof payload.passId === "string" && payload.passId.length > 0
-              ? payload.passId
-              : null;
-          if (!passId && email.inviteId) {
-            const invite = await db.invite.findUnique({
-              where: { id: email.inviteId },
-              select: { passId: true },
-            });
-            passId = invite?.passId ?? null;
-          }
+        // QR ships with positive confirmations only — see plan §2.10. Strict
+        // equality, not truthy: MAYBE and NO never carry a credential.
+        if (confirmationPayload.response === "YES") {
+          // QR failures (lookup OR generation) must not cascade — a missing
+          // QR is a degraded experience; a failed email is a lost invite.
+          try {
+            let passId =
+              typeof payload.passId === "string" && payload.passId.length > 0
+                ? payload.passId
+                : null;
+            if (!passId && email.inviteId) {
+              const invite = await db.invite.findUnique({
+                where: { id: email.inviteId },
+                select: { passId: true },
+              });
+              passId = invite?.passId ?? null;
+            }
 
-          if (!passId) {
-            console.warn("[email] passId unavailable; sending invite without QR", {
+            if (!passId) {
+              console.warn("[email] passId unavailable; sending confirmation without QR", {
+                inviteId: email.inviteId,
+              });
+            } else {
+              const png = await generateQrPngBuffer(buildPassUrl(passId));
+              attachments = [
+                {
+                  filename: QR_ATTACHMENT_FILENAME,
+                  content: png,
+                  inline: true,
+                  contentType: "image/png",
+                },
+              ];
+              qrAvailable = true;
+            }
+          } catch (qrError) {
+            console.warn("[email] QR pipeline failed; sending confirmation without QR", {
               inviteId: email.inviteId,
+              error: qrError instanceof Error ? qrError.message : qrError,
             });
-          } else {
-            const png = await generateQrPngBuffer(buildPassUrl(passId));
-            attachments = [
-              {
-                filename: QR_ATTACHMENT_FILENAME,
-                content: png,
-                inline: true,
-                contentType: "image/png",
-              },
-            ];
-            qrAvailable = true;
           }
-        } catch (qrError) {
-          console.warn("[email] QR pipeline failed; sending invite without QR", {
-            inviteId: email.inviteId,
-            error: qrError instanceof Error ? qrError.message : qrError,
-          });
         }
 
-        html = await render(InviteEmail({ ...invitePayload, qrAvailable }));
+        html = await render(ConfirmationEmail({ ...confirmationPayload, qrAvailable }));
         break;
       }
-      case "CONFIRMATION":
-        html = await render(ConfirmationEmail(payload as unknown as ConfirmationEmailPayload));
-        break;
       case "REMINDER":
         html = await render(ReminderEmail(payload as unknown as ReminderEmailPayload));
         break;

@@ -11,6 +11,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { QR_ATTACHMENT_FILENAME } from "@/lib/qr";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
@@ -22,6 +23,9 @@ type ConfirmationEmailProps = {
   portalUrl?: string;
   unsubscribeUrl?: string;
   logoUrl?: string;
+  /** When true, render the inline QR code block. processEmail() sets this
+   *  only for YES responses; the template trusts that contract. */
+  qrAvailable?: boolean;
 };
 
 const RESPONSE_CONFIG: Record<
@@ -71,6 +75,7 @@ export function ConfirmationEmail({
   portalUrl,
   unsubscribeUrl,
   logoUrl,
+  qrAvailable,
 }: ConfirmationEmailProps) {
   const config = RESPONSE_CONFIG[response];
   const previewText =
@@ -122,6 +127,22 @@ export function ConfirmationEmail({
                 </Text>
               )}
             </Section>
+
+            {qrAvailable && (
+              <Section style={qrCallout}>
+                <Text style={qrLabel}>Your access pass</Text>
+                <Img
+                  src={`cid:${QR_ATTACHMENT_FILENAME}`}
+                  alt={`Access pass QR code for ${eventTitle}`}
+                  width="200"
+                  height="200"
+                  style={qrImage}
+                />
+                <Text style={qrHelper}>
+                  Show this QR at the venue — staff can verify your invitation at a glance.
+                </Text>
+              </Section>
+            )}
 
             {portalUrl && (
               <Section style={portalSection}>
@@ -280,6 +301,39 @@ const reminderText = {
   fontSize: "14px",
   color: "#6b7280",
   fontStyle: "italic" as const,
+};
+
+const qrCallout = {
+  backgroundColor: "#f9fafb",
+  border: "1px solid #e5e7eb",
+  borderRadius: "8px",
+  padding: "20px",
+  margin: "24px 0 0 0",
+  textAlign: "center" as const,
+};
+
+const qrLabel = {
+  fontSize: "12px",
+  fontWeight: "700",
+  color: "#7c3aed",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.08em",
+  margin: "0 0 12px 0",
+};
+
+const qrImage = {
+  display: "block",
+  margin: "0 auto",
+  borderRadius: "4px",
+  maxWidth: "100%",
+  height: "auto",
+};
+
+const qrHelper = {
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "#525252",
+  margin: "12px 0 0 0",
 };
 
 const hr = {

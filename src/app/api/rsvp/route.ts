@@ -200,6 +200,7 @@ export async function POST(request: NextRequest) {
             portalUrl,
             unsubscribeUrl: buildUnsubscribeUrl(inviteToken as string),
             logoUrl: `${baseUrl}/brand/eventfxr-logo.png`,
+            passId: invite.passId,
           },
           tx
         );

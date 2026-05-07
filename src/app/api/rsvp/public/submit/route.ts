@@ -309,6 +309,7 @@ export async function POST(request: NextRequest) {
             portalUrl: buildPortalUrl(invite.event.slug, portalToken),
             unsubscribeUrl: buildUnsubscribeUrl(portalToken),
             logoUrl: `${baseUrl}/brand/eventfxr-logo.png`,
+            passId: invite.passId,
           },
           tx
         );
