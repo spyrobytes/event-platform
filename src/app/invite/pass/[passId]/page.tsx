@@ -9,7 +9,6 @@ import {
   detectAccessState,
   resolveGuestName,
   resolvePartyLabel,
-  type RsvpResponse,
 } from "./_helpers";
 
 // TODO(rate-limit): wire `src/lib/rate-limit.ts` when the public-portal
@@ -23,8 +22,7 @@ export const metadata: Metadata = {
   title: "Invitation",
   description: "Event invitation details",
   robots: { index: false, follow: false },
-  // Deliberately generic — link unfurls in iMessage, Slack, etc. must
-  // not leak guest identity or RSVP state. See plan §Task 3.5 (S5).
+  // Generic on purpose — link unfurls must not leak guest identity / RSVP state.
   openGraph: {
     title: "Event Invitation",
     description: "View your invitation details",
@@ -38,9 +36,7 @@ type PageProps = {
 export default async function InvitePassPage({ params }: PageProps) {
   const { passId } = await params;
 
-  // Reject malformed passId before the DB call. Postgres' uuid type would
-  // raise on a parse error; rejecting here avoids the round-trip and keeps
-  // the 404 path cheap for crawler / scanner garbage.
+  // Cheap 404 — Postgres uuid would parse-error on garbage. Mirrors /api/qr/[passId].
   if (!UUID_PATTERN.test(passId)) {
     notFound();
   }
@@ -48,7 +44,9 @@ export default async function InvitePassPage({ params }: PageProps) {
   const invite = await db.invite.findUnique({
     where: { passId },
     include: {
-      rsvp: true,
+      // Scoped select — the RSVP table carries dietaryRestrictions, music
+      // suggestions, additional-guest JSON, etc. that the pass view never reads.
+      rsvp: { select: { guestName: true, guestCount: true, response: true } },
       event: {
         select: {
           title: true,
@@ -86,7 +84,7 @@ export default async function InvitePassPage({ params }: PageProps) {
 
   const guestName = resolveGuestName(invite);
   const partyLabel = resolvePartyLabel(invite);
-  const rsvpKey: RsvpResponse | "PENDING" = invite.rsvp?.response ?? "PENDING";
+  const rsvpKey = invite.rsvp?.response ?? "PENDING";
   const rsvpBadge = RSVP_BADGE[rsvpKey];
   const eventDate = formatEventDateLong(invite.event.startAt, invite.event.timezone);
   const eventTime = formatEventTime(invite.event.startAt, invite.event.timezone);

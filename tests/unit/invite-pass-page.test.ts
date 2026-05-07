@@ -24,10 +24,8 @@ const InvitePassPage = pageModule.default;
 const VALID_PASS_ID = "0123abcd-aaaa-bbbb-cccc-ddddeeeeffff";
 
 beforeEach(() => {
+  // mockClear keeps the throwing implementation set on the initial vi.fn().
   notFoundMock.mockClear();
-  notFoundMock.mockImplementation(() => {
-    throw new Error("NEXT_NOT_FOUND");
-  });
   findUniqueMock.mockReset();
 });
 
@@ -72,7 +70,7 @@ describe("InvitePassPage — 404 paths", () => {
     expect(findUniqueMock).toHaveBeenCalledWith({
       where: { passId: VALID_PASS_ID },
       include: {
-        rsvp: true,
+        rsvp: { select: { guestName: true, guestCount: true, response: true } },
         event: {
           select: {
             title: true,

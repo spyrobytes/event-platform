@@ -1,10 +1,4 @@
-/**
- * Pass-view helpers.
- *
- * Filename starts with `_` so Next.js's App Router does not treat this
- * module as a route segment. Pure functions — no DB, no Prisma client
- * import — so the unit tests can pass plain literals.
- */
+// Filename starts with `_` so Next.js's App Router doesn't treat this as a route segment.
 
 export type RsvpResponse = "YES" | "NO" | "MAYBE";
 
@@ -22,17 +16,9 @@ export type AccessStateInput = {
 };
 
 /**
- * Resolve which (if any) blocking state should override the pass-view render.
- *
- * Priority is fixed and deterministic — checked top-to-bottom:
- * revoked → cancelled → expired → ended. Returns `{ kind: "ok" }` only
- * when none of the four blocking conditions hold. The `now` parameter is
- * injected so tests can drive expired / ended branches without timing
- * games; production callers should pass `Date.now()`.
- *
- * `event.endAt === null` intentionally never produces an `"ended"` state —
- * a null end time means we have no reliable signal, so don't guess from
- * `startAt`.
+ * Priority ladder — top wins: revoked → cancelled → expired → ended.
+ * `event.endAt === null` deliberately never produces an `"ended"` state
+ * (a null end time means no reliable signal; don't guess from `startAt`).
  */
 export function detectAccessState(
   invite: AccessStateInput,
@@ -49,15 +35,7 @@ export function detectAccessState(
   return { kind: "ok" };
 }
 
-/**
- * Resolve the display name shown at the top of the pass view.
- *
- * Fallback chain (first non-empty wins):
- *   1. `rsvp.guestName` (the name the guest entered themselves on RSVP)
- *   2. `invite.name` (the name the organizer recorded when adding them)
- *   3. Email local-part (`alice` from `alice@example.com`)
- *   4. `"Guest"` — last-resort literal
- */
+// Fallback chain: rsvp.guestName → invite.name → email local-part → "Guest".
 export function resolveGuestName(invite: {
   name: string | null;
   email: string | null;
@@ -69,14 +47,8 @@ export function resolveGuestName(invite: {
   return "Guest";
 }
 
-/**
- * Build the secondary "Party of N" / "Up to N guests" caption, or null
- * when neither makes sense (no plus-ones allowed and no RSVP recorded).
- *
- * Once an RSVP exists, `rsvp.guestCount` is authoritative — show the
- * actual declared size, not the original `plusOnesAllowed` cap. Pre-RSVP
- * we fall back to the cap so door staff know how many to expect at most.
- */
+// rsvp.guestCount is authoritative once recorded; pre-RSVP, fall back to
+// the plusOnesAllowed cap so door staff know the upper bound.
 export function resolvePartyLabel(invite: {
   plusOnesAllowed: number;
   rsvp: { guestCount: number } | null;
