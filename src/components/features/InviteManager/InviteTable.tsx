@@ -28,6 +28,7 @@ type Invite = {
   openedAt?: string | null;
   createdAt: string;
   token?: string;
+  passId: string;
   rsvp?: {
     id: string;
     response: RsvpResponse;
@@ -48,6 +49,7 @@ type InviteTableProps = {
   invites: Invite[];
   onResend?: (invite: Invite) => void | Promise<void>;
   onCopyLink?: (invite: Invite) => void | Promise<void>;
+  onCopyPassLink?: (invite: Invite) => void | Promise<void>;
   onRowClick?: (invite: Invite) => void;
   copiedInviteId?: string | null;
   tokenCache?: Map<string, string>;
@@ -69,7 +71,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink, onRowClick, copiedInviteId, tokenCache }: InviteTableProps) {
+export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -212,6 +214,30 @@ export function InviteTable({ invites, onResend, onCopyLink, onRowClick, copiedI
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-2.06a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.343 8.28" />
                           </svg>
                           {isPhoneOnly ? "Copy & Share Link" : "Copy Link"}
+                        </button>
+                      );
+                    })()}
+                    {(() => {
+                      // "Copy pass link" is the recovery affordance for a
+                      // YES-RSVP'd guest who lost / didn't receive their
+                      // confirmation email. Hidden on non-YES rows because
+                      // the pass URL would render "pending" or "declined" —
+                      // not useful to share via SMS/AirDrop.
+                      const isYes = invite.rsvp?.response === "YES";
+                      if (!isYes || !onCopyPassLink) return null;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            stopBubble(e);
+                            onCopyPassLink(invite);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md bg-foreground/10 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-foreground/20"
+                          title="Copy the venue access pass URL — share with the guest if they lost the confirmation email."
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Copy pass link
                         </button>
                       );
                     })()}

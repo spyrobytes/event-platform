@@ -55,6 +55,7 @@ type Invite = {
   openedAt?: string | null;
   createdAt: string;
   token?: string;
+  passId: string;
   rsvp?: {
     id: string;
     response: RsvpResponse;
@@ -320,6 +321,17 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
       setCopiedInviteId(invite.id);
       setTimeout(() => setCopiedInviteId(null), 3000);
     }
+  };
+
+  const handleCopyPassLink = async (invite: Invite) => {
+    // Inline pass-URL construction — must match buildPassUrl() in
+    // src/lib/qr.ts. Inlined to keep the qrcode npm dependency out of
+    // the client bundle.
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    const link = `${baseUrl}/invite/pass/${invite.passId}`;
+    await navigator.clipboard.writeText(link);
+    setCopiedInviteId(invite.id);
+    setTimeout(() => setCopiedInviteId(null), 3000);
   };
 
   const handleRegenerate = async (invite: Invite) => {
@@ -666,6 +678,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
               <InviteTable
                 invites={invites}
                 onCopyLink={handleCopyLink}
+                onCopyPassLink={handleCopyPassLink}
                 onRowClick={handleRowClick}
                 onResend={handleResend}
                 copiedInviteId={copiedInviteId}
