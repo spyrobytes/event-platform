@@ -202,6 +202,13 @@ model Invite {
   name      String?
   tokenHash String  @unique @map("token_hash")
 
+  // Stable, non-secret identifier for the read-only pass view
+  // (`/invite/pass/[passId]`). Decoupled from `tokenHash` so that token
+  // regenerations do not invalidate previously-distributed QR codes. UUID v4
+  // entropy (~122 bits) makes enumeration infeasible. See
+  // internal-docs/qr-code-implementation-plan.md §2.5.
+  passId String @unique @default(dbgenerated("gen_random_uuid()")) @map("pass_id") @db.Uuid
+
   plusOnesAllowed      Int          @default(0) @map("plus_ones_allowed")
   seatAssignment       String?      @map("seat_assignment")
   plannerNotes         String?      @map("planner_notes")
