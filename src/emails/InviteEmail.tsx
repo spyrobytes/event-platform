@@ -45,7 +45,7 @@ type InviteEmailProps = {
    *  with `publicRsvpUrl` — both must be present to show the code block. */
   rsvpCode?: string;
   publicRsvpUrl?: string;
-  /** When true, render the inline `cid:rsvp-qr.png` Img block. */
+  /** When true, render the inline QR code block. */
   qrAvailable?: boolean;
 };
 

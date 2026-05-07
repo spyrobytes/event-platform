@@ -13,7 +13,7 @@ const baseProps = {
 describe("InviteEmail — QR block", () => {
   it("renders the inline QR Img and helper copy when qrAvailable is true", async () => {
     const html = await render(InviteEmail({ ...baseProps, qrAvailable: true }));
-    expect(html).toContain('src="cid:rsvp-qr.png"');
+    expect(html).toMatch(/src=['"]?cid:rsvp-qr\.png['"]?/);
     expect(html).toContain("Access pass QR code for Test Event");
     expect(html).toContain("Show this QR at the venue");
     expect(html).toContain("Your access pass");
@@ -32,8 +32,6 @@ describe("InviteEmail — QR block", () => {
   });
 
   it("RSVP CTA and link remain present regardless of QR availability", async () => {
-    // Text-only fallback — even without the QR Img loading, the RSVP URL
-    // is the always-functional path. See plan §Task 3 ACs.
     const htmlOff = await render(InviteEmail({ ...baseProps, qrAvailable: false }));
     expect(htmlOff).toContain(baseProps.rsvpUrl);
     expect(htmlOff).toContain("RSVP Now");
