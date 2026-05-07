@@ -456,9 +456,10 @@ export async function processEmail(emailId: string): Promise<void> {
         // QR ships with positive confirmations only — see plan §2.10. Strict
         // equality, not truthy: MAYBE and NO never carry a credential.
         if (confirmationPayload.response === "YES") {
-          // QR failures (lookup OR per-event opt-out OR generation) must not
-          // cascade — a missing QR is a degraded experience; a failed email
-          // is a lost invite.
+          // Lookup or generation errors must not cascade — a missing QR is
+          // a degraded experience; a failed email is a lost invite. The
+          // per-event opt-out path lives inside the same try/catch for
+          // shape-symmetry but doesn't throw.
           try {
             // Single combined lookup: passId fallback (for legacy queued
             // rows) + the per-event attach_qr_to_confirmation flag (Task 6).

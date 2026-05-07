@@ -161,12 +161,21 @@ function confirmationRow(opts: ConfirmationOverrides = {}): EmailRow {
   };
 }
 
+function defaultInviteRow(
+  overrides?: { passId?: string; attachQrToConfirmation?: boolean }
+): InviteWithEvent {
+  return {
+    passId: overrides?.passId ?? "pass-abc",
+    event: { attachQrToConfirmation: overrides?.attachQrToConfirmation ?? true },
+  };
+}
+
 describe("processEmail() — CONFIRMATION branch QR attachment", () => {
   it("attaches inline QR PNG and renders with qrAvailable: true when response=YES, passId in payload, and flag is on", async () => {
     dbState.email = confirmationRow();
     // The combined Invite+event lookup runs on every YES — we need the
     // attachQrToConfirmation flag live, so passId optimization is gone.
-    dbState.inviteRow = { passId: "pass-abc", event: { attachQrToConfirmation: true } };
+    dbState.inviteRow = defaultInviteRow();
     const { processEmail } = await import("@/lib/email");
 
     await processEmail("outbox-1");
@@ -245,7 +254,7 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
 
   it("response=YES, payload omits passId → falls back to DB row's passId and attaches QR", async () => {
     dbState.email = confirmationRow({ withPassId: false });
-    dbState.inviteRow = { passId: "pass-from-db", event: { attachQrToConfirmation: true } };
+    dbState.inviteRow = defaultInviteRow({ passId: "pass-from-db" });
 
     const { processEmail } = await import("@/lib/email");
     await processEmail("outbox-1");
@@ -262,7 +271,7 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
 
   it("response=YES with attachQrToConfirmation=false → skips QR pipeline silently (no warn, no attachment)", async () => {
     dbState.email = confirmationRow();
-    dbState.inviteRow = { passId: "pass-abc", event: { attachQrToConfirmation: false } };
+    dbState.inviteRow = defaultInviteRow({ attachQrToConfirmation: false });
 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { processEmail } = await import("@/lib/email");
@@ -331,7 +340,7 @@ describe("processEmail() — CONFIRMATION branch QR attachment", () => {
 
   it("response=YES, QR generation throws → confirmation still sends with qrAvailable: false", async () => {
     dbState.email = confirmationRow();
-    dbState.inviteRow = { passId: "pass-abc", event: { attachQrToConfirmation: true } };
+    dbState.inviteRow = defaultInviteRow();
     generateQrPngBufferMock.mockRejectedValueOnce(new Error("qrcode boom"));
 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
