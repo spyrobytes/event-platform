@@ -46,12 +46,28 @@ type MailgunResponse = {
   message: string;
 };
 
+type EmailAttachment = {
+  /** Filename as it appears to the recipient. Also serves as the CID
+   *  reference for inline attachments — see `inline` below. */
+  filename: string;
+  content: Buffer;
+  /** When true, the attachment is embeddable in the HTML body via
+   *  `cid:${filename}`. Mailgun's REST API has no separate CID field —
+   *  the FormData filename *is* the CID. We mirror that on the SMTP
+   *  path by setting nodemailer's `cid` to `filename`, so the same
+   *  HTML reference works on both providers. */
+  inline?: boolean;
+  /** MIME type. Defaults to application/octet-stream. */
+  contentType?: string;
+};
+
 type SendEmailOptions = {
   to: string;
   subject: string;
   html: string;
   text?: string;
   tags?: string[];
+  attachments?: EmailAttachment[];
 };
 
 /**
@@ -76,6 +92,14 @@ async function sendEmailViaSMTP(options: SendEmailOptions): Promise<MailgunRespo
     subject: options.subject,
     html: options.html,
     text: options.text,
+    attachments: options.attachments?.map((att) => ({
+      filename: att.filename,
+      content: att.content,
+      contentType: att.contentType,
+      // Set cid only for inline attachments — and use the filename as the
+      // CID so `cid:${filename}` references resolve identically on Mailgun.
+      cid: att.inline ? att.filename : undefined,
+    })),
   });
 
   // Return a Mailgun-compatible response
@@ -109,6 +133,23 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
     options.tags.forEach((tag) => formData.append("o:tag", tag));
   }
 
+  // Attachments: Mailgun keys inline (CID-referenced) attachments under
+  // "inline" and ordinary downloads under "attachment". The filename
+  // passed to FormData IS the CID identifier — there is no separate CID
+  // field — so HTML must reference the attachment as `cid:${filename}`.
+  if (options.attachments) {
+    for (const att of options.attachments) {
+      const field = att.inline ? "inline" : "attachment";
+      const blob = new Blob([new Uint8Array(att.content)], {
+        type: att.contentType ?? "application/octet-stream",
+      });
+      formData.append(field, blob, att.filename);
+    }
+  }
+
+  // Do NOT set Content-Type manually — fetch derives the
+  // `multipart/form-data; boundary=…` header from the FormData body. A
+  // hand-set header corrupts the boundary and the request is rejected.
   const response = await fetch(
     `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
     {
