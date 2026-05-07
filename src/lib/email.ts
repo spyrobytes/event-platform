@@ -456,22 +456,36 @@ export async function processEmail(emailId: string): Promise<void> {
         // QR ships with positive confirmations only — see plan §2.10. Strict
         // equality, not truthy: MAYBE and NO never carry a credential.
         if (confirmationPayload.response === "YES") {
-          // QR failures (lookup OR generation) must not cascade — a missing
-          // QR is a degraded experience; a failed email is a lost invite.
+          // QR failures (lookup OR per-event opt-out OR generation) must not
+          // cascade — a missing QR is a degraded experience; a failed email
+          // is a lost invite.
           try {
+            // Single combined lookup: passId fallback (for legacy queued
+            // rows) + the per-event attach_qr_to_confirmation flag (Task 6).
+            // We need the flag live at send-time to honor toggles made
+            // between queue and send, so co-locating the passId resolution
+            // costs nothing extra.
             let passId =
               typeof payload.passId === "string" && payload.passId.length > 0
                 ? payload.passId
                 : null;
-            if (!passId && email.inviteId) {
-              const invite = await db.invite.findUnique({
+            let attachQr = true;
+            if (email.inviteId) {
+              const row = await db.invite.findUnique({
                 where: { id: email.inviteId },
-                select: { passId: true },
+                select: {
+                  passId: true,
+                  event: { select: { attachQrToConfirmation: true } },
+                },
               });
-              passId = invite?.passId ?? null;
+              passId = passId ?? row?.passId ?? null;
+              attachQr = row?.event?.attachQrToConfirmation ?? true;
             }
 
-            if (!passId) {
+            if (!attachQr) {
+              // Per-event opt-out is a deliberate organizer choice, not a
+              // degraded state — no warn log.
+            } else if (!passId) {
               console.warn("[email] passId unavailable; sending confirmation without QR", {
                 inviteId: email.inviteId,
               });

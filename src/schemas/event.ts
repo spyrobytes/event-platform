@@ -77,6 +77,7 @@ export const createEventSchema = z.object({
   rsvpDeadline: z.coerce.date().optional(),
   reminderDays: z.number().int().min(1).max(30).optional(),
   reminderEnabled: z.boolean().default(false),
+  attachQrToConfirmation: z.boolean().default(true),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -116,6 +117,7 @@ export const updateEventSchema = z.object({
   rsvpDeadline: z.coerce.date().nullable().optional(),
   reminderDays: z.number().int().min(1).max(30).nullable().optional(),
   reminderEnabled: z.boolean().optional(),
+  attachQrToConfirmation: z.boolean().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

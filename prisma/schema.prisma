@@ -125,6 +125,11 @@ model Event {
   reminderDays    Int?      @map("reminder_days") // Days after invite to remind
   reminderEnabled Boolean   @default(false) @map("reminder_enabled")
 
+  // Per-event QR opt-out — when false, processEmail() skips the QR pipeline
+  // for YES-RSVP'd confirmation emails. Pass view + dashboard "Copy pass
+  // link" action are unaffected. See plan §Task 6.
+  attachQrToConfirmation Boolean @default(true) @map("attach_qr_to_confirmation")
+
   // Custom page configuration
   templateId    String? @map("template_id")
   themePreset   String? @map("theme_preset")
