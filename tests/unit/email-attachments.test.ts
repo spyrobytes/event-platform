@@ -39,6 +39,18 @@ afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
 });
 
+type SmtpCall = {
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+    cid?: string;
+  }>;
+};
+
+const smtpCall = (i = 0): SmtpCall =>
+  sendMailMock.mock.calls[i][0] as unknown as SmtpCall;
+
 describe("sendEmail — SMTP path with attachments", () => {
   beforeEach(() => {
     process.env.SMTP_HOST = "localhost";
@@ -63,18 +75,11 @@ describe("sendEmail — SMTP path with attachments", () => {
     });
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
-    const call = sendMailMock.mock.calls[0][0] as unknown as {
-      attachments?: Array<{
-        filename: string;
-        content: Buffer;
-        contentType?: string;
-        cid?: string;
-      }>;
-    };
-    expect(call.attachments).toHaveLength(1);
-    expect(call.attachments![0].filename).toBe("rsvp-qr.png");
-    expect(call.attachments![0].cid).toBe("rsvp-qr.png");
-    expect(call.attachments![0].contentType).toBe("image/png");
+    const att = smtpCall().attachments!;
+    expect(att).toHaveLength(1);
+    expect(att[0].filename).toBe("rsvp-qr.png");
+    expect(att[0].cid).toBe("rsvp-qr.png");
+    expect(att[0].contentType).toBe("image/png");
   });
 
   it("forwards a non-inline attachment without cid", async () => {
@@ -93,10 +98,7 @@ describe("sendEmail — SMTP path with attachments", () => {
       ],
     });
 
-    const call = sendMailMock.mock.calls[0][0] as unknown as {
-      attachments?: Array<{ cid?: string }>;
-    };
-    expect(call.attachments![0].cid).toBeUndefined();
+    expect(smtpCall().attachments![0].cid).toBeUndefined();
   });
 
   it("does not pass attachments when omitted (existing callers unchanged)", async () => {
@@ -108,10 +110,7 @@ describe("sendEmail — SMTP path with attachments", () => {
       html: "<p>hi</p>",
     });
 
-    const call = sendMailMock.mock.calls[0][0] as unknown as {
-      attachments?: unknown;
-    };
-    expect(call.attachments).toBeUndefined();
+    expect(smtpCall().attachments).toBeUndefined();
   });
 });
 
@@ -246,6 +245,37 @@ describe("sendEmail — Mailgun path with attachments", () => {
 
     const fd = (fetchMock.mock.calls[0][1] as RequestInit).body as FormData;
     expect(fd.get("inline")).toBeNull();
+    expect(fd.get("attachment")).toBeNull();
+  });
+
+  it("appends multiple inline attachments under the same field, preserving order", async () => {
+    const { sendEmail } = await import("@/lib/email");
+
+    await sendEmail({
+      to: "guest@example.com",
+      subject: "Test",
+      html: '<img src="cid:a.png" /><img src="cid:b.png" />',
+      attachments: [
+        {
+          filename: "a.png",
+          content: Buffer.from([0x01]),
+          inline: true,
+          contentType: "image/png",
+        },
+        {
+          filename: "b.png",
+          content: Buffer.from([0x02]),
+          inline: true,
+          contentType: "image/png",
+        },
+      ],
+    });
+
+    const fd = (fetchMock.mock.calls[0][1] as RequestInit).body as FormData;
+    const inlines = fd.getAll("inline");
+    expect(inlines).toHaveLength(2);
+    expect((inlines[0] as File).name).toBe("a.png");
+    expect((inlines[1] as File).name).toBe("b.png");
     expect(fd.get("attachment")).toBeNull();
   });
 });

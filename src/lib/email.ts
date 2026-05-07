@@ -96,8 +96,8 @@ async function sendEmailViaSMTP(options: SendEmailOptions): Promise<MailgunRespo
       filename: att.filename,
       content: att.content,
       contentType: att.contentType,
-      // Set cid only for inline attachments — and use the filename as the
-      // CID so `cid:${filename}` references resolve identically on Mailgun.
+      // cid === filename so `cid:${filename}` references resolve identically
+      // on Mailgun (which has no separate CID field). See EmailAttachment.inline.
       cid: att.inline ? att.filename : undefined,
     })),
   });
