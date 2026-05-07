@@ -138,5 +138,8 @@ export const ACCESS_BANNER: Record<
   },
 };
 
-export const UUID_V4_PATTERN =
+// Generic UUID-shape regex — permissive about version bits on purpose. We
+// generate via Postgres `gen_random_uuid()` (always v4 today), but a stricter
+// v4-only test would silently 404 if the default ever changes.
+export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

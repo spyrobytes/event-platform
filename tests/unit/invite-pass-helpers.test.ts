@@ -3,7 +3,7 @@ import {
   detectAccessState,
   resolveGuestName,
   resolvePartyLabel,
-  UUID_V4_PATTERN,
+  UUID_PATTERN,
 } from "@/app/invite/pass/[passId]/_helpers";
 
 const T = (iso: string) => new Date(iso);
@@ -181,17 +181,17 @@ describe("resolvePartyLabel", () => {
   });
 });
 
-describe("UUID_V4_PATTERN", () => {
-  it("matches canonical UUID v4 strings", () => {
-    expect(UUID_V4_PATTERN.test("0123abcd-aaaa-bbbb-cccc-ddddeeeeffff")).toBe(true);
-    expect(UUID_V4_PATTERN.test("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")).toBe(true);
+describe("UUID_PATTERN", () => {
+  it("matches canonical UUID strings (lower and upper hex)", () => {
+    expect(UUID_PATTERN.test("0123abcd-aaaa-bbbb-cccc-ddddeeeeffff")).toBe(true);
+    expect(UUID_PATTERN.test("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")).toBe(true);
   });
 
   it("rejects malformed input (no DB hit on the page route)", () => {
-    expect(UUID_V4_PATTERN.test("not-a-uuid")).toBe(false);
-    expect(UUID_V4_PATTERN.test("0123abcd-aaaa-bbbb-cccc-ddddeeeefff")).toBe(false); // 1 char short
-    expect(UUID_V4_PATTERN.test("0123abcdaaaabbbbccccddddeeeeffff")).toBe(false); // no dashes
-    expect(UUID_V4_PATTERN.test("")).toBe(false);
-    expect(UUID_V4_PATTERN.test("0123abcd-aaaa-bbbb-cccc-ddddeeeeffff' OR '1'='1")).toBe(false);
+    expect(UUID_PATTERN.test("not-a-uuid")).toBe(false);
+    expect(UUID_PATTERN.test("0123abcd-aaaa-bbbb-cccc-ddddeeeefff")).toBe(false); // 1 char short
+    expect(UUID_PATTERN.test("0123abcdaaaabbbbccccddddeeeeffff")).toBe(false); // no dashes
+    expect(UUID_PATTERN.test("")).toBe(false);
+    expect(UUID_PATTERN.test("0123abcd-aaaa-bbbb-cccc-ddddeeeeffff' OR '1'='1")).toBe(false);
   });
 });

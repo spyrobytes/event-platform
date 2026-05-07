@@ -5,12 +5,17 @@ import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 import {
   ACCESS_BANNER,
   RSVP_BADGE,
-  UUID_V4_PATTERN,
+  UUID_PATTERN,
   detectAccessState,
   resolveGuestName,
   resolvePartyLabel,
   type RsvpResponse,
 } from "./_helpers";
+
+// TODO(rate-limit): wire `src/lib/rate-limit.ts` when the public-portal
+// endpoints get their audit pass — first-hit hammering with random valid-
+// shape UUIDs is bounded only by CDN+DB capacity. (Mirrors the same TODO
+// on /api/qr/[passId]; both routes share the same threat model.)
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +41,7 @@ export default async function InvitePassPage({ params }: PageProps) {
   // Reject malformed passId before the DB call. Postgres' uuid type would
   // raise on a parse error; rejecting here avoids the round-trip and keeps
   // the 404 path cheap for crawler / scanner garbage.
-  if (!UUID_V4_PATTERN.test(passId)) {
+  if (!UUID_PATTERN.test(passId)) {
     notFound();
   }
 
@@ -81,8 +86,7 @@ export default async function InvitePassPage({ params }: PageProps) {
 
   const guestName = resolveGuestName(invite);
   const partyLabel = resolvePartyLabel(invite);
-  const rsvpKey: RsvpResponse | "PENDING" =
-    (invite.rsvp?.response as RsvpResponse | undefined) ?? "PENDING";
+  const rsvpKey: RsvpResponse | "PENDING" = invite.rsvp?.response ?? "PENDING";
   const rsvpBadge = RSVP_BADGE[rsvpKey];
   const eventDate = formatEventDateLong(invite.event.startAt, invite.event.timezone);
   const eventTime = formatEventTime(invite.event.startAt, invite.event.timezone);
