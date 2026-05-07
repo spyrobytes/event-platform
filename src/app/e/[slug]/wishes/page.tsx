@@ -167,6 +167,7 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
         inviteToken={tk}
         navLinkBase={navLinkBase}
         subPageSection="wishes"
+        canShare={event.visibility === "PUBLIC"}
       />
     </div>
   );

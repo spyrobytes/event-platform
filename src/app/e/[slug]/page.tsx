@@ -254,6 +254,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         approvedWishes={approvedWishes}
         wishesMode="preview"
         inviteToken={tk}
+        canShare={event.visibility === "PUBLIC"}
       />
     </div>
   );

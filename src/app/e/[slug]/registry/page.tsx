@@ -163,6 +163,7 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
         registryMode="full"
         navLinkBase={navLinkBase}
         subPageSection="registry"
+        canShare={event.visibility === "PUBLIC"}
       />
     </div>
   );
