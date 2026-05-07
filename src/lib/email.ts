@@ -450,24 +450,33 @@ export async function processEmail(emailId: string): Promise<void> {
     switch (email.template) {
       case "INVITE": {
         const invitePayload = payload as unknown as InviteEmailPayload;
-        // passId may be absent on legacy outbox rows queued before this
-        // feature shipped — fall back to a single Invite lookup. Keeps
-        // the recovery sweep's re-queued rows working without a backfill.
-        let passId =
-          typeof payload.passId === "string" && payload.passId.length > 0
-            ? payload.passId
-            : null;
-        if (!passId && email.inviteId) {
-          const invite = await db.invite.findUnique({
-            where: { id: email.inviteId },
-            select: { passId: true },
-          });
-          passId = invite?.passId ?? null;
-        }
-
         let qrAvailable = false;
-        if (passId) {
-          try {
+        // Single guard around the entire QR pipeline (passId resolution +
+        // image generation). Per §2.4: a missing QR is a degraded experience;
+        // a failed email is a lost invite. A transient DB blip on the
+        // fallback lookup must not cascade into the outer catch and mark
+        // the outbox row FAILED.
+        try {
+          let passId =
+            typeof payload.passId === "string" && payload.passId.length > 0
+              ? payload.passId
+              : null;
+          // passId may be absent on legacy outbox rows queued before this
+          // feature shipped — fall back to a single Invite lookup. Keeps
+          // the recovery sweep's re-queued rows working without a backfill.
+          if (!passId && email.inviteId) {
+            const invite = await db.invite.findUnique({
+              where: { id: email.inviteId },
+              select: { passId: true },
+            });
+            passId = invite?.passId ?? null;
+          }
+
+          if (!passId) {
+            console.warn("[email] passId unavailable; sending invite without QR", {
+              inviteId: email.inviteId,
+            });
+          } else {
             const png = await generateQrPngBuffer(buildPassUrl(passId));
             attachments = [
               {
@@ -478,17 +487,11 @@ export async function processEmail(emailId: string): Promise<void> {
               },
             ];
             qrAvailable = true;
-          } catch (qrError) {
-            // Degraded experience > lost invite. Cron retry would otherwise
-            // re-attempt indefinitely on a permanent QR failure.
-            console.warn("[email] QR generation failed; sending without QR", {
-              inviteId: email.inviteId,
-              error: qrError instanceof Error ? qrError.message : qrError,
-            });
           }
-        } else {
-          console.warn("[email] passId unavailable; sending invite without QR", {
+        } catch (qrError) {
+          console.warn("[email] QR pipeline failed; sending invite without QR", {
             inviteId: email.inviteId,
+            error: qrError instanceof Error ? qrError.message : qrError,
           });
         }
 

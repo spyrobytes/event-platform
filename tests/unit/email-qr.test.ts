@@ -223,6 +223,37 @@ describe("processEmail() — INVITE branch QR attachment", () => {
     warn.mockRestore();
   });
 
+  it("does not throw when the fallback Invite lookup itself errors — email still sends with qrAvailable: false", async () => {
+    dbState.email = inviteRow({
+      payload: { eventTitle: "T", eventDate: "d", eventTime: "t", hostName: "h", rsvpUrl: "u" },
+    });
+    inviteFindUniqueMock.mockRejectedValueOnce(new Error("db blip"));
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { processEmail } = await import("@/lib/email");
+
+    await expect(processEmail("outbox-1")).resolves.toBeUndefined();
+
+    // Generation never ran (lookup failed before reaching it).
+    expect(generateQrPngBufferMock).not.toHaveBeenCalled();
+
+    const renderedArg = renderMock.mock.calls[0][0] as { props: { qrAvailable: boolean } };
+    expect(renderedArg.props.qrAvailable).toBe(false);
+
+    const sendArg = sendMailMock.mock.calls[0][0] as { attachments?: unknown[] };
+    expect(sendArg.attachments).toBeUndefined();
+
+    // Outbox row was marked SENT — the DB blip did NOT cascade into the
+    // outer processEmail catch.
+    const updateArg = emailOutboxUpdateMock.mock.calls[0][0] as {
+      data: { status: string };
+    };
+    expect(updateArg.data.status).toBe("SENT");
+
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("does not throw when QR generation fails — email still sends with qrAvailable: false", async () => {
     dbState.email = inviteRow();
     generateQrPngBufferMock.mockRejectedValueOnce(new Error("qrcode boom"));
