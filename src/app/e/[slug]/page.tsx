@@ -89,10 +89,16 @@ export async function generateMetadata({
       title: event.title,
       description: event.description || `Join us for ${event.title}`,
     },
-    // Prevent indexing when token is present to avoid token leakage in search results
-    ...(tk && {
+    // Noindex non-PUBLIC events. UNLISTED is "accessible by direct link
+    // only" — letting search engines index it defeats the visibility
+    // contract. PRIVATE 404s without a token, but a token-bearing request
+    // also lands here and must be excluded.
+    ...((tk || event.visibility !== "PUBLIC") && {
       robots: { index: false, follow: false },
-      // Browser spec requires name="referrer" (not "Referrer-Policy") for meta tag
+    }),
+    // No-referrer only when a token is present, to prevent leaking ?tk= via
+    // outbound link clicks. Browser spec requires name="referrer".
+    ...(tk && {
       other: { referrer: "no-referrer" },
     }),
   };
@@ -225,10 +231,10 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
   // Event JSON-LD only renders for indexable views. Token-bearing requests
-  // are noindex (see generateMetadata above) and PRIVATE events 404 before
-  // we get here, so any path that reaches this render is a candidate for
-  // structured data.
-  const includeJsonLd = !tk;
+  // and non-PUBLIC events are noindex (see generateMetadata above), so we
+  // also skip emitting structured data for them — it would be wasted bytes
+  // and a weak signal to crawlers that ignore the noindex directive.
+  const includeJsonLd = !tk && event.visibility === "PUBLIC";
 
   return (
     <div style={bannerOffset}>
