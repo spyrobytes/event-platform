@@ -12,6 +12,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { QR_ATTACHMENT_FILENAME } from "@/lib/qr";
 
 type InviteEmailProps = {
   guestName?: string;
@@ -44,7 +45,7 @@ type InviteEmailProps = {
    *  with `publicRsvpUrl` — both must be present to show the code block. */
   rsvpCode?: string;
   publicRsvpUrl?: string;
-  /** When true, render the inline `cid:rsvp-qr.png` Img block. */
+  /** When true, render the inline QR code block. */
   qrAvailable?: boolean;
 };
 
@@ -74,6 +75,7 @@ export function InviteEmail({
   receptionAddress,
   rsvpCode,
   publicRsvpUrl,
+  qrAvailable,
 }: InviteEmailProps) {
   const showCodeBlock = !!(rsvpCode && publicRsvpUrl);
   const previewText = `You're invited to ${eventTitle}`;
@@ -219,6 +221,22 @@ export function InviteEmail({
               <Section style={deadlineCallout}>
                 <Text style={deadlineLabel}>Please respond by</Text>
                 <Text style={deadlineValue}>{rsvpDeadline}</Text>
+              </Section>
+            )}
+
+            {qrAvailable && (
+              <Section style={qrCallout}>
+                <Text style={qrLabel}>Your access pass</Text>
+                <Img
+                  src={`cid:${QR_ATTACHMENT_FILENAME}`}
+                  alt={`Access pass QR code for ${eventTitle}`}
+                  width="200"
+                  height="200"
+                  style={qrImage}
+                />
+                <Text style={qrHelper}>
+                  Show this QR at the venue — staff can verify your invitation at a glance.
+                </Text>
               </Section>
             )}
 
@@ -432,6 +450,39 @@ const eventDescriptionStyle = {
 const buttonContainer = {
   textAlign: "center" as const,
   margin: "32px 0",
+};
+
+const qrCallout = {
+  backgroundColor: "#f9fafb",
+  border: "1px solid #e5e7eb",
+  borderRadius: "8px",
+  padding: "20px",
+  margin: "24px 0 0 0",
+  textAlign: "center" as const,
+};
+
+const qrLabel = {
+  fontSize: "12px",
+  fontWeight: "700",
+  color: "#7c3aed",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.08em",
+  margin: "0 0 12px 0",
+};
+
+const qrImage = {
+  display: "block",
+  margin: "0 auto",
+  borderRadius: "4px",
+  maxWidth: "100%",
+  height: "auto",
+};
+
+const qrHelper = {
+  fontSize: "13px",
+  lineHeight: "20px",
+  color: "#525252",
+  margin: "12px 0 0 0",
 };
 
 const button = {

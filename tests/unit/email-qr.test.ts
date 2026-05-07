@@ -17,6 +17,7 @@ const buildPassUrlMock = vi.fn((passId: string) => `https://example.test/invite/
 vi.mock("@/lib/qr", () => ({
   buildPassUrl: buildPassUrlMock,
   generateQrPngBuffer: generateQrPngBufferMock,
+  QR_ATTACHMENT_FILENAME: "rsvp-qr.png",
 }));
 
 // React Email render — capture the props passed to InviteEmail so we can
