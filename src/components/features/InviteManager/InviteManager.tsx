@@ -110,11 +110,9 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [serverStats, setServerStats] = useState<InviteStats | null>(null);
-  // Per-invite Resend pending tracking. The state Set drives the UI
-  // (disabled button, "Resending…" label). The ref drives the within-tick
-  // double-click guard — refs update synchronously, so a second click in
-  // the same React tick reads the post-add value, while the state Set
-  // would still hold the captured pre-add value at that point.
+  // State drives the UI; ref guards within-tick double-clicks (state updates
+  // are async, so two clicks in the same React tick would both see the
+  // pre-add value).
   const [resendingInviteIds, setResendingInviteIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -386,10 +384,6 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const handleResend = async (invite: Invite) => {
     const latestEmail = invite.emails?.[0];
     if (!latestEmail) return;
-    // Synchronous guard: refs update immediately, so a second click within
-    // the same React tick — before the disabled state has rendered —
-    // reads the post-add value and bails. The button's `disabled` is the
-    // primary UX cue; this catches the narrow within-tick race.
     if (resendingInviteIdsRef.current.has(invite.id)) return;
     resendingInviteIdsRef.current.add(invite.id);
 

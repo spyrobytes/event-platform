@@ -8,6 +8,7 @@ import { VerificationEmail } from "@/emails/VerificationEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
 import { buildPassUrl, generateQrPngBuffer, QR_ATTACHMENT_FILENAME } from "./qr";
+import { AppError } from "./errors";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration (production)
@@ -47,19 +48,13 @@ type MailgunResponse = {
   message: string;
 };
 
-/**
- * Thrown when a Mailgun send attempt fails BEFORE we receive a response —
- * timeout, network error, DNS — so we can't tell whether the message was
- * accepted. Distinct from a confirmed failure (Mailgun returned 4xx/5xx).
- *
- * Indeterminate sends MUST NOT be auto-flipped to FAILED: the message may
- * already be on its way to the recipient, and a Resend would dupe. The
- * outbox row stays in SENDING; an operator triages.
- */
-export class IndeterminateSendError extends Error {
+// Thrown when Mailgun send fails before a response arrives (timeout,
+// network/DNS) — accept state is unknown, so we MUST NOT auto-FAILED;
+// the message may already be in flight and a retry would dupe.
+export class IndeterminateSendError extends AppError {
   override readonly cause: unknown;
   constructor(message: string, cause: unknown) {
-    super(message);
+    super(message, "EMAIL_SEND_INDETERMINATE", 502);
     this.name = "IndeterminateSendError";
     this.cause = cause;
   }
@@ -99,15 +94,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<MailgunRespo
   return sendEmailViaMailgun(options);
 }
 
-/**
- * Send an email via SMTP (Mailpit for local development)
- *
- * NOTE: this path does NOT throw IndeterminateSendError on transient failures
- * (connection timeouts, DNS, etc.). nodemailer errors are re-thrown as-is and
- * handled by the confirmed-failure branch in processEmail (FAILED + throw).
- * Fine for dev (Mailpit is local) — flag for revisit if anyone ever wires an
- * external SMTP relay for production traffic.
- */
+// Transient nodemailer errors fall through to the confirmed-failure branch
+// (FAILED + throw) — fine for Mailpit-local dev. Revisit if an external SMTP
+// relay is ever wired for production.
 async function sendEmailViaSMTP(options: SendEmailOptions): Promise<MailgunResponse> {
   const transporter = getSmtpTransporter();
 
@@ -176,15 +165,8 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
     }
   }
 
-  // Do NOT set Content-Type manually — fetch derives the
-  // `multipart/form-data; boundary=…` header from the FormData body. A
-  // hand-set header corrupts the boundary and the request is rejected.
-  //
-  // Timeout sized for messages that include a PNG attachment (the QR pass).
-  // Mailgun ingestion of multipart with a small image is typically <2s; 30s
-  // gives generous headroom before we abort. A premature abort produces an
-  // IndeterminateSendError — Mailgun may still accept the message, and the
-  // outbox row stays in SENDING (see catch in processEmail).
+  // Don't set Content-Type — fetch derives `multipart/form-data; boundary=…`
+  // from FormData; a hand-set header corrupts the boundary.
   let response: Response;
   try {
     response = await fetch(
@@ -199,9 +181,6 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
       }
     );
   } catch (err) {
-    // Pre-response failures: AbortError (timeout), TypeError (network/DNS).
-    // Mailgun's accept state is unknown — do not classify as a confirmed
-    // failure. processEmail's catch keeps the row in SENDING.
     throw new IndeterminateSendError(
       "Mailgun send did not receive a response (timeout or network error)",
       err
@@ -622,39 +601,23 @@ export async function processEmail(emailId: string): Promise<void> {
       }
     }
   } catch (error) {
-    // Indeterminate sends (Mailgun timeout, network error before response)
-    // MUST NOT flip to FAILED. Mailgun may have accepted the message; a
-    // user-driven Resend or recovery-sweep retry could dupe. Leave the row
-    // in SENDING + record the error for triage. The recovery sweep filters
-    // SENDING rows on `error IS NULL` (see `recoverEmailOutbox`), so an
-    // indeterminate row here is NOT auto-re-queued — it requires operator
-    // triage, which is the safe default since the message may already be
-    // delivered.
     if (error instanceof IndeterminateSendError) {
-      // Tuck the underlying cause name (AbortError vs TypeError) into the
-      // recorded error so operators can distinguish at a glance without
-      // hunting logs.
       const causeName =
         error.cause instanceof Error ? error.cause.name : "unknown";
       await db.emailOutbox.updateMany({
         where: { id: emailId, status: "SENDING" },
-        data: {
-          error: `${error.message} (${causeName})`,
-        },
+        data: { error: `${error.message} (${causeName})` },
       });
       console.warn("[email] indeterminate send — leaving row in SENDING", {
         emailId,
         cause: error.cause instanceof Error ? error.cause.message : error.cause,
       });
-      // Don't re-throw: the cron loop's per-email try/catch logs as a
-      // hard failure, which would skew our observability for the truly-
-      // failed bucket. Indeterminate is its own thing.
       return;
     }
 
-    // Only flip to FAILED if the row hasn't already reached SENT — otherwise a
-    // post-send error (e.g. the Invite update) would erase the truth that
-    // Mailgun already accepted the message.
+    // Only flip to FAILED if the row hasn't already reached SENT — a
+    // post-send error (e.g. Invite update) would otherwise erase the truth
+    // that Mailgun accepted the message.
     await db.emailOutbox.updateMany({
       where: { id: emailId, status: { notIn: ["SENT", "DELIVERED", "OPENED"] } },
       data: {
@@ -684,63 +647,60 @@ async function recoverEmailOutbox(): Promise<{
   const sendingCutoff = new Date(Date.now() - STRANDED_SENDING_THRESHOLD_MS);
   const failedCutoff = new Date(Date.now() - FAILED_RETRY_THRESHOLD_MS);
 
-  // Reclaim only TRULY stranded SENDING rows — those without a recorded
-  // error. An indeterminate send (Mailgun timeout / network error) populates
-  // `error` while leaving the row in SENDING; auto-re-queueing those would
-  // dupe if Mailgun actually accepted the original. They require operator
-  // triage. A row claimed (QUEUED -> SENDING) but never sent (worker died
-  // mid-execution) has `error: null` and is the legitimate target here.
-  const reclaim = await db.emailOutbox.updateMany({
-    where: {
-      status: "SENDING",
-      error: null,
-      updatedAt: { lt: sendingCutoff },
-    },
-    data: { status: "QUEUED" },
-  });
-
-  // Bounded retry for FAILED rows. After MAX_SEND_ATTEMPTS the row stays
-  // FAILED and needs manual triage — this avoids loops on permanently
-  // broken sends (bad recipient, blocked domain, malformed payload).
-  const retry = await db.emailOutbox.updateMany({
-    where: {
-      status: "FAILED",
-      attemptCount: { lt: MAX_SEND_ATTEMPTS },
-      updatedAt: { lt: failedCutoff },
-    },
-    data: { status: "QUEUED" },
-  });
-
-  const stuckInvites = await db.invite.findMany({
-    where: {
-      status: "PENDING",
-      emails: {
-        some: {
-          template: "INVITE",
-          status: { in: ["SENT", "DELIVERED", "OPENED"] },
+  // SENDING reclaim filters `error: null` so indeterminate sends (Mailgun
+  // timeout / network error — accept state unknown) are NOT auto-re-queued;
+  // they require operator triage. Worker-died mid-send rows have error null
+  // and are the legitimate target.
+  const [reclaim, retry, stuckInvites] = await Promise.all([
+    db.emailOutbox.updateMany({
+      where: {
+        status: "SENDING",
+        error: null,
+        updatedAt: { lt: sendingCutoff },
+      },
+      data: { status: "QUEUED" },
+    }),
+    db.emailOutbox.updateMany({
+      where: {
+        status: "FAILED",
+        attemptCount: { lt: MAX_SEND_ATTEMPTS },
+        updatedAt: { lt: failedCutoff },
+      },
+      data: { status: "QUEUED" },
+    }),
+    db.invite.findMany({
+      where: {
+        status: "PENDING",
+        emails: {
+          some: {
+            template: "INVITE",
+            status: { in: ["SENT", "DELIVERED", "OPENED"] },
+          },
         },
       },
-    },
-    select: {
-      id: true,
-      emails: {
-        where: { template: "INVITE", status: { in: ["SENT", "DELIVERED", "OPENED"] } },
-        select: { sentAt: true },
-        orderBy: { sentAt: "asc" },
-        take: 1,
+      select: {
+        id: true,
+        emails: {
+          where: { template: "INVITE", status: { in: ["SENT", "DELIVERED", "OPENED"] } },
+          select: { sentAt: true },
+          orderBy: { sentAt: "asc" },
+          take: 1,
+        },
       },
-    },
-  });
+    }),
+  ]);
 
-  for (const invite of stuckInvites) {
-    await db.invite.update({
-      where: { id: invite.id },
-      data: {
-        status: "SENT",
-        sentAt: invite.emails[0]?.sentAt ?? new Date(),
-      },
-    });
-  }
+  await Promise.all(
+    stuckInvites.map((invite) =>
+      db.invite.update({
+        where: { id: invite.id },
+        data: {
+          status: "SENT",
+          sentAt: invite.emails[0]?.sentAt ?? new Date(),
+        },
+      })
+    )
+  );
 
   return {
     reclaimed: reclaim.count,
