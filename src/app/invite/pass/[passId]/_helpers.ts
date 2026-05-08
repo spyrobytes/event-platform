@@ -104,6 +104,9 @@ export function resolvePassMoment(invite: {
   const config = invite.event.invitationConfig;
   if (config?.receptionStartAt) {
     return {
+      // TODO(i18n): hardcoded English. When non-English locales ship, key off
+      // `Event.locale` (already on the schema) — likely via a small lookup
+      // table here, or move the label out and translate at the call site.
       label: "Reception",
       startAt: config.receptionStartAt,
       venue: config.receptionVenue,
