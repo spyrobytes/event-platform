@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { InviteForm } from "./InviteForm";
@@ -110,12 +110,15 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [serverStats, setServerStats] = useState<InviteStats | null>(null);
-  // Per-invite Resend pending set. Prevents a fast double-click from creating
-  // two outbox rows for the same invite (each click POSTs `action: "resend"`,
-  // which generates a new outbox row server-side).
+  // Per-invite Resend pending tracking. The state Set drives the UI
+  // (disabled button, "Resending…" label). The ref drives the within-tick
+  // double-click guard — refs update synchronously, so a second click in
+  // the same React tick reads the post-add value, while the state Set
+  // would still hold the captured pre-add value at that point.
   const [resendingInviteIds, setResendingInviteIds] = useState<Set<string>>(
     () => new Set()
   );
+  const resendingInviteIdsRef = useRef<Set<string>>(new Set());
 
   const fetchInvites = useCallback(async (pageNum: number = 0) => {
     try {
@@ -383,8 +386,12 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const handleResend = async (invite: Invite) => {
     const latestEmail = invite.emails?.[0];
     if (!latestEmail) return;
-    // Idempotency guard: bail if a resend for this invite is already in flight.
-    if (resendingInviteIds.has(invite.id)) return;
+    // Synchronous guard: refs update immediately, so a second click within
+    // the same React tick — before the disabled state has rendered —
+    // reads the post-add value and bails. The button's `disabled` is the
+    // primary UX cue; this catches the narrow within-tick race.
+    if (resendingInviteIdsRef.current.has(invite.id)) return;
+    resendingInviteIdsRef.current.add(invite.id);
 
     setResendingInviteIds((prev) => {
       const next = new Set(prev);
@@ -416,6 +423,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend invite");
     } finally {
+      resendingInviteIdsRef.current.delete(invite.id);
       setResendingInviteIds((prev) => {
         const next = new Set(prev);
         next.delete(invite.id);

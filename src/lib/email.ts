@@ -101,6 +101,12 @@ export async function sendEmail(options: SendEmailOptions): Promise<MailgunRespo
 
 /**
  * Send an email via SMTP (Mailpit for local development)
+ *
+ * NOTE: this path does NOT throw IndeterminateSendError on transient failures
+ * (connection timeouts, DNS, etc.). nodemailer errors are re-thrown as-is and
+ * handled by the confirmed-failure branch in processEmail (FAILED + throw).
+ * Fine for dev (Mailpit is local) — flag for revisit if anyone ever wires an
+ * external SMTP relay for production traffic.
  */
 async function sendEmailViaSMTP(options: SendEmailOptions): Promise<MailgunResponse> {
   const transporter = getSmtpTransporter();
@@ -619,15 +625,21 @@ export async function processEmail(emailId: string): Promise<void> {
     // Indeterminate sends (Mailgun timeout, network error before response)
     // MUST NOT flip to FAILED. Mailgun may have accepted the message; a
     // user-driven Resend or recovery-sweep retry could dupe. Leave the row
-    // in SENDING + record the error for triage. Recovery-sweep behavior:
-    // SENDING rows older than STRANDED_SENDING_THRESHOLD_MS still get
-    // re-queued — that's a known residual dupe path under cron retry,
-    // tracked separately.
+    // in SENDING + record the error for triage. The recovery sweep filters
+    // SENDING rows on `error IS NULL` (see `recoverEmailOutbox`), so an
+    // indeterminate row here is NOT auto-re-queued — it requires operator
+    // triage, which is the safe default since the message may already be
+    // delivered.
     if (error instanceof IndeterminateSendError) {
+      // Tuck the underlying cause name (AbortError vs TypeError) into the
+      // recorded error so operators can distinguish at a glance without
+      // hunting logs.
+      const causeName =
+        error.cause instanceof Error ? error.cause.name : "unknown";
       await db.emailOutbox.updateMany({
         where: { id: emailId, status: "SENDING" },
         data: {
-          error: error.message,
+          error: `${error.message} (${causeName})`,
         },
       });
       console.warn("[email] indeterminate send — leaving row in SENDING", {
@@ -672,8 +684,18 @@ async function recoverEmailOutbox(): Promise<{
   const sendingCutoff = new Date(Date.now() - STRANDED_SENDING_THRESHOLD_MS);
   const failedCutoff = new Date(Date.now() - FAILED_RETRY_THRESHOLD_MS);
 
+  // Reclaim only TRULY stranded SENDING rows — those without a recorded
+  // error. An indeterminate send (Mailgun timeout / network error) populates
+  // `error` while leaving the row in SENDING; auto-re-queueing those would
+  // dupe if Mailgun actually accepted the original. They require operator
+  // triage. A row claimed (QUEUED -> SENDING) but never sent (worker died
+  // mid-execution) has `error: null` and is the legitimate target here.
   const reclaim = await db.emailOutbox.updateMany({
-    where: { status: "SENDING", updatedAt: { lt: sendingCutoff } },
+    where: {
+      status: "SENDING",
+      error: null,
+      updatedAt: { lt: sendingCutoff },
+    },
     data: { status: "QUEUED" },
   });
 

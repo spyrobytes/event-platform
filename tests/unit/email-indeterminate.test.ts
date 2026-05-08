@@ -54,8 +54,10 @@ const dbState = { email: null as EmailRow | null };
 
 const emailOutboxUpdateManyMock = vi.fn(async () => ({ count: 1 }));
 const emailOutboxFindUniqueMock = vi.fn(async () => dbState.email);
+const emailOutboxFindManyMock = vi.fn(async () => [] as unknown[]);
 const emailOutboxUpdateMock = vi.fn(async () => ({}));
 const inviteFindUniqueMock = vi.fn(async () => null);
+const inviteFindManyMock = vi.fn(async () => [] as unknown[]);
 const inviteUpdateMock = vi.fn(async () => ({ eventId: "evt-1" }));
 const eventUpdateManyMock = vi.fn(async () => ({ count: 0 }));
 
@@ -64,9 +66,14 @@ vi.mock("@/lib/db", () => ({
     emailOutbox: {
       updateMany: emailOutboxUpdateManyMock,
       findUnique: emailOutboxFindUniqueMock,
+      findMany: emailOutboxFindManyMock,
       update: emailOutboxUpdateMock,
     },
-    invite: { findUnique: inviteFindUniqueMock, update: inviteUpdateMock },
+    invite: {
+      findUnique: inviteFindUniqueMock,
+      findMany: inviteFindManyMock,
+      update: inviteUpdateMock,
+    },
     event: { updateMany: eventUpdateManyMock },
   },
 }));
@@ -108,8 +115,12 @@ beforeEach(() => {
   emailOutboxUpdateManyMock.mockClear();
   emailOutboxUpdateManyMock.mockResolvedValue({ count: 1 });
   emailOutboxFindUniqueMock.mockClear();
+  emailOutboxFindManyMock.mockClear();
+  emailOutboxFindManyMock.mockResolvedValue([]);
   emailOutboxUpdateMock.mockClear();
   inviteFindUniqueMock.mockClear();
+  inviteFindManyMock.mockClear();
+  inviteFindManyMock.mockResolvedValue([]);
   inviteUpdateMock.mockClear();
   eventUpdateManyMock.mockClear();
   dbState.email = inviteRow();
@@ -154,6 +165,8 @@ describe("processEmail() — indeterminate Mailgun failures", () => {
     expect(indeterminateCall.where.status).toBe("SENDING");
     expect(indeterminateCall.data).not.toHaveProperty("status");
     expect(indeterminateCall.data.error).toContain("Mailgun send did not receive a response");
+    // Cause name is appended for operator triage.
+    expect(indeterminateCall.data.error).toContain("(AbortError)");
 
     // Most importantly, no FAILED transition.
     expect(calls.some((c) => c[0].data.status === "FAILED")).toBe(false);
@@ -166,9 +179,18 @@ describe("processEmail() — indeterminate Mailgun failures", () => {
 
     await expect(processEmail("outbox-1")).resolves.toBeUndefined();
 
-    type UpdateCall = { data: Record<string, unknown> };
+    type UpdateCall = {
+      where: { id: string; status: string };
+      data: Record<string, unknown>;
+    };
     const calls = emailOutboxUpdateManyMock.mock.calls as unknown as UpdateCall[][];
     expect(calls.some((c) => c[0].data.status === "FAILED")).toBe(false);
+    // TypeError surfaces as a different cause-name, distinguishable from
+    // AbortError without log-diving.
+    const indeterminate = calls.find(
+      (c) => c[0].where.status === "SENDING" && !c[0].data.status
+    );
+    expect(indeterminate?.[0].data.error).toContain("(TypeError)");
   });
 
   it("DOES flip to FAILED when Mailgun returns a 4xx with body (confirmed failure)", async () => {
@@ -211,3 +233,52 @@ describe("processEmail() — indeterminate Mailgun failures", () => {
     expect(err).toBeInstanceOf(Error);
   });
 });
+
+describe("processQueuedEmails() — recovery sweep filter", () => {
+  it("reclaims SENDING rows only when error IS NULL (skips indeterminate)", async () => {
+    // No queued emails so the function exits after the sweep.
+    emailOutboxFindManyMock.mockResolvedValue([]);
+    inviteFindManyMock.mockResolvedValue([]);
+
+    const { processQueuedEmails } = await import("@/lib/email");
+    await processQueuedEmails();
+
+    type UpdateCall = {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    const calls = emailOutboxUpdateManyMock.mock.calls as unknown as UpdateCall[][];
+
+    // The first updateMany in the sweep is the SENDING reclaim — not the
+    // FAILED retry. Identify by the data shape: reclaim sets status QUEUED.
+    const reclaimCall = calls.find(
+      (c) => c[0].where.status === "SENDING" && c[0].data.status === "QUEUED"
+    );
+    expect(reclaimCall).toBeDefined();
+    // The whole point of this test: indeterminate rows (which carry an
+    // `error` message) must be excluded from auto-re-queue.
+    expect(reclaimCall?.[0].where.error).toBeNull();
+  });
+
+  it("FAILED retry path is unfiltered by error (only attempt cap + age)", async () => {
+    emailOutboxFindManyMock.mockResolvedValue([]);
+    inviteFindManyMock.mockResolvedValue([]);
+
+    const { processQueuedEmails } = await import("@/lib/email");
+    await processQueuedEmails();
+
+    type UpdateCall = {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    const calls = emailOutboxUpdateManyMock.mock.calls as unknown as UpdateCall[][];
+    const failedRetry = calls.find(
+      (c) => c[0].where.status === "FAILED" && c[0].data.status === "QUEUED"
+    );
+    expect(failedRetry).toBeDefined();
+    // FAILED rows always carry an error message — filtering on error: null
+    // here would defeat the retry. Sanity-check that we did NOT add it.
+    expect(failedRetry?.[0].where).not.toHaveProperty("error");
+  });
+});
+
