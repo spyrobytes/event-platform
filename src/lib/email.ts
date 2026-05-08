@@ -8,6 +8,7 @@ import { VerificationEmail } from "@/emails/VerificationEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
 import { buildPassUrl, generateQrPngBuffer, QR_ATTACHMENT_FILENAME } from "./qr";
+import { AppError } from "./errors";
 import type { EmailStatus, Prisma } from "@prisma/client";
 
 // Mailgun configuration (production)
@@ -47,6 +48,18 @@ type MailgunResponse = {
   message: string;
 };
 
+// Thrown when Mailgun send fails before a response arrives (timeout,
+// network/DNS) — accept state is unknown, so we MUST NOT auto-FAILED;
+// the message may already be in flight and a retry would dupe.
+export class IndeterminateSendError extends AppError {
+  override readonly cause: unknown;
+  constructor(message: string, cause: unknown) {
+    super(message, "EMAIL_SEND_INDETERMINATE", 502);
+    this.name = "IndeterminateSendError";
+    this.cause = cause;
+  }
+}
+
 type EmailAttachment = {
   /** Filename as it appears to the recipient. Also serves as the CID
    *  reference for inline attachments — see `inline` below. */
@@ -81,9 +94,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<MailgunRespo
   return sendEmailViaMailgun(options);
 }
 
-/**
- * Send an email via SMTP (Mailpit for local development)
- */
+// Transient nodemailer errors fall through to the confirmed-failure branch
+// (FAILED + throw) — fine for Mailpit-local dev. Revisit if an external SMTP
+// relay is ever wired for production.
 async function sendEmailViaSMTP(options: SendEmailOptions): Promise<MailgunResponse> {
   const transporter = getSmtpTransporter();
 
@@ -152,20 +165,27 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
     }
   }
 
-  // Do NOT set Content-Type manually — fetch derives the
-  // `multipart/form-data; boundary=…` header from the FormData body. A
-  // hand-set header corrupts the boundary and the request is rejected.
-  const response = await fetch(
-    `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,
-      },
-      body: formData,
-      signal: AbortSignal.timeout(15_000),
-    }
-  );
+  // Don't set Content-Type — fetch derives `multipart/form-data; boundary=…`
+  // from FormData; a hand-set header corrupts the boundary.
+  let response: Response;
+  try {
+    response = await fetch(
+      `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,
+        },
+        body: formData,
+        signal: AbortSignal.timeout(30_000),
+      }
+    );
+  } catch (err) {
+    throw new IndeterminateSendError(
+      "Mailgun send did not receive a response (timeout or network error)",
+      err
+    );
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -581,9 +601,23 @@ export async function processEmail(emailId: string): Promise<void> {
       }
     }
   } catch (error) {
-    // Only flip to FAILED if the row hasn't already reached SENT — otherwise a
-    // post-send error (e.g. the Invite update) would erase the truth that
-    // Mailgun already accepted the message.
+    if (error instanceof IndeterminateSendError) {
+      const causeName =
+        error.cause instanceof Error ? error.cause.name : "unknown";
+      await db.emailOutbox.updateMany({
+        where: { id: emailId, status: "SENDING" },
+        data: { error: `${error.message} (${causeName})` },
+      });
+      console.warn("[email] indeterminate send — leaving row in SENDING", {
+        emailId,
+        cause: error.cause instanceof Error ? error.cause.message : error.cause,
+      });
+      return;
+    }
+
+    // Only flip to FAILED if the row hasn't already reached SENT — a
+    // post-send error (e.g. Invite update) would otherwise erase the truth
+    // that Mailgun accepted the message.
     await db.emailOutbox.updateMany({
       where: { id: emailId, status: { notIn: ["SENT", "DELIVERED", "OPENED"] } },
       data: {
@@ -613,53 +647,60 @@ async function recoverEmailOutbox(): Promise<{
   const sendingCutoff = new Date(Date.now() - STRANDED_SENDING_THRESHOLD_MS);
   const failedCutoff = new Date(Date.now() - FAILED_RETRY_THRESHOLD_MS);
 
-  const reclaim = await db.emailOutbox.updateMany({
-    where: { status: "SENDING", updatedAt: { lt: sendingCutoff } },
-    data: { status: "QUEUED" },
-  });
-
-  // Bounded retry for FAILED rows. After MAX_SEND_ATTEMPTS the row stays
-  // FAILED and needs manual triage — this avoids loops on permanently
-  // broken sends (bad recipient, blocked domain, malformed payload).
-  const retry = await db.emailOutbox.updateMany({
-    where: {
-      status: "FAILED",
-      attemptCount: { lt: MAX_SEND_ATTEMPTS },
-      updatedAt: { lt: failedCutoff },
-    },
-    data: { status: "QUEUED" },
-  });
-
-  const stuckInvites = await db.invite.findMany({
-    where: {
-      status: "PENDING",
-      emails: {
-        some: {
-          template: "INVITE",
-          status: { in: ["SENT", "DELIVERED", "OPENED"] },
+  // SENDING reclaim filters `error: null` so indeterminate sends (Mailgun
+  // timeout / network error — accept state unknown) are NOT auto-re-queued;
+  // they require operator triage. Worker-died mid-send rows have error null
+  // and are the legitimate target.
+  const [reclaim, retry, stuckInvites] = await Promise.all([
+    db.emailOutbox.updateMany({
+      where: {
+        status: "SENDING",
+        error: null,
+        updatedAt: { lt: sendingCutoff },
+      },
+      data: { status: "QUEUED" },
+    }),
+    db.emailOutbox.updateMany({
+      where: {
+        status: "FAILED",
+        attemptCount: { lt: MAX_SEND_ATTEMPTS },
+        updatedAt: { lt: failedCutoff },
+      },
+      data: { status: "QUEUED" },
+    }),
+    db.invite.findMany({
+      where: {
+        status: "PENDING",
+        emails: {
+          some: {
+            template: "INVITE",
+            status: { in: ["SENT", "DELIVERED", "OPENED"] },
+          },
         },
       },
-    },
-    select: {
-      id: true,
-      emails: {
-        where: { template: "INVITE", status: { in: ["SENT", "DELIVERED", "OPENED"] } },
-        select: { sentAt: true },
-        orderBy: { sentAt: "asc" },
-        take: 1,
+      select: {
+        id: true,
+        emails: {
+          where: { template: "INVITE", status: { in: ["SENT", "DELIVERED", "OPENED"] } },
+          select: { sentAt: true },
+          orderBy: { sentAt: "asc" },
+          take: 1,
+        },
       },
-    },
-  });
+    }),
+  ]);
 
-  for (const invite of stuckInvites) {
-    await db.invite.update({
-      where: { id: invite.id },
-      data: {
-        status: "SENT",
-        sentAt: invite.emails[0]?.sentAt ?? new Date(),
-      },
-    });
-  }
+  await Promise.all(
+    stuckInvites.map((invite) =>
+      db.invite.update({
+        where: { id: invite.id },
+        data: {
+          status: "SENT",
+          sentAt: invite.emails[0]?.sentAt ?? new Date(),
+        },
+      })
+    )
+  );
 
   return {
     reclaimed: reclaim.count,

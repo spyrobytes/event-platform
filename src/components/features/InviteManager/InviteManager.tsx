@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { InviteForm } from "./InviteForm";
@@ -110,6 +110,13 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [serverStats, setServerStats] = useState<InviteStats | null>(null);
+  // State drives the UI; ref guards within-tick double-clicks (state updates
+  // are async, so two clicks in the same React tick would both see the
+  // pre-add value).
+  const [resendingInviteIds, setResendingInviteIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const resendingInviteIdsRef = useRef<Set<string>>(new Set());
 
   const fetchInvites = useCallback(async (pageNum: number = 0) => {
     try {
@@ -377,6 +384,14 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const handleResend = async (invite: Invite) => {
     const latestEmail = invite.emails?.[0];
     if (!latestEmail) return;
+    if (resendingInviteIdsRef.current.has(invite.id)) return;
+    resendingInviteIdsRef.current.add(invite.id);
+
+    setResendingInviteIds((prev) => {
+      const next = new Set(prev);
+      next.add(invite.id);
+      return next;
+    });
 
     try {
       const token = await getIdToken();
@@ -401,6 +416,13 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
       await Promise.all([fetchInvites(page), fetchEmailStats()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend invite");
+    } finally {
+      resendingInviteIdsRef.current.delete(invite.id);
+      setResendingInviteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(invite.id);
+        return next;
+      });
     }
   };
 
@@ -683,6 +705,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
                 onResend={handleResend}
                 copiedInviteId={copiedInviteId}
                 tokenCache={tokenCache}
+                resendingInviteIds={resendingInviteIds}
               />
               {pagination && pagination.total > PAGE_SIZE && (
                 <div className="flex items-center justify-between border-t pt-4 mt-4">
