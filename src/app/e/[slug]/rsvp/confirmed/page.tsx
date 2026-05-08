@@ -32,7 +32,7 @@ const HEADINGS: Record<string, string> = {
 };
 
 const BODIES: Record<string, string> = {
-  YES: "We'll see you there. Watch your inbox for any updates from the host.",
+  YES: "We've sent you a confirmation email with your access QR code. Show it at the venue when you arrive.",
   NO: "We'll miss you. If your plans change, contact the host to update your RSVP.",
   MAYBE: "We'll send a reminder closer to the event so you can confirm.",
 };

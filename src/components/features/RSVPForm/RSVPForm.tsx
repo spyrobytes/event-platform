@@ -239,7 +239,11 @@ export function RSVPForm({
               : "Thank You!"}
         </h2>
         <p className="text-muted-foreground">
-          {apiMessage || successMessage || "Your RSVP has been recorded. You'll receive a confirmation email shortly."}
+          {apiMessage ||
+            successMessage ||
+            (submittedResponse === "YES"
+              ? "Your RSVP is confirmed. We've sent you a confirmation email with your access QR code — show it at the venue when you arrive."
+              : "Your RSVP has been recorded. You'll receive a confirmation email shortly.")}
         </p>
       </div>
     );

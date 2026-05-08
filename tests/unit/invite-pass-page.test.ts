@@ -70,7 +70,14 @@ describe("InvitePassPage — 404 paths", () => {
     expect(findUniqueMock).toHaveBeenCalledWith({
       where: { passId: VALID_PASS_ID },
       include: {
-        rsvp: { select: { guestName: true, guestCount: true, response: true } },
+        rsvp: {
+          select: {
+            guestName: true,
+            guestCount: true,
+            response: true,
+            additionalGuestNames: true,
+          },
+        },
         event: {
           select: {
             title: true,
@@ -78,6 +85,15 @@ describe("InvitePassPage — 404 paths", () => {
             endAt: true,
             status: true,
             timezone: true,
+            venueName: true,
+            address: true,
+            invitationConfig: {
+              select: {
+                receptionStartAt: true,
+                receptionVenue: true,
+                receptionAddress: true,
+              },
+            },
           },
         },
       },

@@ -219,7 +219,6 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 needsEmail={!invite.email}
                 inviteRef={inviteRef}
                 enableWishes={enableWishes}
-                successMessage="Your response has been recorded. You'll receive a confirmation email shortly."
               />
             )}
           </div>
