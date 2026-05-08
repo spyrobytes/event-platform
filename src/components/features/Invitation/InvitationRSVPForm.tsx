@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
+import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import {
   trackFormStarted,
@@ -246,11 +247,7 @@ export function InvitationRSVPForm({
               : "Thank You!"}
         </h2>
         <p className="text-[var(--inv-text-secondary)]">
-          {apiMessage ||
-            successMessage ||
-            (submittedResponse === "YES"
-              ? "Your RSVP is confirmed. Check your inbox for the confirmation email — look for your access QR code inside, and show it at the venue when you arrive."
-              : "Your RSVP has been recorded. You'll receive a confirmation email shortly.")}
+          {apiMessage ?? successMessage ?? defaultRsvpSuccessMessage(submittedResponse)}
         </p>
         {portalUrl && (
           <a
