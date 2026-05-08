@@ -53,6 +53,9 @@ type InviteTableProps = {
   onRowClick?: (invite: Invite) => void;
   copiedInviteId?: string | null;
   tokenCache?: Map<string, string>;
+  /** Invite IDs whose Resend POST is currently in flight. Used to disable
+   *  the Resend button so a fast double-click can't create two outbox rows. */
+  resendingInviteIds?: Set<string>;
 };
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> = {
@@ -71,7 +74,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache }: InviteTableProps) {
+export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache, resendingInviteIds }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -252,16 +255,20 @@ export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onR
                         invite.status !== "REVOKED" &&
                         (lastEmail?.status === "FAILED" || lastEmail?.status === "BOUNCED");
                       if (!canResend) return null;
+                      const isResending = resendingInviteIds?.has(invite.id) ?? false;
                       return (
                         <button
                           onClick={(e) => {
                             stopBubble(e);
+                            if (isResending) return;
                             onResend!(invite);
                           }}
-                          className="text-xs text-foreground hover:underline underline-offset-2"
+                          disabled={isResending}
+                          aria-busy={isResending}
+                          className="text-xs text-foreground hover:underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                           title={lastEmail?.error || undefined}
                         >
-                          Resend
+                          {isResending ? "Resending…" : "Resend"}
                         </button>
                       );
                     })()}

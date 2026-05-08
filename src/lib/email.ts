@@ -47,6 +47,24 @@ type MailgunResponse = {
   message: string;
 };
 
+/**
+ * Thrown when a Mailgun send attempt fails BEFORE we receive a response —
+ * timeout, network error, DNS — so we can't tell whether the message was
+ * accepted. Distinct from a confirmed failure (Mailgun returned 4xx/5xx).
+ *
+ * Indeterminate sends MUST NOT be auto-flipped to FAILED: the message may
+ * already be on its way to the recipient, and a Resend would dupe. The
+ * outbox row stays in SENDING; an operator triages.
+ */
+export class IndeterminateSendError extends Error {
+  override readonly cause: unknown;
+  constructor(message: string, cause: unknown) {
+    super(message);
+    this.name = "IndeterminateSendError";
+    this.cause = cause;
+  }
+}
+
 type EmailAttachment = {
   /** Filename as it appears to the recipient. Also serves as the CID
    *  reference for inline attachments — see `inline` below. */
@@ -155,17 +173,34 @@ async function sendEmailViaMailgun(options: SendEmailOptions): Promise<MailgunRe
   // Do NOT set Content-Type manually — fetch derives the
   // `multipart/form-data; boundary=…` header from the FormData body. A
   // hand-set header corrupts the boundary and the request is rejected.
-  const response = await fetch(
-    `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,
-      },
-      body: formData,
-      signal: AbortSignal.timeout(15_000),
-    }
-  );
+  //
+  // Timeout sized for messages that include a PNG attachment (the QR pass).
+  // Mailgun ingestion of multipart with a small image is typically <2s; 30s
+  // gives generous headroom before we abort. A premature abort produces an
+  // IndeterminateSendError — Mailgun may still accept the message, and the
+  // outbox row stays in SENDING (see catch in processEmail).
+  let response: Response;
+  try {
+    response = await fetch(
+      `${MAILGUN_BASE_URL}/v3/${MAILGUN_DOMAIN}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`api:${MAILGUN_API_KEY}`).toString("base64")}`,
+        },
+        body: formData,
+        signal: AbortSignal.timeout(30_000),
+      }
+    );
+  } catch (err) {
+    // Pre-response failures: AbortError (timeout), TypeError (network/DNS).
+    // Mailgun's accept state is unknown — do not classify as a confirmed
+    // failure. processEmail's catch keeps the row in SENDING.
+    throw new IndeterminateSendError(
+      "Mailgun send did not receive a response (timeout or network error)",
+      err
+    );
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -581,6 +616,30 @@ export async function processEmail(emailId: string): Promise<void> {
       }
     }
   } catch (error) {
+    // Indeterminate sends (Mailgun timeout, network error before response)
+    // MUST NOT flip to FAILED. Mailgun may have accepted the message; a
+    // user-driven Resend or recovery-sweep retry could dupe. Leave the row
+    // in SENDING + record the error for triage. Recovery-sweep behavior:
+    // SENDING rows older than STRANDED_SENDING_THRESHOLD_MS still get
+    // re-queued — that's a known residual dupe path under cron retry,
+    // tracked separately.
+    if (error instanceof IndeterminateSendError) {
+      await db.emailOutbox.updateMany({
+        where: { id: emailId, status: "SENDING" },
+        data: {
+          error: error.message,
+        },
+      });
+      console.warn("[email] indeterminate send — leaving row in SENDING", {
+        emailId,
+        cause: error.cause instanceof Error ? error.cause.message : error.cause,
+      });
+      // Don't re-throw: the cron loop's per-email try/catch logs as a
+      // hard failure, which would skew our observability for the truly-
+      // failed bucket. Indeterminate is its own thing.
+      return;
+    }
+
     // Only flip to FAILED if the row hasn't already reached SENT — otherwise a
     // post-send error (e.g. the Invite update) would erase the truth that
     // Mailgun already accepted the message.

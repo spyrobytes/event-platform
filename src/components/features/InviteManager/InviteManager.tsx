@@ -110,6 +110,12 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const [page, setPage] = useState(0);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [serverStats, setServerStats] = useState<InviteStats | null>(null);
+  // Per-invite Resend pending set. Prevents a fast double-click from creating
+  // two outbox rows for the same invite (each click POSTs `action: "resend"`,
+  // which generates a new outbox row server-side).
+  const [resendingInviteIds, setResendingInviteIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const fetchInvites = useCallback(async (pageNum: number = 0) => {
     try {
@@ -377,6 +383,14 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
   const handleResend = async (invite: Invite) => {
     const latestEmail = invite.emails?.[0];
     if (!latestEmail) return;
+    // Idempotency guard: bail if a resend for this invite is already in flight.
+    if (resendingInviteIds.has(invite.id)) return;
+
+    setResendingInviteIds((prev) => {
+      const next = new Set(prev);
+      next.add(invite.id);
+      return next;
+    });
 
     try {
       const token = await getIdToken();
@@ -401,6 +415,12 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
       await Promise.all([fetchInvites(page), fetchEmailStats()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resend invite");
+    } finally {
+      setResendingInviteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(invite.id);
+        return next;
+      });
     }
   };
 
@@ -683,6 +703,7 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
                 onResend={handleResend}
                 copiedInviteId={copiedInviteId}
                 tokenCache={tokenCache}
+                resendingInviteIds={resendingInviteIds}
               />
               {pagination && pagination.total > PAGE_SIZE && (
                 <div className="flex items-center justify-between border-t pt-4 mt-4">
