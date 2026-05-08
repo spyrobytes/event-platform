@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import {
   trackFormStarted,
@@ -239,7 +240,7 @@ export function RSVPForm({
               : "Thank You!"}
         </h2>
         <p className="text-muted-foreground">
-          {apiMessage || successMessage || "Your RSVP has been recorded. You'll receive a confirmation email shortly."}
+          {apiMessage ?? successMessage ?? defaultRsvpSuccessMessage(submittedResponse)}
         </p>
       </div>
     );

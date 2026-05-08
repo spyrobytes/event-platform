@@ -9,6 +9,8 @@ import {
   detectAccessState,
   resolveGuestName,
   resolvePartyLabel,
+  resolvePartyMembers,
+  resolvePassMoment,
 } from "./_helpers";
 
 // TODO(rate-limit): wire `src/lib/rate-limit.ts` when the public-portal
@@ -45,8 +47,15 @@ export default async function InvitePassPage({ params }: PageProps) {
     where: { passId },
     include: {
       // Scoped select — the RSVP table carries dietaryRestrictions, music
-      // suggestions, additional-guest JSON, etc. that the pass view never reads.
-      rsvp: { select: { guestName: true, guestCount: true, response: true } },
+      // suggestions, etc. that the pass view never reads.
+      rsvp: {
+        select: {
+          guestName: true,
+          guestCount: true,
+          response: true,
+          additionalGuestNames: true,
+        },
+      },
       event: {
         select: {
           title: true,
@@ -54,6 +63,15 @@ export default async function InvitePassPage({ params }: PageProps) {
           endAt: true,
           status: true,
           timezone: true,
+          venueName: true,
+          address: true,
+          invitationConfig: {
+            select: {
+              receptionStartAt: true,
+              receptionVenue: true,
+              receptionAddress: true,
+            },
+          },
         },
       },
     },
@@ -84,10 +102,12 @@ export default async function InvitePassPage({ params }: PageProps) {
 
   const guestName = resolveGuestName(invite);
   const partyLabel = resolvePartyLabel(invite);
+  const partyMembers = resolvePartyMembers(invite);
   const rsvpKey = invite.rsvp?.response ?? "PENDING";
   const rsvpBadge = RSVP_BADGE[rsvpKey];
-  const eventDate = formatEventDateLong(invite.event.startAt, invite.event.timezone);
-  const eventTime = formatEventTime(invite.event.startAt, invite.event.timezone);
+  const passMoment = resolvePassMoment(invite);
+  const eventDate = formatEventDateLong(passMoment.startAt, invite.event.timezone);
+  const eventTime = formatEventTime(passMoment.startAt, invite.event.timezone);
 
   return (
     <main className="min-h-dvh flex items-center justify-center bg-slate-50 px-6 py-12">
@@ -108,11 +128,28 @@ export default async function InvitePassPage({ params }: PageProps) {
           <p className="mt-4 text-sm font-medium text-slate-600">{partyLabel}</p>
         )}
 
+        {partyMembers.length > 0 && (
+          <p className="mt-1 text-sm text-slate-500 break-words">
+            with {partyMembers.join(", ")}
+          </p>
+        )}
+
         <div className="mt-8 border-t border-slate-200 pt-6">
           <p className="text-base font-medium text-slate-900">{invite.event.title}</p>
+          {passMoment.label && (
+            <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
+              {passMoment.label}
+            </p>
+          )}
           <p className="mt-1 text-sm text-slate-600">
             {eventDate} · {eventTime}
           </p>
+          {passMoment.venue && (
+            <p className="mt-2 text-sm text-slate-700">{passMoment.venue}</p>
+          )}
+          {passMoment.address && (
+            <p className="text-xs text-slate-500">{passMoment.address}</p>
+          )}
         </div>
       </div>
     </main>

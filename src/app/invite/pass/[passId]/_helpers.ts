@@ -62,6 +62,65 @@ export function resolvePartyLabel(invite: {
   return null;
 }
 
+// Names of the additional guests the primary guest is bringing. The primary
+// guest is already shown as the Pass card's H1, so this is just the +1s.
+// Empty/missing names are filtered so a partially-filled RSVP doesn't render
+// stray empty entries.
+export function resolvePartyMembers(invite: {
+  rsvp: { additionalGuestNames: string[] } | null;
+}): string[] {
+  return (invite.rsvp?.additionalGuestNames ?? [])
+    .map((n) => n.trim())
+    .filter((n) => n.length > 0);
+}
+
+export type PassMoment = {
+  // "Reception" when sourced from the wedding reception fields; null when the
+  // moment is the Event row's own startAt (in which case the event title alone
+  // is the label).
+  label: string | null;
+  startAt: Date;
+  venue: string | null;
+  address: string | null;
+};
+
+// Pass admits to the reception when one is configured; otherwise to the
+// event's primary moment. Mirrors the rule already applied by the invite-email
+// pipeline (`src/app/api/events/[id]/invites/route.ts:99-131`). The full
+// multi-gated-event design is deferred — see
+// `internal-docs/access-pass-gated-events-plan.md`.
+export function resolvePassMoment(invite: {
+  event: {
+    startAt: Date;
+    venueName: string | null;
+    address: string | null;
+    invitationConfig: {
+      receptionStartAt: Date | null;
+      receptionVenue: string | null;
+      receptionAddress: string | null;
+    } | null;
+  };
+}): PassMoment {
+  const config = invite.event.invitationConfig;
+  if (config?.receptionStartAt) {
+    return {
+      // TODO(i18n): hardcoded English. When non-English locales ship, key off
+      // `Event.locale` (already on the schema) — likely via a small lookup
+      // table here, or move the label out and translate at the call site.
+      label: "Reception",
+      startAt: config.receptionStartAt,
+      venue: config.receptionVenue,
+      address: config.receptionAddress,
+    };
+  }
+  return {
+    label: null,
+    startAt: invite.event.startAt,
+    venue: invite.event.venueName,
+    address: invite.event.address,
+  };
+}
+
 export const RSVP_BADGE: Record<
   RsvpResponse | "PENDING",
   { label: string; classes: string }

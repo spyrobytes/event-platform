@@ -3,6 +3,8 @@ import {
   detectAccessState,
   resolveGuestName,
   resolvePartyLabel,
+  resolvePartyMembers,
+  resolvePassMoment,
   UUID_PATTERN,
 } from "@/app/invite/pass/[passId]/_helpers";
 
@@ -178,6 +180,111 @@ describe("resolvePartyLabel", () => {
     expect(resolvePartyLabel({ plusOnesAllowed: 4, rsvp: { guestCount: 2 } })).toBe(
       "Party of 2"
     );
+  });
+});
+
+describe("resolvePartyMembers", () => {
+  it("returns the additional guest names when present", () => {
+    expect(
+      resolvePartyMembers({
+        rsvp: { additionalGuestNames: ["Bob", "Carol"] },
+      })
+    ).toEqual(["Bob", "Carol"]);
+  });
+
+  it("returns empty when no RSVP exists", () => {
+    expect(resolvePartyMembers({ rsvp: null })).toEqual([]);
+  });
+
+  it("filters empty / whitespace-only entries", () => {
+    expect(
+      resolvePartyMembers({
+        rsvp: { additionalGuestNames: ["Bob", "", "  ", "Carol"] },
+      })
+    ).toEqual(["Bob", "Carol"]);
+  });
+
+  it("trims surrounding whitespace from each name", () => {
+    expect(
+      resolvePartyMembers({
+        rsvp: { additionalGuestNames: ["  Bob  ", "Carol "] },
+      })
+    ).toEqual(["Bob", "Carol"]);
+  });
+});
+
+describe("resolvePassMoment", () => {
+  const RECEPTION = T("2026-06-21T18:00:00Z");
+  const EVENT_START = T("2026-06-21T14:00:00Z");
+
+  const eventBase = {
+    startAt: EVENT_START,
+    venueName: "St. Mary's Cathedral",
+    address: "100 Cathedral Pl",
+  };
+
+  it("uses reception fields when receptionStartAt is set", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        invitationConfig: {
+          receptionStartAt: RECEPTION,
+          receptionVenue: "The Royal Hall",
+          receptionAddress: "123 Main St",
+        },
+      },
+    });
+    expect(result).toEqual({
+      label: "Reception",
+      startAt: RECEPTION,
+      venue: "The Royal Hall",
+      address: "123 Main St",
+    });
+  });
+
+  it("falls back to event.startAt when receptionStartAt is null", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        invitationConfig: {
+          receptionStartAt: null,
+          receptionVenue: null,
+          receptionAddress: null,
+        },
+      },
+    });
+    expect(result).toEqual({
+      label: null,
+      startAt: EVENT_START,
+      venue: "St. Mary's Cathedral",
+      address: "100 Cathedral Pl",
+    });
+  });
+
+  it("falls back to event.startAt when there is no invitationConfig at all", () => {
+    const result = resolvePassMoment({
+      event: { ...eventBase, invitationConfig: null },
+    });
+    expect(result.label).toBeNull();
+    expect(result.startAt).toBe(EVENT_START);
+    expect(result.venue).toBe("St. Mary's Cathedral");
+    expect(result.address).toBe("100 Cathedral Pl");
+  });
+
+  it("preserves null venue/address when reception is set without those fields", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        invitationConfig: {
+          receptionStartAt: RECEPTION,
+          receptionVenue: null,
+          receptionAddress: null,
+        },
+      },
+    });
+    expect(result.label).toBe("Reception");
+    expect(result.venue).toBeNull();
+    expect(result.address).toBeNull();
   });
 });
 

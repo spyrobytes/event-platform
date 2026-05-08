@@ -31,8 +31,12 @@ const HEADINGS: Record<string, string> = {
   MAYBE: "We've noted your response",
 };
 
+// YES copy avoids a hard promise that the email contains a QR — the host can
+// disable per-event QR attachment (`Event.attachQrToConfirmation`), and a
+// rare QR pipeline failure ships the email without one. The "look for" verb
+// invites the guest to check rather than asserting delivery.
 const BODIES: Record<string, string> = {
-  YES: "We'll see you there. Watch your inbox for any updates from the host.",
+  YES: "We've sent you a confirmation email. Look for your access QR code inside — show it at the venue when you arrive.",
   NO: "We'll miss you. If your plans change, contact the host to update your RSVP.",
   MAYBE: "We'll send a reminder closer to the event so you can confirm.",
 };
