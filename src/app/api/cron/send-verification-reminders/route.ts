@@ -24,6 +24,9 @@ const HOURS = 60 * 60 * 1000;
 const DAY_1_THRESHOLD_HOURS = 22;
 const DAY_3_THRESHOLD_HOURS = 70;
 
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 

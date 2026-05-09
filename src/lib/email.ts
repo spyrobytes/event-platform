@@ -1,5 +1,6 @@
 import { render } from "@react-email/components";
 import { createTransport, type Transporter } from "nodemailer";
+import { after } from "next/server";
 import { db } from "./db";
 import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
@@ -628,6 +629,32 @@ export async function processEmail(emailId: string): Promise<void> {
 
     throw error;
   }
+}
+
+/**
+ * Returns immediately; the actual send runs after the response is flushed.
+ *
+ * Without `after()`, a fire-and-forget `processEmail(id).catch(...)` at a
+ * request-handler callsite races the lambda's death: if Vercel kills the
+ * runtime between the SENDING claim and the Mailgun fetch's `error`-column
+ * write, the row is stuck — `recoverEmailOutbox` filters its SENDING
+ * reclaim on `error: null` (intentional, to avoid duping a Mailgun-accepted
+ * message), so a row with `error` set never gets retried.
+ *
+ * Routes that call this in a loop (bulk invite POST, the reminder crons)
+ * MUST also declare `export const maxDuration = 60`. Vercel's defaults
+ * (10s Hobby / 15s Pro) cut off the deferred queue when one request fans
+ * out to many recipients. The literal `60` is required — Next.js segment
+ * config is statically analyzed and rejects imported constants.
+ */
+export function scheduleEmailProcessing(emailId: string): void {
+  after(async () => {
+    try {
+      await processEmail(emailId);
+    } catch (err) {
+      console.error(`[email] processEmail ${emailId} failed`, err);
+    }
+  });
 }
 
 const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes

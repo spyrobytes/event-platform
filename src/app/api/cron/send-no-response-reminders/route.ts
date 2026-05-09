@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { queueNoResponseReminderEmail, processEmail } from "@/lib/email";
+import { queueNoResponseReminderEmail, scheduleEmailProcessing } from "@/lib/email";
 import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
+
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
+export const maxDuration = 60;
 
 /**
  * GET /api/cron/send-no-response-reminders
@@ -180,10 +183,8 @@ export async function GET(request: NextRequest) {
               }
             );
 
-            // Process immediately
-            processEmail(emailId).catch((err) => {
-              console.error(`Failed to send reminder email ${emailId}:`, err);
-            });
+            // Schedule post-response delivery so the cron returns quickly.
+            scheduleEmailProcessing(emailId);
 
             totalQueued++;
           } catch (err) {

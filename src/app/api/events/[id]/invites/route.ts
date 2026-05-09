@@ -7,8 +7,15 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
 import { generateGuestRsvpCode, hashRsvpCode } from "@/lib/rsvp-code";
-import { queueInviteEmail, processEmail, buildUnsubscribeUrl } from "@/lib/email";
+import {
+  queueInviteEmail,
+  scheduleEmailProcessing,
+  buildUnsubscribeUrl,
+} from "@/lib/email";
 import { ConflictError } from "@/lib/errors";
+
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
+export const maxDuration = 60;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -411,9 +418,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 rsvpCode,
               });
 
-              processEmail(emailId).catch((err) => {
-                console.error(`Failed to send invite email ${emailId}:`, err);
-              });
+              scheduleEmailProcessing(emailId);
 
               emailsQueued++;
             }
@@ -504,9 +509,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             rsvpCode,
           });
 
-          processEmail(emailId).catch((err) => {
-            console.error(`Failed to send invite email ${emailId}:`, err);
-          });
+          scheduleEmailProcessing(emailId);
 
           emailQueued = true;
         }

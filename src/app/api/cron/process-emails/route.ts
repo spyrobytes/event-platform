@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processQueuedEmails } from "@/lib/email";
 
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
 export const maxDuration = 60;
 
 /**

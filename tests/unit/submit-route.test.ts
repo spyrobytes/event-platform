@@ -21,18 +21,19 @@ const dbMock = {
 };
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 
-// Email module — we only verify the route enqueues correctly; processEmail is
-// fire-and-forget so we make it a no-op promise. Typed against the real module
-// so `mock.calls[i][j]` indexing keeps a proper tuple shape under tsc.
+// Email module — we only verify the route enqueues correctly; the actual
+// send is deferred via `scheduleEmailProcessing` so we make it a no-op.
+// Typed against the real module so `mock.calls[i][j]` indexing keeps a
+// proper tuple shape under tsc.
 type QueueConfirmationEmail = typeof import("@/lib/email").queueConfirmationEmail;
-type ProcessEmail = typeof import("@/lib/email").processEmail;
+type ScheduleEmailProcessing = typeof import("@/lib/email").scheduleEmailProcessing;
 const queueConfirmationEmailMock = vi.fn<QueueConfirmationEmail>(
   async () => "email-1"
 );
-const processEmailMock = vi.fn<ProcessEmail>(async () => undefined);
+const scheduleEmailProcessingMock = vi.fn<ScheduleEmailProcessing>(() => {});
 vi.mock("@/lib/email", () => ({
   queueConfirmationEmail: queueConfirmationEmailMock,
-  processEmail: processEmailMock,
+  scheduleEmailProcessing: scheduleEmailProcessingMock,
   // Real buildUnsubscribeUrl is a pure formatter — keep the mock equivalently
   // pure so the route's email payload assertions can match the URL shape.
   buildUnsubscribeUrl: (rawToken: string) =>
@@ -525,8 +526,8 @@ describe("confirmation email", () => {
     expect(payload.unsubscribeUrl).toContain(body.data.portalToken);
   });
 
-  it("kicks off processEmail outside the transaction (fire-and-forget)", async () => {
+  it("schedules post-response email delivery outside the transaction", async () => {
     await POST(makeRequest(validBody, { sessionCookie: "tok" }));
-    expect(processEmailMock).toHaveBeenCalledWith("email-1");
+    expect(scheduleEmailProcessingMock).toHaveBeenCalledWith("email-1");
   });
 });
