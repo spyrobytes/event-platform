@@ -135,6 +135,14 @@ const TIMEZONE_GROUPS = [
   },
 ] as const;
 
+// Flat lookup so the dropdown can render a fallback option for events whose
+// stored timezone isn't (or no longer is) in the curated list — without it,
+// the <select> would auto-select the first option (UTC) and silently
+// overwrite the organizer's choice on save.
+const KNOWN_TIMEZONES = new Set<string>(
+  TIMEZONE_GROUPS.flatMap((g) => g.zones.map((z) => z.value))
+);
+
 export function EventForm({
   mode,
   defaultValues,
@@ -383,6 +391,9 @@ export function EventForm({
                 setValue("timezone", e.target.value, { shouldDirty: true })
               }
             >
+              {timezone && !KNOWN_TIMEZONES.has(timezone) && (
+                <option value={timezone}>{timezone} (current)</option>
+              )}
               {TIMEZONE_GROUPS.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.zones.map((tz) => (
