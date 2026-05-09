@@ -343,12 +343,15 @@ export async function POST(request: NextRequest) {
         // portalUrl lives only in the confirmation email (the client builds
         // its own URL from the slug + token).
         portalToken,
+        // YES intentionally omitted: the form's `defaultRsvpSuccessMessage`
+        // (in `src/lib/rsvp-copy.ts`) handles the QR-aware copy. NO/MAYBE
+        // carry genuine action guidance, so they stay.
         message:
-          rsvp.response === "YES"
-            ? "You're confirmed! We'll see you there."
-            : rsvp.response === "NO"
-              ? "Thanks for letting us know."
-              : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
+          rsvp.response === "NO"
+            ? "Thanks for letting us know."
+            : rsvp.response === "MAYBE"
+              ? "We've noted your response. We'll send a reminder closer to the event so you can confirm."
+              : undefined,
       })
     );
   } catch (error) {
