@@ -15,6 +15,8 @@ type CinematicHeroProps = {
   hasDetailsSection?: boolean;
   /** Event-level RSVP deadline (ISO string) — used when hero config has no manual override */
   eventRsvpDeadline?: string;
+  /** IANA timezone for formatting `eventRsvpDeadline` in event-local time. */
+  eventTimezone?: string;
 };
 
 /**
@@ -31,6 +33,7 @@ export function CinematicHero({
   scheduleCards: scheduleCardsProp,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: CinematicHeroProps) {
   const {
     title,
@@ -58,12 +61,14 @@ export function CinematicHero({
     ? coupleNames.split(/(\s*&\s*)/).filter(Boolean)
     : [];
 
-  // Resolve RSVP deadline: prefer hero config override, fall back to event-level date
+  // Resolve RSVP deadline: prefer hero config override, fall back to event-
+  // level date formatted in event timezone (not viewer's).
   const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
     ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
+        timeZone: eventTimezone || "UTC",
       })
     : undefined);
 

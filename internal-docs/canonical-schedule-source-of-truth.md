@@ -153,3 +153,23 @@ Tasks 4–8 can parallelize after Task 3.
 - Per-guest gating (Guest A allowed at Reception only). Event-level gating only.
 - Calendar-export per sub-event. Calendar export remains keyed on `Event.startAt/endAt`.
 - Recurring events (every Wednesday for 6 weeks). Single-occurrence events only.
+
+---
+
+## 9. Follow-up: centralize date formatting in `src/lib/utils.ts`
+
+PRs #83 and #84 fix timezone correctness one render surface at a time — each invitation-card template, hero variant, etc. carries its own `Intl.DateTimeFormat` configuration with the `timeZone` option threaded through props. This works but invites future drift: a new template author who copy-pastes a formatting block can omit `timeZone` and reintroduce the viewer-local bug.
+
+A cleaner long-term pattern is for **all renderers to call shared formatters from `src/lib/utils.ts`**:
+
+```ts
+// already exist; renderers should use these
+formatEventDate(date, timezone)         // "Aug 22, 2026"
+formatEventDateLong(date, timezone)     // "Saturday, August 22, 2026"
+formatEventTime(date, timezone)         // "10:00 PM"
+formatEventDateTimeLong(date, timezone) // "Saturday, August 22, 2026 at 10:00 PM"
+```
+
+The mass-refactor (replace each renderer's hand-rolled `new Intl.DateTimeFormat(…)` with the shared helper) is a separate cleanup PR. It would touch ~12 files but is mechanically simple. Add an ESLint rule (or a code-review checkpoint) to catch any new `Intl.DateTimeFormat` / `toLocaleDateString` / `toLocaleTimeString` calls in renderer files that aren't routed through the helpers — that's the durable enforcement.
+
+This task is independent of the schedule-source-of-truth refactor (§4–8). It can ship anytime.

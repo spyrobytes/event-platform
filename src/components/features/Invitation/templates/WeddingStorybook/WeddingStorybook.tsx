@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { getStorybookThemeTokens } from "@/lib/invitation-themes";
 import type { InvitationData } from "@/schemas/invitation";
@@ -33,9 +34,10 @@ function mapToStorybook(data: InvitationData): StorybookData {
     weekday: "long",
     month: "long",
     day: "numeric",
+    timeZone: data.timezone,
   });
   const formattedDate = dateFormatter.format(eventDate);
-  const year = eventDate.getFullYear().toString();
+  const year = formatInTimeZone(eventDate, data.timezone, "yyyy");
 
   return {
     person1: data.person1Name || data.coupleNames.split(/\s*[&+]\s*/)[0] || "",

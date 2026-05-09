@@ -462,6 +462,7 @@ export function WeddingTemplateV2({
               scheduleCards={scheduleCards}
               hasDetailsSection={sections.some((s) => s.type === "details" && s.enabled)}
               eventRsvpDeadline={temporal?.rsvpDeadline ?? undefined}
+              eventTimezone={temporal?.timezone ?? undefined}
             />
 
             {/* Temporal Hero Overlay */}

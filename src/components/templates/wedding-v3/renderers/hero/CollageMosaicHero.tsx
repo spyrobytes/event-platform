@@ -24,6 +24,7 @@ export function CollageMosaicHero({
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: HeroRendererProps) {
   const { title, subtitle, coupleNames, rsvpDeadline } = config;
   const temporal = useTemporal();
@@ -43,12 +44,13 @@ export function CollageMosaicHero({
     return { days, hours, minutes };
   })();
 
-  // RSVP deadline display
+  // RSVP deadline display — formatted in event timezone (not viewer's).
   const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
     ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",
+        timeZone: eventTimezone || "UTC",
       })
     : undefined);
 

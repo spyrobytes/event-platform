@@ -180,14 +180,15 @@ function getCoupleNames(data: FlipFlapRevealProps["data"]): {
 }
 
 /**
- * Format event date for display
+ * Format event date for display in the event's timezone (NOT the viewer's).
  */
-function formatEventDate(date: Date, locale: string = "en-US"): string {
+function formatEventDate(date: Date, timezone: string, locale: string = "en-US"): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: timezone,
   }).format(date);
 }
 
@@ -261,8 +262,8 @@ export function FlipFlapReveal({
   const isTraditional = data.headerMode === "traditional";
   const eventTypeText = isTraditional ? null : (data.eventTypeText || "Request the pleasure of your company");
   const formattedDate = useMemo(
-    () => formatEventDate(data.eventDate, "en-US"),
-    [data.eventDate]
+    () => formatEventDate(data.eventDate, data.timezone, "en-US"),
+    [data.eventDate, data.timezone]
   );
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);

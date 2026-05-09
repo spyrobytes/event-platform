@@ -21,6 +21,7 @@ export function ArchFramedHero({
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: HeroRendererProps) {
   const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
   const temporal = useTemporal();
@@ -42,6 +43,7 @@ export function ArchFramedHero({
           month: "long",
           day: "numeric",
           year: "numeric",
+          timeZone: eventTimezone || "UTC",
         })
       : undefined);
 

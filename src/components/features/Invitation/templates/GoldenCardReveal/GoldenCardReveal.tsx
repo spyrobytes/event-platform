@@ -99,12 +99,13 @@ function getCoupleNames(data: GoldenCardRevealProps["data"]): {
 /**
  * Format event date for display
  */
-function formatEventDate(date: Date, locale: string = "en-US"): string {
+function formatEventDate(date: Date, timezone: string, locale: string = "en-US"): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: timezone,
   }).format(date);
 }
 
@@ -208,8 +209,8 @@ export function GoldenCardReveal({
       data.eventDate instanceof Date
         ? data.eventDate
         : new Date(data.eventDate);
-    return formatEventDate(date, "en-US");
-  }, [data.eventDate]);
+    return formatEventDate(date, data.timezone, "en-US");
+  }, [data.eventDate, data.timezone]);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 
