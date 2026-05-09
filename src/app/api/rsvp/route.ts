@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { successResponse, handleApiError } from "@/lib/api-response";
 import { submitRsvpSchema } from "@/schemas/rsvp";
 import { hashToken } from "@/lib/tokens";
-import { queueConfirmationEmail, processEmail, buildUnsubscribeUrl } from "@/lib/email";
+import { queueConfirmationEmail, scheduleEmailProcessing, buildUnsubscribeUrl } from "@/lib/email";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { buildPortalUrl } from "@/lib/guest-access";
 
@@ -209,11 +209,9 @@ export async function POST(request: NextRequest) {
       return { rsvp: rsvpResult, emailId: queuedEmailId };
     });
 
-    // Fire-and-forget email delivery (outside transaction — outbox row is committed)
+    // Schedule post-response email delivery — outbox row is already committed.
     if (emailId) {
-      processEmail(emailId).catch((err) => {
-        console.error(`Failed to send confirmation email ${emailId}:`, err);
-      });
+      scheduleEmailProcessing(emailId);
     }
 
     return successResponse({

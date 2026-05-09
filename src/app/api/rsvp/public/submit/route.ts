@@ -11,7 +11,7 @@ import {
 } from "@/lib/rsvp-session";
 import {
   queueConfirmationEmail,
-  processEmail,
+  scheduleEmailProcessing,
   buildUnsubscribeUrl,
 } from "@/lib/email";
 import { AppError } from "@/lib/errors";
@@ -326,11 +326,9 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Fire-and-forget email delivery — outbox row is committed.
+    // Schedule post-response email delivery — outbox row is committed.
     if (emailId) {
-      processEmail(emailId).catch((err) => {
-        console.error(`[public-submit] confirmation email ${emailId} failed:`, err);
-      });
+      scheduleEmailProcessing(emailId);
     }
 
     return clearSessionCookie(

@@ -2,7 +2,7 @@ import { getAuth } from "firebase-admin/auth";
 import { db } from "./db";
 import { getFirebaseAdmin } from "./auth";
 import { generateTokenPair, hashToken } from "./tokens";
-import { queueVerificationEmail, processEmail } from "./email";
+import { queueVerificationEmail, scheduleEmailProcessing } from "./email";
 import { ValidationError, NotFoundError } from "./errors";
 
 const VERIFICATION_EXPIRY_HOURS = 24;
@@ -47,10 +47,8 @@ export async function sendVerificationEmail(userId: string): Promise<void> {
     expiresInHours: VERIFICATION_EXPIRY_HOURS,
   });
 
-  // Process immediately (don't wait for cron)
-  processEmail(emailId).catch((err) => {
-    console.error(`Failed to send verification email ${emailId}:`, err);
-  });
+  // Schedule post-response delivery (don't wait for cron).
+  scheduleEmailProcessing(emailId);
 }
 
 /**

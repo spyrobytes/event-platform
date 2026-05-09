@@ -1,5 +1,6 @@
 import { render } from "@react-email/components";
 import { createTransport, type Transporter } from "nodemailer";
+import { after } from "next/server";
 import { db } from "./db";
 import { InviteEmail } from "@/emails/InviteEmail";
 import { ConfirmationEmail } from "@/emails/ConfirmationEmail";
@@ -628,6 +629,30 @@ export async function processEmail(emailId: string): Promise<void> {
 
     throw error;
   }
+}
+
+/**
+ * Schedule a queued email to send after the current response returns.
+ *
+ * Replaces bare `processEmail(id).catch(...)` fire-and-forget at request-
+ * handler callsites. Without `after()`, Vercel can kill the lambda as soon
+ * as the response is sent, leaving the outbox row mid-flight: claimed
+ * (`SENDING`) but the Mailgun fetch never completed and the row's `error`
+ * column was already populated by the indeterminate-send catch — at which
+ * point `recoverEmailOutbox` skips it (filters on `error: null`) and the
+ * row is stuck forever.
+ *
+ * `after()` defers the work past the response while keeping the lambda
+ * alive long enough to finish, eliminating the race.
+ */
+export function scheduleEmailProcessing(emailId: string): void {
+  after(async () => {
+    try {
+      await processEmail(emailId);
+    } catch (err) {
+      console.error(`[email] processEmail ${emailId} failed`, err);
+    }
+  });
 }
 
 const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes

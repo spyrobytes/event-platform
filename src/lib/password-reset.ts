@@ -2,7 +2,7 @@ import { getAuth } from "firebase-admin/auth";
 import { db } from "./db";
 import { getFirebaseAdmin } from "./auth";
 import { generateTokenPair, hashToken } from "./tokens";
-import { queuePasswordResetEmail, processEmail } from "./email";
+import { queuePasswordResetEmail, scheduleEmailProcessing } from "./email";
 import { ValidationError } from "./errors";
 
 const RESET_EXPIRY_HOURS = 1;
@@ -45,10 +45,8 @@ export async function sendPasswordResetEmail(email: string): Promise<void> {
     expiresInHours: RESET_EXPIRY_HOURS,
   });
 
-  // Process immediately (don't wait for cron)
-  processEmail(emailId).catch((err) => {
-    console.error(`Failed to send password reset email ${emailId}:`, err);
-  });
+  // Schedule post-response delivery (don't wait for cron).
+  scheduleEmailProcessing(emailId);
 }
 
 /**
