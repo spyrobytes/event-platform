@@ -5,6 +5,11 @@ import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/l
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
+// Each reminder schedules a post-response `after()` callback; a busy day
+// can fan out to dozens. Match the 60s budget used by
+// `src/app/api/cron/process-emails/route.ts:4` so late callbacks complete.
+export const maxDuration = 60;
+
 /**
  * GET /api/cron/send-no-response-reminders
  *

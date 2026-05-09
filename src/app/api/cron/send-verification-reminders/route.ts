@@ -24,6 +24,12 @@ const HOURS = 60 * 60 * 1000;
 const DAY_1_THRESHOLD_HOURS = 22;
 const DAY_3_THRESHOLD_HOURS = 70;
 
+// Each `sendVerificationEmail` call schedules a post-response `after()`
+// callback via `scheduleEmailProcessing`. A daily nudge run can fan out
+// to dozens. Match the 60s budget used by
+// `src/app/api/cron/process-emails/route.ts:4` so late callbacks complete.
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
