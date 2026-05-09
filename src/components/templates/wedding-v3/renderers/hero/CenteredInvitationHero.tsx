@@ -12,6 +12,7 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CenteredInvitationHero.module.css";
 
 export function CenteredInvitationHero({
@@ -20,6 +21,7 @@ export function CenteredInvitationHero({
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: HeroRendererProps) {
   const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
 
@@ -37,14 +39,11 @@ export function CenteredInvitationHero({
     return { days, hours, minutes };
   })();
 
-  // RSVP deadline display
-  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
-    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : undefined);
+  const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
+    rsvpDeadline,
+    eventRsvpDeadline,
+    eventTimezone
+  );
 
   const showCards = !!(countdown || (scheduleCards && scheduleCards.length > 0));
 

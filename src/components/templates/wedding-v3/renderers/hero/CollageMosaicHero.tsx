@@ -15,6 +15,7 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CollageMosaicHero.module.css";
 
 export function CollageMosaicHero({
@@ -24,6 +25,7 @@ export function CollageMosaicHero({
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: HeroRendererProps) {
   const { title, subtitle, coupleNames, rsvpDeadline } = config;
   const temporal = useTemporal();
@@ -43,14 +45,11 @@ export function CollageMosaicHero({
     return { days, hours, minutes };
   })();
 
-  // RSVP deadline display
-  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
-    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : undefined);
+  const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
+    rsvpDeadline,
+    eventRsvpDeadline,
+    eventTimezone
+  );
 
   // Compute RSVP deadline state
   const deadlineState = (() => {

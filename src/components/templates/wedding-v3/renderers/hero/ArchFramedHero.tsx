@@ -13,6 +13,7 @@ import { useCallback } from "react";
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./ArchFramedHero.module.css";
 
 export function ArchFramedHero({
@@ -21,6 +22,7 @@ export function ArchFramedHero({
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: HeroRendererProps) {
   const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
   const temporal = useTemporal();
@@ -34,16 +36,11 @@ export function ArchFramedHero({
     return { days, hours, minutes };
   })();
 
-  // RSVP deadline
-  const resolvedRsvpDeadline =
-    rsvpDeadline ||
-    (eventRsvpDeadline
-      ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })
-      : undefined);
+  const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
+    rsvpDeadline,
+    eventRsvpDeadline,
+    eventTimezone
+  );
 
   const showCountdown = !!countdown;
   const showSchedule = !!(scheduleCards && scheduleCards.length > 0);

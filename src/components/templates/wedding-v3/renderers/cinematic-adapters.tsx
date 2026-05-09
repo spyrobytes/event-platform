@@ -68,6 +68,7 @@ export function CinematicHeroAdapter(props: HeroRendererProps) {
       scheduleCards={props.scheduleCards}
       hasDetailsSection={props.hasDetailsSection}
       eventRsvpDeadline={props.eventRsvpDeadline}
+      eventTimezone={props.eventTimezone}
     />
   );
 }

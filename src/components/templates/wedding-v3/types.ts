@@ -235,6 +235,10 @@ export type HeroRendererProps = {
   scheduleCards?: { day: string; info: string }[];
   hasDetailsSection?: boolean;
   eventRsvpDeadline?: string;
+  /** IANA timezone (e.g. "America/Edmonton"). Required so date formatting
+   *  matches the event's locale, not the viewer's. Caller defaults to
+   *  "UTC" upstream — the leaf renderer never needs to. */
+  eventTimezone: string;
 };
 
 /** RSVP needs eventSlug for the code-gated portal CTA */

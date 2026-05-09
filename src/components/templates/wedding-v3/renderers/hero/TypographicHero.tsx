@@ -13,6 +13,7 @@
 
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./TypographicHero.module.css";
 
 export function TypographicHero({
@@ -20,6 +21,7 @@ export function TypographicHero({
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
+  eventTimezone,
 }: HeroRendererProps) {
   const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
 
@@ -38,14 +40,11 @@ export function TypographicHero({
     return { days, hours, minutes };
   })();
 
-  // RSVP deadline display
-  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
-    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : undefined);
+  const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
+    rsvpDeadline,
+    eventRsvpDeadline,
+    eventTimezone
+  );
 
   const showCards = !!(countdown || (scheduleCards && scheduleCards.length > 0));
 

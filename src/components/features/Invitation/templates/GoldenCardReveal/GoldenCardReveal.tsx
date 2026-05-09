@@ -11,7 +11,7 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatEventDateLong } from "@/lib/utils";
 import { getGoldenCardThemeTokens } from "@/lib/invitation-themes";
 import { InvitationHeader } from "../../InvitationHeader";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -99,14 +99,6 @@ function getCoupleNames(data: GoldenCardRevealProps["data"]): {
 /**
  * Format event date for display
  */
-function formatEventDate(date: Date, locale: string = "en-US"): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
-}
 
 /**
  * GoldenCardReveal — Premium wedding invitation with 3D flip animation
@@ -208,8 +200,8 @@ export function GoldenCardReveal({
       data.eventDate instanceof Date
         ? data.eventDate
         : new Date(data.eventDate);
-    return formatEventDate(date, "en-US");
-  }, [data.eventDate]);
+    return formatEventDateLong(date, data.timezone);
+  }, [data.eventDate, data.timezone]);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 
