@@ -33,18 +33,106 @@ const VISIBILITY_OPTIONS = [
   { value: "PRIVATE", label: "Private - Invite only" },
 ] as const;
 
-const COMMON_TIMEZONES = [
-  { value: "UTC", label: "UTC" },
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Toronto", label: "Toronto (ET)" },
-  { value: "America/Vancouver", label: "Vancouver (PT)" },
-  { value: "Europe/London", label: "London (GMT/BST)" },
-  { value: "Europe/Paris", label: "Paris (CET)" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-  { value: "Australia/Sydney", label: "Sydney (AEST)" },
+// Curated IANA timezone list. Grouped by region for `<optgroup>` rendering.
+// Add zones here as new markets onboard — fully exhaustive coverage (all ~430
+// IANA zones via `Intl.supportedValuesOf`) is deferred until a typeahead UI
+// replaces the basic <select>.
+const TIMEZONE_GROUPS = [
+  {
+    label: "UTC",
+    zones: [{ value: "UTC", label: "UTC" }],
+  },
+  {
+    label: "Americas",
+    zones: [
+      { value: "America/New_York", label: "Eastern Time (ET) — New York" },
+      { value: "America/Chicago", label: "Central Time (CT) — Chicago" },
+      { value: "America/Denver", label: "Mountain Time (MT) — Denver" },
+      { value: "America/Phoenix", label: "Arizona (no DST) — Phoenix" },
+      { value: "America/Los_Angeles", label: "Pacific Time (PT) — Los Angeles" },
+      { value: "America/Anchorage", label: "Alaska — Anchorage" },
+      { value: "Pacific/Honolulu", label: "Hawaii — Honolulu" },
+      { value: "America/Toronto", label: "Toronto (ET)" },
+      { value: "America/Vancouver", label: "Vancouver (PT)" },
+      { value: "America/Mexico_City", label: "Mexico City (CST)" },
+      { value: "America/Bogota", label: "Bogotá (COT)" },
+      { value: "America/Lima", label: "Lima (PET)" },
+      { value: "America/Santiago", label: "Santiago (CLT)" },
+      { value: "America/Sao_Paulo", label: "São Paulo (BRT)" },
+      { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires (ART)" },
+    ],
+  },
+  {
+    label: "Europe",
+    zones: [
+      { value: "Europe/London", label: "London (GMT/BST)" },
+      { value: "Europe/Dublin", label: "Dublin (GMT/IST)" },
+      { value: "Europe/Lisbon", label: "Lisbon (WET)" },
+      { value: "Europe/Paris", label: "Paris (CET)" },
+      { value: "Europe/Berlin", label: "Berlin (CET)" },
+      { value: "Europe/Madrid", label: "Madrid (CET)" },
+      { value: "Europe/Rome", label: "Rome (CET)" },
+      { value: "Europe/Amsterdam", label: "Amsterdam (CET)" },
+      { value: "Europe/Stockholm", label: "Stockholm (CET)" },
+      { value: "Europe/Athens", label: "Athens (EET)" },
+      { value: "Europe/Istanbul", label: "Istanbul (TRT)" },
+      { value: "Europe/Moscow", label: "Moscow (MSK)" },
+    ],
+  },
+  {
+    label: "Africa",
+    zones: [
+      { value: "Africa/Casablanca", label: "Casablanca (WET)" },
+      { value: "Africa/Lagos", label: "Lagos (WAT)" },
+      { value: "Africa/Accra", label: "Accra (GMT)" },
+      { value: "Africa/Cairo", label: "Cairo (EET)" },
+      { value: "Africa/Nairobi", label: "Nairobi (EAT)" },
+      { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
+    ],
+  },
+  {
+    label: "Middle East",
+    zones: [
+      { value: "Asia/Beirut", label: "Beirut (EET)" },
+      { value: "Asia/Jerusalem", label: "Jerusalem (IST)" },
+      { value: "Asia/Riyadh", label: "Riyadh (AST)" },
+      { value: "Asia/Dubai", label: "Dubai (GST)" },
+      { value: "Asia/Tehran", label: "Tehran (IRST)" },
+    ],
+  },
+  {
+    label: "South & Southeast Asia",
+    zones: [
+      { value: "Asia/Karachi", label: "Karachi (PKT)" },
+      { value: "Asia/Kolkata", label: "Kolkata (IST)" },
+      { value: "Asia/Dhaka", label: "Dhaka (BST)" },
+      { value: "Asia/Bangkok", label: "Bangkok (ICT)" },
+      { value: "Asia/Jakarta", label: "Jakarta (WIB)" },
+      { value: "Asia/Singapore", label: "Singapore (SGT)" },
+      { value: "Asia/Manila", label: "Manila (PHT)" },
+    ],
+  },
+  {
+    label: "East Asia",
+    zones: [
+      { value: "Asia/Hong_Kong", label: "Hong Kong (HKT)" },
+      { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+      { value: "Asia/Taipei", label: "Taipei (CST)" },
+      { value: "Asia/Seoul", label: "Seoul (KST)" },
+      { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+    ],
+  },
+  {
+    label: "Pacific",
+    zones: [
+      { value: "Australia/Perth", label: "Perth (AWST)" },
+      { value: "Australia/Adelaide", label: "Adelaide (ACST)" },
+      { value: "Australia/Brisbane", label: "Brisbane (AEST)" },
+      { value: "Australia/Sydney", label: "Sydney (AEST)" },
+      { value: "Pacific/Auckland", label: "Auckland (NZST)" },
+      { value: "Pacific/Fiji", label: "Fiji (FJT)" },
+    ],
+  },
 ] as const;
 
 export function EventForm({
@@ -295,10 +383,14 @@ export function EventForm({
                 setValue("timezone", e.target.value, { shouldDirty: true })
               }
             >
-              {COMMON_TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
+              {TIMEZONE_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.zones.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </Select>
           </div>
