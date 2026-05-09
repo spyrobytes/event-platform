@@ -33,19 +33,115 @@ const VISIBILITY_OPTIONS = [
   { value: "PRIVATE", label: "Private - Invite only" },
 ] as const;
 
-const COMMON_TIMEZONES = [
-  { value: "UTC", label: "UTC" },
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Toronto", label: "Toronto (ET)" },
-  { value: "America/Vancouver", label: "Vancouver (PT)" },
-  { value: "Europe/London", label: "London (GMT/BST)" },
-  { value: "Europe/Paris", label: "Paris (CET)" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-  { value: "Australia/Sydney", label: "Sydney (AEST)" },
+// Curated IANA timezone list. Grouped by region for `<optgroup>` rendering.
+// Add zones here as new markets onboard — fully exhaustive coverage (all ~430
+// IANA zones via `Intl.supportedValuesOf`) is deferred until a typeahead UI
+// replaces the basic <select>.
+const TIMEZONE_GROUPS = [
+  {
+    label: "UTC",
+    zones: [{ value: "UTC", label: "UTC" }],
+  },
+  {
+    label: "Americas",
+    zones: [
+      { value: "America/New_York", label: "New York (ET)" },
+      { value: "America/Chicago", label: "Chicago (CT)" },
+      { value: "America/Denver", label: "Denver (MT)" },
+      { value: "America/Phoenix", label: "Phoenix (MST, no DST)" },
+      { value: "America/Los_Angeles", label: "Los Angeles (PT)" },
+      { value: "America/Anchorage", label: "Anchorage (AKT)" },
+      { value: "Pacific/Honolulu", label: "Honolulu (HST)" },
+      { value: "America/Toronto", label: "Toronto (ET)" },
+      { value: "America/Vancouver", label: "Vancouver (PT)" },
+      { value: "America/Mexico_City", label: "Mexico City (CT, Mexico)" },
+      { value: "America/Bogota", label: "Bogotá (COT)" },
+      { value: "America/Lima", label: "Lima (PET)" },
+      { value: "America/Santiago", label: "Santiago (Chile)" },
+      { value: "America/Sao_Paulo", label: "São Paulo (BRT)" },
+      { value: "America/Argentina/Buenos_Aires", label: "Buenos Aires (ART)" },
+    ],
+  },
+  {
+    label: "Europe",
+    zones: [
+      { value: "Europe/London", label: "London (GMT/BST)" },
+      { value: "Europe/Dublin", label: "Dublin (GMT/IST)" },
+      { value: "Europe/Lisbon", label: "Lisbon (WET/WEST)" },
+      { value: "Europe/Paris", label: "Paris (CET/CEST)" },
+      { value: "Europe/Berlin", label: "Berlin (CET/CEST)" },
+      { value: "Europe/Madrid", label: "Madrid (CET/CEST)" },
+      { value: "Europe/Rome", label: "Rome (CET/CEST)" },
+      { value: "Europe/Amsterdam", label: "Amsterdam (CET/CEST)" },
+      { value: "Europe/Stockholm", label: "Stockholm (CET/CEST)" },
+      { value: "Europe/Athens", label: "Athens (EET/EEST)" },
+      { value: "Europe/Istanbul", label: "Istanbul (TRT)" },
+      { value: "Europe/Moscow", label: "Moscow (MSK)" },
+    ],
+  },
+  {
+    label: "Africa",
+    zones: [
+      { value: "Africa/Casablanca", label: "Casablanca (WET)" },
+      { value: "Africa/Lagos", label: "Lagos (WAT)" },
+      { value: "Africa/Accra", label: "Accra (GMT)" },
+      { value: "Africa/Cairo", label: "Cairo (EET)" },
+      { value: "Africa/Nairobi", label: "Nairobi (EAT)" },
+      { value: "Africa/Johannesburg", label: "Johannesburg (SAST)" },
+    ],
+  },
+  {
+    label: "Middle East",
+    zones: [
+      { value: "Asia/Beirut", label: "Beirut (EET/EEST)" },
+      { value: "Asia/Jerusalem", label: "Jerusalem (Israel)" },
+      { value: "Asia/Riyadh", label: "Riyadh (AST)" },
+      { value: "Asia/Dubai", label: "Dubai (GST)" },
+      { value: "Asia/Tehran", label: "Tehran (IRST)" },
+    ],
+  },
+  {
+    label: "South & Southeast Asia",
+    zones: [
+      { value: "Asia/Karachi", label: "Karachi (PKT)" },
+      { value: "Asia/Kolkata", label: "Kolkata (India)" },
+      { value: "Asia/Dhaka", label: "Dhaka (Bangladesh)" },
+      { value: "Asia/Bangkok", label: "Bangkok (ICT)" },
+      { value: "Asia/Jakarta", label: "Jakarta (WIB)" },
+      { value: "Asia/Singapore", label: "Singapore (SGT)" },
+      { value: "Asia/Manila", label: "Manila (PHT)" },
+    ],
+  },
+  {
+    label: "East Asia",
+    zones: [
+      { value: "Asia/Hong_Kong", label: "Hong Kong (HKT)" },
+      { value: "Asia/Shanghai", label: "Shanghai (China)" },
+      { value: "Asia/Taipei", label: "Taipei (Taiwan)" },
+      { value: "Asia/Seoul", label: "Seoul (KST)" },
+      { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+    ],
+  },
+  {
+    label: "Pacific",
+    zones: [
+      { value: "Australia/Perth", label: "Perth (AWST)" },
+      { value: "Australia/Adelaide", label: "Adelaide (ACST/ACDT)" },
+      { value: "Australia/Brisbane", label: "Brisbane (AEST, no DST)" },
+      { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+      { value: "Pacific/Auckland", label: "Auckland (NZST/NZDT)" },
+      { value: "Pacific/Fiji", label: "Fiji (FJT)" },
+    ],
+  },
 ] as const;
+
+// Flat lookup so the dropdown can render a fallback option for events whose
+// stored timezone isn't (or no longer is) in the curated list — without it,
+// the <select> would auto-select the first option (UTC) and silently
+// overwrite the organizer's choice on save.
+const KNOWN_TIMEZONES = new Set<string>(
+  TIMEZONE_GROUPS.flatMap((g) => g.zones.map((z) => z.value))
+);
 
 export function EventForm({
   mode,
@@ -295,10 +391,17 @@ export function EventForm({
                 setValue("timezone", e.target.value, { shouldDirty: true })
               }
             >
-              {COMMON_TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
+              {timezone && !KNOWN_TIMEZONES.has(timezone) && (
+                <option value={timezone}>{timezone} (custom)</option>
+              )}
+              {TIMEZONE_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.zones.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </Select>
           </div>
