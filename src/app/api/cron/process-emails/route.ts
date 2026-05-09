@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processQueuedEmails } from "@/lib/email";
+import { processQueuedEmails, EMAIL_LAMBDA_MAX_DURATION_S } from "@/lib/email";
 
-export const maxDuration = 60;
+export const maxDuration = EMAIL_LAMBDA_MAX_DURATION_S;
 
 /**
  * Cron job endpoint for processing queued emails.

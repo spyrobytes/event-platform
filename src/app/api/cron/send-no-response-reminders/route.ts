@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { queueNoResponseReminderEmail, scheduleEmailProcessing } from "@/lib/email";
+import {
+  queueNoResponseReminderEmail,
+  scheduleEmailProcessing,
+  EMAIL_LAMBDA_MAX_DURATION_S,
+} from "@/lib/email";
 import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
-// Each reminder schedules a post-response `after()` callback; a busy day
-// can fan out to dozens. Match the 60s budget used by
-// `src/app/api/cron/process-emails/route.ts:4` so late callbacks complete.
-export const maxDuration = 60;
+export const maxDuration = EMAIL_LAMBDA_MAX_DURATION_S;
 
 /**
  * GET /api/cron/send-no-response-reminders

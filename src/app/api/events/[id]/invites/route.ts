@@ -7,16 +7,15 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
 import { generateGuestRsvpCode, hashRsvpCode } from "@/lib/rsvp-code";
-import { queueInviteEmail, scheduleEmailProcessing, buildUnsubscribeUrl } from "@/lib/email";
+import {
+  queueInviteEmail,
+  scheduleEmailProcessing,
+  buildUnsubscribeUrl,
+  EMAIL_LAMBDA_MAX_DURATION_S,
+} from "@/lib/email";
 import { ConflictError } from "@/lib/errors";
 
-// A bulk POST schedules one `after()` callback per invitee via
-// `scheduleEmailProcessing`. After() callbacks run after the response is
-// sent but inside the same lambda; with batches of 50+ each taking a few
-// seconds, the default Vercel timeout (10s Hobby / 15s Pro) cuts off late
-// callbacks mid-send. 60s matches the cron precedent at
-// `src/app/api/cron/process-emails/route.ts:4`.
-export const maxDuration = 60;
+export const maxDuration = EMAIL_LAMBDA_MAX_DURATION_S;
 
 type RouteContext = {
   params: Promise<{ id: string }>;

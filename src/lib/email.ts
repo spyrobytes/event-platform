@@ -632,18 +632,14 @@ export async function processEmail(emailId: string): Promise<void> {
 }
 
 /**
- * Schedule a queued email to send after the current response returns.
+ * Returns immediately; the actual send runs after the response is flushed.
  *
- * Replaces bare `processEmail(id).catch(...)` fire-and-forget at request-
- * handler callsites. Without `after()`, Vercel can kill the lambda as soon
- * as the response is sent, leaving the outbox row mid-flight: claimed
- * (`SENDING`) but the Mailgun fetch never completed and the row's `error`
- * column was already populated by the indeterminate-send catch — at which
- * point `recoverEmailOutbox` skips it (filters on `error: null`) and the
- * row is stuck forever.
- *
- * `after()` defers the work past the response while keeping the lambda
- * alive long enough to finish, eliminating the race.
+ * Without `after()`, a fire-and-forget `processEmail(id).catch(...)` at a
+ * request-handler callsite races the lambda's death: if Vercel kills the
+ * runtime between the SENDING claim and the Mailgun fetch's `error`-column
+ * write, the row is stuck — `recoverEmailOutbox` filters its SENDING
+ * reclaim on `error: null` (intentional, to avoid duping a Mailgun-accepted
+ * message), so a row with `error` set never gets retried.
  */
 export function scheduleEmailProcessing(emailId: string): void {
   after(async () => {
@@ -654,6 +650,14 @@ export function scheduleEmailProcessing(emailId: string): void {
     }
   });
 }
+
+/**
+ * Lambda timeout (seconds) for routes that schedule N `after()` callbacks
+ * via `scheduleEmailProcessing`. Vercel's defaults (10s Hobby / 15s Pro)
+ * cut off the deferred queue when one request fans out to many recipients.
+ * Set on bulk POSTs and on crons that loop-and-schedule.
+ */
+export const EMAIL_LAMBDA_MAX_DURATION_S = 60;
 
 const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const FAILED_RETRY_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
