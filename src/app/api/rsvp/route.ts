@@ -224,12 +224,15 @@ export async function POST(request: NextRequest) {
         slug: invite.event.slug,
       },
       portalUrl,
+      // YES intentionally omitted: the form's `defaultRsvpSuccessMessage`
+      // (in `src/lib/rsvp-copy.ts`) handles the QR-aware copy. NO/MAYBE
+      // carry genuine action guidance, so they stay.
       message:
-        data.response === "YES"
-          ? "You're confirmed! We'll see you there."
-          : data.response === "NO"
-            ? "Thanks for letting us know. Your personal link will stay active if you'd like to browse the gift registry."
-            : "We've noted your response. We'll send a reminder closer to the event so you can confirm.",
+        data.response === "NO"
+          ? "Thanks for letting us know. Your personal link will stay active if you'd like to browse the gift registry."
+          : data.response === "MAYBE"
+            ? "We've noted your response. We'll send a reminder closer to the event so you can confirm."
+            : undefined,
     });
   } catch (error) {
     return handleApiError(error);

@@ -22,6 +22,7 @@ import {
   type TextDirection,
 } from "@/schemas/invitation";
 import { templateSupportsField, type TemplateField } from "@/components/features/Invitation/templates";
+import { fromDatetimeLocalInTz, toDatetimeLocalInTz } from "@/lib/datetime";
 
 type TimelineEntry = {
   date: string;
@@ -64,6 +65,7 @@ type InvitationConfig = {
 type EventBasic = {
   id: string;
   title: string;
+  timezone: string;
 };
 
 const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: boolean }[] = [
@@ -180,7 +182,11 @@ export default function InvitationConfigPage() {
         }
 
         const eventData = await eventResponse.json();
-        setEvent({ id: eventData.data.id, title: eventData.data.title });
+        setEvent({
+          id: eventData.data.id,
+          title: eventData.data.title,
+          timezone: eventData.data.timezone || "UTC",
+        });
 
         // Fetch invitation config
         const configResponse = await fetch(
@@ -214,12 +220,12 @@ export default function InvitationConfigPage() {
             // Wedding Storybook fields
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
-            setCeremonyStartAt(configData.data.ceremonyStartAt ? new Date(configData.data.ceremonyStartAt).toISOString().slice(0, 16) : "");
+            setCeremonyStartAt(toDatetimeLocalInTz(configData.data.ceremonyStartAt, eventData.data.timezone || "UTC"));
             setCeremonyDate(configData.data.ceremonyDate || "");
             setCeremonyTime(configData.data.ceremonyTime || "");
             setCeremonyVenue(configData.data.ceremonyVenue || "");
             setCeremonyAddress(configData.data.ceremonyAddress || "");
-            setReceptionStartAt(configData.data.receptionStartAt ? new Date(configData.data.receptionStartAt).toISOString().slice(0, 16) : "");
+            setReceptionStartAt(toDatetimeLocalInTz(configData.data.receptionStartAt, eventData.data.timezone || "UTC"));
             setReceptionDate(configData.data.receptionDate || "");
             setReceptionTime(configData.data.receptionTime || "");
             setReceptionVenue(configData.data.receptionVenue || "");
@@ -305,12 +311,16 @@ export default function InvitationConfigPage() {
           // Wedding Storybook fields
           couplePhotoUrl: couplePhotoUrl || undefined,
           venuePhotoUrl: venuePhotoUrl || undefined,
-          ceremonyStartAt: ceremonyStartAt ? new Date(ceremonyStartAt).toISOString() : undefined,
+          ceremonyStartAt: ceremonyStartAt
+            ? fromDatetimeLocalInTz(ceremonyStartAt, event?.timezone || "UTC")?.toISOString()
+            : undefined,
           ceremonyDate: ceremonyDate || undefined,
           ceremonyTime: ceremonyTime || undefined,
           ceremonyVenue: ceremonyVenue || undefined,
           ceremonyAddress: ceremonyAddress || undefined,
-          receptionStartAt: receptionStartAt ? new Date(receptionStartAt).toISOString() : undefined,
+          receptionStartAt: receptionStartAt
+            ? fromDatetimeLocalInTz(receptionStartAt, event?.timezone || "UTC")?.toISOString()
+            : undefined,
           receptionDate: receptionDate || undefined,
           receptionTime: receptionTime || undefined,
           receptionVenue: receptionVenue || undefined,

@@ -2,7 +2,6 @@
 
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { TemplateSelector, getDefaultTemplateId } from "@/components/features";
 import { CoverImagePicker } from "@/components/features/CoverImagePicker";
 import { createEventSchema, type CreateEventInput, type TemplateId } from "@/schemas/event";
+import { fromDatetimeLocalInTz, toDatetimeLocalInTz } from "@/lib/datetime";
 
 type EventFormMode = "create" | "edit";
 
@@ -47,11 +47,6 @@ const COMMON_TIMEZONES = [
   { value: "Australia/Sydney", label: "Sydney (AEST)" },
 ] as const;
 
-function formatDateTimeLocal(date: Date | undefined): string | undefined {
-  if (!date) return undefined;
-  return format(date, "yyyy-MM-dd'T'HH:mm");
-}
-
 export function EventForm({
   mode,
   defaultValues,
@@ -66,6 +61,7 @@ export function EventForm({
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors, isDirty },
   } = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema) as never,
@@ -91,25 +87,29 @@ export function EventForm({
       reminderDays: defaultValues?.reminderDays,
       reminderEnabled: defaultValues?.reminderEnabled ?? false,
       attachQrToConfirmation: defaultValues?.attachQrToConfirmation ?? true,
-      // Date fields are stored in RHF state as formatted strings so they
-      // render correctly in <input type="datetime-local">. The setValueAs
-      // option on each register() call coerces them back to Date on submit.
-      // Casts are needed because CreateEventInput types these as Date.
-      startAt: formatDateTimeLocal(defaultValues?.startAt) as unknown as Date,
-      endAt: formatDateTimeLocal(defaultValues?.endAt) as unknown as Date,
-      rsvpDeadline: formatDateTimeLocal(defaultValues?.rsvpDeadline) as unknown as Date,
+      // Date fields render in `<input type="datetime-local">` as wall-clock
+      // strings interpreted in the event's timezone. The empty default and
+      // the cast match RHF's expected shape; setValueAs (below) keeps the
+      // form-state value as a string for isDirty stability, then
+      // handleFormSubmit converts it to a UTC Date using the form's
+      // current `timezone` field.
+      startAt: toDatetimeLocalInTz(
+        defaultValues?.startAt,
+        defaultValues?.timezone ?? "UTC"
+      ) as unknown as Date,
+      endAt: toDatetimeLocalInTz(
+        defaultValues?.endAt,
+        defaultValues?.timezone ?? "UTC"
+      ) as unknown as Date,
+      rsvpDeadline: toDatetimeLocalInTz(
+        defaultValues?.rsvpDeadline,
+        defaultValues?.timezone ?? "UTC"
+      ) as unknown as Date,
     },
   });
 
-  // Normalize datetime-local values to `string | undefined` in form state.
-  //
-  // Keeping values as strings (matching the form's string defaults) is critical
-  // for isDirty tracking: RHF applies setValueAs to defaultValues during
-  // register(), so if this function returned a Date, the post-transform form
-  // state would differ from the raw default string and the form would appear
-  // dirty on mount. Strings stay idempotent here; zodResolver's z.coerce.date()
-  // converts to Date at submit time. Empty string -> undefined so optional
-  // cleared fields don't fail z.coerce.date() with Invalid Date.
+  // String form state keeps datetime-local inputs and isDirty stable.
+  // Empty -> undefined so cleared optional fields don't fail z.coerce.date().
   const dateFieldOptions = {
     setValueAs: (v: unknown): string | undefined => {
       if (typeof v !== "string" || v === "") return undefined;
@@ -125,7 +125,26 @@ export function EventForm({
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
-      await onSubmit(data);
+      // zod's coerce.date() validates against the browser's tz; its output
+      // is discarded here. We re-interpret the raw form-state wall-clock
+      // strings in the event's timezone so what the organizer typed is
+      // what lands in DB. getValues() returns the pre-coerce string state.
+      const raw = getValues() as unknown as {
+        startAt?: string;
+        endAt?: string;
+        rsvpDeadline?: string;
+      };
+      const tz = (data.timezone as string) || "UTC";
+      const startAtUtc = fromDatetimeLocalInTz(raw.startAt, tz);
+      const endAtUtc = fromDatetimeLocalInTz(raw.endAt, tz);
+      const rsvpDeadlineUtc = fromDatetimeLocalInTz(raw.rsvpDeadline, tz);
+
+      await onSubmit({
+        ...data,
+        startAt: startAtUtc as Date,
+        endAt: endAtUtc ?? undefined,
+        rsvpDeadline: rsvpDeadlineUtc ?? undefined,
+      });
     } catch (error) {
       console.error("Form submission error:", error);
     }
