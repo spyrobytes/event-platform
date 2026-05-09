@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { getStorybookThemeTokens } from "@/lib/invitation-themes";
@@ -101,7 +101,7 @@ export function WeddingStorybook({
   showHint = true,
   className,
 }: WeddingStorybookProps) {
-  const storybookData = mapToStorybook(data);
+  const storybookData = useMemo(() => mapToStorybook(data), [data]);
   const themeTokens = getStorybookThemeTokens(theme);
   const layoutMode = useLayoutMode();
 

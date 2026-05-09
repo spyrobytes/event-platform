@@ -3,6 +3,7 @@
 import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CinematicHero.module.css";
 
 type ScheduleCard = { day: string; info: string };
@@ -15,8 +16,9 @@ type CinematicHeroProps = {
   hasDetailsSection?: boolean;
   /** Event-level RSVP deadline (ISO string) — used when hero config has no manual override */
   eventRsvpDeadline?: string;
-  /** IANA timezone for formatting `eventRsvpDeadline` in event-local time. */
-  eventTimezone?: string;
+  /** IANA timezone for formatting dates in event-local time. Required;
+   *  caller defaults to "UTC" upstream. */
+  eventTimezone: string;
 };
 
 /**
@@ -61,16 +63,11 @@ export function CinematicHero({
     ? coupleNames.split(/(\s*&\s*)/).filter(Boolean)
     : [];
 
-  // Resolve RSVP deadline: prefer hero config override, fall back to event-
-  // level date formatted in event timezone (not viewer's).
-  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
-    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        timeZone: eventTimezone || "UTC",
-      })
-    : undefined);
+  const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
+    rsvpDeadline,
+    eventRsvpDeadline,
+    eventTimezone
+  );
 
   // Date text for eyebrow — use subtitle as date text
   const dateText = subtitle || "";

@@ -10,7 +10,7 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatEventDateLong } from "@/lib/utils";
 import { getFlipFlapThemeTokens } from "@/lib/invitation-themes";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { FlipFlapRevealProps, ConfettiPiece, CardState } from "./types";
@@ -179,18 +179,6 @@ function getCoupleNames(data: FlipFlapRevealProps["data"]): {
   return { partner1: data.coupleNames, partner2: "" };
 }
 
-/**
- * Format event date for display in the event's timezone (NOT the viewer's).
- */
-function formatEventDate(date: Date, timezone: string, locale: string = "en-US"): string {
-  return new Intl.DateTimeFormat(locale, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: timezone,
-  }).format(date);
-}
 
 /**
  * FlipFlapReveal — Premium wedding invitation with book-style flip animation
@@ -262,7 +250,7 @@ export function FlipFlapReveal({
   const isTraditional = data.headerMode === "traditional";
   const eventTypeText = isTraditional ? null : (data.eventTypeText || "Request the pleasure of your company");
   const formattedDate = useMemo(
-    () => formatEventDate(data.eventDate, data.timezone, "en-US"),
+    () => formatEventDateLong(data.eventDate, data.timezone),
     [data.eventDate, data.timezone]
   );
 

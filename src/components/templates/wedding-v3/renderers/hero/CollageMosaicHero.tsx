@@ -15,6 +15,7 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CollageMosaicHero.module.css";
 
 export function CollageMosaicHero({
@@ -44,15 +45,11 @@ export function CollageMosaicHero({
     return { days, hours, minutes };
   })();
 
-  // RSVP deadline display — formatted in event timezone (not viewer's).
-  const resolvedRsvpDeadline = rsvpDeadline || (eventRsvpDeadline
-    ? new Date(eventRsvpDeadline).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        timeZone: eventTimezone || "UTC",
-      })
-    : undefined);
+  const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
+    rsvpDeadline,
+    eventRsvpDeadline,
+    eventTimezone
+  );
 
   // Compute RSVP deadline state
   const deadlineState = (() => {

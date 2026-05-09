@@ -61,6 +61,21 @@ export function formatEventDateMedium(
 }
 
 /**
+ * Resolves an RSVP-deadline string for display in hero variants:
+ * a hero-config override wins; otherwise format the event-level ISO
+ * deadline in event timezone using the medium form ("June 21, 2026").
+ */
+export function resolveRsvpDeadlineDisplay(
+  configOverride: string | undefined,
+  eventRsvpDeadline: string | undefined,
+  timezone: string
+): string | undefined {
+  if (configOverride) return configOverride;
+  if (!eventRsvpDeadline) return undefined;
+  return formatEventDateMedium(new Date(eventRsvpDeadline), timezone);
+}
+
+/**
  * Combined long date + time: "Saturday, June 21, 2026 at 7:00 PM".
  * Used in dashboards and event detail pages.
  * Always pass `event.timezone`.
