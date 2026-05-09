@@ -640,6 +640,12 @@ export async function processEmail(emailId: string): Promise<void> {
  * write, the row is stuck — `recoverEmailOutbox` filters its SENDING
  * reclaim on `error: null` (intentional, to avoid duping a Mailgun-accepted
  * message), so a row with `error` set never gets retried.
+ *
+ * Routes that call this in a loop (bulk invite POST, the reminder crons)
+ * MUST also declare `export const maxDuration = 60`. Vercel's defaults
+ * (10s Hobby / 15s Pro) cut off the deferred queue when one request fans
+ * out to many recipients. The literal `60` is required — Next.js segment
+ * config is statically analyzed and rejects imported constants.
  */
 export function scheduleEmailProcessing(emailId: string): void {
   after(async () => {
@@ -650,14 +656,6 @@ export function scheduleEmailProcessing(emailId: string): void {
     }
   });
 }
-
-/**
- * Lambda timeout (seconds) for routes that schedule N `after()` callbacks
- * via `scheduleEmailProcessing`. Vercel's defaults (10s Hobby / 15s Pro)
- * cut off the deferred queue when one request fans out to many recipients.
- * Set on bulk POSTs and on crons that loop-and-schedule.
- */
-export const EMAIL_LAMBDA_MAX_DURATION_S = 60;
 
 const STRANDED_SENDING_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const FAILED_RETRY_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes

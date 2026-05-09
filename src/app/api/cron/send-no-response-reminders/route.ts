@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import {
-  queueNoResponseReminderEmail,
-  scheduleEmailProcessing,
-  EMAIL_LAMBDA_MAX_DURATION_S,
-} from "@/lib/email";
+import { queueNoResponseReminderEmail, scheduleEmailProcessing } from "@/lib/email";
 import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
-export const maxDuration = EMAIL_LAMBDA_MAX_DURATION_S;
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
+export const maxDuration = 60;
 
 /**
  * GET /api/cron/send-no-response-reminders

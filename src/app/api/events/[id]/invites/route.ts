@@ -11,11 +11,11 @@ import {
   queueInviteEmail,
   scheduleEmailProcessing,
   buildUnsubscribeUrl,
-  EMAIL_LAMBDA_MAX_DURATION_S,
 } from "@/lib/email";
 import { ConflictError } from "@/lib/errors";
 
-export const maxDuration = EMAIL_LAMBDA_MAX_DURATION_S;
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
+export const maxDuration = 60;
 
 type RouteContext = {
   params: Promise<{ id: string }>;

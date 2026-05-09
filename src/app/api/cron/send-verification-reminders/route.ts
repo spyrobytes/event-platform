@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendVerificationEmail } from "@/lib/verification";
-import { EMAIL_LAMBDA_MAX_DURATION_S } from "@/lib/email";
 
 /**
  * Cron job: nudge users who signed up but never verified their email.
@@ -25,7 +24,8 @@ const HOURS = 60 * 60 * 1000;
 const DAY_1_THRESHOLD_HOURS = 22;
 const DAY_3_THRESHOLD_HOURS = 70;
 
-export const maxDuration = EMAIL_LAMBDA_MAX_DURATION_S;
+// Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
