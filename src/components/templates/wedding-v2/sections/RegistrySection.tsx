@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { MediaAsset } from "@prisma/client";
@@ -32,6 +33,19 @@ type RegistrySectionProps = {
 };
 
 const PREVIEW_CAP = 4;
+
+/** Subtle lift-on-hover for registry cards — direct DOM mutation instead of
+ * state, since the visual change has no React-side consequences. */
+const liftOnHover = {
+  onMouseEnter: (e: MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "translateY(-3px)";
+    e.currentTarget.style.boxShadow = "var(--shadow-lg)";
+  },
+  onMouseLeave: (e: MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = "";
+    e.currentTarget.style.boxShadow = "var(--shadow)";
+  },
+};
 
 /** Top-right pill badge shown when a gift is claimed or a fund is closed.
  * The two cases share visuals, so the label/aria text are caller-supplied. */
@@ -69,11 +83,12 @@ function RegistryCTA({
   featured,
   size,
 }: {
-  href: string;
+  href: string | undefined;
   label: string;
   featured: boolean;
   size: "card" | "banner";
 }) {
+  if (!href) return null;
   const padding = size === "banner" ? "14px 32px" : "12px 26px";
   return (
     <a
@@ -362,14 +377,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                     opacity: isClaimed ? 0.7 : 1,
                     transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-3px)";
-                    e.currentTarget.style.boxShadow = "var(--shadow-lg)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "";
-                    e.currentTarget.style.boxShadow = "var(--shadow)";
-                  }}
+                  {...liftOnHover}
                 >
                   {isClaimed && <StatusBadge label="Closed" ariaLabel="Fund closed" />}
 
@@ -478,7 +486,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                   </div>
 
                   {hasLink && !isClaimed && (
-                    <RegistryCTA href={item.url!} label="Contribute" featured={isFeatured} size="banner" />
+                    <RegistryCTA href={item.url} label="Contribute" featured={isFeatured} size="banner" />
                   )}
                 </div>
               );
@@ -502,14 +510,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                   opacity: isClaimed ? 0.7 : 1,
                   transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-3px)";
-                  e.currentTarget.style.boxShadow = "var(--shadow-lg)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "";
-                  e.currentTarget.style.boxShadow = "var(--shadow)";
-                }}
+                {...liftOnHover}
               >
                 {isClaimed && <StatusBadge label="Claimed" ariaLabel="Gift claimed" />}
 
@@ -657,7 +658,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                   marginTop: "auto",
                 }}>
                   {hasLink && !isClaimed && (
-                    <RegistryCTA href={item.url!} label={ctaLabel} featured={isFeatured} size="card" />
+                    <RegistryCTA href={item.url} label={ctaLabel} featured={isFeatured} size="card" />
                   )}
 
                   {showClaimControls && myClaimId && (
