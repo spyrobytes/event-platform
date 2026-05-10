@@ -460,6 +460,8 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
             return (
               <div
                 key={item.id}
+                role="article"
+                aria-label={`${item.name}${isClaimed ? " — claimed" : ""}`}
                 style={{
                   position: "relative",
                   background: "var(--surface, #ffffff)",
@@ -484,6 +486,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
               >
                 {isClaimed && (
                   <span
+                    aria-label="Gift claimed"
                     style={{
                       position: "absolute",
                       top: 16,
