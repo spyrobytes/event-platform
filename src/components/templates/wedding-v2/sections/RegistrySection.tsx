@@ -265,6 +265,8 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
               return (
                 <div
                   key={item.id}
+                  role="article"
+                  aria-label={`${item.name}${isClaimed ? " — fund closed" : ""}`}
                   style={{
                     position: "relative",
                     gridColumn: "1 / -1",
@@ -291,6 +293,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                 >
                   {isClaimed && (
                     <span
+                      aria-label="Fund closed"
                       style={{
                         position: "absolute",
                         top: 16,

@@ -477,6 +477,9 @@ export const registryItemSchema = z.object({
   description: z.string().max(200, "Description must be 200 characters or less").optional(),
   note: z.string().max(200, "Note must be 200 characters or less").optional(),
   featured: z.boolean().optional(),
+  // For "link" items this means "claimed/purchased" (renders Claimed badge).
+  // For "fund" items this means "fund is closed" (renders Closed badge and
+  // hides Contribute). Single underlying flag — both states hide the CTA.
   purchased: z.boolean().optional(),
 });
 
