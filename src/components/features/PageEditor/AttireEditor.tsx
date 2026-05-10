@@ -132,7 +132,9 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
       <div className="space-y-2">
         <Label>Suggested Colors (optional)</Label>
         <p className="text-xs text-muted-foreground">
-          Use hex codes (e.g., #2C5F7C) for colored swatches, or text names for labels only
+          Add one color per field. Use a hex code (e.g.,{" "}
+          <span className="font-mono">#2C5F7C</span>) for a colored swatch, or a
+          color name for a text label.
         </p>
 
         {colors.length > 0 && (
@@ -142,7 +144,7 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
                 <Input
                   value={color}
                   onChange={(e) => updateColor(index, e.target.value)}
-                  placeholder="e.g., Navy Blue, Blush Pink"
+                  placeholder="#2C5F7C or Navy Blue"
                   maxLength={30}
                   className="flex-1"
                 />

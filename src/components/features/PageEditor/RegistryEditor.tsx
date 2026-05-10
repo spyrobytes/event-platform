@@ -172,6 +172,14 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
                 ))}
               </div>
 
+              {itemType === "fund" && (
+                <p className="rounded-md border-l-2 border-accent/60 bg-accent/5 px-3 py-2 text-xs text-muted-foreground">
+                  Contributions go directly to your payment link.
+                  Contributors are visible on PayPal / Venmo / etc., not in
+                  this dashboard.
+                </p>
+              )}
+
               {/* Flags */}
               <div className="flex items-center gap-4 text-xs">
                 <label className="flex items-center gap-1.5 cursor-pointer">
@@ -192,7 +200,11 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
                     }
                     className="rounded"
                   />
-                  <span className="text-muted-foreground">Claimed (hides CTA)</span>
+                  <span className="text-muted-foreground">
+                    {itemType === "fund"
+                      ? "Close fund (hides Contribute)"
+                      : "Claimed (hides CTA)"}
+                  </span>
                 </label>
               </div>
 

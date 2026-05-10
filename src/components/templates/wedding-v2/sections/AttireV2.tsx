@@ -259,39 +259,44 @@ export function AttireV2({ data }: AttireV2Props) {
                     gap: 16,
                   }}
                 >
-                  {data.colors!.map((color, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
+                  {data.colors!.map((color, i) => {
+                    const isHex = isHexColor(color);
+                    return (
                       <div
+                        key={i}
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          background: isHexColor(color) ? color : "var(--cream, #f0ebe3)",
-                          border: "1px solid var(--border, #e8e1d6)",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                        }}
-                        role="img"
-                        aria-label={`Color swatch: ${color}`}
-                      />
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--charcoal, #3d3830)",
-                          lineHeight: 1.2,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 6,
                         }}
                       >
-                        {color}
-                      </span>
-                    </div>
-                  ))}
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: "50%",
+                            background: isHex ? color : "var(--cream, #f0ebe3)",
+                            border: "1px solid var(--border, #e8e1d6)",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                          }}
+                          role="img"
+                          aria-label={`Color swatch: ${color}`}
+                        />
+                        {!isHex && (
+                          <span
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--charcoal, #3d3830)",
+                              lineHeight: 1.2,
+                            }}
+                          >
+                            {color}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

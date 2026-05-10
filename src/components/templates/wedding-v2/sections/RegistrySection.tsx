@@ -258,9 +258,210 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
             const showClaimControls = showClaimUI && !isFund && !isClaimed;
             const isBusy = busyItems.has(item.id);
 
+            // Cash funds render as full-width banners — they have no per-unit
+            // quantity (unlike gift items) and aren't claimed in-app, so the
+            // tile is a Title + Goal + Description + Contribute layout.
+            if (isFund) {
+              return (
+                <div
+                  key={item.id}
+                  role="article"
+                  aria-label={`${item.name}${isClaimed ? " — fund closed" : ""}`}
+                  style={{
+                    position: "relative",
+                    gridColumn: "1 / -1",
+                    background: "var(--surface, #ffffff)",
+                    border: "1px solid var(--border, #e8e1d6)",
+                    borderRadius: "var(--r-lg, 24px)",
+                    padding: "clamp(24px, 3vw, 32px)",
+                    boxShadow: "var(--shadow)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "clamp(20px, 3vw, 32px)",
+                    flexWrap: "wrap",
+                    opacity: isClaimed ? 0.7 : 1,
+                    transition: "transform .4s var(--ease-out-expo, ease), box-shadow .4s var(--ease-out-expo, ease)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-3px)";
+                    e.currentTarget.style.boxShadow = "var(--shadow-lg)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "";
+                    e.currentTarget.style.boxShadow = "var(--shadow)";
+                  }}
+                >
+                  {isClaimed && (
+                    <span
+                      aria-label="Fund closed"
+                      style={{
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        background: "var(--accent, #7a8c72)",
+                        color: "#fff",
+                        fontFamily: "var(--sans)",
+                        fontSize: ".7rem",
+                        fontWeight: 600,
+                        letterSpacing: ".12em",
+                        textTransform: "uppercase" as const,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                      }}
+                    >
+                      Closed
+                    </span>
+                  )}
+
+                  {imageUrl ? (
+                    <div
+                      style={{
+                        width: 88,
+                        height: 88,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        background: "var(--cream, #faf6ef)",
+                        position: "relative",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <EventImage
+                        src={imageUrl}
+                        alt={item.name}
+                        fill
+                        sizes="88px"
+                        loading="lazy"
+                        blurDataURL={imageBlur}
+                        style={{ objectFit: "cover" }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 16,
+                        background: "rgba(122, 140, 114, 0.08)",
+                        display: "grid",
+                        placeItems: "center",
+                        color: "var(--accent, #7a8c72)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {logoUrl ? (
+                        <img
+                          src={logoUrl}
+                          alt={item.name}
+                          loading="lazy"
+                          decoding="async"
+                          style={{ width: 32, height: 32, objectFit: "contain" }}
+                        />
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" width={32} height={32}>
+                          <path d="M12 1v22" />
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+
+                  <div style={{ flex: "1 1 280px", minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <h3 style={{
+                      fontFamily: "var(--cursive, var(--serif))",
+                      fontSize: "clamp(1.3rem, 2vw, 1.6rem)",
+                      fontWeight: 400,
+                      lineHeight: 1.15,
+                      color: "var(--night, #1e1b17)",
+                    }}>
+                      {item.name}
+                    </h3>
+
+                    {item.amountLabel && (
+                      <p style={{
+                        fontFamily: "var(--sans)",
+                        fontSize: ".95rem",
+                        fontWeight: 600,
+                        color: "var(--accent, #7a8c72)",
+                      }}>
+                        {item.amountLabel}
+                      </p>
+                    )}
+
+                    {item.description && (
+                      <p style={{ color: "var(--text-2, #786f65)", fontSize: "var(--sm, 0.85rem)", lineHeight: 1.6 }}>
+                        {item.description}
+                      </p>
+                    )}
+
+                    <p style={{
+                      color: "var(--stone, #a69e93)",
+                      fontSize: ".8rem",
+                      fontStyle: "italic",
+                      lineHeight: 1.5,
+                    }}>
+                      {isClaimed
+                        ? "This fund is no longer accepting contributions."
+                        : hasLink
+                          ? "Any amount is appreciated. Tap Contribute to send a gift."
+                          : "Any amount is appreciated. Reach out to the couple to contribute."}
+                    </p>
+
+                    {item.note && (
+                      <p style={{
+                        fontSize: ".82rem",
+                        color: "var(--stone, #a69e93)",
+                        fontStyle: "italic",
+                      }}>
+                        {item.note}
+                      </p>
+                    )}
+                  </div>
+
+                  {hasLink && !isClaimed && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        fontFamily: "var(--sans)",
+                        fontSize: "var(--sm, 0.85rem)",
+                        fontWeight: 600,
+                        letterSpacing: ".02em",
+                        padding: "14px 32px",
+                        borderRadius: 999,
+                        textDecoration: "none",
+                        whiteSpace: "nowrap" as const,
+                        flexShrink: 0,
+                        transition: "all var(--transition, 0.3s ease)",
+                        ...(isFeatured
+                          ? {
+                              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
+                              color: "#fff",
+                              border: "1px solid var(--gold, #c5a55a)",
+                            }
+                          : {
+                              background: "transparent",
+                              color: "var(--charcoal, #3d3830)",
+                              border: "1px solid var(--sand, #d4cabb)",
+                            }),
+                      }}
+                    >
+                      Contribute
+                    </a>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <div
                 key={item.id}
+                role="article"
+                aria-label={`${item.name}${isClaimed ? " — claimed" : ""}`}
                 style={{
                   position: "relative",
                   background: "var(--surface, #ffffff)",
@@ -285,6 +486,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
               >
                 {isClaimed && (
                   <span
+                    aria-label="Gift claimed"
                     style={{
                       position: "absolute",
                       top: 16,
