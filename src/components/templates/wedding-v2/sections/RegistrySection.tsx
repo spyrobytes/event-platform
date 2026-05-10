@@ -33,6 +33,86 @@ type RegistrySectionProps = {
 
 const PREVIEW_CAP = 4;
 
+/** Top-right pill badge shown when a gift is claimed or a fund is closed.
+ * The two cases share visuals, so the label/aria text are caller-supplied. */
+function StatusBadge({ label, ariaLabel }: { label: string; ariaLabel: string }) {
+  return (
+    <span
+      aria-label={ariaLabel}
+      style={{
+        position: "absolute",
+        top: 16,
+        right: 16,
+        background: "var(--accent, #7a8c72)",
+        color: "#fff",
+        fontFamily: "var(--sans)",
+        fontSize: ".7rem",
+        fontWeight: 600,
+        letterSpacing: ".12em",
+        textTransform: "uppercase" as const,
+        padding: "4px 10px",
+        borderRadius: 999,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+/** Outbound link styled as the registry's primary action. Two callsites:
+ * the gift card (compact padding) and the cash-fund banner (roomier).
+ * Featured items render as a gold gradient pill, others as a transparent
+ * outline pill — matching the section's visual hierarchy. */
+function RegistryCTA({
+  href,
+  label,
+  featured,
+  size,
+}: {
+  href: string;
+  label: string;
+  featured: boolean;
+  size: "card" | "banner";
+}) {
+  const padding = size === "banner" ? "14px 32px" : "12px 26px";
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        fontFamily: "var(--sans)",
+        fontSize: "var(--sm, 0.85rem)",
+        fontWeight: 600,
+        letterSpacing: ".02em",
+        padding,
+        borderRadius: 999,
+        textDecoration: "none",
+        whiteSpace: "nowrap" as const,
+        flexShrink: 0,
+        transition: "all var(--transition, 0.3s ease)",
+        ...(featured
+          ? {
+              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
+              color: "#fff",
+              border: "1px solid var(--gold, #c5a55a)",
+            }
+          : {
+              background: "transparent",
+              color: "var(--charcoal, #3d3830)",
+              border: "1px solid var(--sand, #d4cabb)",
+            }),
+      }}
+    >
+      {label}
+    </a>
+  );
+}
+
 /**
  * Registry Section — POC-parity rewrite
  *
@@ -291,27 +371,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                     e.currentTarget.style.boxShadow = "var(--shadow)";
                   }}
                 >
-                  {isClaimed && (
-                    <span
-                      aria-label="Fund closed"
-                      style={{
-                        position: "absolute",
-                        top: 16,
-                        right: 16,
-                        background: "var(--accent, #7a8c72)",
-                        color: "#fff",
-                        fontFamily: "var(--sans)",
-                        fontSize: ".7rem",
-                        fontWeight: 600,
-                        letterSpacing: ".12em",
-                        textTransform: "uppercase" as const,
-                        padding: "4px 10px",
-                        borderRadius: 999,
-                      }}
-                    >
-                      Closed
-                    </span>
-                  )}
+                  {isClaimed && <StatusBadge label="Closed" ariaLabel="Fund closed" />}
 
                   {imageUrl ? (
                     <div
@@ -418,40 +478,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                   </div>
 
                   {hasLink && !isClaimed && (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                        fontFamily: "var(--sans)",
-                        fontSize: "var(--sm, 0.85rem)",
-                        fontWeight: 600,
-                        letterSpacing: ".02em",
-                        padding: "14px 32px",
-                        borderRadius: 999,
-                        textDecoration: "none",
-                        whiteSpace: "nowrap" as const,
-                        flexShrink: 0,
-                        transition: "all var(--transition, 0.3s ease)",
-                        ...(isFeatured
-                          ? {
-                              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
-                              color: "#fff",
-                              border: "1px solid var(--gold, #c5a55a)",
-                            }
-                          : {
-                              background: "transparent",
-                              color: "var(--charcoal, #3d3830)",
-                              border: "1px solid var(--sand, #d4cabb)",
-                            }),
-                      }}
-                    >
-                      Contribute
-                    </a>
+                    <RegistryCTA href={item.url!} label="Contribute" featured={isFeatured} size="banner" />
                   )}
                 </div>
               );
@@ -484,27 +511,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                   e.currentTarget.style.boxShadow = "var(--shadow)";
                 }}
               >
-                {isClaimed && (
-                  <span
-                    aria-label="Gift claimed"
-                    style={{
-                      position: "absolute",
-                      top: 16,
-                      right: 16,
-                      background: "var(--accent, #7a8c72)",
-                      color: "#fff",
-                      fontFamily: "var(--sans)",
-                      fontSize: ".7rem",
-                      fontWeight: 600,
-                      letterSpacing: ".12em",
-                      textTransform: "uppercase" as const,
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                    }}
-                  >
-                    Claimed
-                  </span>
-                )}
+                {isClaimed && <StatusBadge label="Claimed" ariaLabel="Gift claimed" />}
 
                 {imageUrl ? (
                     <div
@@ -650,39 +657,7 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                   marginTop: "auto",
                 }}>
                   {hasLink && !isClaimed && (
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 8,
-                        fontFamily: "var(--sans)",
-                        fontSize: "var(--sm, 0.85rem)",
-                        fontWeight: 600,
-                        letterSpacing: ".02em",
-                        padding: "12px 26px",
-                        borderRadius: 999,
-                        textDecoration: "none",
-                        whiteSpace: "nowrap" as const,
-                        transition: "all var(--transition, 0.3s ease)",
-                        ...(isFeatured
-                          ? {
-                              background: "linear-gradient(135deg, var(--gold, #c5a55a), var(--gold-d, #9e7e3a))",
-                              color: "#fff",
-                              border: "1px solid var(--gold, #c5a55a)",
-                            }
-                          : {
-                              background: "transparent",
-                              color: "var(--charcoal, #3d3830)",
-                              border: "1px solid var(--sand, #d4cabb)",
-                            }),
-                      }}
-                    >
-                      {ctaLabel}
-                    </a>
+                    <RegistryCTA href={item.url!} label={ctaLabel} featured={isFeatured} size="card" />
                   )}
 
                   {showClaimControls && myClaimId && (
