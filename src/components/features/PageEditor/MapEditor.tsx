@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import type { MapSection } from "@/schemas/event-page";
+import {
+  getOsmEmbedPreviewUrl,
+  hasValidCoordinates,
+  parseOptionalCoordinate,
+  MAP_IFRAME_REFERRER_POLICY,
+} from "@/lib/maps/map-utils";
 
 type MapEditorProps = {
   data: MapSection["data"];
@@ -11,8 +19,11 @@ type MapEditorProps = {
 };
 
 /**
- * Editor for map/location section
- * Allows configuring venue details and map coordinates
+ * Editor for the map/location section.
+ *
+ * Phase 1 scope: bug fixes + utility extraction. Schema still requires lat/lng,
+ * so the editor does not yet support clearing coordinates — typing-flow fixes
+ * only. Phase 2 makes coordinates optional and supports clearing.
  */
 export function MapEditor({ data, onChange }: MapEditorProps) {
   const updateField = useCallback(
@@ -22,10 +33,52 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
     [data, onChange]
   );
 
-  // Preview map URL
-  const previewMapUrl = data.latitude && data.longitude
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${data.longitude - 0.01},${data.latitude - 0.01},${data.longitude + 0.01},${data.latitude + 0.01}&layer=mapnik&marker=${data.latitude},${data.longitude}`
-    : null;
+  // Raw input strings for lat/lng so mid-keystroke values like "-" survive
+  // the controlled-input round-trip. We only commit to `data` when the input
+  // parses to a valid coordinate; on blur, invalid input snaps back to the
+  // committed value's string form so the field never ends up out of sync.
+  const [latRaw, setLatRaw] = useState(() => data.latitude.toString());
+  const [lngRaw, setLngRaw] = useState(() => data.longitude.toString());
+
+  // Slider drives a local draft for snappy thumb + label movement. Committing
+  // to `data.zoom` is debounced so the preview iframe only reloads once the
+  // user pauses — otherwise every tick triggers a network round-trip to OSM
+  // and the slider stutters.
+  const [zoomDraft, setZoomDraft] = useState(data.zoom);
+  const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleZoomChange = (value: number) => {
+    setZoomDraft(value);
+    if (zoomCommitTimer.current) clearTimeout(zoomCommitTimer.current);
+    zoomCommitTimer.current = setTimeout(() => {
+      updateField("zoom", value);
+    }, 200);
+  };
+
+  const handleLatChange = (value: string) => {
+    setLatRaw(value);
+    const parsed = parseOptionalCoordinate(value, -90, 90);
+    if (typeof parsed === "number") updateField("latitude", parsed);
+  };
+
+  const handleLatBlur = () => {
+    const parsed = parseOptionalCoordinate(latRaw, -90, 90);
+    if (typeof parsed !== "number") setLatRaw(data.latitude.toString());
+  };
+
+  const handleLngChange = (value: string) => {
+    setLngRaw(value);
+    const parsed = parseOptionalCoordinate(value, -180, 180);
+    if (typeof parsed === "number") updateField("longitude", parsed);
+  };
+
+  const handleLngBlur = () => {
+    const parsed = parseOptionalCoordinate(lngRaw, -180, 180);
+    if (typeof parsed !== "number") setLngRaw(data.longitude.toString());
+  };
+
+  const previewMapUrl = getOsmEmbedPreviewUrl(data);
+  const showPreview = hasValidCoordinates(data);
 
   return (
     <div className="space-y-6">
@@ -53,7 +106,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
           </Label>
           <Input
             id="map-venue-name"
-            value={data.venueName || ""}
+            value={data.venueName ?? ""}
             onChange={(e) => updateField("venueName", e.target.value || undefined)}
             placeholder="Grand Ballroom, The Ritz Hotel"
             maxLength={100}
@@ -93,15 +146,11 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
             <Label htmlFor="map-latitude">Latitude *</Label>
             <Input
               id="map-latitude"
-              type="number"
-              step="any"
-              value={data.latitude || ""}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val) && val >= -90 && val <= 90) {
-                  updateField("latitude", val);
-                }
-              }}
+              type="text"
+              inputMode="decimal"
+              value={latRaw}
+              onChange={(e) => handleLatChange(e.target.value)}
+              onBlur={handleLatBlur}
               placeholder="40.7128"
             />
           </div>
@@ -109,15 +158,11 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
             <Label htmlFor="map-longitude">Longitude *</Label>
             <Input
               id="map-longitude"
-              type="number"
-              step="any"
-              value={data.longitude || ""}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val) && val >= -180 && val <= 180) {
-                  updateField("longitude", val);
-                }
-              }}
+              type="text"
+              inputMode="decimal"
+              value={lngRaw}
+              onChange={(e) => handleLngChange(e.target.value)}
+              onBlur={handleLngBlur}
               placeholder="-74.0060"
             />
           </div>
@@ -125,17 +170,15 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
         <div className="space-y-2">
           <Label htmlFor="map-zoom">Zoom Level</Label>
           <div className="flex items-center gap-4">
-            <input
+            <Slider
               id="map-zoom"
-              type="range"
               min={10}
               max={18}
-              value={data.zoom}
-              onChange={(e) => updateField("zoom", parseInt(e.target.value))}
-              className="flex-1"
+              value={zoomDraft}
+              onChange={(e) => handleZoomChange(parseInt(e.target.value))}
             />
             <span className="w-8 text-center text-sm text-muted-foreground">
-              {data.zoom}
+              {zoomDraft}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -146,12 +189,10 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
 
       {/* Options */}
       <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
+        <Checkbox
           id="map-show-directions"
           checked={data.showDirectionsLink}
           onChange={(e) => updateField("showDirectionsLink", e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
         />
         <div>
           <Label htmlFor="map-show-directions" className="cursor-pointer">
@@ -164,7 +205,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
       </div>
 
       {/* Map Preview */}
-      {previewMapUrl && (
+      {showPreview && previewMapUrl && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Preview</h4>
           <div className="aspect-video w-full overflow-hidden rounded-lg border">
@@ -174,9 +215,13 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
               height="100%"
               style={{ border: 0 }}
               loading="lazy"
+              referrerPolicy={MAP_IFRAME_REFERRER_POLICY}
               title="Map preview"
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            The +/− buttons in this preview are not saved. Use the zoom slider above to set what guests will see.
+          </p>
         </div>
       )}
 

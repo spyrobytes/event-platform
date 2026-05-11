@@ -1,6 +1,12 @@
 "use client";
 
 import type { MapSection } from "@/schemas/event-page";
+import {
+  getOsmEmbedPreviewUrl,
+  getGoogleDirectionsUrl,
+  hasValidCoordinates,
+  MAP_IFRAME_REFERRER_POLICY,
+} from "@/lib/maps/map-utils";
 
 type MapV2Props = {
   data: MapSection["data"];
@@ -12,27 +18,13 @@ type MapV2Props = {
  * Embeds an OpenStreetMap iframe inside a V2 card with venue info and directions link.
  */
 export function MapV2({ data }: MapV2Props) {
-  const {
-    heading = "Location",
-    venueName,
-    address,
-    latitude,
-    longitude,
-    showDirectionsLink = true,
-  } = data;
+  const { heading = "Location", venueName, address, showDirectionsLink = true } = data;
   const kickerText = "Location";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  const hasLocation = address && latitude != null && longitude != null;
-
-  const bboxPad = 0.01;
-  const mapSrc = hasLocation
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - bboxPad},${latitude - bboxPad},${longitude + bboxPad},${latitude + bboxPad}&layer=mapnik&marker=${latitude},${longitude}`
-    : "";
-
-  const directionsUrl = hasLocation
-    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`
-    : "";
+  const hasLocation = Boolean(address) && hasValidCoordinates(data);
+  const mapSrc = getOsmEmbedPreviewUrl(data);
+  const directionsUrl = getGoogleDirectionsUrl(data);
 
   return (
     <section
@@ -76,24 +68,26 @@ export function MapV2({ data }: MapV2Props) {
             overflow: "hidden",
           }}>
             {/* Map iframe */}
-            <div style={{
-              width: "100%",
-              height: 400,
-              overflow: "hidden",
-            }}>
-              <iframe
-                title="Event location map"
-                src={mapSrc}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  border: "none",
-                  display: "block",
-                }}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-              />
-            </div>
+            {mapSrc && (
+              <div style={{
+                width: "100%",
+                height: 400,
+                overflow: "hidden",
+              }}>
+                <iframe
+                  title="Event location map"
+                  src={mapSrc}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    border: "none",
+                    display: "block",
+                  }}
+                  loading="lazy"
+                  referrerPolicy={MAP_IFRAME_REFERRER_POLICY}
+                />
+              </div>
+            )}
 
             {/* Venue info */}
             <div style={{
@@ -143,7 +137,7 @@ export function MapV2({ data }: MapV2Props) {
                 </p>
               </div>
 
-              {showDirectionsLink && (
+              {showDirectionsLink && directionsUrl && (
                 <a
                   href={directionsUrl}
                   target="_blank"

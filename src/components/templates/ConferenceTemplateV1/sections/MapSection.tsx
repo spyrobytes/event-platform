@@ -1,6 +1,11 @@
 "use client";
 
 import { SectionWrapper, SectionTitle } from "../../shared";
+import {
+  getOsmEmbedPreviewUrl,
+  getGoogleDirectionsUrl,
+  MAP_IFRAME_REFERRER_POLICY,
+} from "@/lib/maps/map-utils";
 
 type MapSectionProps = {
   data: {
@@ -20,21 +25,10 @@ type MapSectionProps = {
  * Professional layout with venue details sidebar
  */
 export function MapSection({ data, primaryColor }: MapSectionProps) {
-  const {
-    heading = "Venue",
-    venueName,
-    address,
-    latitude,
-    longitude,
-    zoom,
-    showDirectionsLink,
-  } = data;
+  const { heading = "Venue", venueName, address, showDirectionsLink } = data;
 
-  // OpenStreetMap embed URL
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01},${latitude - 0.01},${longitude + 0.01},${latitude + 0.01}&layer=mapnik&marker=${latitude},${longitude}`;
-
-  // Google Maps directions URL
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+  const mapUrl = getOsmEmbedPreviewUrl(data);
+  const directionsUrl = getGoogleDirectionsUrl(data);
 
   return (
     <SectionWrapper ariaLabel="Event location" className="bg-muted/30">
@@ -86,7 +80,7 @@ export function MapSection({ data, primaryColor }: MapSectionProps) {
               </div>
             </div>
 
-            {showDirectionsLink && (
+            {showDirectionsLink && directionsUrl && (
               <a
                 href={directionsUrl}
                 target="_blank"
@@ -113,20 +107,22 @@ export function MapSection({ data, primaryColor }: MapSectionProps) {
           </div>
 
           {/* Map */}
-          <div className="overflow-hidden rounded-xl border bg-card shadow-sm lg:col-span-2">
-            <div className="aspect-[4/3] w-full lg:aspect-[16/9]">
-              <iframe
-                src={mapUrl}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Event location map"
-              />
+          {mapUrl && (
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm lg:col-span-2">
+              <div className="aspect-[4/3] w-full lg:aspect-[16/9]">
+                <iframe
+                  src={mapUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy={MAP_IFRAME_REFERRER_POLICY}
+                  title="Event location map"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </SectionWrapper>
