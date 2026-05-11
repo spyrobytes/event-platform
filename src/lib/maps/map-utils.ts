@@ -20,18 +20,14 @@ const LAT_MAX = 90;
 const LNG_MIN = -180;
 const LNG_MAX = 180;
 
-/**
- * Resolves the displayable address — formattedAddress preferred, address as fallback.
- * Phase 2 will populate formattedAddress; Phase 1 reads address.
- */
+// Phase 1 reads `address`; Phase 2 will populate `formattedAddress` and this
+// preference order makes the migration a no-op at the call sites.
 export function getDisplayAddress(loc: LocationForMap): string | undefined {
   return loc.formattedAddress?.trim() || loc.address?.trim() || undefined;
 }
 
-/**
- * Type guard. True iff both coordinates are finite numbers within geographic range.
- * Accepts (0, 0) — equator/Greenwich is valid.
- */
+// Accepts (0, 0) — equator/Greenwich is valid. The truthiness check this
+// replaces silently rejected it.
 export function hasValidCoordinates(
   loc: LocationForMap
 ): loc is LocationForMap & { latitude: number; longitude: number } {
@@ -47,23 +43,16 @@ export function hasValidCoordinates(
   );
 }
 
-/**
- * Maps an OSM-style zoom level (1..20) to a bbox half-width in degrees.
- * Roughly halves the visible area for each zoom step. Anchor: zoom 15 → 0.01°
- * (matches the existing hard-coded value the renderers used pre-refactor).
- */
+// Anchor: zoom 15 → 0.01° matches the hard-coded pad the renderers used
+// pre-refactor, so existing previews don't shift.
 function zoomToBboxPad(zoom: number): number {
   const anchorZoom = 15;
   const anchorPad = 0.01;
   return anchorPad * Math.pow(2, anchorZoom - zoom);
 }
 
-/**
- * OpenStreetMap embed URL for the in-app preview.
- *
- * NOTE: OSM's public export/embed endpoint is rate-limited and not appropriate
- * for high-volume production rendering. Phase 5 picks a production provider.
- */
+// OSM's public export/embed endpoint is rate-limited and not appropriate for
+// high-volume production rendering. Phase 5 picks a production provider.
 export function getOsmEmbedPreviewUrl(loc: LocationForMap): string | null {
   if (!hasValidCoordinates(loc)) return null;
 
@@ -84,13 +73,9 @@ export function getOsmEmbedPreviewUrl(loc: LocationForMap): string | null {
   return `https://www.openstreetmap.org/export/embed.html?${params.toString()}`;
 }
 
-/**
- * Google Maps directions URL. Prefers coordinates; falls back to address search
- * so the link still works for venues that don't have coordinates yet (drafts,
- * outdoor venues without postal addresses).
- *
- * Returns null only when there is no location data at all.
- */
+// Falls back to address search so the link still works for drafts and outdoor
+// venues without postal addresses. Returns null only when there is no
+// location data at all.
 export function getGoogleDirectionsUrl(loc: LocationForMap): string | null {
   if (hasValidCoordinates(loc)) {
     return `https://www.google.com/maps/dir/?api=1&destination=${loc.latitude},${loc.longitude}`;
@@ -100,9 +85,6 @@ export function getGoogleDirectionsUrl(loc: LocationForMap): string | null {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-/**
- * Apple Maps URL. Same fallback policy as Google.
- */
 export function getAppleMapsUrl(loc: LocationForMap): string | null {
   if (hasValidCoordinates(loc)) {
     const label = encodeURIComponent(loc.venueName?.trim() || "Event location");
@@ -135,11 +117,6 @@ export function parseOptionalCoordinate(
   return value;
 }
 
-/**
- * Single referrerPolicy value used by every map iframe. Avoids the V2
- * vs V1/Conference/Party drift we had pre-refactor.
- *
- * `no-referrer-when-downgrade` is the browser default; explicitly setting it
- * documents intent and prevents accidental "no-referrer" regressions.
- */
+// Explicit default; prevents the V2 vs V1/Conference/Party drift we had
+// pre-refactor (V2 was `no-referrer`).
 export const MAP_IFRAME_REFERRER_POLICY = "no-referrer-when-downgrade" as const;

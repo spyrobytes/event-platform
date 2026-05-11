@@ -46,40 +46,25 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
   const [zoomDraft, setZoomDraft] = useState(data.zoom);
   const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Prop-sync for the three local drafts. When data.* changes from outside our
-  // own commit (Phase 2 prefill, Phase 3 geocode confirmation), re-align the
-  // raw state so the inputs reflect the new value. When the change is our own
-  // commit echoing back (e.g. user typed "43.65000" → we commit 43.65 → parent
-  // re-renders with data.latitude=43.65), we skip the re-sync so the user's
-  // raw text (with trailing zeros) isn't clobbered.
-  //
-  // Tracking state (not refs) is required by React 19's compiler — refs may
-  // not be read or mutated during render. The setState-during-render pattern
-  // with a guarded condition is the canonical React 19 prop-sync answer.
+  // Prop-sync: when data.* changes from outside our own commit, realign the
+  // raw drafts. Our handlers advance prevData* to the committed value before
+  // the parent's re-render, so an own-commit echo equals prev and the guard
+  // short-circuits — the user's raw text (e.g. trailing zeros) isn't clobbered.
   const [prevDataLat, setPrevDataLat] = useState(data.latitude);
   const [prevDataLng, setPrevDataLng] = useState(data.longitude);
   const [prevDataZoom, setPrevDataZoom] = useState(data.zoom);
-  const [lastCommitLat, setLastCommitLat] = useState<number | null>(null);
-  const [lastCommitLng, setLastCommitLng] = useState<number | null>(null);
-  const [lastCommitZoom, setLastCommitZoom] = useState<number | null>(null);
 
   if (prevDataLat !== data.latitude) {
     setPrevDataLat(data.latitude);
-    if (lastCommitLat !== data.latitude) {
-      setLatRaw(data.latitude.toString());
-    }
+    setLatRaw(data.latitude.toString());
   }
   if (prevDataLng !== data.longitude) {
     setPrevDataLng(data.longitude);
-    if (lastCommitLng !== data.longitude) {
-      setLngRaw(data.longitude.toString());
-    }
+    setLngRaw(data.longitude.toString());
   }
   if (prevDataZoom !== data.zoom) {
     setPrevDataZoom(data.zoom);
-    if (lastCommitZoom !== data.zoom) {
-      setZoomDraft(data.zoom);
-    }
+    setZoomDraft(data.zoom);
   }
 
   // Cancel any pending debounce on unmount so a late timeout doesn't fire
@@ -95,7 +80,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
     setZoomDraft(value);
     if (zoomCommitTimer.current) clearTimeout(zoomCommitTimer.current);
     zoomCommitTimer.current = setTimeout(() => {
-      setLastCommitZoom(value);
+      setPrevDataZoom(value);
       updateField("zoom", value);
     }, 200);
   };
@@ -104,7 +89,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
     setLatRaw(value);
     const parsed = parseOptionalCoordinate(value, -90, 90);
     if (typeof parsed === "number") {
-      setLastCommitLat(parsed);
+      setPrevDataLat(parsed);
       updateField("latitude", parsed);
     }
   };
@@ -118,7 +103,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
     setLngRaw(value);
     const parsed = parseOptionalCoordinate(value, -180, 180);
     if (typeof parsed === "number") {
-      setLastCommitLng(parsed);
+      setPrevDataLng(parsed);
       updateField("longitude", parsed);
     }
   };
