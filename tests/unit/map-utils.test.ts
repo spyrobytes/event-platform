@@ -79,6 +79,15 @@ describe("getDisplayAddress", () => {
     expect(getDisplayAddress({ address: "   " })).toBeUndefined();
     expect(getDisplayAddress({ formattedAddress: "" })).toBeUndefined();
   });
+
+  it("falls through from empty formattedAddress to populated address", () => {
+    expect(
+      getDisplayAddress({ formattedAddress: "", address: "100 King St" })
+    ).toBe("100 King St");
+    expect(
+      getDisplayAddress({ formattedAddress: "   ", address: "100 King St" })
+    ).toBe("100 King St");
+  });
 });
 
 describe("getOsmEmbedPreviewUrl", () => {
@@ -113,6 +122,12 @@ describe("getOsmEmbedPreviewUrl", () => {
     const url = getOsmEmbedPreviewUrl({ latitude: 0, longitude: 0 });
     const explicit = getOsmEmbedPreviewUrl({ latitude: 0, longitude: 0, zoom: 15 });
     expect(url).toBe(explicit);
+  });
+
+  it("defaults to zoom 15 when zoom is NaN or Infinity", () => {
+    const explicit = getOsmEmbedPreviewUrl({ latitude: 0, longitude: 0, zoom: 15 });
+    expect(getOsmEmbedPreviewUrl({ latitude: 0, longitude: 0, zoom: NaN })).toBe(explicit);
+    expect(getOsmEmbedPreviewUrl({ latitude: 0, longitude: 0, zoom: Infinity })).toBe(explicit);
   });
 });
 
@@ -180,6 +195,12 @@ describe("getAppleMapsUrl", () => {
   it("returns null when there is no location data at all", () => {
     expect(getAppleMapsUrl({})).toBeNull();
   });
+
+  it("ignores out-of-range coords and falls through to address", () => {
+    expect(
+      getAppleMapsUrl({ latitude: 999, longitude: 0, address: "100 King St" })
+    ).toBe("https://maps.apple.com/?q=100%20King%20St");
+  });
 });
 
 describe("parseOptionalCoordinate", () => {
@@ -192,6 +213,11 @@ describe("parseOptionalCoordinate", () => {
     expect(parseOptionalCoordinate("0", -90, 90)).toBe(0);
     expect(parseOptionalCoordinate("43.6532", -90, 90)).toBe(43.6532);
     expect(parseOptionalCoordinate("-79.3832", -180, 180)).toBe(-79.3832);
+  });
+
+  it("trims whitespace-padded numeric input", () => {
+    expect(parseOptionalCoordinate("  43.65  ", -90, 90)).toBe(43.65);
+    expect(parseOptionalCoordinate("\t-79.38\n", -180, 180)).toBe(-79.38);
   });
 
   it("returns null for partial keystrokes that don't parse as numbers", () => {

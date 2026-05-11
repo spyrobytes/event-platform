@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +8,6 @@ import { Slider } from "@/components/ui/slider";
 import type { MapSection } from "@/schemas/event-page";
 import {
   getOsmEmbedPreviewUrl,
-  hasValidCoordinates,
   parseOptionalCoordinate,
   MAP_IFRAME_REFERRER_POLICY,
 } from "@/lib/maps/map-utils";
@@ -47,10 +46,56 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
   const [zoomDraft, setZoomDraft] = useState(data.zoom);
   const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Prop-sync for the three local drafts. When data.* changes from outside our
+  // own commit (Phase 2 prefill, Phase 3 geocode confirmation), re-align the
+  // raw state so the inputs reflect the new value. When the change is our own
+  // commit echoing back (e.g. user typed "43.65000" → we commit 43.65 → parent
+  // re-renders with data.latitude=43.65), we skip the re-sync so the user's
+  // raw text (with trailing zeros) isn't clobbered.
+  //
+  // Tracking state (not refs) is required by React 19's compiler — refs may
+  // not be read or mutated during render. The setState-during-render pattern
+  // with a guarded condition is the canonical React 19 prop-sync answer.
+  const [prevDataLat, setPrevDataLat] = useState(data.latitude);
+  const [prevDataLng, setPrevDataLng] = useState(data.longitude);
+  const [prevDataZoom, setPrevDataZoom] = useState(data.zoom);
+  const [lastCommitLat, setLastCommitLat] = useState<number | null>(null);
+  const [lastCommitLng, setLastCommitLng] = useState<number | null>(null);
+  const [lastCommitZoom, setLastCommitZoom] = useState<number | null>(null);
+
+  if (prevDataLat !== data.latitude) {
+    setPrevDataLat(data.latitude);
+    if (lastCommitLat !== data.latitude) {
+      setLatRaw(data.latitude.toString());
+    }
+  }
+  if (prevDataLng !== data.longitude) {
+    setPrevDataLng(data.longitude);
+    if (lastCommitLng !== data.longitude) {
+      setLngRaw(data.longitude.toString());
+    }
+  }
+  if (prevDataZoom !== data.zoom) {
+    setPrevDataZoom(data.zoom);
+    if (lastCommitZoom !== data.zoom) {
+      setZoomDraft(data.zoom);
+    }
+  }
+
+  // Cancel any pending debounce on unmount so a late timeout doesn't fire
+  // updateField → onChange on an unmounted parent.
+  useEffect(() => {
+    return () => {
+      if (zoomCommitTimer.current) clearTimeout(zoomCommitTimer.current);
+    };
+  }, []);
+
   const handleZoomChange = (value: number) => {
+    if (!Number.isFinite(value)) return;
     setZoomDraft(value);
     if (zoomCommitTimer.current) clearTimeout(zoomCommitTimer.current);
     zoomCommitTimer.current = setTimeout(() => {
+      setLastCommitZoom(value);
       updateField("zoom", value);
     }, 200);
   };
@@ -58,7 +103,10 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
   const handleLatChange = (value: string) => {
     setLatRaw(value);
     const parsed = parseOptionalCoordinate(value, -90, 90);
-    if (typeof parsed === "number") updateField("latitude", parsed);
+    if (typeof parsed === "number") {
+      setLastCommitLat(parsed);
+      updateField("latitude", parsed);
+    }
   };
 
   const handleLatBlur = () => {
@@ -69,7 +117,10 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
   const handleLngChange = (value: string) => {
     setLngRaw(value);
     const parsed = parseOptionalCoordinate(value, -180, 180);
-    if (typeof parsed === "number") updateField("longitude", parsed);
+    if (typeof parsed === "number") {
+      setLastCommitLng(parsed);
+      updateField("longitude", parsed);
+    }
   };
 
   const handleLngBlur = () => {
@@ -78,7 +129,6 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
   };
 
   const previewMapUrl = getOsmEmbedPreviewUrl(data);
-  const showPreview = hasValidCoordinates(data);
 
   return (
     <div className="space-y-6">
@@ -205,7 +255,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
       </div>
 
       {/* Map Preview */}
-      {showPreview && previewMapUrl && (
+      {previewMapUrl && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Preview</h4>
           <div className="aspect-video w-full overflow-hidden rounded-lg border">
