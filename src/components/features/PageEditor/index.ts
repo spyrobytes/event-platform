@@ -18,3 +18,9 @@ export { ThingsToDoEditor } from "./ThingsToDoEditor";
 export { RegistryEditor } from "./RegistryEditor";
 export { WishesEditor } from "./WishesEditor";
 export { SocialLinksEditor } from "./SocialLinksEditor";
+export {
+  PageEditorNav,
+  type PageEditorNavItem,
+  type PageEditorNavGroup,
+  type PageEditorNavBadge,
+} from "./PageEditorNav";
