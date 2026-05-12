@@ -1,3 +1,6 @@
+import type { MapSection } from "@/schemas/event-page";
+import { hasValidCoordinates } from "@/lib/maps/map-utils";
+
 type EventData = {
   title: string;
   slug: string;
@@ -19,21 +22,47 @@ type EventData = {
 
 type EventJsonLdProps = {
   event: EventData;
+  /**
+   * Optional map section data. When present, its structured address fields
+   * + coordinates take precedence over the Event row's plain `address` —
+   * giving search crawlers a richer PostalAddress + GeoCoordinates payload.
+   * Pass `undefined` when the section is absent or disabled.
+   */
+  mapSection?: MapSection["data"];
 };
 
-export function EventJsonLd({ event }: EventJsonLdProps) {
+export function EventJsonLd({ event, mapSection }: EventJsonLdProps) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
-  const location = event.venueName || event.city
+  const placeName = event.venueName || event.city;
+  const hasAnyLocation = Boolean(placeName) || Boolean(mapSection);
+
+  const location = hasAnyLocation
     ? {
         "@type": "Place",
-        name: event.venueName || event.city,
+        name: placeName || undefined,
         address: {
           "@type": "PostalAddress",
-          streetAddress: event.address || undefined,
-          addressLocality: event.city || undefined,
-          addressCountry: event.country || undefined,
+          // `event.address` is a legacy plain-string fallback for pre-Phase-2
+          // events where the Event row was the only location source. It often
+          // contains the full line (street + city + postal code) — technically
+          // not what schema.org/PostalAddress.streetAddress wants. The
+          // preferred path is `mapSection.addressLine1`, which the Phase 3
+          // LocationPicker populates with the street portion only.
+          streetAddress: mapSection?.addressLine1 || event.address || undefined,
+          addressLocality: mapSection?.city || event.city || undefined,
+          addressRegion: mapSection?.region || undefined,
+          postalCode: mapSection?.postalCode || undefined,
+          addressCountry: mapSection?.country || event.country || undefined,
         },
+        geo:
+          mapSection && hasValidCoordinates(mapSection)
+            ? {
+                "@type": "GeoCoordinates",
+                latitude: mapSection.latitude,
+                longitude: mapSection.longitude,
+              }
+            : undefined,
       }
     : undefined;
 

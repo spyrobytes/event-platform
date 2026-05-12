@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   hasValidCoordinates,
   getDisplayAddress,
+  getEnabledMapSection,
   getOsmEmbedPreviewUrl,
   getGoogleDirectionsUrl,
   getAppleMapsUrl,
@@ -324,6 +325,41 @@ describe("validateMapSectionForPublish", () => {
         data: { formattedAddress: "Null Island", latitude: 0, longitude: 0 },
       })
     ).toEqual({ ok: true });
+  });
+});
+
+describe("getEnabledMapSection", () => {
+  it("returns undefined when no map section exists", () => {
+    expect(
+      getEnabledMapSection({ sections: [{ type: "rsvp" }, { type: "schedule" }] })
+    ).toBeUndefined();
+  });
+
+  it("returns the first enabled map section's data", () => {
+    const data = { formattedAddress: "X", latitude: 1, longitude: 2 };
+    expect(
+      getEnabledMapSection({
+        sections: [
+          { type: "schedule" },
+          { type: "map", enabled: true, data },
+        ],
+      })
+    ).toEqual(data);
+  });
+
+  it("skips disabled map sections", () => {
+    expect(
+      getEnabledMapSection({
+        sections: [{ type: "map", enabled: false, data: { formattedAddress: "X" } }],
+      })
+    ).toBeUndefined();
+  });
+
+  it("treats omitted enabled as enabled (true by default)", () => {
+    const data = { formattedAddress: "X" };
+    expect(
+      getEnabledMapSection({ sections: [{ type: "map", data }] })
+    ).toEqual(data);
   });
 });
 

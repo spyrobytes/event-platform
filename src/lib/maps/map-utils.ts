@@ -159,6 +159,31 @@ export function validateMapSectionForPublish(section: {
   return { ok: true };
 }
 
+// Returns the data of the first enabled map section in a page config, or
+// undefined when no enabled map section exists. Used by SEO surfaces (e.g.
+// EventJsonLd) that want the structured address + geo when the section
+// contributes to the public page, and want to omit those fields otherwise.
+//
+// The input type is intentionally loose (matches the shape from any
+// well-formed page config) so test fixtures don't need to construct full
+// section unions. The single cast on return is the type-narrowing seam:
+// the runtime guard above (`type === "map"`) guarantees the data shape.
+import type { MapSection } from "@/schemas/event-page";
+
+type SectionForMapLookup = { type: string; enabled?: boolean; data?: unknown };
+
+export function getEnabledMapSection(config: {
+  sections: ReadonlyArray<SectionForMapLookup>;
+}): MapSection["data"] | undefined {
+  for (const section of config.sections) {
+    if (section.type !== "map") continue;
+    if (section.enabled === false) continue;
+    if (!section.data || typeof section.data !== "object") continue;
+    return section.data as MapSection["data"];
+  }
+  return undefined;
+}
+
 // Walks a page config's sections and validates each enabled map section.
 // Returns the first failure with sectionIndex so the API can point the editor
 // at the offending card. The publish path uses this; the save path doesn't

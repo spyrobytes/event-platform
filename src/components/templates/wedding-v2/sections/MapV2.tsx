@@ -2,12 +2,16 @@
 
 import type { MapSection } from "@/schemas/event-page";
 import {
+  getAppleMapsUrl,
   getDisplayAddress,
-  getOsmEmbedPreviewUrl,
   getGoogleDirectionsUrl,
   hasValidCoordinates,
-  MAP_IFRAME_REFERRER_POLICY,
 } from "@/lib/maps/map-utils";
+import {
+  CopyAddressButton,
+  LazyMap,
+  LocationNotes,
+} from "../../shared/LocationCard";
 
 type MapV2Props = {
   data: MapSection["data"];
@@ -16,7 +20,10 @@ type MapV2Props = {
 /**
  * Map V2 — Location section for the cinematic wedding template.
  *
- * Embeds an OpenStreetMap iframe inside a V2 card with venue info and directions link.
+ * Composes the shared LocationCard primitives inside a V2 cinematic frame.
+ * Address + actions remain useful even without coordinates; the embedded
+ * map fades in (via LazyMap's IntersectionObserver) only when scrolled
+ * into view.
  */
 export function MapV2({ data }: MapV2Props) {
   const { heading = "Location", venueName, showDirectionsLink = true } = data;
@@ -24,9 +31,13 @@ export function MapV2({ data }: MapV2Props) {
   const kickerText = "Location";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  const hasLocation = Boolean(address) && hasValidCoordinates(data);
-  const mapSrc = getOsmEmbedPreviewUrl(data);
+  // Structured-only sections (city/region/country without formattedAddress
+  // or coords) still have something to render — show the card frame.
+  const hasAnyLocationData =
+    Boolean(address || data.city || data.region || data.country) ||
+    hasValidCoordinates(data);
   const directionsUrl = getGoogleDirectionsUrl(data);
+  const appleUrl = getAppleMapsUrl(data);
 
   return (
     <section
@@ -61,7 +72,7 @@ export function MapV2({ data }: MapV2Props) {
           </h2>
         </div>
 
-        {hasLocation ? (
+        {hasAnyLocationData ? (
           <div style={{
             background: "var(--surface, #ffffff)",
             border: "1px solid var(--border, #e8e1d6)",
@@ -69,27 +80,7 @@ export function MapV2({ data }: MapV2Props) {
             boxShadow: "var(--shadow)",
             overflow: "hidden",
           }}>
-            {/* Map iframe */}
-            {mapSrc && (
-              <div style={{
-                width: "100%",
-                height: 400,
-                overflow: "hidden",
-              }}>
-                <iframe
-                  title="Event location map"
-                  src={mapSrc}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                    display: "block",
-                  }}
-                  loading="lazy"
-                  referrerPolicy={MAP_IFRAME_REFERRER_POLICY}
-                />
-              </div>
-            )}
+            <LazyMap data={data} className="h-[400px] w-full" />
 
             {/* Venue info */}
             <div style={{
@@ -113,77 +104,105 @@ export function MapV2({ data }: MapV2Props) {
                     {venueName}
                   </h3>
                 )}
-                <p style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 6,
-                  fontSize: "var(--body, 1rem)",
-                  color: "var(--text-2, #786f65)",
-                  lineHeight: 1.6,
-                }}>
-                  <svg
-                    width={16}
-                    height={16}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ flexShrink: 0, marginTop: 4 }}
-                  >
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  {address}
-                </p>
+                {address && (
+                  <p style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 6,
+                    fontSize: "var(--body, 1rem)",
+                    color: "var(--text-2, #786f65)",
+                    lineHeight: 1.6,
+                  }}>
+                    <svg
+                      width={16}
+                      height={16}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0, marginTop: 4 }}
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    {address}
+                  </p>
+                )}
+                <LocationNotes data={data} className="mt-4" />
               </div>
 
-              {showDirectionsLink && directionsUrl && (
-                <a
-                  href={directionsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontFamily: "var(--sans)",
-                    fontSize: "var(--sm, 0.85rem)",
-                    fontWeight: 600,
-                    padding: "12px 26px",
-                    borderRadius: 999,
-                    background: "transparent",
-                    color: "var(--accent, #7a8c72)",
-                    border: "1px solid var(--accent, #7a8c72)",
-                    textDecoration: "none",
-                    transition: "all var(--transition, 0.3s ease)",
-                    flexShrink: 0,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--accent, #7a8c72)";
-                    e.currentTarget.style.color = "#fff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "var(--accent, #7a8c72)";
-                  }}
-                >
-                  <svg
-                    width={16}
-                    height={16}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                {showDirectionsLink && directionsUrl && (
+                  <a
+                    href={directionsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontFamily: "var(--sans)",
+                      fontSize: "var(--sm, 0.85rem)",
+                      fontWeight: 600,
+                      padding: "12px 26px",
+                      borderRadius: 999,
+                      background: "transparent",
+                      color: "var(--accent, #7a8c72)",
+                      border: "1px solid var(--accent, #7a8c72)",
+                      textDecoration: "none",
+                      transition: "all var(--transition, 0.3s ease)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--accent, #7a8c72)";
+                      e.currentTarget.style.color = "#fff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--accent, #7a8c72)";
+                    }}
                   >
-                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                  </svg>
-                  Get Directions
-                </a>
-              )}
+                    Get Directions
+                  </a>
+                )}
+                {appleUrl && (
+                  <a
+                    href={appleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontFamily: "var(--sans)",
+                      fontSize: "var(--sm, 0.85rem)",
+                      fontWeight: 600,
+                      padding: "12px 26px",
+                      borderRadius: 999,
+                      background: "transparent",
+                      color: "var(--text-2, #786f65)",
+                      border: "1px solid var(--border, #e8e1d6)",
+                      textDecoration: "none",
+                      transition: "all var(--transition, 0.3s ease)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--surface-2, #f5efe6)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    Apple Maps
+                  </a>
+                )}
+                {address && (
+                  <CopyAddressButton
+                    address={address}
+                    className="inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-medium"
+                  />
+                )}
+              </div>
             </div>
           </div>
         ) : (
