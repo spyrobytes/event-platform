@@ -13,16 +13,32 @@ import {
   parseOptionalCoordinate,
   MAP_IFRAME_REFERRER_POLICY,
 } from "@/lib/maps/map-utils";
+import {
+  LocationPicker,
+  type LocationCandidate,
+} from "./LocationPicker";
 
 type MapEditorProps = {
   data: MapSection["data"];
   onChange: (data: MapSection["data"]) => void;
+  eventId: string;
+  getIdToken: () => Promise<string | null>;
 };
+
+// Coerces the geocoder's provider string into the schema's narrower union.
+// The "none" provider only appears when GEOCODER_PROVIDER is unset, which
+// returns an empty candidate list — so this branch never runs in practice.
+function coerceProvider(provider: string): MapSection["data"]["provider"] {
+  if (provider === "locationiq" || provider === "mapbox" || provider === "osm") {
+    return provider;
+  }
+  return undefined;
+}
 
 // Phase 2: address + coordinates are optional in the schema. The editor lets
 // users save drafts with any subset filled in. The publish path
 // (validateMapSectionForPublish) enforces the complete-data requirement.
-export function MapEditor({ data, onChange }: MapEditorProps) {
+export function MapEditor({ data, onChange, eventId, getIdToken }: MapEditorProps) {
   const updateField = useCallback(
     <K extends keyof MapSection["data"]>(field: K, value: MapSection["data"][K]) => {
       onChange({ ...data, [field]: value });
@@ -140,19 +156,27 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
             maxLength={100}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="map-address">Address *</Label>
-          <Input
-            id="map-address"
-            value={initialAddress}
-            onChange={(e) => updateField("formattedAddress", e.target.value || undefined)}
-            placeholder="123 Main Street, New York, NY 10001"
-            maxLength={300}
-          />
-          <p className="text-xs text-muted-foreground">
-            Required to publish. You can leave coordinates blank for now and add them later.
-          </p>
-        </div>
+        <LocationPicker
+          eventId={eventId}
+          getIdToken={getIdToken}
+          initialQuery={initialAddress}
+          onSelect={(candidate: LocationCandidate) => {
+            onChange({
+              ...data,
+              formattedAddress: candidate.formattedAddress,
+              latitude: candidate.latitude,
+              longitude: candidate.longitude,
+              placeId: candidate.placeId,
+              provider: coerceProvider(candidate.provider),
+              timezone: candidate.timezone,
+              addressLine1: candidate.addressLine1,
+              city: candidate.city,
+              region: candidate.region,
+              postalCode: candidate.postalCode,
+              country: candidate.country,
+            });
+          }}
+        />
       </div>
 
       {/* Guest-facing notes (optional) */}
