@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import { useUnsavedChangesGuard } from "@/hooks";
+import { useIntersectionObserver, useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/input";
@@ -145,6 +145,16 @@ export default function PageEditorPage() {
     isDirty: hasChanges,
     redirectTo: `/dashboard/events/${params.id}`,
   });
+
+  // Hide the floating nav trigger while the editor header (with Back / Preview
+  // / Save inline) is in view — at ≤880px the container fills the viewport and
+  // the floating button collides with Save Changes. rootMargin -72px aligns the
+  // "out of view" point with the button's own top position.
+  const {
+    ref: editorHeaderRef,
+    isVisible: editorHeaderInView,
+    hasBeenVisible: editorHeaderSeen,
+  } = useIntersectionObserver({ rootMargin: "-72px 0px 0px 0px" });
 
   // Section card refs, keyed by current index — used to scroll a moved card into view.
   const sectionRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -787,7 +797,7 @@ export default function PageEditorPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div ref={editorHeaderRef} className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={requestLeave}>
             ← Back
@@ -2000,21 +2010,27 @@ export default function PageEditorPage() {
       <ConfirmDialog {...discardDialogProps} />
 
       {/* Floating "jump to section" trigger — fixed top-right under the auth
-          header (h-14) so it follows the viewport. Hidden while the drawer is
-          open (drawer has its own close button). */}
+          header (h-14) so it follows the viewport. Hidden while the editor
+          header is in view (Save / Preview reachable inline there) or the
+          drawer is open. */}
       <button
         type="button"
         onClick={() => setIsNavOpen(true)}
         aria-label="Open section navigation"
         aria-expanded={isNavOpen}
         aria-controls="page-editor-nav"
+        aria-hidden={!editorHeaderSeen || editorHeaderInView || isNavOpen}
+        tabIndex={
+          !editorHeaderSeen || editorHeaderInView || isNavOpen ? -1 : 0
+        }
         title="Jump to section"
         className={cn(
           "fixed right-4 top-[4.5rem] z-30 flex h-10 w-10 items-center justify-center",
           "rounded-full border border-border bg-background/95 text-foreground shadow-md backdrop-blur",
           "supports-[backdrop-filter]:bg-background/80",
           "transition-all hover:bg-muted hover:shadow-lg",
-          isNavOpen && "pointer-events-none opacity-0"
+          (!editorHeaderSeen || editorHeaderInView || isNavOpen) &&
+            "pointer-events-none opacity-0"
         )}
       >
         <svg
