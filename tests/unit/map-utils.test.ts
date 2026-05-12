@@ -6,6 +6,8 @@ import {
   getGoogleDirectionsUrl,
   getAppleMapsUrl,
   parseOptionalCoordinate,
+  validateMapSectionForPublish,
+  validateMapSectionsInConfig,
   MAP_IFRAME_REFERRER_POLICY,
 } from "@/lib/maps/map-utils";
 
@@ -247,5 +249,137 @@ describe("parseOptionalCoordinate", () => {
 describe("MAP_IFRAME_REFERRER_POLICY", () => {
   it("is the documented default", () => {
     expect(MAP_IFRAME_REFERRER_POLICY).toBe("no-referrer-when-downgrade");
+  });
+});
+
+describe("validateMapSectionForPublish", () => {
+  it("passes disabled sections regardless of data completeness", () => {
+    expect(
+      validateMapSectionForPublish({ enabled: false, data: {} })
+    ).toEqual({ ok: true });
+  });
+
+  it("passes an enabled section with formattedAddress + valid coords", () => {
+    expect(
+      validateMapSectionForPublish({
+        enabled: true,
+        data: {
+          formattedAddress: "100 King St W, Toronto",
+          latitude: 43.6481,
+          longitude: -79.3829,
+        },
+      })
+    ).toEqual({ ok: true });
+  });
+
+  it("passes an enabled section using legacy address field", () => {
+    expect(
+      validateMapSectionForPublish({
+        enabled: true,
+        data: {
+          address: "100 King St W",
+          latitude: 43.6481,
+          longitude: -79.3829,
+        },
+      })
+    ).toEqual({ ok: true });
+  });
+
+  it("passes an enabled section with only structured parts (no formattedAddress)", () => {
+    expect(
+      validateMapSectionForPublish({
+        enabled: true,
+        data: {
+          city: "Toronto",
+          country: "Canada",
+          latitude: 43.6481,
+          longitude: -79.3829,
+        },
+      })
+    ).toEqual({ ok: true });
+  });
+
+  it("rejects enabled section missing any address", () => {
+    const result = validateMapSectionForPublish({
+      enabled: true,
+      data: { latitude: 43.6481, longitude: -79.3829 },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/address/i);
+  });
+
+  it("rejects enabled section missing coords", () => {
+    const result = validateMapSectionForPublish({
+      enabled: true,
+      data: { formattedAddress: "100 King St W, Toronto" },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/coordinates/i);
+  });
+
+  it("accepts enabled section at (0, 0) with address", () => {
+    expect(
+      validateMapSectionForPublish({
+        enabled: true,
+        data: { formattedAddress: "Null Island", latitude: 0, longitude: 0 },
+      })
+    ).toEqual({ ok: true });
+  });
+});
+
+describe("validateMapSectionsInConfig", () => {
+  it("passes a config with no map sections", () => {
+    expect(
+      validateMapSectionsInConfig({ sections: [{ type: "rsvp" }, { type: "schedule" }] })
+    ).toEqual({ ok: true });
+  });
+
+  it("passes when every map section is publish-ready", () => {
+    expect(
+      validateMapSectionsInConfig({
+        sections: [
+          { type: "schedule" },
+          {
+            type: "map",
+            enabled: true,
+            data: {
+              formattedAddress: "100 King St W, Toronto",
+              latitude: 43.6481,
+              longitude: -79.3829,
+            },
+          },
+        ],
+      })
+    ).toEqual({ ok: true });
+  });
+
+  it("reports the first failing map section's index", () => {
+    const result = validateMapSectionsInConfig({
+      sections: [
+        { type: "schedule" },
+        { type: "map", enabled: true, data: {} },
+        {
+          type: "map",
+          enabled: true,
+          data: {
+            formattedAddress: "Valid",
+            latitude: 43.6481,
+            longitude: -79.3829,
+          },
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.sectionIndex).toBe(1);
+  });
+
+  it("skips disabled map sections", () => {
+    expect(
+      validateMapSectionsInConfig({
+        sections: [
+          { type: "map", enabled: false, data: {} },
+        ],
+      })
+    ).toEqual({ ok: true });
   });
 });

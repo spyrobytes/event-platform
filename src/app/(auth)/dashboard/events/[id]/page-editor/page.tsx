@@ -88,6 +88,12 @@ type PageConfigResponse = {
     height: number | null;
     alt: string;
   }>;
+  event?: {
+    venueName: string | null;
+    address: string | null;
+    city: string | null;
+    country: string | null;
+  };
 };
 
 export default function PageEditorPage() {
@@ -342,21 +348,33 @@ export default function PageEditorPage() {
               },
             };
             break;
-          case "map":
+          case "map": {
+            // Prefill venueName + formattedAddress from the Event row (D2:
+            // one-way, on first add). Section data is independent after
+            // creation; publish does not write back to Event.
+            const eventInfo = pageData?.event;
+            const eventAddressParts = [
+              eventInfo?.address,
+              eventInfo?.city,
+              eventInfo?.country,
+            ].filter((part): part is string => Boolean(part?.trim()));
+            const prefillAddress = eventAddressParts.length > 0
+              ? eventAddressParts.join(", ")
+              : undefined;
             newSection = {
               type: "map",
               enabled: true,
               visibility: "public",
               data: {
                 heading: "Location",
-                address: "",
-                latitude: 0,
-                longitude: 0,
+                venueName: eventInfo?.venueName ?? undefined,
+                formattedAddress: prefillAddress,
                 zoom: 15,
                 showDirectionsLink: true,
               },
             };
             break;
+          }
           // Wedding-specific sections
           case "story":
             newSection = {
@@ -445,7 +463,7 @@ export default function PageEditorPage() {
       });
       setHasChanges(true);
     },
-    []
+    [pageData?.event]
   );
 
   const removeSection = useCallback((index: number) => {

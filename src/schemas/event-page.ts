@@ -306,14 +306,47 @@ export const sponsorsSectionSchema = z.object({
 });
 
 // Map/Location Section
+//
+// Phase 2: address and coordinates are optional at the schema layer so drafts
+// can save without complete location data. `validateMapSectionForPublish` in
+// `src/lib/maps/map-utils.ts` enforces the publish-time requirement (enabled
+// sections need a displayable address + valid coords). `address` is retained
+// as a legacy alias of `formattedAddress` — `normalizeMapData` in
+// `config-migrations.ts` copies it forward on read.
+export const mapProviderSchema = z.enum(["locationiq", "mapbox", "osm"]);
+
 export const mapSectionDataSchema = z.object({
   heading: z.string().max(80, "Heading must be 80 characters or less").default("Location"),
   venueName: z.string().max(100, "Venue name must be 100 characters or less").optional(),
-  address: z.string().max(300, "Address must be 300 characters or less"),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+
+  // Address. `formattedAddress` is the canonical Phase 2+ field; `address`
+  // stays as an optional legacy alias for pre-Phase-2 saved configs.
+  address: z.string().max(300, "Address must be 300 characters or less").optional(),
+  formattedAddress: z.string().max(300, "Formatted address must be 300 characters or less").optional(),
+  addressLine1: z.string().max(120, "Address line must be 120 characters or less").optional(),
+  addressLine2: z.string().max(120, "Address line must be 120 characters or less").optional(),
+  city: z.string().max(80, "City must be 80 characters or less").optional(),
+  region: z.string().max(80, "Region must be 80 characters or less").optional(),
+  postalCode: z.string().max(30, "Postal code must be 30 characters or less").optional(),
+  country: z.string().max(80, "Country must be 80 characters or less").optional(),
+
+  // Coordinates (optional in Phase 2 — required at publish time, see util).
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+
+  // Geocoder provenance — populated when Phase 3 resolves a venue. Manual
+  // entry leaves these undefined.
+  placeId: z.string().max(160, "Place id must be 160 characters or less").optional(),
+  provider: mapProviderSchema.optional(),
+  timezone: z.string().max(80, "Timezone must be 80 characters or less").optional(),
+
   zoom: z.number().min(1).max(20).default(15),
   showDirectionsLink: z.boolean().default(true),
+
+  // Guest-facing notes — surfaced in the public LocationCard (Phase 4).
+  parkingNote: z.string().max(300, "Parking note must be 300 characters or less").optional(),
+  entranceNote: z.string().max(300, "Entrance note must be 300 characters or less").optional(),
+  accessibilityNote: z.string().max(300, "Accessibility note must be 300 characters or less").optional(),
 });
 
 export const mapSectionSchema = z.object({

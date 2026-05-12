@@ -120,3 +120,60 @@ export function parseOptionalCoordinate(
 // Explicit default; prevents the V2 vs V1/Conference/Party drift we had
 // pre-refactor (V2 was `no-referrer`).
 export const MAP_IFRAME_REFERRER_POLICY = "no-referrer-when-downgrade" as const;
+
+export type MapPublishValidation =
+  | { ok: true }
+  | { ok: false; reason: string; sectionIndex?: number };
+
+// Phase 2 publish gate. Disabled sections always pass — they don't render.
+// Enabled sections need a displayable address (formattedAddress, legacy
+// address, or any structured address part) AND valid coordinates. The schema
+// allows partial drafts to save; this function is the contract enforced at
+// publish time so live pages don't render with missing or Null Island data.
+export function validateMapSectionForPublish(section: {
+  enabled: boolean;
+  data: LocationForMap & {
+    addressLine1?: string;
+    city?: string;
+    region?: string;
+    postalCode?: string;
+    country?: string;
+  };
+}): MapPublishValidation {
+  if (!section.enabled) return { ok: true };
+
+  const hasAddress =
+    Boolean(getDisplayAddress(section.data)) ||
+    Boolean(section.data.addressLine1?.trim()) ||
+    Boolean(section.data.city?.trim()) ||
+    Boolean(section.data.region?.trim()) ||
+    Boolean(section.data.postalCode?.trim()) ||
+    Boolean(section.data.country?.trim());
+
+  if (!hasAddress) {
+    return { ok: false, reason: "Map section needs an address before publishing." };
+  }
+  if (!hasValidCoordinates(section.data)) {
+    return { ok: false, reason: "Map section needs valid coordinates before publishing." };
+  }
+  return { ok: true };
+}
+
+// Walks a page config's sections and validates each enabled map section.
+// Returns the first failure with sectionIndex so the API can point the editor
+// at the offending card. The publish path uses this; the save path doesn't
+// (drafts are allowed to be incomplete).
+type SectionForCheck = { type: string; enabled?: boolean; data?: unknown };
+export function validateMapSectionsInConfig(config: {
+  sections: ReadonlyArray<SectionForCheck>;
+}): MapPublishValidation {
+  for (let i = 0; i < config.sections.length; i++) {
+    const section = config.sections[i];
+    if (section.type !== "map") continue;
+    const result = validateMapSectionForPublish(
+      section as unknown as Parameters<typeof validateMapSectionForPublish>[0]
+    );
+    if (!result.ok) return { ...result, sectionIndex: i };
+  }
+  return { ok: true };
+}

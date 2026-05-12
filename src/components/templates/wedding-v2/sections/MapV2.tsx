@@ -2,6 +2,7 @@
 
 import type { MapSection } from "@/schemas/event-page";
 import {
+  getDisplayAddress,
   getOsmEmbedPreviewUrl,
   getGoogleDirectionsUrl,
   hasValidCoordinates,
@@ -18,7 +19,8 @@ type MapV2Props = {
  * Embeds an OpenStreetMap iframe inside a V2 card with venue info and directions link.
  */
 export function MapV2({ data }: MapV2Props) {
-  const { heading = "Location", venueName, address, showDirectionsLink = true } = data;
+  const { heading = "Location", venueName, showDirectionsLink = true } = data;
+  const address = getDisplayAddress(data);
   const kickerText = "Location";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
