@@ -31,7 +31,12 @@ export function MapV2({ data }: MapV2Props) {
   const kickerText = "Location";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  const hasAnyLocationData = Boolean(address) || hasValidCoordinates(data);
+  // Structured-only sections (city/region/country without formattedAddress
+  // or coords) still have something to render — show the card frame.
+  const hasAnyLocationData =
+    Boolean(address) ||
+    hasValidCoordinates(data) ||
+    Boolean(data.city || data.region || data.country);
   const directionsUrl = getGoogleDirectionsUrl(data);
   const appleUrl = getAppleMapsUrl(data);
 
@@ -150,6 +155,14 @@ export function MapV2({ data }: MapV2Props) {
                       textDecoration: "none",
                       transition: "all var(--transition, 0.3s ease)",
                     }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--accent, #7a8c72)";
+                      e.currentTarget.style.color = "#fff";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--accent, #7a8c72)";
+                    }}
                   >
                     Get Directions
                   </a>
@@ -172,6 +185,13 @@ export function MapV2({ data }: MapV2Props) {
                       color: "var(--text-2, #786f65)",
                       border: "1px solid var(--border, #e8e1d6)",
                       textDecoration: "none",
+                      transition: "all var(--transition, 0.3s ease)",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--surface-2, #f5efe6)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
                     }}
                   >
                     Apple Maps

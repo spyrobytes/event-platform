@@ -43,6 +43,12 @@ export function EventJsonLd({ event, mapSection }: EventJsonLdProps) {
         name: placeName || undefined,
         address: {
           "@type": "PostalAddress",
+          // `event.address` is a legacy plain-string fallback for pre-Phase-2
+          // events where the Event row was the only location source. It often
+          // contains the full line (street + city + postal code) — technically
+          // not what schema.org/PostalAddress.streetAddress wants. The
+          // preferred path is `mapSection.addressLine1`, which the Phase 3
+          // LocationPicker populates with the street portion only.
           streetAddress: mapSection?.addressLine1 || event.address || undefined,
           addressLocality: mapSection?.city || event.city || undefined,
           addressRegion: mapSection?.region || undefined,
