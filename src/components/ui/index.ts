@@ -2,5 +2,7 @@ export * from "./Button";
 export * from "./Input";
 export * from "./Label";
 export * from "./Card";
+export * from "./Checkbox";
 export * from "./Select";
+export * from "./Slider";
 export * from "./Textarea";
