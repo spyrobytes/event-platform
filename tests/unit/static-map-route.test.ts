@@ -108,4 +108,38 @@ describe("GET /api/maps/static", () => {
     expect(res.status).toBe(502);
     expect(dbMock.geocodeUsage.upsert).not.toHaveBeenCalled();
   });
+
+  it("returns 504 when the upstream fetch times out", async () => {
+    fetchSpy.mockRejectedValueOnce(new DOMException("Aborted", "TimeoutError"));
+    const res = await GET(makeRequest("lat=43.65&lng=-79.38"));
+    expect(res.status).toBe(504);
+    expect(dbMock.geocodeUsage.upsert).not.toHaveBeenCalled();
+  });
+
+  it("sets X-Content-Type-Options: nosniff on success", async () => {
+    fetchSpy.mockResolvedValueOnce(mockPngResponse());
+    const res = await GET(makeRequest("lat=43.65&lng=-79.38"));
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  });
+
+  it("does not leak the API key in the success response body", async () => {
+    fetchSpy.mockResolvedValueOnce(mockPngResponse());
+    const res = await GET(makeRequest("lat=43.65&lng=-79.38"));
+    const body = await res.text();
+    expect(body).not.toContain("pk.test");
+  });
+
+  it("does not leak the API key in error response bodies", async () => {
+    // Drive an upstream error so we hit the JSON error path.
+    fetchSpy.mockResolvedValueOnce(new Response("Error", { status: 500 }));
+    const res = await GET(makeRequest("lat=43.65&lng=-79.38"));
+    const body = await res.text();
+    expect(body).not.toContain("pk.test");
+  });
+
+  it("sets short Cache-Control on error responses (edge absorbs scraper retries)", async () => {
+    const res = await GET(makeRequest("lat=91&lng=0"));
+    expect(res.status).toBe(400);
+    expect(res.headers.get("Cache-Control")).toMatch(/max-age=300/);
+  });
 });

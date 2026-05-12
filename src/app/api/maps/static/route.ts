@@ -20,6 +20,18 @@ import {
 // the same daily quota as geocoding, so we share `geocode_usage` for the
 // budget counter.
 //
+// Runtime: Node (default), not Edge. Required because checkDailyBudget /
+// incrementTodayUsage call Prisma, which isn't available in the Edge runtime.
+// The PNG-streaming + caching headers mean Vercel's edge cache absorbs
+// repeats anyway, so the Node-runtime cost is bounded.
+//
+// Authentication: none, by design. Social-share crawlers (Slack, Twitter,
+// iMessage, etc.) fetch OG images without sending auth or Referer headers
+// — a stricter check would break the OG use case. The threat model is
+// "an attacker burns up to 4,000 of our daily quota with their own coords"
+// (the budget guard's safety floor), which is tolerable at invitation-only
+// volume. Re-evaluate when volume grows.
+//
 // Caching layers, from outermost to innermost:
 //   - Social crawlers (Slack/Twitter/iMessage): cache OG images for days.
 //   - Browser: respects our 30-day immutable Cache-Control.
@@ -42,17 +54,32 @@ const ipLimiter = upstashLimiter("static-map:ip", 30, "1 m");
 const ipHourlyLimiter = upstashLimiter("static-map:ip:hourly", 300, "1 h");
 
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
-const CACHE_HEADER = `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}, immutable`;
+const SUCCESS_CACHE_HEADER = `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${CACHE_TTL_SECONDS}, immutable`;
+// Brief cache on error responses so scraper retries hit Vercel's edge
+// instead of our function during transient misconfiguration or quota
+// exhaustion. 5 minutes balances "absorbs the spike" with "recovers
+// promptly once the upstream condition clears".
+const ERROR_CACHE_HEADER = "public, max-age=300, s-maxage=300";
+
+// LocationIQ static-map renders can take longer than geocoding lookups
+// (tile composition + PNG encoding). 8s gives generous headroom while
+// still respecting Vercel's function timeout.
+const LOCATIONIQ_STATIC_TIMEOUT_MS = 8_000;
+
+function errorJson(message: string, status: number): NextResponse {
+  return NextResponse.json(
+    { error: message },
+    { status, headers: { "Cache-Control": ERROR_CACHE_HEADER } }
+  );
+}
 
 export async function GET(request: NextRequest) {
   // 1. Validate query params before doing any work.
-  const url = new URL(request.url);
-  const parsed = querySchema.safeParse(Object.fromEntries(url.searchParams));
+  const parsed = querySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams)
+  );
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid params" },
-      { status: 400 }
-    );
+    return errorJson(parsed.error.issues[0]?.message ?? "Invalid params", 400);
   }
   const { lat, lng, w, h, z } = parsed.data;
 
@@ -64,20 +91,13 @@ export async function GET(request: NextRequest) {
   ]);
   if (!perIpOk || !perIpHourlyOk) {
     console.warn("[static-map] rate limited", { hashedIp: hashedIpKey(ip) });
-    return NextResponse.json(
-      { error: "Too many requests. Try again in a minute." },
-      { status: 429 }
-    );
+    return errorJson("Too many requests. Try again in a minute.", 429);
   }
 
-  // 3. If no provider key is configured, return a 503 with cache-friendly
-  // headers so we don't proxy nothing repeatedly. Clients then fall back to
+  // 3. If no provider key is configured, return 503. Clients fall back to
   // their existing placeholder (gray div / no OG image).
   if (env.GEOCODER_PROVIDER !== "locationiq" || !env.LOCATIONIQ_API_KEY) {
-    return NextResponse.json(
-      { error: "Static maps not configured" },
-      { status: 503 }
-    );
+    return errorJson("Static maps not configured", 503);
   }
 
   // 4. Shared LocationIQ daily quota — refuse past the floor.
@@ -86,10 +106,7 @@ export async function GET(request: NextRequest) {
     console.warn("[static-map] daily budget exhausted", {
       todayCount: budget.todayCount,
     });
-    return NextResponse.json(
-      { error: "Daily quota reached" },
-      { status: 503 }
-    );
+    return errorJson("Daily quota reached", 503);
   }
 
   // 5. Build the LocationIQ Static Maps URL server-side so the key stays out
@@ -110,42 +127,35 @@ export async function GET(request: NextRequest) {
   try {
     upstream = await fetch(liqUrl, {
       headers: { Accept: "image/png" },
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(LOCATIONIQ_STATIC_TIMEOUT_MS),
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "TimeoutError") {
-      return NextResponse.json(
-        { error: "Static map provider timed out" },
-        { status: 504 }
-      );
+      return errorJson("Static map provider timed out", 504);
     }
     console.error("[static-map] upstream fetch failed", err);
-    return NextResponse.json(
-      { error: "Static map provider unavailable" },
-      { status: 502 }
-    );
+    return errorJson("Static map provider unavailable", 502);
   }
 
   if (!upstream.ok) {
     console.warn("[static-map] upstream non-OK", { status: upstream.status });
-    return NextResponse.json(
-      { error: "Static map provider error" },
-      { status: 502 }
-    );
+    return errorJson("Static map provider error", 502);
   }
 
-  // 6. Count toward the daily quota only on successful upstream hits. Fire
-  // and forget — increment failures shouldn't break the response.
-  incrementTodayUsage().catch(() => undefined);
+  // 6. Count toward the daily quota only on successful upstream hits.
+  // Awaited (not fire-and-forget) so cold-instance termination after the
+  // response stream doesn't drop the increment.
+  await incrementTodayUsage();
 
-  // 7. Stream the PNG back with aggressive cache headers. The URL is
-  // deterministic from (lat, lng, w, h, z) so subsequent requests for the
-  // same image hit Vercel's edge cache or the client's browser cache.
+  // 7. Stream the PNG back with aggressive cache headers + nosniff. The URL
+  // is deterministic from (lat, lng, w, h, z) so subsequent requests for
+  // the same image hit Vercel's edge cache or the client's browser cache.
   return new NextResponse(upstream.body, {
     status: 200,
     headers: {
       "Content-Type": upstream.headers.get("Content-Type") || "image/png",
-      "Cache-Control": CACHE_HEADER,
+      "Cache-Control": SUCCESS_CACHE_HEADER,
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
