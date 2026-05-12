@@ -1557,6 +1557,8 @@ export default function PageEditorPage() {
               <MapEditor
                 data={section.data}
                 onChange={(data) => updateSectionData(index, data)}
+                eventId={params.id}
+                getIdToken={getIdToken}
               />
             )}
             {/* Wedding-specific section editors */}

@@ -658,3 +658,33 @@ model Waitlist {
 
   @@map("waitlist")
 }
+
+// =============================================================================
+// GEOCODING (Phase 3 — LocationIQ provider, server-side only)
+// =============================================================================
+
+// Persisted geocode cache. Key is SHA-256 of normalized query + provider, so
+// the same address typed by two different users hits the same row. Response
+// is stored as raw JSON so future schema additions on GeocodeResult don't
+// require a migration. Lazy-expiry on read (no scheduled cleanup needed).
+model GeocodeCache {
+  key       String   @id
+  provider  String
+  response  Json
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("geocode_cache")
+}
+
+// One row per UTC date for the daily budget guard. Keeps geocode API call
+// counts cheap to read at the top of the geocode route — single PK lookup,
+// no aggregation. Atomic increment via Prisma `update { increment }`.
+model GeocodeUsage {
+  date      DateTime @id @db.Date
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("geocode_usage")
+}

@@ -77,6 +77,14 @@ export const serverEnvSchema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   SENTRY_DSN: optionalUrl,
 
+  // Geocoder (Phase 3 — LocationIQ). Defaults to "none" so local dev / CI /
+  // first-time contributors get a NoopGeocoder that returns []. Production
+  // sets GEOCODER_PROVIDER=locationiq + LOCATIONIQ_API_KEY; preview deploys
+  // stay on "none" so they don't eat prod's daily quota (LocationIQ free
+  // tier permits one access token shared across all envs).
+  GEOCODER_PROVIDER: z.enum(["locationiq", "none"]).default("none"),
+  LOCATIONIQ_API_KEY: z.string().optional(),
+
   // Local development (optional)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().optional(),
