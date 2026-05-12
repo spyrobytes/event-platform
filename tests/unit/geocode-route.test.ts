@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { NotFoundError } from "@/lib/errors";
 
 const dbMock = {
-  event: { findUnique: vi.fn() },
   geocodeCache: { findUnique: vi.fn(), upsert: vi.fn(), delete: vi.fn() },
   geocodeUsage: { findUnique: vi.fn(), upsert: vi.fn() },
 };
@@ -10,8 +10,10 @@ vi.mock("@/lib/db", () => ({ db: dbMock }));
 
 const authMock = vi.fn();
 vi.mock("@/lib/auth", () => ({ verifyAuth: authMock }));
+
+const requireEventOwnerMock = vi.fn();
 vi.mock("@/lib/authorization", () => ({
-  requireEventOwner: vi.fn(async () => undefined),
+  requireEventOwner: requireEventOwnerMock,
 }));
 const checkUpstashLimitMock = vi.fn(async () => true);
 vi.mock("@/lib/rate-limit", () => ({
@@ -32,7 +34,7 @@ beforeEach(() => {
   // Module-level LRU in geocode-cache leaks across tests otherwise.
   cacheTesting.lru.clear();
   authMock.mockResolvedValue({ id: "user_1", roles: ["organizer"] });
-  dbMock.event.findUnique.mockResolvedValue({ organizationId: "org_1" });
+  requireEventOwnerMock.mockResolvedValue({ creatorId: "user_1", organizationId: "org_1" });
   dbMock.geocodeCache.findUnique.mockResolvedValue(null);
   dbMock.geocodeUsage.findUnique.mockResolvedValue(null);
   dbMock.geocodeCache.upsert.mockResolvedValue({});
@@ -135,7 +137,7 @@ describe("POST /api/events/[id]/location/geocode", () => {
   });
 
   it("returns 404 when the event does not exist", async () => {
-    dbMock.event.findUnique.mockResolvedValueOnce(null);
+    requireEventOwnerMock.mockRejectedValueOnce(new NotFoundError("Event not found"));
 
     const res = await POST(makeRequest({ query: "Toronto" }), {
       params: Promise.resolve({ id: "evt_1" }),

@@ -51,14 +51,19 @@ export function assertProfileComplete(user: User): void {
 // =============================================================================
 
 /**
- * Checks if the user is the owner of the event or has admin access via organization
- * Throws NotFoundError if event doesn't exist
- * Throws ForbiddenError if user doesn't have access
+ * Checks if the user is the owner of the event or has admin access via
+ * organization. Returns the event's {creatorId, organizationId} so callers
+ * that need them (e.g. for downstream queries or rate-limit keys) don't
+ * have to re-fetch. Existing callers that discard the return value continue
+ * to work unchanged.
+ *
+ * Throws NotFoundError if event doesn't exist.
+ * Throws ForbiddenError if user doesn't have access.
  */
 export async function requireEventOwner(
   eventId: string,
   userId: string
-): Promise<void> {
+): Promise<{ creatorId: string; organizationId: string | null }> {
   const event = await db.event.findUnique({
     where: { id: eventId },
     select: {
@@ -73,7 +78,7 @@ export async function requireEventOwner(
 
   // Check if user is the creator
   if (event.creatorId === userId) {
-    return;
+    return event;
   }
 
   // Check if user has admin/owner role in the event's organization
@@ -89,7 +94,7 @@ export async function requireEventOwner(
     });
 
     if (membership?.role === "OWNER" || membership?.role === "ADMIN") {
-      return;
+      return event;
     }
   }
 

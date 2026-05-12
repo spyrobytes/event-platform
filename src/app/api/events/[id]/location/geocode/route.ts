@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
@@ -42,13 +41,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const user = await verifyAuth(request);
     if (!user) return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
 
-    await requireEventOwner(eventId, user.id);
-
-    const event = await db.event.findUnique({
-      where: { id: eventId },
-      select: { organizationId: true },
-    });
-    if (!event) return errorResponse("Event not found", 404);
+    // requireEventOwner throws NotFoundError if the event is missing, so we
+    // don't need an explicit 404 fallthrough. The returned row's organizationId
+    // feeds the org rate-limit key — saves a redundant findUnique per request.
+    const event = await requireEventOwner(eventId, user.id);
 
     const body = await request.json().catch(() => ({}));
     const parsed = bodySchema.safeParse(body);
@@ -57,6 +53,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
     const { query, country } = parsed.data;
 
+    // For events with no organization (solo organizers), the org limiter
+    // falls back to eventId — effectively per-event instead of per-org.
+    // Functionally correct; the prefix name overstates the grouping.
     const [userAllowed, orgAllowed] = await Promise.all([
       checkUpstashLimit(userLimiter, user.id),
       checkUpstashLimit(orgLimiter, event.organizationId ?? eventId),
@@ -100,10 +99,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const results = await geocoder.geocode(query, { biasCountry: country, limit: RESULT_LIMIT });
 
-    // Cache even empty results so a typo'd address doesn't burn quota on
-    // every retry. TTL is 30d so a corrected address still works fine.
-    await writeCache({ key: cacheKey, provider: geocoder.provider, result: results });
     if (geocoder.provider !== "none") {
+      // Cache even empty results so a typo'd address doesn't burn quota on
+      // every retry. TTL is 30d so a corrected address still works fine.
+      // Skip cache + usage write when the provider is Noop — those rows are
+      // never re-served (different cache key once a real provider is configured)
+      // and would waste Prisma upserts on every Find-Location click in dev.
+      await writeCache({ key: cacheKey, provider: geocoder.provider, result: results });
       await incrementTodayUsage();
     }
 

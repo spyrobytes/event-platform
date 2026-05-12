@@ -4,20 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { GeocodeResult } from "@/lib/maps/geocode";
 
-export type LocationCandidate = {
-  formattedAddress: string;
-  latitude: number;
-  longitude: number;
-  placeId?: string;
-  provider: string;
-  timezone?: string;
-  addressLine1?: string;
-  city?: string;
-  region?: string;
-  postalCode?: string;
-  country?: string;
-};
+// Aliased so the public prop name stays product-facing ("candidate") even
+// though the underlying shape is the server-side GeocodeResult.
+export type LocationCandidate = GeocodeResult;
 
 type LocationPickerProps = {
   eventId: string;

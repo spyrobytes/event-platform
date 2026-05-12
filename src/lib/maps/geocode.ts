@@ -93,21 +93,18 @@ class LocationIQGeocoder implements Geocoder {
       params.set("countrycodes", options.biasCountry.toLowerCase());
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), LOCATIONIQ_TIMEOUT_MS);
     let response: Response;
     try {
       response = await fetch(`https://us1.locationiq.com/v1/search.php?${params.toString()}`, {
         headers: { Accept: "application/json" },
-        signal: controller.signal,
+        signal: AbortSignal.timeout(LOCATIONIQ_TIMEOUT_MS),
       });
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
+      // AbortSignal.timeout throws TimeoutError (DOMException), not AbortError.
+      if (err instanceof DOMException && err.name === "TimeoutError") {
         throw new Error(`LocationIQ timed out after ${LOCATIONIQ_TIMEOUT_MS}ms`);
       }
       throw err;
-    } finally {
-      clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
