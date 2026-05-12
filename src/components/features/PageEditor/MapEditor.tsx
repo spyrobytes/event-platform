@@ -75,13 +75,19 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
     };
   }, []);
 
+  // Slider uses sub-integer steps so the thumb glides smoothly even though
+  // the schema stores zoom as an integer. We let zoomDraft hold the float for
+  // thumb position, round to integer on debounced commit, then snap the draft
+  // to the rounded value so the thumb visually aligns with what was saved.
   const handleZoomChange = (value: number) => {
     if (!Number.isFinite(value)) return;
     setZoomDraft(value);
     if (zoomCommitTimer.current) clearTimeout(zoomCommitTimer.current);
     zoomCommitTimer.current = setTimeout(() => {
-      setPrevDataZoom(value);
-      updateField("zoom", value);
+      const rounded = Math.round(value);
+      setZoomDraft(rounded);
+      setPrevDataZoom(rounded);
+      updateField("zoom", rounded);
     }, 200);
   };
 
@@ -209,11 +215,13 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
               id="map-zoom"
               min={10}
               max={18}
+              step={0.5}
               value={zoomDraft}
-              onChange={(e) => handleZoomChange(parseInt(e.target.value))}
+              onChange={(e) => handleZoomChange(Number(e.target.value))}
+              className="flex-1"
             />
             <span className="w-8 text-center text-sm text-muted-foreground">
-              {zoomDraft}
+              {Math.round(zoomDraft)}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
