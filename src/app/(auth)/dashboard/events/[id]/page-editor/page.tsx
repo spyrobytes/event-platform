@@ -88,13 +88,38 @@ type PageConfigResponse = {
     height: number | null;
     alt: string;
   }>;
-  event?: {
-    venueName: string | null;
-    address: string | null;
-    city: string | null;
-    country: string | null;
-  };
+  event?: EventPrefill;
 };
+
+type EventPrefill = {
+  venueName: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+};
+
+// Builds the default map section, prefilling venueName + formattedAddress
+// from the Event row on first add (D2: one-way, on first add). After
+// creation the section is independent; publish does not write back to Event.
+// TODO(phase-3): naive comma-join is fine for NA addresses; LocationIQ will
+// return provider-formatted addresses with proper i18n.
+function buildDefaultMapSection(event: EventPrefill | null): Section {
+  const parts = [event?.address, event?.city, event?.country].filter(
+    (p): p is string => Boolean(p?.trim())
+  );
+  return {
+    type: "map",
+    enabled: true,
+    visibility: "public",
+    data: {
+      heading: "Location",
+      venueName: event?.venueName ?? undefined,
+      formattedAddress: parts.length > 0 ? parts.join(", ") : undefined,
+      zoom: 15,
+      showDirectionsLink: true,
+    },
+  };
+}
 
 export default function PageEditorPage() {
   const params = useParams<{ id: string }>();
@@ -271,15 +296,6 @@ export default function PageEditorPage() {
     setHasChanges(true);
   }, []);
 
-  // Hoisted to keep `addSection`'s deps as stable primitives. Pulling
-  // `pageData?.event` directly into the closure would force the dep to be the
-  // object reference (refetch allocates a new object even when content is
-  // identical), churning the callback identity for no reason.
-  const eventVenueName = pageData?.event?.venueName ?? null;
-  const eventAddress = pageData?.event?.address ?? null;
-  const eventCity = pageData?.event?.city ?? null;
-  const eventCountry = pageData?.event?.country ?? null;
-
   const addSection = useCallback(
     (type: Section["type"]) => {
       setConfig((prev) => {
@@ -357,32 +373,9 @@ export default function PageEditorPage() {
               },
             };
             break;
-          case "map": {
-            // Prefill venueName + formattedAddress from the Event row (D2:
-            // one-way, on first add). Section data is independent after
-            // creation; publish does not write back to Event.
-            // TODO(phase-3): naive comma-join is fine for NA addresses;
-            // Phase 3 will replace this with provider-formatted addresses
-            // returned by LocationIQ.
-            const eventAddressParts = [eventAddress, eventCity, eventCountry]
-              .filter((part): part is string => Boolean(part?.trim()));
-            const prefillAddress = eventAddressParts.length > 0
-              ? eventAddressParts.join(", ")
-              : undefined;
-            newSection = {
-              type: "map",
-              enabled: true,
-              visibility: "public",
-              data: {
-                heading: "Location",
-                venueName: eventVenueName ?? undefined,
-                formattedAddress: prefillAddress,
-                zoom: 15,
-                showDirectionsLink: true,
-              },
-            };
+          case "map":
+            newSection = buildDefaultMapSection(pageData?.event ?? null);
             break;
-          }
           // Wedding-specific sections
           case "story":
             newSection = {
@@ -471,7 +464,9 @@ export default function PageEditorPage() {
       });
       setHasChanges(true);
     },
-    [eventVenueName, eventAddress, eventCity, eventCountry]
+    // `pageData?.event` is the object ref — it churns on refetch, but addSection
+    // is only invoked from onClick handlers, so the identity change is harmless.
+    [pageData?.event]
   );
 
   const removeSection = useCallback((index: number) => {

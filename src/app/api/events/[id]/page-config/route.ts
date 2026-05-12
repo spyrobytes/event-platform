@@ -10,6 +10,7 @@ import {
 } from "@/lib/api-response";
 import {
   validateAndMigrate,
+  safeValidateAndMigrate,
   createMinimalConfig,
 } from "@/lib/config-migrations";
 import { revalidateEventPage } from "@/lib/revalidation";
@@ -277,19 +278,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return errorResponse("Event not found", 404);
       }
 
-      // Get or create config
+      // Get or create config. Run through safeValidateAndMigrate so legacy
+      // map sections get their formattedAddress backfilled before the publish
+      // gate runs — keeps parity with /api/events/[id]/publish.
       let config: EventPageConfigV1;
       if (fullEvent.pageConfig) {
-        const parseResult = eventPageConfigV1Schema.safeParse(fullEvent.pageConfig);
-        if (!parseResult.success) {
-          return errorResponse(
-            "Cannot publish: page config is invalid",
-            400
-          );
+        const result = safeValidateAndMigrate(fullEvent.pageConfig);
+        if (!result.success) {
+          return errorResponse(`Cannot publish: page config is invalid (${result.error})`, 400);
         }
-        config = parseResult.data;
+        config = result.data;
       } else {
-        // Create default config for publishing
         config = createMinimalConfig(fullEvent.title);
       }
 

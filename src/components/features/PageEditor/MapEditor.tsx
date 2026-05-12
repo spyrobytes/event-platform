@@ -32,14 +32,12 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
 
   const initialAddress = getDisplayAddress(data) ?? "";
 
-  // Raw input strings for lat/lng so mid-keystroke values like "-" survive
-  // the controlled-input round-trip. Empty input commits `undefined` to data;
-  // invalid input is held in raw state and not committed.
+  // Raw input strings let mid-keystroke values like "-" survive the
+  // controlled-input round-trip; invalid input never commits to data.
   const [latRaw, setLatRaw] = useState(() => data.latitude?.toString() ?? "");
   const [lngRaw, setLngRaw] = useState(() => data.longitude?.toString() ?? "");
 
-  // Slider drives a local float draft for snappy thumb + label movement.
-  // Debounced commit rounds to integer and writes to data.zoom.
+  // Float draft so the thumb glides; debounced commit rounds to integer.
   const [zoomDraft, setZoomDraft] = useState(data.zoom);
   const zoomCommitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

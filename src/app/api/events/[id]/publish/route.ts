@@ -6,9 +6,8 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { publishEventSchema } from "@/schemas/event";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { revalidateEventPage } from "@/lib/revalidation";
-import { validateAndMigrate } from "@/lib/config-migrations";
+import { safeValidateAndMigrate } from "@/lib/config-migrations";
 import { validateMapSectionsInConfig } from "@/lib/maps/map-utils";
-import { eventPageConfigV1Schema } from "@/schemas/event-page";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -65,19 +64,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Reject publish if the saved config is structurally invalid, or if any
     // enabled map section is missing address or coords. Drafts may have
     // incomplete map data (schema allows it); publish must not.
-    //
-    // Mirrors the safeParse pattern used by `/api/events/[id]/page-config`
-    // action=publish so error specificity is consistent between the two
-    // publish surfaces.
     if (currentEvent.pageConfig) {
-      const migrated = validateAndMigrate(currentEvent.pageConfig);
-      const parseResult = eventPageConfigV1Schema.safeParse(migrated);
-      if (!parseResult.success) {
-        throw new ValidationError(
-          `Cannot publish: page config is invalid (${parseResult.error.issues[0]?.message ?? "schema parse error"}).`
-        );
+      const result = safeValidateAndMigrate(currentEvent.pageConfig);
+      if (!result.success) {
+        throw new ValidationError(`Cannot publish: page config is invalid (${result.error}).`);
       }
-      const mapResult = validateMapSectionsInConfig(parseResult.data);
+      const mapResult = validateMapSectionsInConfig(result.data);
       if (!mapResult.ok) {
         throw new ValidationError(mapResult.reason);
       }

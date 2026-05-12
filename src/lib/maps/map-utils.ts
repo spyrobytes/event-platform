@@ -10,6 +10,12 @@ export type LocationForMap = {
   // Legacy alias from Phase 1 schema; Phase 2 adds formattedAddress.
   address?: string;
   formattedAddress?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  region?: string;
+  postalCode?: string;
+  country?: string;
   latitude?: number;
   longitude?: number;
   zoom?: number;
@@ -132,13 +138,7 @@ export type MapPublishValidation =
 // publish time so live pages don't render with missing or Null Island data.
 export function validateMapSectionForPublish(section: {
   enabled: boolean;
-  data: LocationForMap & {
-    addressLine1?: string;
-    city?: string;
-    region?: string;
-    postalCode?: string;
-    country?: string;
-  };
+  data: LocationForMap;
 }): MapPublishValidation {
   if (!section.enabled) return { ok: true };
 
