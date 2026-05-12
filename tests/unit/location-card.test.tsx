@@ -46,12 +46,28 @@ describe("LazyMap", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders a placeholder (not the iframe) before the observer fires", () => {
+  it("renders the static-map image (not the iframe) before the observer fires", () => {
     const { container } = render(
       <LazyMap data={{ latitude: 0, longitude: 0 }} />
     );
     expect(container.querySelector("iframe")).toBeNull();
-    expect(container.querySelector("[aria-hidden='true']")).not.toBeNull();
+    const img = container.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toMatch(/^\/api\/maps\/static\?/);
+    expect(img!.getAttribute("loading")).toBe("lazy");
+  });
+
+  it("keeps the static image rendered after the iframe mounts (print fallback)", () => {
+    const { container } = render(
+      <LazyMap data={{ latitude: 43.65, longitude: -79.38 }} />
+    );
+    act(() => {
+      observerInstances.forEach((o) => o.trigger(true));
+    });
+    expect(container.querySelector("img")).not.toBeNull();
+    const iframe = container.querySelector("iframe") as HTMLIFrameElement | null;
+    expect(iframe).not.toBeNull();
+    expect(iframe!.className).toContain("print:hidden");
   });
 
   it("mounts the iframe once the observer reports intersection", () => {
