@@ -14,6 +14,7 @@ import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
 import { EventJsonLd } from "@/components/seo/EventJsonLd";
 import { getEnabledMapSection } from "@/lib/maps/map-utils";
+import { getAbsoluteStaticMapImageUrl } from "@/lib/maps/static-map";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -62,6 +63,30 @@ export async function generateMetadata({
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
 
+  // OG image priority: organizer-chosen hero asset (richer, often a
+  // photograph) → static map of the venue when a map section is enabled
+  // and has coords. Social-share crawlers cache the resolved URL, so each
+  // unique event hits the static-map proxy ~once across all viewers.
+  const mapSection = config ? getEnabledMapSection(config) : undefined;
+  const mapOgImage = mapSection
+    ? getAbsoluteStaticMapImageUrl(mapSection, baseUrl, { width: 1200, height: 630 })
+    : null;
+  const ogImage = heroAsset?.publicUrl
+    ? {
+        url: heroAsset.publicUrl,
+        width: heroAsset.width ?? 1200,
+        height: heroAsset.height ?? 630,
+        alt: heroAsset.alt || event.title,
+      }
+    : mapOgImage
+      ? {
+          url: mapOgImage,
+          width: 1200,
+          height: 630,
+          alt: `Map of ${event.venueName || event.title}`,
+        }
+      : null;
+
   return {
     title: event.title,
     description: event.description || `Join us for ${event.title}`,
@@ -74,19 +99,10 @@ export async function generateMetadata({
       type: "website",
       // Always use clean URL for social sharing — never include ?tk=
       url: `${baseUrl}/e/${slug}`,
-      ...(heroAsset?.publicUrl && {
-        images: [
-          {
-            url: heroAsset.publicUrl,
-            width: heroAsset.width || 1200,
-            height: heroAsset.height || 630,
-            alt: heroAsset.alt || event.title,
-          },
-        ],
-      }),
+      ...(ogImage && { images: [ogImage] }),
     },
     twitter: {
-      card: heroAsset ? "summary_large_image" : "summary",
+      card: ogImage ? "summary_large_image" : "summary",
       title: event.title,
       description: event.description || `Join us for ${event.title}`,
     },
