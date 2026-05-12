@@ -2,10 +2,15 @@
 
 import { SectionWrapper, SectionTitle } from "../../shared";
 import {
+  CopyAddressButton,
+  LazyMap,
+  LocationNotes,
+} from "../../shared/LocationCard";
+import {
+  getAppleMapsUrl,
   getDisplayAddress,
-  getOsmEmbedPreviewUrl,
   getGoogleDirectionsUrl,
-  MAP_IFRAME_REFERRER_POLICY,
+  hasValidCoordinates,
 } from "@/lib/maps/map-utils";
 import type { MapSection } from "@/schemas/event-page";
 
@@ -21,9 +26,9 @@ type MapSectionProps = {
 export function MapSection({ data, primaryColor }: MapSectionProps) {
   const { heading = "Venue", venueName, showDirectionsLink } = data;
   const address = getDisplayAddress(data);
-
-  const mapUrl = getOsmEmbedPreviewUrl(data);
   const directionsUrl = getGoogleDirectionsUrl(data);
+  const appleUrl = getAppleMapsUrl(data);
+  const hasCoords = hasValidCoordinates(data);
 
   return (
     <SectionWrapper ariaLabel="Event location" className="bg-muted/30">
@@ -75,47 +80,43 @@ export function MapSection({ data, primaryColor }: MapSectionProps) {
               </div>
             </div>
 
-            {showDirectionsLink && directionsUrl && (
-              <a
-                href={directionsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-medium transition-colors hover:bg-muted"
-                style={{ borderColor: primaryColor, color: primaryColor }}
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+            <LocationNotes data={data} className="mt-6" />
+
+            <div className="mt-6 space-y-2">
+              {showDirectionsLink && directionsUrl && (
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-medium transition-colors hover:bg-muted"
+                  style={{ borderColor: primaryColor, color: primaryColor }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-                  />
-                </svg>
-                Get Directions
-              </a>
-            )}
+                  Get Directions
+                </a>
+              )}
+              {appleUrl && (
+                <a
+                  href={appleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-medium transition-colors hover:bg-muted text-muted-foreground"
+                >
+                  Apple Maps
+                </a>
+              )}
+              {address && (
+                <CopyAddressButton
+                  address={address}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                />
+              )}
+            </div>
           </div>
 
           {/* Map */}
-          {mapUrl && (
+          {hasCoords && (
             <div className="overflow-hidden rounded-xl border bg-card shadow-sm lg:col-span-2">
-              <div className="aspect-[4/3] w-full lg:aspect-[16/9]">
-                <iframe
-                  src={mapUrl}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy={MAP_IFRAME_REFERRER_POLICY}
-                  title="Event location map"
-                />
-              </div>
+              <LazyMap data={data} className="aspect-[4/3] w-full lg:aspect-[16/9]" />
             </div>
           )}
         </div>
