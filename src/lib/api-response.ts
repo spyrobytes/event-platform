@@ -18,19 +18,28 @@ export function successResponse<T>(data: T, status: number = 200) {
   return NextResponse.json({ data }, { status });
 }
 
+type ErrorResponseOptions = {
+  /** Optional headers to merge into the response (e.g., Cache-Control). */
+  headers?: HeadersInit;
+};
+
 /**
- * Creates an error JSON response
+ * Creates an error JSON response. `options.headers` lets specific routes
+ * attach response headers — e.g., short Cache-Control on errors from the
+ * static-map proxy so scraper retries hit Vercel's edge cache instead of
+ * the function on every request.
  */
 export function errorResponse(
   error: string,
   status: number = 500,
   code?: string,
-  details?: unknown
+  details?: unknown,
+  options: ErrorResponseOptions = {}
 ): NextResponse<APIError> {
   const body: APIError = { error };
   if (code) body.code = code;
   if (details) body.details = details;
-  return NextResponse.json(body, { status });
+  return NextResponse.json(body, { status, headers: options.headers });
 }
 
 /**

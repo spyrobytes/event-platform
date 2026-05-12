@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/env";
+import { errorResponse } from "@/lib/api-response";
 import {
   checkUpstashLimit,
   getClientIp,
@@ -59,18 +60,17 @@ const SUCCESS_CACHE_HEADER = `public, max-age=${CACHE_TTL_SECONDS}, s-maxage=${C
 // instead of our function during transient misconfiguration or quota
 // exhaustion. 5 minutes balances "absorbs the spike" with "recovers
 // promptly once the upstream condition clears".
-const ERROR_CACHE_HEADER = "public, max-age=300, s-maxage=300";
+const ERROR_CACHE_HEADERS = { "Cache-Control": "public, max-age=300, s-maxage=300" };
 
 // LocationIQ static-map renders can take longer than geocoding lookups
 // (tile composition + PNG encoding). 8s gives generous headroom while
 // still respecting Vercel's function timeout.
 const LOCATIONIQ_STATIC_TIMEOUT_MS = 8_000;
 
-function errorJson(message: string, status: number): NextResponse {
-  return NextResponse.json(
-    { error: message },
-    { status, headers: { "Cache-Control": ERROR_CACHE_HEADER } }
-  );
+function staticMapError(message: string, status: number): NextResponse {
+  return errorResponse(message, status, undefined, undefined, {
+    headers: ERROR_CACHE_HEADERS,
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -79,11 +79,21 @@ export async function GET(request: NextRequest) {
     Object.fromEntries(request.nextUrl.searchParams)
   );
   if (!parsed.success) {
-    return errorJson(parsed.error.issues[0]?.message ?? "Invalid params", 400);
+    return staticMapError(
+      parsed.error.issues[0]?.message ?? "Invalid params",
+      400
+    );
   }
   const { lat, lng, w, h, z } = parsed.data;
 
-  // 2. Rate limit by IP. No-op without Upstash (dev) per the project pattern.
+  // 2. Config check is synchronous (env read) — cheap. Run BEFORE the
+  // rate-limit step so a misconfigured route doesn't burn Upstash RTTs
+  // or consume legitimate users' rate-limit slots only to return 503.
+  if (env.GEOCODER_PROVIDER !== "locationiq" || !env.LOCATIONIQ_API_KEY) {
+    return staticMapError("Static maps not configured", 503);
+  }
+
+  // 3. Rate limit by IP. No-op without Upstash (dev) per the project pattern.
   const ip = getClientIp(request);
   const [perIpOk, perIpHourlyOk] = await Promise.all([
     checkUpstashLimit(ipLimiter, ipKey(ip)),
@@ -91,13 +101,7 @@ export async function GET(request: NextRequest) {
   ]);
   if (!perIpOk || !perIpHourlyOk) {
     console.warn("[static-map] rate limited", { hashedIp: hashedIpKey(ip) });
-    return errorJson("Too many requests. Try again in a minute.", 429);
-  }
-
-  // 3. If no provider key is configured, return 503. Clients fall back to
-  // their existing placeholder (gray div / no OG image).
-  if (env.GEOCODER_PROVIDER !== "locationiq" || !env.LOCATIONIQ_API_KEY) {
-    return errorJson("Static maps not configured", 503);
+    return staticMapError("Too many requests. Try again in a minute.", 429);
   }
 
   // 4. Shared LocationIQ daily quota — refuse past the floor.
@@ -106,7 +110,7 @@ export async function GET(request: NextRequest) {
     console.warn("[static-map] daily budget exhausted", {
       todayCount: budget.todayCount,
     });
-    return errorJson("Daily quota reached", 503);
+    return staticMapError("Daily quota reached", 503);
   }
 
   // 5. Build the LocationIQ Static Maps URL server-side so the key stays out
@@ -131,15 +135,15 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "TimeoutError") {
-      return errorJson("Static map provider timed out", 504);
+      return staticMapError("Static map provider timed out", 504);
     }
     console.error("[static-map] upstream fetch failed", err);
-    return errorJson("Static map provider unavailable", 502);
+    return staticMapError("Static map provider unavailable", 502);
   }
 
   if (!upstream.ok) {
     console.warn("[static-map] upstream non-OK", { status: upstream.status });
-    return errorJson("Static map provider error", 502);
+    return staticMapError("Static map provider error", 502);
   }
 
   // 6. Count toward the daily quota only on successful upstream hits.

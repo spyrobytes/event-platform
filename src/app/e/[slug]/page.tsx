@@ -74,8 +74,8 @@ export async function generateMetadata({
   const ogImage = heroAsset?.publicUrl
     ? {
         url: heroAsset.publicUrl,
-        width: heroAsset.width || 1200,
-        height: heroAsset.height || 630,
+        width: heroAsset.width ?? 1200,
+        height: heroAsset.height ?? 630,
         alt: heroAsset.alt || event.title,
       }
     : mapOgImage

@@ -39,7 +39,7 @@ export function LazyMap({ data, className }: LazyMapProps) {
   });
   const mapUrl = getOsmEmbedPreviewUrl(data);
   const staticUrl = getStaticMapImageUrl(data, { width: 1200, height: 800 });
-  if (!mapUrl) return null;
+  if (!mapUrl || !staticUrl) return null;
 
   const altText = `Map of ${getDisplayAddress(data) ?? "the event venue"}`;
 
@@ -49,20 +49,13 @@ export function LazyMap({ data, className }: LazyMapProps) {
       className={cn("relative overflow-hidden", className)}
       role="presentation"
     >
-      {staticUrl ? (
-        <img
-          src={staticUrl}
-          alt={altText}
-          className="absolute inset-0 h-full w-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <div
-          className="absolute inset-0 bg-muted/30"
-          aria-hidden="true"
-        />
-      )}
+      <img
+        src={staticUrl}
+        alt={altText}
+        className="absolute inset-0 h-full w-full object-cover"
+        loading="lazy"
+        decoding="async"
+      />
       {hasBeenVisible && (
         <iframe
           src={mapUrl}
