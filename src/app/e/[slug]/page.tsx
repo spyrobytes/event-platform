@@ -14,7 +14,7 @@ import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
 import { EventJsonLd } from "@/components/seo/EventJsonLd";
 import { getEnabledMapSection } from "@/lib/maps/map-utils";
-import type { EventPageConfigV1, MapSection } from "@/schemas/event-page";
+import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 /**
@@ -242,7 +242,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
       {includeJsonLd && (
         <EventJsonLd
           event={event}
-          mapSection={getEnabledMapSection(filteredConfig) as MapSection["data"] | undefined}
+          mapSection={getEnabledMapSection(filteredConfig)}
         />
       )}
       <PageViewTracker eventId={event.id} source="event_page" />

@@ -163,17 +163,23 @@ export function validateMapSectionForPublish(section: {
 // undefined when no enabled map section exists. Used by SEO surfaces (e.g.
 // EventJsonLd) that want the structured address + geo when the section
 // contributes to the public page, and want to omit those fields otherwise.
-type ConfigForLookup = {
-  sections: ReadonlyArray<{ type: string; enabled?: boolean; data?: unknown }>;
-};
-export function getEnabledMapSection(
-  config: ConfigForLookup
-): Record<string, unknown> | undefined {
+//
+// The input type is intentionally loose (matches the shape from any
+// well-formed page config) so test fixtures don't need to construct full
+// section unions. The single cast on return is the type-narrowing seam:
+// the runtime guard above (`type === "map"`) guarantees the data shape.
+import type { MapSection } from "@/schemas/event-page";
+
+type SectionForMapLookup = { type: string; enabled?: boolean; data?: unknown };
+
+export function getEnabledMapSection(config: {
+  sections: ReadonlyArray<SectionForMapLookup>;
+}): MapSection["data"] | undefined {
   for (const section of config.sections) {
     if (section.type !== "map") continue;
     if (section.enabled === false) continue;
     if (!section.data || typeof section.data !== "object") continue;
-    return section.data as Record<string, unknown>;
+    return section.data as MapSection["data"];
   }
   return undefined;
 }

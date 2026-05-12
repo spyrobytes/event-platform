@@ -34,9 +34,8 @@ export function MapV2({ data }: MapV2Props) {
   // Structured-only sections (city/region/country without formattedAddress
   // or coords) still have something to render — show the card frame.
   const hasAnyLocationData =
-    Boolean(address) ||
-    hasValidCoordinates(data) ||
-    Boolean(data.city || data.region || data.country);
+    Boolean(address || data.city || data.region || data.country) ||
+    hasValidCoordinates(data);
   const directionsUrl = getGoogleDirectionsUrl(data);
   const appleUrl = getAppleMapsUrl(data);
 
@@ -81,7 +80,7 @@ export function MapV2({ data }: MapV2Props) {
             boxShadow: "var(--shadow)",
             overflow: "hidden",
           }}>
-            <LazyMap data={data} style={{ height: 400 }} />
+            <LazyMap data={data} className="h-[400px] w-full" />
 
             {/* Venue info */}
             <div style={{

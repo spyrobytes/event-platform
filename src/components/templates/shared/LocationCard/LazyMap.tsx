@@ -10,10 +10,8 @@ import {
 
 type LazyMapProps = {
   data: LocationForMap;
-  /** Outer wrapper className — typically supplies the aspect ratio. */
+  /** Outer wrapper className — supplies the aspect ratio or fixed height. */
   className?: string;
-  /** Outer wrapper inline style — V2 templates use fixed-height layouts. */
-  style?: React.CSSProperties;
 };
 
 /**
@@ -26,7 +24,7 @@ type LazyMapProps = {
  * fallback hierarchy honest (address + actions still useful without a
  * map). Each template caller passes its own aspect-ratio className.
  */
-export function LazyMap({ data, className, style }: LazyMapProps) {
+export function LazyMap({ data, className }: LazyMapProps) {
   const { ref, hasBeenVisible } = useIntersectionObserver({
     rootMargin: "200px",
     triggerOnce: true,
@@ -38,7 +36,6 @@ export function LazyMap({ data, className, style }: LazyMapProps) {
     <div
       ref={ref}
       className={cn("relative overflow-hidden", className)}
-      style={style}
       role="presentation"
     >
       {hasBeenVisible ? (
