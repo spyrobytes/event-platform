@@ -305,40 +305,58 @@ describe("mapSectionDataSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("requires address", () => {
-    const invalid = {
+  // Phase 2: address and coords are optional at the schema layer. Publish-time
+  // validation lives in `validateMapSectionForPublish`, not the schema.
+  it("accepts a draft with no address or coords", () => {
+    const draft = {
       heading: "Location",
-      latitude: 40.7128,
-      longitude: -74.006,
       zoom: 15,
       showDirectionsLink: true,
     };
-    const result = mapSectionDataSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    expect(mapSectionDataSchema.safeParse(draft).success).toBe(true);
   });
 
-  it("requires latitude", () => {
-    const invalid = {
+  it("accepts a draft with only an address", () => {
+    const draft = {
       heading: "Location",
-      address: "123 Main Street",
-      longitude: -74.006,
+      formattedAddress: "100 King St W, Toronto",
       zoom: 15,
       showDirectionsLink: true,
     };
-    const result = mapSectionDataSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    expect(mapSectionDataSchema.safeParse(draft).success).toBe(true);
   });
 
-  it("requires longitude", () => {
-    const invalid = {
+  it("accepts the new structured address fields and notes", () => {
+    const draft = {
       heading: "Location",
-      address: "123 Main Street",
-      latitude: 40.7128,
+      formattedAddress: "100 King St W, Toronto, ON M5X 1A9",
+      addressLine1: "100 King St W",
+      city: "Toronto",
+      region: "ON",
+      postalCode: "M5X 1A9",
+      country: "Canada",
+      placeId: "abc123",
+      provider: "locationiq",
+      timezone: "America/Toronto",
+      parkingNote: "Underground parking via Wellington St.",
+      entranceNote: "Main lobby on King St.",
+      accessibilityNote: "Step-free access via the side ramp.",
+      latitude: 43.6481,
+      longitude: -79.3829,
       zoom: 15,
       showDirectionsLink: true,
     };
-    const result = mapSectionDataSchema.safeParse(invalid);
-    expect(result.success).toBe(false);
+    expect(mapSectionDataSchema.safeParse(draft).success).toBe(true);
+  });
+
+  it("rejects unknown provider value", () => {
+    const invalid = {
+      heading: "Location",
+      provider: "what-provider",
+      zoom: 15,
+      showDirectionsLink: true,
+    };
+    expect(mapSectionDataSchema.safeParse(invalid).success).toBe(false);
   });
 
   it("rejects latitude out of range", () => {

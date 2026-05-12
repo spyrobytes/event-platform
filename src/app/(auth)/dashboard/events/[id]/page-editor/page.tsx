@@ -88,7 +88,38 @@ type PageConfigResponse = {
     height: number | null;
     alt: string;
   }>;
+  event?: EventPrefill;
 };
+
+type EventPrefill = {
+  venueName: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+};
+
+// Builds the default map section, prefilling venueName + formattedAddress
+// from the Event row on first add (D2: one-way, on first add). After
+// creation the section is independent; publish does not write back to Event.
+// TODO(phase-3): naive comma-join is fine for NA addresses; LocationIQ will
+// return provider-formatted addresses with proper i18n.
+function buildDefaultMapSection(event: EventPrefill | null): Section {
+  const parts = [event?.address, event?.city, event?.country].filter(
+    (p): p is string => Boolean(p?.trim())
+  );
+  return {
+    type: "map",
+    enabled: true,
+    visibility: "public",
+    data: {
+      heading: "Location",
+      venueName: event?.venueName ?? undefined,
+      formattedAddress: parts.length > 0 ? parts.join(", ") : undefined,
+      zoom: 15,
+      showDirectionsLink: true,
+    },
+  };
+}
 
 export default function PageEditorPage() {
   const params = useParams<{ id: string }>();
@@ -343,19 +374,7 @@ export default function PageEditorPage() {
             };
             break;
           case "map":
-            newSection = {
-              type: "map",
-              enabled: true,
-              visibility: "public",
-              data: {
-                heading: "Location",
-                address: "",
-                latitude: 0,
-                longitude: 0,
-                zoom: 15,
-                showDirectionsLink: true,
-              },
-            };
+            newSection = buildDefaultMapSection(pageData?.event ?? null);
             break;
           // Wedding-specific sections
           case "story":
@@ -445,7 +464,9 @@ export default function PageEditorPage() {
       });
       setHasChanges(true);
     },
-    []
+    // `pageData?.event` is the object ref — it churns on refetch, but addSection
+    // is only invoked from onClick handlers, so the identity change is harmless.
+    [pageData?.event]
   );
 
   const removeSection = useCallback((index: number) => {

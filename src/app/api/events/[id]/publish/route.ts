@@ -6,6 +6,8 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { publishEventSchema } from "@/schemas/event";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { revalidateEventPage } from "@/lib/revalidation";
+import { safeValidateAndMigrate } from "@/lib/config-migrations";
+import { validateMapSectionsInConfig } from "@/lib/maps/map-utils";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         status: true,
         title: true,
         startAt: true,
+        pageConfig: true,
       },
     });
 
@@ -56,6 +59,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (currentEvent.startAt < new Date()) {
       throw new ValidationError("Cannot publish an event with a start date in the past");
+    }
+
+    // Reject publish if the saved config is structurally invalid, or if any
+    // enabled map section is missing address or coords. Drafts may have
+    // incomplete map data (schema allows it); publish must not.
+    if (currentEvent.pageConfig) {
+      const result = safeValidateAndMigrate(currentEvent.pageConfig);
+      if (!result.success) {
+        throw new ValidationError(`Cannot publish: page config is invalid (${result.error}).`);
+      }
+      const mapResult = validateMapSectionsInConfig(result.data);
+      if (!mapResult.ok) {
+        throw new ValidationError(mapResult.reason);
+      }
     }
 
     // Parse optional publish data

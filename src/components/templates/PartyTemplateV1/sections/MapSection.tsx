@@ -2,21 +2,15 @@
 
 import { SectionWrapper, SectionTitle } from "../../shared";
 import {
+  getDisplayAddress,
   getOsmEmbedPreviewUrl,
   getGoogleDirectionsUrl,
   MAP_IFRAME_REFERRER_POLICY,
 } from "@/lib/maps/map-utils";
+import type { MapSection } from "@/schemas/event-page";
 
 type MapSectionProps = {
-  data: {
-    heading: string;
-    venueName?: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-    zoom: number;
-    showDirectionsLink: boolean;
-  };
+  data: MapSection["data"];
   primaryColor: string;
 };
 
@@ -25,7 +19,8 @@ type MapSectionProps = {
  * Fun, vibrant styling with playful elements
  */
 export function MapSection({ data, primaryColor }: MapSectionProps) {
-  const { heading = "Find the Party!", venueName, address, showDirectionsLink } = data;
+  const { heading = "Find the Party!", venueName, showDirectionsLink } = data;
+  const address = getDisplayAddress(data);
 
   const mapUrl = getOsmEmbedPreviewUrl(data);
   const directionsUrl = getGoogleDirectionsUrl(data);
@@ -74,7 +69,7 @@ export function MapSection({ data, primaryColor }: MapSectionProps) {
               {venueName && (
                 <h3 className="text-2xl font-bold">{venueName}</h3>
               )}
-              <p className="mt-2 text-lg text-muted-foreground">{address}</p>
+              {address && <p className="mt-2 text-lg text-muted-foreground">{address}</p>}
 
               {showDirectionsLink && directionsUrl && (
                 <a

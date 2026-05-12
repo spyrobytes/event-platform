@@ -18,6 +18,45 @@ export const CURRENT_SCHEMA_VERSION = 1;
 type UnknownConfig = Record<string, unknown>;
 
 /**
+ * Backfills `formattedAddress` on map sections from the legacy `address` field.
+ * Pre-Phase-2 configs stored the venue address as `data.address`; the canonical
+ * Phase 2+ field is `data.formattedAddress`. Both remain in the schema so saved
+ * configs continue to validate; this normalizer ensures any consumer that reads
+ * `formattedAddress` sees a value when only the legacy field was set.
+ * Idempotent — sections that already carry `formattedAddress` pass through.
+ */
+function normalizeMapSections(config: UnknownConfig): UnknownConfig {
+  const sections = config.sections;
+  if (!Array.isArray(sections)) return config;
+
+  let mutated = false;
+  const newSections = sections.map((section) => {
+    if (
+      !section ||
+      typeof section !== "object" ||
+      (section as { type?: unknown }).type !== "map"
+    ) {
+      return section;
+    }
+    const data = (section as { data?: { address?: unknown; formattedAddress?: unknown } }).data;
+    if (!data) return section;
+
+    const hasFormatted = typeof data.formattedAddress === "string" && data.formattedAddress.length > 0;
+    const hasLegacy = typeof data.address === "string" && data.address.length > 0;
+    if (hasFormatted || !hasLegacy) return section;
+
+    mutated = true;
+    return {
+      ...(section as object),
+      data: { ...data, formattedAddress: data.address },
+    };
+  });
+
+  if (!mutated) return config;
+  return { ...config, sections: newSections };
+}
+
+/**
  * Backfills stable ids on registry items that lack one. Registry items were
  * originally indexed by array position; Phase 2 guest claims need an id that
  * survives reorders/edits. Assignment is idempotent — items with an existing
@@ -68,8 +107,10 @@ export function migratePageConfig(config: UnknownConfig): EventPageConfigV1 {
   switch (version) {
     case 1: {
       // Already at latest version. Run idempotent structural backfills that
-      // don't warrant a version bump (e.g. stable ids on JSON array items).
-      const backfilled = backfillRegistryItemIds(config);
+      // don't warrant a version bump (e.g. stable ids on JSON array items,
+      // map section formattedAddress migration).
+      let backfilled = backfillRegistryItemIds(config);
+      backfilled = normalizeMapSections(backfilled);
       return backfilled as unknown as EventPageConfigV1;
     }
 

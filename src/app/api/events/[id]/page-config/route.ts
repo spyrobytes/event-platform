@@ -10,6 +10,7 @@ import {
 } from "@/lib/api-response";
 import {
   validateAndMigrate,
+  safeValidateAndMigrate,
   createMinimalConfig,
 } from "@/lib/config-migrations";
 import { revalidateEventPage } from "@/lib/revalidation";
@@ -19,6 +20,7 @@ import {
   validateRegistrySaveAgainstClaims,
   formatViolations,
 } from "@/lib/registry-save-guards";
+import { validateMapSectionsInConfig } from "@/lib/maps/map-utils";
 
 /** Keep only the most recent N versions per event, delete the rest. */
 const MAX_VERSIONS_PER_EVENT = 10;
@@ -71,7 +73,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         title: true,
         startAt: true,
         venueName: true,
+        address: true,
         city: true,
+        country: true,
         pageConfig: true,
         templateId: true,
         publishedAt: true,
@@ -120,6 +124,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       isPublished: !!fullEvent.publishedAt,
       publishedAt: fullEvent.publishedAt,
       assets: fullEvent.mediaAssets,
+      // Surfaced so the page editor can prefill new map sections from the
+      // Event row (Phase 2 D2 — prefill-only, one-way, on first add).
+      event: {
+        venueName: fullEvent.venueName,
+        address: fullEvent.address,
+        city: fullEvent.city,
+        country: fullEvent.country,
+      },
     });
   } catch (error) {
     return handleApiError(error);
@@ -266,20 +278,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return errorResponse("Event not found", 404);
       }
 
-      // Get or create config
+      // Get or create config. Run through safeValidateAndMigrate so legacy
+      // map sections get their formattedAddress backfilled before the publish
+      // gate runs — keeps parity with /api/events/[id]/publish.
       let config: EventPageConfigV1;
       if (fullEvent.pageConfig) {
-        const parseResult = eventPageConfigV1Schema.safeParse(fullEvent.pageConfig);
-        if (!parseResult.success) {
-          return errorResponse(
-            "Cannot publish: page config is invalid",
-            400
-          );
+        const result = safeValidateAndMigrate(fullEvent.pageConfig);
+        if (!result.success) {
+          return errorResponse(`Cannot publish: page config is invalid (${result.error})`, 400);
         }
-        config = parseResult.data;
+        config = result.data;
       } else {
-        // Create default config for publishing
         config = createMinimalConfig(fullEvent.title);
+      }
+
+      // Publish-time semantic checks beyond Zod (e.g. enabled map sections
+      // must carry address + coords). Drafts can save without these.
+      const mapResult = validateMapSectionsInConfig(config);
+      if (!mapResult.ok) {
+        return errorResponse(mapResult.reason, 400);
       }
 
       await db.event.update({
