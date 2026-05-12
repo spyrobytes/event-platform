@@ -152,7 +152,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
             maxLength={300}
           />
           <p className="text-xs text-muted-foreground">
-            Required to publish. Phase 3 will resolve coordinates automatically.
+            Required to publish. You can leave coordinates blank for now and add them later.
           </p>
         </div>
       </div>
@@ -206,8 +206,7 @@ export function MapEditor({ data, onChange }: MapEditorProps) {
         </summary>
         <div className="mt-4 space-y-4">
           <p className="text-xs text-muted-foreground">
-            Phase 3 will resolve coordinates from the address automatically. For now,
-            find them by searching your address on{" "}
+            Find coordinates by searching your address on{" "}
             <a
               href="https://www.google.com/maps"
               target="_blank"

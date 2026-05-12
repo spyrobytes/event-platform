@@ -164,15 +164,30 @@ export function validateMapSectionForPublish(section: {
 // at the offending card. The publish path uses this; the save path doesn't
 // (drafts are allowed to be incomplete).
 type SectionForCheck = { type: string; enabled?: boolean; data?: unknown };
+
+// Runtime narrowing: confirms a section has the shape `validateMapSectionForPublish`
+// requires (an `enabled` boolean and a non-null `data` object) before handing it
+// across the type boundary. Avoids the `as unknown as ...` cast and keeps the
+// type-safety story honest if either side's shape ever drifts.
+function isMapSectionForValidation(
+  section: SectionForCheck
+): section is { type: "map"; enabled: boolean; data: Record<string, unknown> } {
+  return (
+    section.type === "map" &&
+    typeof section.enabled === "boolean" &&
+    section.data !== null &&
+    typeof section.data === "object"
+  );
+}
+
 export function validateMapSectionsInConfig(config: {
   sections: ReadonlyArray<SectionForCheck>;
 }): MapPublishValidation {
   for (let i = 0; i < config.sections.length; i++) {
     const section = config.sections[i];
     if (section.type !== "map") continue;
-    const result = validateMapSectionForPublish(
-      section as unknown as Parameters<typeof validateMapSectionForPublish>[0]
-    );
+    if (!isMapSectionForValidation(section)) continue;
+    const result = validateMapSectionForPublish(section);
     if (!result.ok) return { ...result, sectionIndex: i };
   }
   return { ok: true };

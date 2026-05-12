@@ -271,6 +271,15 @@ export default function PageEditorPage() {
     setHasChanges(true);
   }, []);
 
+  // Hoisted to keep `addSection`'s deps as stable primitives. Pulling
+  // `pageData?.event` directly into the closure would force the dep to be the
+  // object reference (refetch allocates a new object even when content is
+  // identical), churning the callback identity for no reason.
+  const eventVenueName = pageData?.event?.venueName ?? null;
+  const eventAddress = pageData?.event?.address ?? null;
+  const eventCity = pageData?.event?.city ?? null;
+  const eventCountry = pageData?.event?.country ?? null;
+
   const addSection = useCallback(
     (type: Section["type"]) => {
       setConfig((prev) => {
@@ -352,12 +361,11 @@ export default function PageEditorPage() {
             // Prefill venueName + formattedAddress from the Event row (D2:
             // one-way, on first add). Section data is independent after
             // creation; publish does not write back to Event.
-            const eventInfo = pageData?.event;
-            const eventAddressParts = [
-              eventInfo?.address,
-              eventInfo?.city,
-              eventInfo?.country,
-            ].filter((part): part is string => Boolean(part?.trim()));
+            // TODO(phase-3): naive comma-join is fine for NA addresses;
+            // Phase 3 will replace this with provider-formatted addresses
+            // returned by LocationIQ.
+            const eventAddressParts = [eventAddress, eventCity, eventCountry]
+              .filter((part): part is string => Boolean(part?.trim()));
             const prefillAddress = eventAddressParts.length > 0
               ? eventAddressParts.join(", ")
               : undefined;
@@ -367,7 +375,7 @@ export default function PageEditorPage() {
               visibility: "public",
               data: {
                 heading: "Location",
-                venueName: eventInfo?.venueName ?? undefined,
+                venueName: eventVenueName ?? undefined,
                 formattedAddress: prefillAddress,
                 zoom: 15,
                 showDirectionsLink: true,
@@ -463,7 +471,7 @@ export default function PageEditorPage() {
       });
       setHasChanges(true);
     },
-    [pageData?.event]
+    [eventVenueName, eventAddress, eventCity, eventCountry]
   );
 
   const removeSection = useCallback((index: number) => {

@@ -8,6 +8,7 @@ import { NotFoundError, ValidationError } from "@/lib/errors";
 import { revalidateEventPage } from "@/lib/revalidation";
 import { validateAndMigrate } from "@/lib/config-migrations";
 import { validateMapSectionsInConfig } from "@/lib/maps/map-utils";
+import { eventPageConfigV1Schema } from "@/schemas/event-page";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -61,19 +62,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
       throw new ValidationError("Cannot publish an event with a start date in the past");
     }
 
-    // Reject publish if any enabled map section is missing address or coords.
-    // Drafts can save without these (schema allows it); publish must not.
+    // Reject publish if the saved config is structurally invalid, or if any
+    // enabled map section is missing address or coords. Drafts may have
+    // incomplete map data (schema allows it); publish must not.
+    //
+    // Mirrors the safeParse pattern used by `/api/events/[id]/page-config`
+    // action=publish so error specificity is consistent between the two
+    // publish surfaces.
     if (currentEvent.pageConfig) {
-      try {
-        const migrated = validateAndMigrate(currentEvent.pageConfig);
-        const mapResult = validateMapSectionsInConfig(migrated);
-        if (!mapResult.ok) {
-          throw new ValidationError(mapResult.reason);
-        }
-      } catch (err) {
-        if (err instanceof ValidationError) throw err;
-        // Config that won't migrate/validate at all is its own publish blocker.
-        throw new ValidationError("Page config is invalid — cannot publish.");
+      const migrated = validateAndMigrate(currentEvent.pageConfig);
+      const parseResult = eventPageConfigV1Schema.safeParse(migrated);
+      if (!parseResult.success) {
+        throw new ValidationError(
+          `Cannot publish: page config is invalid (${parseResult.error.issues[0]?.message ?? "schema parse error"}).`
+        );
+      }
+      const mapResult = validateMapSectionsInConfig(parseResult.data);
+      if (!mapResult.ok) {
+        throw new ValidationError(mapResult.reason);
       }
     }
 

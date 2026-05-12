@@ -57,6 +57,7 @@ export function MapSection({ data, primaryColor }: MapSectionProps) {
             {venueName && (
               <h3 className="text-xl font-semibold">{venueName}</h3>
             )}
+            {/* Phase 2: address is optional in the schema; gate the paragraph. */}
             {address && <p className="mt-2 text-muted-foreground">{address}</p>}
 
             {showDirectionsLink && directionsUrl && (
