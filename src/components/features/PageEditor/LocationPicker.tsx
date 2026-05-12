@@ -105,7 +105,7 @@ export function LocationPicker({
           placeholder="123 Main Street, City, Country"
           maxLength={300}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && status.kind !== "loading") {
               e.preventDefault();
               void handleFind();
             }

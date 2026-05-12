@@ -56,6 +56,12 @@ describe("buildCacheKey", () => {
     const b = buildCacheKey({ query: "x", provider: "locationiq", biasCountry: "us" });
     expect(a).not.toBe(b);
   });
+
+  it("varies the key when limit differs", () => {
+    const a = buildCacheKey({ query: "x", provider: "locationiq", limit: 3 });
+    const b = buildCacheKey({ query: "x", provider: "locationiq", limit: 5 });
+    expect(a).not.toBe(b);
+  });
 });
 
 describe("readCache / writeCache", () => {

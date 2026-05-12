@@ -50,17 +50,22 @@ function lruSet(key: string, result: GeocodeResult[]): void {
 
 // Cache key folds whitespace + case so semantically-identical queries hit
 // the same row. The provider is part of the key so swapping providers in
-// the future doesn't serve stale shape from a different schema.
+// the future doesn't serve stale shape from a different schema. `limit` is
+// included so a caller asking for limit=3 never receives a cached limit=5
+// payload (and vice versa) — today the route hardcodes 5, but the key
+// stays future-proof for callers that want narrower results.
 export function buildCacheKey(args: {
   query: string;
   provider: string;
   biasCountry?: string;
+  limit?: number;
 }): string {
   const normalized = args.query.trim().replace(/\s+/g, " ").toLowerCase();
   const payload = JSON.stringify({
     q: normalized,
     p: args.provider,
     c: args.biasCountry?.toLowerCase() ?? null,
+    l: args.limit ?? null,
   });
   return createHash("sha256").update(payload).digest("hex");
 }

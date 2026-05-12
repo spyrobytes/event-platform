@@ -69,6 +69,12 @@ type LocationIQResponse = Array<{
   };
 }>;
 
+// Cap LocationIQ calls so a hung upstream doesn't burn Vercel function
+// quota. 5 seconds is generous for a forward-geocode (P99 is usually
+// <800ms); long enough to absorb the occasional cold-path slowness without
+// triggering false aborts.
+const LOCATIONIQ_TIMEOUT_MS = 5_000;
+
 class LocationIQGeocoder implements Geocoder {
   readonly provider = "locationiq" as const;
 
@@ -87,9 +93,22 @@ class LocationIQGeocoder implements Geocoder {
       params.set("countrycodes", options.biasCountry.toLowerCase());
     }
 
-    const response = await fetch(`https://us1.locationiq.com/v1/search.php?${params.toString()}`, {
-      headers: { Accept: "application/json" },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), LOCATIONIQ_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(`https://us1.locationiq.com/v1/search.php?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error(`LocationIQ timed out after ${LOCATIONIQ_TIMEOUT_MS}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       // 404 from LocationIQ means "no results for this query" — treat as []

@@ -19,6 +19,11 @@ const bodySchema = z.object({
   country: z.string().length(2).optional(),
 });
 
+// Server controls how many candidates to surface — clients can't widen this.
+// Kept here (rather than relying on the geocoder default) so the cache key
+// records a stable value.
+const RESULT_LIMIT = 5;
+
 // Per-user and per-org rate limiters. Both no-op when Upstash isn't
 // provisioned (memory: rate limiting is opt-in until pre-GA). These limits
 // gate spam/runaway clients; the LocationIQ daily budget guard separately
@@ -61,7 +66,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const geocoder = getGeocoder();
-    const cacheKey = buildCacheKey({ query, provider: geocoder.provider, biasCountry: country });
+    const cacheKey = buildCacheKey({
+      query,
+      provider: geocoder.provider,
+      biasCountry: country,
+      limit: RESULT_LIMIT,
+    });
 
     const cached = await readCache(cacheKey);
     if (cached) {
@@ -88,7 +98,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const results = await geocoder.geocode(query, { biasCountry: country });
+    const results = await geocoder.geocode(query, { biasCountry: country, limit: RESULT_LIMIT });
 
     // Cache even empty results so a typo'd address doesn't burn quota on
     // every retry. TTL is 30d so a corrected address still works fine.

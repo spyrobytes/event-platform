@@ -13,9 +13,10 @@ vi.mock("@/lib/auth", () => ({ verifyAuth: authMock }));
 vi.mock("@/lib/authorization", () => ({
   requireEventOwner: vi.fn(async () => undefined),
 }));
+const checkUpstashLimitMock = vi.fn(async () => true);
 vi.mock("@/lib/rate-limit", () => ({
   upstashLimiter: vi.fn(() => null),
-  checkUpstashLimit: vi.fn(async () => true),
+  checkUpstashLimit: checkUpstashLimitMock,
 }));
 
 const geocodeMock = vi.fn();
@@ -36,6 +37,7 @@ beforeEach(() => {
   dbMock.geocodeUsage.findUnique.mockResolvedValue(null);
   dbMock.geocodeCache.upsert.mockResolvedValue({});
   dbMock.geocodeUsage.upsert.mockResolvedValue({});
+  checkUpstashLimitMock.mockResolvedValue(true);
 });
 
 function makeRequest(body: unknown): NextRequest {
@@ -116,5 +118,41 @@ describe("POST /api/events/[id]/location/geocode", () => {
     });
     expect(res.status).toBe(503);
     expect(geocodeMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 429 when rate-limited", async () => {
+    // First call (per-user) refuses; per-org call doesn't matter — either
+    // refusal trips the gate.
+    checkUpstashLimitMock.mockResolvedValueOnce(false);
+    checkUpstashLimitMock.mockResolvedValueOnce(true);
+
+    const res = await POST(makeRequest({ query: "Toronto" }), {
+      params: Promise.resolve({ id: "evt_1" }),
+    });
+    expect(res.status).toBe(429);
+    expect(geocodeMock).not.toHaveBeenCalled();
+    expect(dbMock.geocodeCache.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the event does not exist", async () => {
+    dbMock.event.findUnique.mockResolvedValueOnce(null);
+
+    const res = await POST(makeRequest({ query: "Toronto" }), {
+      params: Promise.resolve({ id: "evt_1" }),
+    });
+    expect(res.status).toBe(404);
+    expect(geocodeMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 500 when the geocoder throws", async () => {
+    geocodeMock.mockRejectedValueOnce(new Error("LocationIQ responded 500"));
+
+    const res = await POST(makeRequest({ query: "Toronto" }), {
+      params: Promise.resolve({ id: "evt_1" }),
+    });
+    expect(res.status).toBe(500);
+    // Provider failure should not be cached, and shouldn't increment usage.
+    expect(dbMock.geocodeCache.upsert).not.toHaveBeenCalled();
+    expect(dbMock.geocodeUsage.upsert).not.toHaveBeenCalled();
   });
 });
