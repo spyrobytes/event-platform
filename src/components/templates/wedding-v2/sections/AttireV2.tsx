@@ -392,9 +392,27 @@ export function AttireV2({ data }: AttireV2Props) {
                             fontSize: "0.9rem",
                             color: "var(--text-2, #786f65)",
                             lineHeight: 1.55,
+                            whiteSpace: "pre-line" as const,
                           }}
                         >
                           {vendor.description}
+                        </p>
+                      )}
+                      {vendor.note && (
+                        <p
+                          style={{
+                            marginTop: 12,
+                            marginBottom: 0,
+                            paddingLeft: 12,
+                            borderLeft: "2px solid var(--accent, #7a8c72)",
+                            fontSize: "0.85rem",
+                            fontStyle: "italic" as const,
+                            color: "var(--text-2, #786f65)",
+                            lineHeight: 1.55,
+                            whiteSpace: "pre-line" as const,
+                          }}
+                        >
+                          {vendor.note}
                         </p>
                       )}
                       {contact && (

@@ -297,6 +297,17 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
                 })
               }
               placeholder="Describe the vendor's goods or services (optional)"
+              rows={4}
+              maxLength={1000}
+            />
+            <Textarea
+              value={vendor.note || ""}
+              onChange={(e) =>
+                updateVendor(i, {
+                  note: e.target.value || undefined,
+                })
+              }
+              placeholder="Additional note (optional) — e.g., address, hours, how to book, payment methods"
               rows={3}
               maxLength={500}
             />

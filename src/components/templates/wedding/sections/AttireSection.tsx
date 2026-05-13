@@ -187,8 +187,16 @@ export function AttireSection({ data, primaryColor }: AttireSectionProps) {
                   >
                     <p className="font-medium text-foreground">{vendor.name}</p>
                     {vendor.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
                         {vendor.description}
+                      </p>
+                    )}
+                    {vendor.note && (
+                      <p
+                        className="mt-3 whitespace-pre-line border-l-2 pl-3 text-sm italic text-muted-foreground"
+                        style={{ borderColor: `${primaryColor}40` }}
+                      >
+                        {vendor.note}
                       </p>
                     )}
                     {contact && (
