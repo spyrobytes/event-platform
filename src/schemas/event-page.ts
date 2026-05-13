@@ -455,7 +455,7 @@ export const attireExtrasContactTypeSchema = z.enum(["url", "phone", "email", "t
 
 export const attireExtrasVendorSchema = z.object({
   name: z.string().min(1, "Vendor name is required").max(80, "Name must be 80 characters or less"),
-  description: z.string().max(200, "Description must be 200 characters or less").optional(),
+  description: z.string().max(500, "Description must be 500 characters or less").optional(),
   contactLabel: z.string().max(40, "Label must be 40 characters or less").optional(),
   contactType: attireExtrasContactTypeSchema.optional(),
   contactValue: z.string().min(1).max(200, "Contact value must be 200 characters or less").optional(),

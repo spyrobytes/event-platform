@@ -31,6 +31,13 @@ const DRESS_CODE_PRESETS = [
   "Casual",
 ];
 
+const CONTACT_PLACEHOLDER: Record<AttireExtrasContactType, string> = {
+  url: "https://example.com",
+  phone: "+1 555-1234",
+  email: "name@example.com",
+  text: "@handle or display text",
+};
+
 /**
  * Editor for Attire/Dress Code section
  * Allows specifying dress code and suggested colors
@@ -289,9 +296,9 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
                   description: e.target.value || undefined,
                 })
               }
-              placeholder="Short description (optional)"
-              rows={2}
-              maxLength={200}
+              placeholder="Describe the vendor's goods or services (optional)"
+              rows={3}
+              maxLength={500}
             />
             <div className="space-y-2 rounded-md bg-muted/30 p-2">
               <p className="text-xs font-medium text-muted-foreground">
@@ -321,7 +328,7 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
                   <option value="url">Website (URL)</option>
                   <option value="phone">Phone</option>
                   <option value="email">Email</option>
-                  <option value="text">Text / Handle</option>
+                  <option value="text">Display only</option>
                 </Select>
                 <Input
                   value={vendor.contactValue || ""}
@@ -330,7 +337,7 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
                       contactValue: e.target.value || undefined,
                     })
                   }
-                  placeholder="https://, +1 555..., @handle"
+                  placeholder={CONTACT_PLACEHOLDER[vendor.contactType ?? "url"]}
                   maxLength={200}
                   aria-label="Contact value"
                 />
