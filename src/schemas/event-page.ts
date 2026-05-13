@@ -447,12 +447,32 @@ export const weddingPartySectionSchema = z.object({
 // Attire Section - Dress code guidance
 export const attireIconStyleSchema = z.enum(["auto", "formal", "casual"]);
 
+// Optional "extras" card: a list of vendor/tailor entries shown as a second
+// card below the primary dress-code card. Each vendor has an optional flat
+// contact triple (label/type/value); the renderer decides how to link based
+// on `contactType` and skips contacts without a value.
+export const attireExtrasContactTypeSchema = z.enum(["url", "phone", "email", "text"]);
+
+export const attireExtrasVendorSchema = z.object({
+  name: z.string().min(1, "Vendor name is required").max(80, "Name must be 80 characters or less"),
+  description: z.string().max(200, "Description must be 200 characters or less").optional(),
+  contactLabel: z.string().max(40, "Label must be 40 characters or less").optional(),
+  contactType: attireExtrasContactTypeSchema.optional(),
+  contactValue: z.string().min(1).max(200, "Contact value must be 200 characters or less").optional(),
+});
+
+export const attireExtrasSchema = z.object({
+  title: z.string().max(60, "Title must be 60 characters or less").optional(),
+  vendors: z.array(attireExtrasVendorSchema).min(1).max(4, "Maximum 4 vendor entries"),
+});
+
 export const attireSectionDataSchema = z.object({
   heading: z.string().max(60, "Heading must be 60 characters or less").default("Dress Code"),
   dressCode: z.string().min(1, "Dress code is required").max(50, "Dress code must be 50 characters or less"),
   notes: z.string().max(500, "Notes must be 500 characters or less").optional(),
   colors: z.array(z.string().max(30)).max(6, "Maximum 6 suggested colors").optional(),
   iconStyle: attireIconStyleSchema.optional(),
+  extras: attireExtrasSchema.optional(),
 });
 
 export const attireSectionSchema = z.object({
@@ -600,6 +620,9 @@ export type WeddingPartySection = z.infer<typeof weddingPartySectionSchema>;
 export type PartyMember = z.infer<typeof partyMemberSchema>;
 export type AttireSection = z.infer<typeof attireSectionSchema>;
 export type AttireIconStyle = z.infer<typeof attireIconStyleSchema>;
+export type AttireExtras = z.infer<typeof attireExtrasSchema>;
+export type AttireExtrasVendor = z.infer<typeof attireExtrasVendorSchema>;
+export type AttireExtrasContactType = z.infer<typeof attireExtrasContactTypeSchema>;
 export type ThingsToDoSection = z.infer<typeof thingsToDoSectionSchema>;
 export type ActivityItem = z.infer<typeof activityItemSchema>;
 export type ActivityCategory = z.infer<typeof activityCategorySchema>;

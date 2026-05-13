@@ -1,4 +1,6 @@
 import { SectionWrapper, SectionTitle } from "../../shared";
+import { resolveAttireContact } from "@/lib/attire-contact";
+import type { AttireExtras } from "@/schemas/event-page";
 
 type AttireSectionProps = {
   data: {
@@ -6,6 +8,7 @@ type AttireSectionProps = {
     dressCode: string;
     notes?: string;
     colors?: string[];
+    extras?: AttireExtras;
   };
   primaryColor: string;
 };
@@ -17,7 +20,9 @@ type AttireSectionProps = {
  * Provides guidance on what guests should wear.
  */
 export function AttireSection({ data, primaryColor }: AttireSectionProps) {
-  const { heading = "Dress Code", dressCode, notes, colors } = data;
+  const { heading = "Dress Code", dressCode, notes, colors, extras } = data;
+  const extrasVendors = extras?.vendors ?? [];
+  const extrasTitle = extras?.title?.trim() || "Where to Shop";
 
   // Map common dress codes to icons and descriptions
   const getDressCodeInfo = (code: string) => {
@@ -158,6 +163,67 @@ export function AttireSection({ data, primaryColor }: AttireSectionProps) {
             </div>
           )}
         </div>
+
+        {/* Optional extras card — vendors / tailors */}
+        {extrasVendors.length > 0 && (
+          <div
+            className="mt-6 rounded-2xl border p-8 shadow-sm"
+            style={{ borderColor: `${primaryColor}30` }}
+          >
+            <h3
+              className="mb-6 text-center text-xl font-semibold"
+              style={{ color: primaryColor }}
+            >
+              {extrasTitle}
+            </h3>
+            <ul className="space-y-5">
+              {extrasVendors.map((vendor, i) => {
+                const contact = resolveAttireContact(vendor);
+                return (
+                  <li
+                    key={i}
+                    className="border-b pb-5 last:border-b-0 last:pb-0"
+                    style={{ borderColor: `${primaryColor}20` }}
+                  >
+                    <p className="font-medium text-foreground">{vendor.name}</p>
+                    {vendor.description && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {vendor.description}
+                      </p>
+                    )}
+                    {contact && (
+                      <div className="mt-3">
+                        {contact.href ? (
+                          <a
+                            href={contact.href}
+                            target={contact.target}
+                            rel={contact.rel}
+                            aria-label={contact.ariaLabel}
+                            className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition-colors hover:bg-muted"
+                            style={{
+                              color: primaryColor,
+                              borderColor: `${primaryColor}40`,
+                            }}
+                          >
+                            {contact.displayValue}
+                            <span aria-hidden="true">→</span>
+                          </a>
+                        ) : (
+                          <span
+                            className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-sm"
+                            style={{ color: primaryColor }}
+                          >
+                            {contact.displayValue}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </SectionWrapper>
   );
