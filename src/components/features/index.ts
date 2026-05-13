@@ -48,4 +48,8 @@ export {
   RegistryEditor,
   WishesEditor,
   SocialLinksEditor,
+  PageEditorNav,
+  type PageEditorNavItem,
+  type PageEditorNavGroup,
+  type PageEditorNavBadge,
 } from "./PageEditor";

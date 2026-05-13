@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import { useUnsavedChangesGuard } from "@/hooks";
+import { useIntersectionObserver, useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,9 @@ import {
   RegistryEditor,
   WishesEditor,
   SocialLinksEditor,
+  PageEditorNav,
+  type PageEditorNavBadge,
+  type PageEditorNavGroup,
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
@@ -136,11 +139,23 @@ export default function PageEditorPage() {
   const [savedConfig, setSavedConfig] = useState<EventPageConfigV1 | null>(null);
   const [viewAs, setViewAs] = useState<"organizer" | "public" | "guest">("organizer");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [activeNavId, setActiveNavId] = useState<string | null>(null);
 
   const { requestLeave, discardDialogProps } = useUnsavedChangesGuard({
     isDirty: hasChanges,
     redirectTo: `/dashboard/events/${params.id}`,
   });
+
+  // Hide the floating nav trigger while the editor header (with Back / Preview
+  // / Save inline) is in view — at ≤880px the container fills the viewport and
+  // the floating button collides with Save Changes. rootMargin -72px aligns the
+  // "out of view" point with the button's own top position.
+  const {
+    ref: editorHeaderRef,
+    isVisible: editorHeaderInView,
+    hasBeenVisible: editorHeaderSeen,
+  } = useIntersectionObserver({ rootMargin: "-72px 0px 0px 0px" });
 
   // Section card refs, keyed by current index — used to scroll a moved card into view.
   const sectionRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -636,6 +651,105 @@ export default function PageEditorPage() {
     router.push(`/dashboard/events/${params.id}/page-preview`);
   }, [router, params.id]);
 
+  // Nav drawer: build groups dynamically from the current template + sections.
+  // Badges reflect per-section state (disabled / hidden-for-viewAs / orphaned),
+  // so the drawer doubles as a quick status overview.
+  const navGroups = useMemo<PageEditorNavGroup[]>(() => {
+    if (!config) return [];
+
+    const setupItems: PageEditorNavGroup["items"] = [
+      { id: "pe-template", label: "Template" },
+    ];
+    if (templateId === "wedding_v1") {
+      setupItems.push({ id: "pe-wedding-style", label: "Wedding Style" });
+    }
+    if (templateId === "wedding_v2") {
+      setupItems.push({ id: "pe-color-mode", label: "Color Mode" });
+      setupItems.push({ id: "pe-chrome", label: "Cinematic Chrome" });
+    }
+    const v3 = getV3Definition(templateId);
+    if (v3 && v3.accentSwatches.length > 0) {
+      setupItems.push({ id: "pe-accent", label: "Accent Color" });
+    }
+    if (templateSupportsSocialLinks(templateId)) {
+      setupItems.push({ id: "pe-social-links", label: "Social Links" });
+    }
+    if (!(templateId === "wedding_v2" && config.variantId)) {
+      setupItems.push({ id: "pe-theme", label: "Theme" });
+    }
+    setupItems.push({ id: "pe-hero", label: "Hero Section" });
+    setupItems.push({ id: "pe-media", label: "Media Library" });
+
+    const supportedSet = TEMPLATE_SUPPORTED_SECTIONS[templateId];
+    const sectionItems = config.sections.map((s) => {
+      const badges: PageEditorNavBadge[] = [];
+      if (!s.enabled) badges.push("disabled");
+      if (supportedSet && !supportedSet.has(s.type)) badges.push("orphaned");
+      if (viewAs !== "organizer" && s.enabled) {
+        const effectiveVis = getEffectiveVisibility(s);
+        const hiddenForView =
+          effectiveVis === "hidden" ||
+          (effectiveVis === "guests" && viewAs === "public");
+        if (hiddenForView) badges.push("hidden");
+      }
+      return {
+        id: `pe-section-${s.type}`,
+        label: getSectionLabel(s.type),
+        badges: badges.length > 0 ? badges : undefined,
+      };
+    });
+
+    return [
+      { label: "Setup", items: setupItems },
+      { label: "Sections", items: sectionItems },
+      { label: "Add", items: [{ id: "pe-add-section", label: "Add Section" }] },
+    ];
+  }, [config, templateId, viewAs]);
+
+  // Key derived from anchor structure (not badges/content). The observer only
+  // needs to re-attach when the *set* of anchor ids changes — typing in a
+  // field churns `config` identity but not this key.
+  const navAnchorsKey = useMemo(() => {
+    if (!config) return "";
+    const v2VariantPicked =
+      templateId === "wedding_v2" && config.variantId ? "1" : "0";
+    return `${templateId}|${v2VariantPicked}|${config.sections.map((s) => s.type).join(",")}`;
+  }, [config, templateId]);
+
+  useEffect(() => {
+    if (!navAnchorsKey) return;
+    const ids: string[] = [];
+    navGroups.forEach((g) => g.items.forEach((it) => ids.push(it.id)));
+    if (ids.length === 0) return;
+
+    const elements = ids
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (elements.length === 0) return;
+
+    const intersecting = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) intersecting.add(entry.target.id);
+          else intersecting.delete(entry.target.id);
+        });
+        // Active = first id in document order that's intersecting
+        const active = ids.find((id) => intersecting.has(id)) ?? null;
+        setActiveNavId(active);
+      },
+      // Top inset accounts for the 56px sticky auth header; bottom inset keeps
+      // the active card the one in the upper half of the viewport.
+      { rootMargin: "-72px 0px -55% 0px", threshold: 0 }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+    // navGroups is referenced only to enumerate ids; navAnchorsKey gates re-runs
+    // on structural changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navAnchorsKey]);
+
   const handlePreview = () => {
     if (hasChanges) {
       setShowPreviewDialog(true);
@@ -682,9 +796,14 @@ export default function PageEditorPage() {
   const supported = TEMPLATE_SUPPORTED_SECTIONS[templateId] ?? new Set(GENERIC_SECTIONS);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div>
+      {/* Page content — marked inert while the section-nav drawer is open so
+          keyboard users can't shift-tab out of the drawer into the cards
+          behind the backdrop. The floating trigger and the drawer itself
+          sit as siblings outside this wrapper. */}
+      <div className="space-y-6" inert={isNavOpen || undefined}>
+        {/* Header */}
+        <div ref={editorHeaderRef} className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={requestLeave}>
             ← Back
@@ -757,7 +876,7 @@ export default function PageEditorPage() {
       )}
 
       {/* Template Selection */}
-      <Card>
+      <Card id="pe-template" className="scroll-mt-20">
         <CardHeader>
           <CardTitle>Template</CardTitle>
           <CardDescription>
@@ -776,7 +895,7 @@ export default function PageEditorPage() {
 
       {/* Wedding Variant Selection - Only show for wedding templates */}
       {templateId === "wedding_v1" && config && (
-        <Card>
+        <Card id="pe-wedding-style" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Wedding Style</CardTitle>
             <CardDescription>
@@ -796,7 +915,7 @@ export default function PageEditorPage() {
 
       {/* V2 Design Variant Selection - Only show for wedding_v2 */}
       {templateId === "wedding_v2" && config && (
-        <Card>
+        <Card id="pe-color-mode" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Color Mode</CardTitle>
             <CardDescription>
@@ -818,7 +937,7 @@ export default function PageEditorPage() {
 
       {/* V2 Chrome Toggles - Only show for wedding_v2 */}
       {templateId === "wedding_v2" && config && (
-        <Card>
+        <Card id="pe-chrome" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Cinematic Chrome</CardTitle>
             <CardDescription>
@@ -857,7 +976,7 @@ export default function PageEditorPage() {
         const v3Def = getV3Definition(templateId);
         if (!v3Def || v3Def.accentSwatches.length === 0) return null;
         return (
-          <Card>
+          <Card id="pe-accent" className="scroll-mt-20">
             <CardHeader>
               <CardTitle>Accent Color</CardTitle>
               <CardDescription>
@@ -878,7 +997,7 @@ export default function PageEditorPage() {
 
       {/* Social Links — only for templates that opt in (Premium feature) */}
       {config && templateSupportsSocialLinks(templateId) && (
-        <Card>
+        <Card id="pe-social-links" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Social Links</CardTitle>
             <CardDescription>
@@ -897,7 +1016,7 @@ export default function PageEditorPage() {
 
       {/* Theme Section — hidden when a V2 variant is selected (variant controls theme) */}
       {!(templateId === "wedding_v2" && config.variantId) && (
-        <Card>
+        <Card id="pe-theme" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Theme</CardTitle>
           </CardHeader>
@@ -946,7 +1065,7 @@ export default function PageEditorPage() {
       )}
 
       {/* Hero Section */}
-      <Card>
+      <Card id="pe-hero" className="scroll-mt-20">
         <CardHeader>
           <CardTitle>Hero Section</CardTitle>
         </CardHeader>
@@ -1192,14 +1311,16 @@ export default function PageEditorPage() {
       </Card>
 
       {/* Media Library */}
-      <MediaUploadCard
-        eventId={params.id}
-        assets={pageData?.assets || []}
-        onAssetUploaded={handleAssetUploaded}
-        onAssetDeleted={handleAssetDeleted}
-        onAssetUpdated={handleAssetUpdated}
-        getIdToken={getIdToken}
-      />
+      <div id="pe-media" className="scroll-mt-20">
+        <MediaUploadCard
+          eventId={params.id}
+          assets={pageData?.assets || []}
+          onAssetUploaded={handleAssetUploaded}
+          onAssetDeleted={handleAssetDeleted}
+          onAssetUpdated={handleAssetUpdated}
+          getIdToken={getIdToken}
+        />
+      </div>
 
       {/* Sections */}
       {config.sections.map((section, index) => {
@@ -1216,11 +1337,15 @@ export default function PageEditorPage() {
         return (
         <Card
           key={`${section.type}-${index}`}
+          id={`pe-section-${section.type}`}
           ref={(el) => {
             if (el) sectionRefs.current.set(index, el);
             else sectionRefs.current.delete(index);
           }}
-          className={hiddenForView ? "opacity-40 pointer-events-none" : ""}
+          className={cn(
+            "scroll-mt-20",
+            hiddenForView && "opacity-40 pointer-events-none"
+          )}
         >
           {hiddenForView && (
             <div className="px-6 pt-4 pb-0">
@@ -1616,7 +1741,7 @@ export default function PageEditorPage() {
       })}
 
       {/* Add Section */}
-      <Card>
+      <Card id="pe-add-section" className="scroll-mt-20">
         <CardHeader>
           <CardTitle>Add Section</CardTitle>
           <CardDescription>
@@ -1795,8 +1920,10 @@ export default function PageEditorPage() {
         </Button>
       </div>
 
-      {/* Floating Action Bar - Sticky at bottom when there are changes */}
-      {hasChanges && (
+      {/* Floating Action Bar - Sticky at bottom when there are changes.
+          Hidden while the section-nav drawer is open so it doesn't sit on top
+          of the drawer backdrop (both are z-50). */}
+      {hasChanges && !isNavOpen && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2 text-sm">
@@ -1889,6 +2016,53 @@ export default function PageEditorPage() {
       />
 
       <ConfirmDialog {...discardDialogProps} />
+      </div>
+
+      {/* Floating "jump to section" trigger — fixed top-right under the auth
+          header (h-14) so it follows the viewport. Hidden while the editor
+          header is in view (Save / Preview reachable inline there) or the
+          drawer is open. */}
+      <button
+        type="button"
+        onClick={() => setIsNavOpen(true)}
+        aria-label="Open section navigation"
+        aria-expanded={isNavOpen}
+        aria-controls="page-editor-nav"
+        aria-hidden={!editorHeaderSeen || editorHeaderInView || isNavOpen}
+        tabIndex={
+          !editorHeaderSeen || editorHeaderInView || isNavOpen ? -1 : 0
+        }
+        title="Jump to section"
+        className={cn(
+          "fixed right-4 top-[4.5rem] z-30 flex h-10 w-10 items-center justify-center",
+          "rounded-full border border-border bg-background/95 text-foreground shadow-md backdrop-blur",
+          "supports-[backdrop-filter]:bg-background/80",
+          "transition hover:bg-muted hover:shadow-lg",
+          (!editorHeaderSeen || editorHeaderInView || isNavOpen) &&
+            "pointer-events-none opacity-0"
+        )}
+      >
+        <svg
+          className="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
+
+      <PageEditorNav
+        open={isNavOpen}
+        onClose={() => setIsNavOpen(false)}
+        groups={navGroups}
+        activeId={activeNavId}
+      />
     </div>
   );
 }
