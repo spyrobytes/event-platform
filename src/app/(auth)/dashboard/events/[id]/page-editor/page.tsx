@@ -796,9 +796,14 @@ export default function PageEditorPage() {
   const supported = TEMPLATE_SUPPORTED_SECTIONS[templateId] ?? new Set(GENERIC_SECTIONS);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div ref={editorHeaderRef} className="flex items-center justify-between">
+    <div>
+      {/* Page content — marked inert while the section-nav drawer is open so
+          keyboard users can't shift-tab out of the drawer into the cards
+          behind the backdrop. The floating trigger and the drawer itself
+          sit as siblings outside this wrapper. */}
+      <div className="space-y-6" inert={isNavOpen || undefined}>
+        {/* Header */}
+        <div ref={editorHeaderRef} className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={requestLeave}>
             ← Back
@@ -2011,6 +2016,7 @@ export default function PageEditorPage() {
       />
 
       <ConfirmDialog {...discardDialogProps} />
+      </div>
 
       {/* Floating "jump to section" trigger — fixed top-right under the auth
           header (h-14) so it follows the viewport. Hidden while the editor
