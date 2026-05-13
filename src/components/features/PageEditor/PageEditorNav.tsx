@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 export type PageEditorNavBadge = "disabled" | "hidden" | "orphaned";
@@ -51,6 +51,9 @@ export function PageEditorNav({
   groups,
   activeId,
 }: PageEditorNavProps) {
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const previousActiveRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -67,6 +70,27 @@ export function PageEditorNav({
     return () => {
       document.body.style.overflow = prev;
     };
+  }, [open]);
+
+  // Focus management: on open, capture the previously focused element and move
+  // focus into the drawer (close button). On close, return focus to the
+  // captured element so keyboard users land back at the trigger.
+  useEffect(() => {
+    if (open) {
+      previousActiveRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      // Defer to after the open transition commits; the aside's `inert`
+      // attribute has just been removed so the close button is now focusable.
+      const id = requestAnimationFrame(() => {
+        closeBtnRef.current?.focus({ preventScroll: true });
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    const target = previousActiveRef.current;
+    previousActiveRef.current = null;
+    if (target) target.focus({ preventScroll: true });
   }, [open]);
 
   const handleItemClick = (id: string) => {
@@ -93,6 +117,7 @@ export function PageEditorNav({
         aria-modal="true"
         aria-label="Page sections navigation"
         aria-hidden={!open}
+        inert={!open || undefined}
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex w-80 max-w-[85vw] flex-col border-l border-border bg-background shadow-xl transition-transform duration-300",
           open ? "translate-x-0" : "translate-x-full"
@@ -101,6 +126,7 @@ export function PageEditorNav({
         <header className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">Sections</h2>
           <button
+            ref={closeBtnRef}
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

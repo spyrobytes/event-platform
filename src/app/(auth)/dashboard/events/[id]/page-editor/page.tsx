@@ -37,6 +37,7 @@ import {
   WishesEditor,
   SocialLinksEditor,
   PageEditorNav,
+  type PageEditorNavBadge,
   type PageEditorNavGroup,
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
@@ -681,7 +682,7 @@ export default function PageEditorPage() {
 
     const supportedSet = TEMPLATE_SUPPORTED_SECTIONS[templateId];
     const sectionItems = config.sections.map((s) => {
-      const badges: ("disabled" | "hidden" | "orphaned")[] = [];
+      const badges: PageEditorNavBadge[] = [];
       if (!s.enabled) badges.push("disabled");
       if (supportedSet && !supportedSet.has(s.type)) badges.push("orphaned");
       if (viewAs !== "organizer" && s.enabled) {
@@ -1914,8 +1915,10 @@ export default function PageEditorPage() {
         </Button>
       </div>
 
-      {/* Floating Action Bar - Sticky at bottom when there are changes */}
-      {hasChanges && (
+      {/* Floating Action Bar - Sticky at bottom when there are changes.
+          Hidden while the section-nav drawer is open so it doesn't sit on top
+          of the drawer backdrop (both are z-50). */}
+      {hasChanges && !isNavOpen && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <div className="flex items-center gap-2 text-sm">
@@ -2028,7 +2031,7 @@ export default function PageEditorPage() {
           "fixed right-4 top-[4.5rem] z-30 flex h-10 w-10 items-center justify-center",
           "rounded-full border border-border bg-background/95 text-foreground shadow-md backdrop-blur",
           "supports-[backdrop-filter]:bg-background/80",
-          "transition-all hover:bg-muted hover:shadow-lg",
+          "transition hover:bg-muted hover:shadow-lg",
           (!editorHeaderSeen || editorHeaderInView || isNavOpen) &&
             "pointer-events-none opacity-0"
         )}
