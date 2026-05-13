@@ -1,4 +1,8 @@
 import type { AttireSection } from "@/schemas/event-page";
+import {
+  DEFAULT_VENDOR_CARD_TITLE,
+  resolveAttireContact,
+} from "@/lib/attire-contact";
 
 type AttireV2Props = {
   data: AttireSection["data"];
@@ -114,6 +118,8 @@ export function AttireV2({ data }: AttireV2Props) {
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
   const hasDressCode = !!data.dressCode;
   const hasColors = data.colors && data.colors.length > 0;
+  const extrasVendors = data.extras?.vendors ?? [];
+  const extrasTitle = data.extras?.title?.trim() || DEFAULT_VENDOR_CARD_TITLE;
 
   return (
     <section
@@ -302,6 +308,161 @@ export function AttireV2({ data }: AttireV2Props) {
             )}
           </div>
         </div>
+
+        {extrasVendors.length > 0 && (
+          <div
+            style={{
+              maxWidth: 600,
+              margin: "32px auto 0",
+              background: "var(--surface, #ffffff)",
+              border: "1px solid var(--border, #e8e1d6)",
+              borderRadius: "var(--r-lg, 24px)",
+              boxShadow: "var(--shadow)",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background:
+                  "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72))",
+                opacity: 0.7,
+              }}
+            />
+            <div
+              style={{
+                padding:
+                  "clamp(28px, 4vw, 40px) clamp(24px, 4vw, 40px)",
+              }}
+            >
+              <h3
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontSize: "var(--h3, clamp(1.2rem, 2.2vw, 1.6rem))",
+                  fontWeight: 400,
+                  textAlign: "center" as const,
+                  color: "var(--night, #1e1b17)",
+                  marginBottom: 24,
+                }}
+              >
+                {extrasTitle}
+              </h3>
+              <ul
+                style={{
+                  display: "flex",
+                  flexDirection: "column" as const,
+                  gap: 20,
+                  margin: 0,
+                  padding: 0,
+                  listStyle: "none" as const,
+                }}
+              >
+                {extrasVendors.map((vendor, i) => {
+                  const contact = resolveAttireContact(vendor);
+                  const notLast = i < extrasVendors.length - 1;
+                  return (
+                    <li
+                      key={i}
+                      style={{
+                        borderBottom: notLast
+                          ? "1px solid var(--border, #e8e1d6)"
+                          : "none",
+                        paddingBottom: notLast ? 20 : 0,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontFamily: "var(--serif)",
+                          fontSize: "1.05rem",
+                          fontWeight: 500,
+                          color: "var(--night, #1e1b17)",
+                          margin: 0,
+                        }}
+                      >
+                        {vendor.name}
+                      </p>
+                      {vendor.description && (
+                        <p
+                          style={{
+                            marginTop: 6,
+                            marginBottom: 0,
+                            fontSize: "0.9rem",
+                            color: "var(--text-2, #786f65)",
+                            lineHeight: 1.55,
+                            whiteSpace: "pre-line" as const,
+                          }}
+                        >
+                          {vendor.description}
+                        </p>
+                      )}
+                      {vendor.note && (
+                        <p
+                          style={{
+                            marginTop: 12,
+                            marginBottom: 0,
+                            paddingLeft: 12,
+                            borderLeft: "2px solid var(--accent, #7a8c72)",
+                            fontSize: "0.85rem",
+                            fontStyle: "italic" as const,
+                            color: "var(--text-2, #786f65)",
+                            lineHeight: 1.55,
+                            whiteSpace: "pre-line" as const,
+                          }}
+                        >
+                          {vendor.note}
+                        </p>
+                      )}
+                      {contact && (
+                        <div style={{ marginTop: 12 }}>
+                          {contact.anchorProps ? (
+                            <a
+                              {...contact.anchorProps}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "6px 14px",
+                                borderRadius: 999,
+                                border:
+                                  "1px solid var(--accent, #7a8c72)",
+                                color: "var(--accent, #7a8c72)",
+                                fontSize: "0.85rem",
+                                fontWeight: 500,
+                                textDecoration: "none",
+                              }}
+                            >
+                              {contact.displayValue}
+                              <span aria-hidden="true">→</span>
+                            </a>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                padding: "6px 14px",
+                                borderRadius: 999,
+                                background: "var(--cream, #f0ebe3)",
+                                color: "var(--accent, #7a8c72)",
+                                fontSize: "0.85rem",
+                                fontWeight: 500,
+                              }}
+                            >
+                              {contact.displayValue}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
