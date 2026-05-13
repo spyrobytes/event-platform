@@ -1,10 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { resolveAttireContact } from "@/lib/attire-contact";
+import {
+  DEFAULT_VENDOR_CARD_TITLE,
+  resolveAttireContact,
+} from "@/lib/attire-contact";
 import type { AttireExtrasVendor } from "@/schemas/event-page";
 
 function vendor(overrides: Partial<AttireExtrasVendor>): AttireExtrasVendor {
   return { name: "Test Vendor", ...overrides };
 }
+
+describe("DEFAULT_VENDOR_CARD_TITLE", () => {
+  it("is the user-visible fallback title", () => {
+    expect(DEFAULT_VENDOR_CARD_TITLE).toBe("Where to Shop");
+  });
+});
 
 describe("resolveAttireContact", () => {
   describe("returns null when contact is unusable", () => {
@@ -34,39 +43,39 @@ describe("resolveAttireContact", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "url", contactValue: "http://example.com" })
       );
-      expect(r?.href).toBe("http://example.com");
+      expect(r?.anchorProps?.href).toBe("http://example.com");
     });
 
     it("preserves an https:// scheme (case-insensitive match)", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "url", contactValue: "HTTPS://Example.com" })
       );
-      expect(r?.href).toBe("HTTPS://Example.com");
+      expect(r?.anchorProps?.href).toBe("HTTPS://Example.com");
     });
 
     it("prepends https:// when scheme is missing", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "url", contactValue: "example.com" })
       );
-      expect(r?.href).toBe("https://example.com");
+      expect(r?.anchorProps?.href).toBe("https://example.com");
     });
 
     it("strips leading slashes before prepending scheme", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "url", contactValue: "//example.com" })
       );
-      expect(r?.href).toBe("https://example.com");
+      expect(r?.anchorProps?.href).toBe("https://example.com");
     });
 
     it("sets target=_blank and rel=noopener noreferrer", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "url", contactValue: "example.com" })
       );
-      expect(r?.target).toBe("_blank");
-      expect(r?.rel).toBe("noopener noreferrer");
+      expect(r?.anchorProps?.target).toBe("_blank");
+      expect(r?.anchorProps?.rel).toBe("noopener noreferrer");
     });
 
-    it("ariaLabel announces opens-in-new-tab", () => {
+    it("aria-label announces opens-in-new-tab", () => {
       const r = resolveAttireContact(
         vendor({
           contactType: "url",
@@ -74,7 +83,7 @@ describe("resolveAttireContact", () => {
           contactLabel: "Visit",
         })
       );
-      expect(r?.ariaLabel).toBe("Visit (opens in new tab)");
+      expect(r?.anchorProps?.["aria-label"]).toBe("Visit (opens in new tab)");
     });
 
     it("displayValue uses label when present, else value", () => {
@@ -110,23 +119,23 @@ describe("resolveAttireContact", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "phone", contactValue: "+1 (555) 123-4567" })
       );
-      expect(r?.href).toBe("tel:+15551234567");
+      expect(r?.anchorProps?.href).toBe("tel:+15551234567");
       expect(r?.displayValue).toBe("+1 (555) 123-4567");
     });
 
-    it("returns null href when no dialable digits remain", () => {
+    it("returns null anchorProps when no dialable digits remain", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "phone", contactValue: "(none)" })
       );
-      expect(r?.href).toBeNull();
+      expect(r?.anchorProps).toBeNull();
       expect(r?.displayValue).toBe("(none)");
     });
 
-    it("ariaLabel announces the call action", () => {
+    it("aria-label announces the call action", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "phone", contactValue: "555-1234" })
       );
-      expect(r?.ariaLabel).toBe("Call 555-1234");
+      expect(r?.anchorProps?.["aria-label"]).toBe("Call 555-1234");
     });
   });
 
@@ -135,23 +144,25 @@ describe("resolveAttireContact", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "email", contactValue: "hello@example.com" })
       );
-      expect(r?.href).toBe("mailto:hello@example.com");
+      expect(r?.anchorProps?.href).toBe("mailto:hello@example.com");
     });
 
-    it("ariaLabel announces the email action", () => {
+    it("aria-label announces the email action", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "email", contactValue: "hello@example.com" })
       );
-      expect(r?.ariaLabel).toBe("Email hello@example.com");
+      expect(r?.anchorProps?.["aria-label"]).toBe(
+        "Email hello@example.com"
+      );
     });
   });
 
   describe("type=text (Display only)", () => {
-    it("returns a null href so the renderer emits non-interactive text", () => {
+    it("returns null anchorProps so the renderer emits non-interactive text", () => {
       const r = resolveAttireContact(
         vendor({ contactType: "text", contactValue: "@tailorshop" })
       );
-      expect(r?.href).toBeNull();
+      expect(r?.anchorProps).toBeNull();
       expect(r?.displayValue).toBe("@tailorshop");
     });
 

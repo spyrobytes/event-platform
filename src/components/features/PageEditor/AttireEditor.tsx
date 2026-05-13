@@ -73,7 +73,6 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
     [data, colors, onChange]
   );
 
-  // --- Extras (vendors / tailors) ---
   const writeExtras = useCallback(
     (next: AttireExtras | undefined) => {
       onChange({ ...data, extras: next });
@@ -241,7 +240,6 @@ export function AttireEditor({ data, onChange }: AttireEditorProps) {
         </Button>
       </div>
 
-      {/* Vendors / Tailors (optional extras card) */}
       <div className="space-y-3 pt-4 border-t">
         <div>
           <Label>Vendors / Tailors (optional)</Label>

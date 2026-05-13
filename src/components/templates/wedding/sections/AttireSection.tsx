@@ -1,5 +1,8 @@
 import { SectionWrapper, SectionTitle } from "../../shared";
-import { resolveAttireContact } from "@/lib/attire-contact";
+import {
+  DEFAULT_VENDOR_CARD_TITLE,
+  resolveAttireContact,
+} from "@/lib/attire-contact";
 import type { AttireSection as AttireSectionSchema } from "@/schemas/event-page";
 
 type AttireSectionProps = {
@@ -16,7 +19,7 @@ type AttireSectionProps = {
 export function AttireSection({ data, primaryColor }: AttireSectionProps) {
   const { heading = "Dress Code", dressCode, notes, colors, extras } = data;
   const extrasVendors = extras?.vendors ?? [];
-  const extrasTitle = extras?.title?.trim() || "Where to Shop";
+  const extrasTitle = extras?.title?.trim() || DEFAULT_VENDOR_CARD_TITLE;
 
   // Map common dress codes to icons and descriptions
   const getDressCodeInfo = (code: string) => {
@@ -158,7 +161,6 @@ export function AttireSection({ data, primaryColor }: AttireSectionProps) {
           )}
         </div>
 
-        {/* Optional extras card — vendors / tailors */}
         {extrasVendors.length > 0 && (
           <div
             className="mt-6 rounded-2xl border p-8 shadow-sm"
@@ -195,12 +197,9 @@ export function AttireSection({ data, primaryColor }: AttireSectionProps) {
                     )}
                     {contact && (
                       <div className="mt-3">
-                        {contact.href ? (
+                        {contact.anchorProps ? (
                           <a
-                            href={contact.href}
-                            target={contact.target}
-                            rel={contact.rel}
-                            aria-label={contact.ariaLabel}
+                            {...contact.anchorProps}
                             className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium transition-colors hover:bg-muted"
                             style={{
                               color: primaryColor,

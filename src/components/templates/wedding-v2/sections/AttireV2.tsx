@@ -1,5 +1,8 @@
 import type { AttireSection } from "@/schemas/event-page";
-import { resolveAttireContact } from "@/lib/attire-contact";
+import {
+  DEFAULT_VENDOR_CARD_TITLE,
+  resolveAttireContact,
+} from "@/lib/attire-contact";
 
 type AttireV2Props = {
   data: AttireSection["data"];
@@ -116,7 +119,7 @@ export function AttireV2({ data }: AttireV2Props) {
   const hasDressCode = !!data.dressCode;
   const hasColors = data.colors && data.colors.length > 0;
   const extrasVendors = data.extras?.vendors ?? [];
-  const extrasTitle = data.extras?.title?.trim() || "Where to Shop";
+  const extrasTitle = data.extras?.title?.trim() || DEFAULT_VENDOR_CARD_TITLE;
 
   return (
     <section
@@ -306,7 +309,6 @@ export function AttireV2({ data }: AttireV2Props) {
           </div>
         </div>
 
-        {/* Optional extras card — vendors / tailors */}
         {extrasVendors.length > 0 && (
           <div
             style={{
@@ -417,12 +419,9 @@ export function AttireV2({ data }: AttireV2Props) {
                       )}
                       {contact && (
                         <div style={{ marginTop: 12 }}>
-                          {contact.href ? (
+                          {contact.anchorProps ? (
                             <a
-                              href={contact.href}
-                              target={contact.target}
-                              rel={contact.rel}
-                              aria-label={contact.ariaLabel}
+                              {...contact.anchorProps}
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",

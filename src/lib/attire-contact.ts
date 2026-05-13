@@ -1,20 +1,27 @@
 import type { AttireExtrasVendor } from "@/schemas/event-page";
 
+/** Default heading shown on the extras card when the user hasn't set one. */
+export const DEFAULT_VENDOR_CARD_TITLE = "Where to Shop";
+
 export type ResolvedAttireContact = {
   /** Visible text on the chip/button (defaults to value when no label set) */
   displayValue: string;
-  /** href for the anchor, or null for plain-text rendering (e.g., handles) */
-  href: string | null;
-  /** Optional rel for external links */
-  rel?: string;
-  /** Optional target for external links */
-  target?: string;
-  /** Accessible label describing the action */
-  ariaLabel?: string;
+  /**
+   * Props to spread onto an `<a>` element. Null when the contact should
+   * render as plain text (e.g., social handle, "display only" type, or a
+   * phone value with no dialable digits).
+   */
+  anchorProps:
+    | {
+        href: string;
+        target?: string;
+        rel?: string;
+        "aria-label"?: string;
+      }
+    | null;
 };
 
 function stripNonDialChars(value: string): string {
-  // Keep leading `+` and digits; drop spaces, parens, dashes.
   return value.replace(/[^\d+]/g, "");
 }
 
@@ -37,31 +44,34 @@ export function resolveAttireContact(
   const label = vendor.contactLabel?.trim() || value;
 
   switch (vendor.contactType) {
-    case "url": {
-      const href = ensureHttpsScheme(value);
+    case "url":
       return {
         displayValue: label,
-        href,
-        rel: "noopener noreferrer",
-        target: "_blank",
-        ariaLabel: `${label} (opens in new tab)`,
+        anchorProps: {
+          href: ensureHttpsScheme(value),
+          target: "_blank",
+          rel: "noopener noreferrer",
+          "aria-label": `${label} (opens in new tab)`,
+        },
       };
-    }
     case "phone": {
       const digits = stripNonDialChars(value);
       return {
         displayValue: label,
-        href: digits ? `tel:${digits}` : null,
-        ariaLabel: `Call ${value}`,
+        anchorProps: digits
+          ? { href: `tel:${digits}`, "aria-label": `Call ${value}` }
+          : null,
       };
     }
     case "email":
       return {
         displayValue: label,
-        href: `mailto:${value}`,
-        ariaLabel: `Email ${value}`,
+        anchorProps: {
+          href: `mailto:${value}`,
+          "aria-label": `Email ${value}`,
+        },
       };
     case "text":
-      return { displayValue: label, href: null };
+      return { displayValue: label, anchorProps: null };
   }
 }
