@@ -1,15 +1,9 @@
 import { SectionWrapper, SectionTitle } from "../../shared";
 import { resolveAttireContact } from "@/lib/attire-contact";
-import type { AttireExtras } from "@/schemas/event-page";
+import type { AttireSection as AttireSectionSchema } from "@/schemas/event-page";
 
 type AttireSectionProps = {
-  data: {
-    heading?: string;
-    dressCode: string;
-    notes?: string;
-    colors?: string[];
-    extras?: AttireExtras;
-  };
+  data: AttireSectionSchema["data"];
   primaryColor: string;
 };
 
