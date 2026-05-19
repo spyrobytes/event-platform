@@ -37,7 +37,7 @@ export function WeddingPartyEditor({
   const partyAssets = assets.filter((a) => a.tags.includes("portrait"));
 
   const addMember = useCallback(() => {
-    if (members.length >= 16) return;
+    if (members.length >= 30) return;
     onChange({
       ...data,
       members: [...members, { name: "", role: "" }],
@@ -319,11 +319,11 @@ export function WeddingPartyEditor({
           type="button"
           variant="outline"
           onClick={addMember}
-          disabled={members.length >= 16}
+          disabled={members.length >= 30}
           className="w-full"
         >
           + Add Party Member
-          {members.length >= 16 && " (max 16)"}
+          {members.length >= 30 && " (max 30)"}
         </Button>
       </div>
     </div>

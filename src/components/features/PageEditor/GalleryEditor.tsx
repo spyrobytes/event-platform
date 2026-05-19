@@ -41,7 +41,7 @@ export function GalleryEditor({
   data,
   assets,
   onChange,
-  maxImages = 20,
+  maxImages = 30,
   templateId,
 }: GalleryEditorProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
