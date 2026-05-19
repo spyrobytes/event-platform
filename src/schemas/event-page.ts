@@ -192,7 +192,7 @@ export const gallerySectionDataSchema = z.object({
   // New items array with per-image metadata
   items: z.array(galleryItemSchema).max(30, "Maximum 30 gallery images allowed").optional(),
   // Legacy field for backward compatibility - will be migrated to items
-  assetIds: z.array(z.string().cuid()).max(20).optional(),
+  assetIds: z.array(z.string().cuid()).max(30).optional(),
   // Display settings (all optional for backward compatibility)
   displayMode: galleryDisplayModeSchema.optional(),
   autoPlay: z.boolean().optional(),

@@ -20,6 +20,7 @@ type WeddingPartyEditorProps = {
   data: WeddingPartySection["data"];
   assets: Asset[];
   onChange: (data: WeddingPartySection["data"]) => void;
+  maxMembers?: number;
 };
 
 /**
@@ -30,6 +31,7 @@ export function WeddingPartyEditor({
   data,
   assets,
   onChange,
+  maxMembers = 30,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   // Party member photos: portraits only. Couple photos live under the "couple"
@@ -37,12 +39,12 @@ export function WeddingPartyEditor({
   const partyAssets = assets.filter((a) => a.tags.includes("portrait"));
 
   const addMember = useCallback(() => {
-    if (members.length >= 30) return;
+    if (members.length >= maxMembers) return;
     onChange({
       ...data,
       members: [...members, { name: "", role: "" }],
     });
-  }, [data, members, onChange]);
+  }, [data, members, maxMembers, onChange]);
 
   const updateMember = useCallback(
     (index: number, updates: Partial<PartyMember>) => {
@@ -319,11 +321,11 @@ export function WeddingPartyEditor({
           type="button"
           variant="outline"
           onClick={addMember}
-          disabled={members.length >= 30}
+          disabled={members.length >= maxMembers}
           className="w-full"
         >
           + Add Party Member
-          {members.length >= 30 && " (max 30)"}
+          {members.length >= maxMembers && ` (max ${maxMembers})`}
         </Button>
       </div>
     </div>
