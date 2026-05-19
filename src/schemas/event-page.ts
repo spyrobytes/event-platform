@@ -699,11 +699,12 @@ export type EventPageConfigV1 = z.infer<typeof eventPageConfigV1Schema>;
 
 export const PAGE_CONFIG_LIMITS = {
   maxSections: 12,
-  maxGalleryImages: 20,
+  maxGalleryImages: 30,
   maxFaqItems: 10,
   maxScheduleItems: 20,
   maxSpeakers: 12,
   maxSponsors: 20,
+  maxPartyMembers: 30,
   heroTitleLength: 80,
   heroSubtitleLength: 120,
   maxFileSizeBytes: 5 * 1024 * 1024, // 5MB

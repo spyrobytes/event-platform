@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { WeddingPartySection, PartyMember, PartySide } from "@/schemas/event-page";
+import { PAGE_CONFIG_LIMITS, type WeddingPartySection, type PartyMember, type PartySide } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -31,7 +31,7 @@ export function WeddingPartyEditor({
   data,
   assets,
   onChange,
-  maxMembers = 30,
+  maxMembers = PAGE_CONFIG_LIMITS.maxPartyMembers,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   // Party member photos: portraits only. Couple photos live under the "couple"
