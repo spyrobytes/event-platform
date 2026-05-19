@@ -10,12 +10,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 import styles from "./UtilityForwardNav.module.css";
 
 export function UtilityForwardNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
   hasHeroImage,
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(() => {
@@ -40,7 +42,8 @@ export function UtilityForwardNav({
   // activeSection resets to "top" when the hero is in view,
   // preventing stale highlights on page load or when scrolled to top.
   useEffect(() => {
-    if (sections.length === 0) return;
+    const allIds = [...sections, ...overflow].map((s) => s.id);
+    if (allIds.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -57,24 +60,22 @@ export function UtilityForwardNav({
     const heroEl = document.getElementById("top");
     if (heroEl) observer.observe(heroEl);
 
-    sections.forEach(({ id }) => {
+    allIds.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, [sections]);
+  }, [sections, overflow]);
 
   const handleNavClick = () => {
     setMobileNavOpen(false);
   };
 
-  // Priority actions shown as buttons
-  const priorityIds = ["schedule", "details", "rsvp"];
-  const prioritySections = sections.filter((s) => priorityIds.includes(s.id));
-  const otherSections = sections.filter(
-    (s) => !priorityIds.includes(s.id) && !["top"].includes(s.id)
-  );
+  // RSVP keeps its accent-pill styling when present in the curated visible
+  // list; everything else (and overflow) renders as a standard nav link.
+  const rsvpSection = sections.find((s) => s.id === "rsvp");
+  const otherSections = sections.filter((s) => s.id !== "rsvp");
 
   return (
     <header
@@ -101,7 +102,7 @@ export function UtilityForwardNav({
           {otherSections.map((s) => (
             <a
               key={s.id}
-              href={`#${s.id}`}
+              href={s.href ?? `#${s.id}`}
               className={`${styles.navLink} ${activeSection === s.id ? styles.navLinkActive : ""}`}
               onClick={handleNavClick}
             >
@@ -109,25 +110,45 @@ export function UtilityForwardNav({
             </a>
           ))}
 
-          {/* Priority action buttons */}
-          {prioritySections.map((s) => {
-            const isRsvp = s.id === "rsvp";
-            return (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                className={`${styles.priorityLink} ${isRsvp ? styles.priorityRsvp : styles.priorityDefault}`}
-                onClick={handleNavClick}
-              >
-                {s.label}
-              </a>
-            );
-          })}
+          {/* Desktop "More ▾" — hidden when the mobile drawer is open
+              (drawer renders overflow inline below). */}
+          {overflow.length > 0 && !mobileNavOpen && (
+            <NavMoreDropdown
+              items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+              buttonClassName={styles.navLink}
+              onSelect={handleNavClick}
+            />
+          )}
+
+          {/* Mobile drawer: render overflow as inline links so users can
+              reach every nav target without the dropdown affordance. */}
+          {overflow.length > 0 && mobileNavOpen && overflow.map((s) => (
+            <a
+              key={`overflow-${s.id}`}
+              href={s.href ?? `#${s.id}`}
+              className={`${styles.navLink} ${activeSection === s.id ? styles.navLinkActive : ""}`}
+              onClick={handleNavClick}
+            >
+              {s.label}
+            </a>
+          ))}
+
+          {/* RSVP accent pill (kept visually distinct from the standard nav links) */}
+          {rsvpSection && (
+            <a
+              key={rsvpSection.id}
+              href={rsvpSection.href ?? `#${rsvpSection.id}`}
+              className={`${styles.priorityLink} ${styles.priorityRsvp}`}
+              onClick={handleNavClick}
+            >
+              {rsvpSection.label}
+            </a>
+          )}
         </nav>
 
         {/* Actions */}
         <div className={styles.actions}>
-          {sections.length > 0 && (
+          {(sections.length > 0 || overflow.length > 0) && (
             <button
               className={styles.navToggle}
               onClick={() => setMobileNavOpen(!mobileNavOpen)}

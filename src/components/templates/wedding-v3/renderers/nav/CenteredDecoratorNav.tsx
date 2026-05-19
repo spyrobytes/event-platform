@@ -9,13 +9,26 @@
  */
 
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 
 export function CenteredDecoratorNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   const navSections = sections;
+  const linkBaseStyle: React.CSSProperties = {
+    fontFamily: "var(--sans)",
+    fontSize: "0.7rem",
+    fontWeight: 500,
+    letterSpacing: "0.14em",
+    textTransform: "uppercase" as const,
+    color: "rgba(255, 255, 255, 0.6)",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+    transition: "color 0.3s ease",
+  };
 
   // Derive a monogram fallback from couple names initials
   const displayMonogram = monogram
@@ -98,24 +111,40 @@ export function CenteredDecoratorNav({
                 />
               )}
               <a
-                href={`#${s.id}`}
+                href={s.href ?? `#${s.id}`}
                 className="fine-art-nav-link"
-                style={{
-                  fontFamily: "var(--sans)",
-                  fontSize: "0.7rem",
-                  fontWeight: 500,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase" as const,
-                  color: "rgba(255, 255, 255, 0.6)",
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                  transition: "color 0.3s ease",
-                }}
+                style={linkBaseStyle}
               >
                 {s.label}
               </a>
             </span>
           ))}
+          {overflow.length > 0 && (
+            <span style={{ display: "flex", alignItems: "center" }}>
+              {navSections.length > 0 && (
+                <span
+                  style={{
+                    width: 3,
+                    height: 3,
+                    borderRadius: "50%",
+                    background: "rgba(255, 255, 255, 0.25)",
+                    margin: "0 clamp(10px, 1.5vw, 18px)",
+                    flexShrink: 0,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+              <NavMoreDropdown
+                items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+                buttonStyle={linkBaseStyle}
+                menuStyle={{
+                  background: "var(--text, #3d3830)",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                }}
+                itemStyle={{ ...linkBaseStyle, padding: "0.5rem 0.9rem" }}
+              />
+            </span>
+          )}
         </div>
       </div>
 

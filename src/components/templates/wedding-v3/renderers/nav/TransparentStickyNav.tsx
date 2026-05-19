@@ -9,12 +9,14 @@
  */
 
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 import styles from "./TransparentStickyNav.module.css";
 
 export function TransparentStickyNav({
   coupleNames,
   dateText,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   // Show all enabled sections — factory already filters to enabled-only
   const hasRsvp = sections.some((s) => s.id === "rsvp");
@@ -41,11 +43,19 @@ export function TransparentStickyNav({
             .filter((s) => s.id !== "rsvp")
             .map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className={styles.link}>
+                <a href={s.href ?? `#${s.id}`} className={styles.link}>
                   {s.label}
                 </a>
               </li>
             ))}
+          {overflow.length > 0 && (
+            <li>
+              <NavMoreDropdown
+                items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+                buttonClassName={styles.link}
+              />
+            </li>
+          )}
         </ul>
 
         {/* Right: RSVP link */}

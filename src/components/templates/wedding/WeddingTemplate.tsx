@@ -50,7 +50,7 @@ type WeddingTemplateProps = {
   temporal?: TemporalData;
 };
 
-import { getSectionLabel } from "@/lib/guest-access";
+import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
 
 /**
  * Variant-Aware Wedding Template
@@ -105,7 +105,8 @@ export function WeddingTemplate({ config, assets, eventId, eventSlug, temporal }
 
     const key = `${section.type}-${arrayIndex}`;
     const currentSectionIndex = sectionIndex++;
-    const sectionLabel = getSectionLabel(section.type);
+    const inNav = shouldShowInNav(section, "wedding");
+    const sectionLabel = resolveNavLabel(section, "wedding");
 
     // Find chapter info for this section
     const chapteredSection = chapteredSections.find(
@@ -139,8 +140,8 @@ export function WeddingTemplate({ config, assets, eventId, eventSlug, temporal }
     const wrapWithAnimation = (content: React.ReactNode) => (
       <AnimatedWrapper
         sectionIndex={currentSectionIndex}
-        navId={section.type}
-        navLabel={sectionLabel}
+        navId={inNav ? section.type : undefined}
+        navLabel={inNav ? sectionLabel : undefined}
         navChapterId={chapterId ?? undefined}
       >
         {content}

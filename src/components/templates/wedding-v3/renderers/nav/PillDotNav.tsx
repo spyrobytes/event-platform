@@ -11,11 +11,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 
 export function PillDotNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -91,7 +93,7 @@ export function PillDotNav({
           {navSections.map((s) => (
             <a
               key={s.id}
-              href={`#${s.id}`}
+              href={s.href ?? `#${s.id}`}
               className={
                 s.id === "rsvp" ? "gh-nav-rsvp" : "gh-nav-pill"
               }
@@ -128,6 +130,33 @@ export function PillDotNav({
               {s.label}
             </a>
           ))}
+          {overflow.length > 0 && (
+            <NavMoreDropdown
+              items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+              buttonStyle={{
+                fontFamily: "var(--sans)",
+                fontSize: "0.68rem",
+                fontWeight: 500,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase" as const,
+                color: "var(--text-2, #786f65)",
+                padding: "6px 14px",
+                borderRadius: 999,
+              }}
+              menuStyle={{
+                background: "var(--surface, #ffffff)",
+                border: "1px solid var(--border, #e8e1d6)",
+              }}
+              itemStyle={{
+                fontFamily: "var(--sans)",
+                fontSize: "0.68rem",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase" as const,
+                color: "var(--text, #3d3830)",
+                padding: "0.55rem 0.9rem",
+              }}
+            />
+          )}
         </div>
       </div>
 

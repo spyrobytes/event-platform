@@ -52,7 +52,11 @@ import type { V2BotanicalVariant } from "./variants";
 import { WeddingV2Footer } from "./WeddingV2Footer";
 import "./WeddingTemplateV2.module.css";
 
-import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
+import {
+  MAX_VISIBLE_NAV_ITEMS,
+  resolveNavLabel,
+  shouldShowInNav,
+} from "@/lib/section-nav-defaults";
 
 type WeddingTemplateV2Props = {
   config: EventPageConfigV1;
@@ -80,15 +84,6 @@ type WeddingTemplateV2Props = {
    *  button alongside its other actions. */
   canShare?: boolean;
 };
-
-const V2_LABEL_OVERRIDES: Record<string, string> = {
-  travelStay: "Travel",
-  registry: "Registry",
-};
-
-function getSectionLabel(type: string): string {
-  return V2_LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
-}
 
 /** Map section type to anchor ID */
 function getSectionId(type: string): string {
@@ -224,12 +219,12 @@ export function WeddingTemplateV2({
   // scroll-then-click) and is flagged as a CTA so the Topbar styles it as a
   // pill button. When eventSlug is unavailable (preview without slug context),
   // we fall back to the standard anchor scroll.
-  const navSections = useMemo(() => {
-    return sections
-      .filter((s) => s.enabled)
+  const { visibleNav, overflowNav } = useMemo(() => {
+    const candidates = sections
+      .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
       .map((s) => {
         const id = getSectionId(s.type);
-        const label = getSectionLabel(s.type);
+        const label = resolveNavLabel(s, "wedding");
         const isOnPage = !navLinkBase || s.type === subPageSection;
         const isRsvp = s.type === "rsvp";
         const href = isRsvp && eventSlug
@@ -239,6 +234,15 @@ export function WeddingTemplateV2({
             : `${navLinkBase}#${id}`;
         return { id, label, href, isCta: isRsvp };
       });
+
+    const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
+    const rsvpItem = candidates.find((c) => c.isCta);
+    const nonRsvp = candidates.filter((c) => !c.isCta);
+    const headSlots = rsvpItem ? cap - 1 : cap;
+    const visible = nonRsvp.slice(0, headSlots);
+    const overflow = nonRsvp.slice(headSlots);
+    if (rsvpItem) visible.push(rsvpItem);
+    return { visibleNav: visible, overflowNav: overflow };
   }, [sections, navLinkBase, subPageSection, eventSlug]);
 
   // Date text for topbar/footer
@@ -252,7 +256,7 @@ export function WeddingTemplateV2({
 
     const key = `${section.type}-${arrayIndex}`;
     const currentSectionIndex = sectionIndex++;
-    const sectionLabel = getSectionLabel(section.type);
+    const sectionLabel = resolveNavLabel(section, "wedding");
 
     const wrapWithAnimation = (content: React.ReactNode) => (
       <AnimatedWrapper
@@ -437,7 +441,8 @@ export function WeddingTemplateV2({
                 monogram={hero.monogram}
                 coupleNames={hero.coupleNames}
                 dateText={dateText}
-                sections={navSections}
+                sections={visibleNav}
+                overflow={overflowNav}
                 accentColor={primaryColor}
                 homeHref={navLinkBase ? `${navLinkBase}#top` : undefined}
                 canShare={canShare ?? false}
@@ -481,7 +486,7 @@ export function WeddingTemplateV2({
               monogram={hero.monogram}
               coupleNames={hero.coupleNames}
               dateText={dateText}
-              sections={navSections}
+              sections={[...visibleNav, ...overflowNav]}
               socialLinks={config.socialLinks}
             />
           </article>

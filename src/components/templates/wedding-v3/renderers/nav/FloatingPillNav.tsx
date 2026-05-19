@@ -11,11 +11,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 
 export function FloatingPillNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   const [visible, setVisible] = useState(false);
 
@@ -99,7 +101,7 @@ export function FloatingPillNav({
         .map((s) => (
           <a
             key={s.id}
-            href={`#${s.id}`}
+            href={s.href ?? `#${s.id}`}
             className="gl-nav-link"
             style={{
               fontFamily: "var(--sans)",
@@ -118,6 +120,35 @@ export function FloatingPillNav({
             {s.label}
           </a>
         ))}
+
+      {overflow.length > 0 && (
+        <NavMoreDropdown
+          items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+          buttonStyle={{
+            fontFamily: "var(--sans)",
+            fontSize: "0.65rem",
+            fontWeight: 500,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase" as const,
+            color: "rgba(255,255,255,0.6)",
+            padding: "6px 10px",
+            borderRadius: 999,
+          }}
+          menuStyle={{
+            background: "rgba(30, 27, 23, 0.95)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
+          itemStyle={{
+            fontFamily: "var(--sans)",
+            fontSize: "0.65rem",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase" as const,
+            color: "rgba(255,255,255,0.7)",
+            padding: "0.6rem 0.9rem",
+          }}
+        />
+      )}
 
       {/* RSVP accent pill */}
       {navSections.some((s) => s.id === "rsvp") && (

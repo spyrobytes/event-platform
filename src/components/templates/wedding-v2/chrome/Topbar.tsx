@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ShareButton } from "@/components/features/ShareButton";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 import styles from "./Topbar.module.css";
 
 type NavSection = {
@@ -19,6 +20,9 @@ type TopbarProps = {
   coupleNames?: string;
   dateText?: string;
   sections?: NavSection[];
+  /** Items that didn't fit in the curated top bar; rendered under a
+   *  "More ▾" dropdown on desktop and inlined into the mobile drawer. */
+  overflow?: NavSection[];
   accentColor?: string;
   homeHref?: string;
   /** When true, renders a ShareButton (navigator.share + clipboard fallback)
@@ -46,6 +50,7 @@ export function Topbar({
   coupleNames,
   dateText,
   sections = [],
+  overflow = [],
   homeHref,
   canShare = false,
   shareTitle,
@@ -70,7 +75,8 @@ export function Topbar({
 
   // Active nav highlight via IntersectionObserver
   useEffect(() => {
-    if (sections.length === 0) return;
+    const allIds = [...sections, ...overflow].map((s) => s.id);
+    if (allIds.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -83,13 +89,13 @@ export function Topbar({
       { rootMargin: "-30% 0px -65% 0px", threshold: 0.01 }
     );
 
-    sections.forEach(({ id }) => {
+    allIds.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, [sections]);
+  }, [sections, overflow]);
 
   const handleNavClick = () => {
     setMobileNavOpen(false);
@@ -118,7 +124,7 @@ export function Topbar({
         </a>
 
         {/* Section nav links */}
-        {sections.length > 0 && (
+        {(sections.length > 0 || overflow.length > 0) && (
           <nav
             className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
             aria-label="Page sections"
@@ -131,6 +137,32 @@ export function Topbar({
                   styles.navLink,
                   activeSection === id && !isCta ? styles.navLinkActive : "",
                   isCta ? styles.navLinkCta : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onClick={handleNavClick}
+              >
+                {label}
+              </a>
+            ))}
+            {/* Desktop "More ▾" — overflow items hidden when the mobile
+                 drawer is open (drawer renders them inline below). */}
+            {overflow.length > 0 && !mobileNavOpen && (
+              <NavMoreDropdown
+                items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+                buttonClassName={styles.navLink}
+                onSelect={handleNavClick}
+              />
+            )}
+            {/* Mobile drawer: render overflow as inline links so users can
+                 reach every nav target without the dropdown affordance. */}
+            {overflow.length > 0 && mobileNavOpen && overflow.map(({ id, label, href }) => (
+              <a
+                key={`overflow-${id}`}
+                href={href ?? `#${id}`}
+                className={[
+                  styles.navLink,
+                  activeSection === id ? styles.navLinkActive : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -153,7 +185,7 @@ export function Topbar({
             />
           )}
 
-          {sections.length > 0 && (
+          {(sections.length > 0 || overflow.length > 0) && (
             <button
               className={styles.navToggle}
               onClick={() => setMobileNavOpen(!mobileNavOpen)}

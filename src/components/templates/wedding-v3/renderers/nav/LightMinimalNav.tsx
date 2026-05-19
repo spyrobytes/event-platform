@@ -9,12 +9,14 @@
  */
 
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 import styles from "./LightMinimalNav.module.css";
 
 export function LightMinimalNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   const hasRsvp = sections.some((s) => s.id === "rsvp");
 
@@ -32,15 +34,23 @@ export function LightMinimalNav({
         </a>
 
         {/* Center: section links */}
-        {navSections.length > 0 && (
+        {(navSections.length > 0 || overflow.length > 0) && (
           <ul className={styles.links}>
             {navSections.map((s) => (
               <li key={s.id}>
-                <a href={`#${s.id}`} className={styles.link}>
+                <a href={s.href ?? `#${s.id}`} className={styles.link}>
                   {s.label}
                 </a>
               </li>
             ))}
+            {overflow.length > 0 && (
+              <li>
+                <NavMoreDropdown
+                  items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+                  buttonClassName={styles.link}
+                />
+              </li>
+            )}
           </ul>
         )}
 
