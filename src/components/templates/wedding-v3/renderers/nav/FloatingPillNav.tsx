@@ -134,17 +134,11 @@ export function FloatingPillNav({
             padding: "6px 10px",
             borderRadius: 999,
           }}
-          menuStyle={{
-            background: "rgba(30, 27, 23, 0.95)",
-            backdropFilter: "blur(16px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-          }}
           itemStyle={{
             fontFamily: "var(--sans)",
             fontSize: "0.65rem",
             letterSpacing: "0.1em",
             textTransform: "uppercase" as const,
-            color: "rgba(255,255,255,0.7)",
             padding: "0.6rem 0.9rem",
           }}
         />

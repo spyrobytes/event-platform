@@ -125,10 +125,14 @@ export function NavMoreDropdown({
           id={menuId}
           role="menu"
           onKeyDown={handleMenuKey}
-          style={menuStyle}
+          style={{
+            background: "var(--surface, #ffffff)",
+            border: "1px solid var(--border, rgba(0,0,0,0.08))",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            ...menuStyle,
+          }}
           className={cn(
-            "absolute right-0 top-full z-50 mt-2 min-w-[10rem] rounded-md py-1 shadow-lg",
-            !menuStyle && "border bg-background",
+            "absolute right-0 top-full z-50 mt-2 min-w-[10rem] rounded-md py-1",
             menuClassName,
           )}
         >
@@ -144,10 +148,12 @@ export function NavMoreDropdown({
                   close();
                   onSelect?.(item);
                 }}
-                style={itemStyle}
+                style={{
+                  color: "var(--text, #1f1f1f)",
+                  ...itemStyle,
+                }}
                 className={cn(
-                  "block px-3 py-2 text-sm transition-colors focus:outline-none",
-                  !itemStyle && "hover:bg-muted focus:bg-muted",
+                  "block px-3 py-2 text-sm transition-colors focus:outline-none hover:bg-black/5 focus:bg-black/5",
                   itemClassName,
                 )}
               >

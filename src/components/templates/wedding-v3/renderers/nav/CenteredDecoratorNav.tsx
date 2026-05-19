@@ -137,11 +137,14 @@ export function CenteredDecoratorNav({
               <NavMoreDropdown
                 items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
                 buttonStyle={linkBaseStyle}
-                menuStyle={{
-                  background: "var(--text, #3d3830)",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                itemStyle={{
+                  fontFamily: "var(--sans)",
+                  fontSize: "0.7rem",
+                  fontWeight: 500,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase" as const,
+                  padding: "0.5rem 0.9rem",
                 }}
-                itemStyle={{ ...linkBaseStyle, padding: "0.5rem 0.9rem" }}
               />
             </span>
           )}
