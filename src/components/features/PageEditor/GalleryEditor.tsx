@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { GallerySection } from "@/schemas/event-page";
+import { PAGE_CONFIG_LIMITS, type GallerySection } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -41,7 +41,7 @@ export function GalleryEditor({
   data,
   assets,
   onChange,
-  maxImages = 20,
+  maxImages = PAGE_CONFIG_LIMITS.maxGalleryImages,
   templateId,
 }: GalleryEditorProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);

@@ -190,9 +190,9 @@ export const gallerySectionDataSchema = z.object({
   // Section heading
   heading: z.string().max(60, "Heading must be 60 characters or less").optional(),
   // New items array with per-image metadata
-  items: z.array(galleryItemSchema).max(20, "Maximum 20 gallery images allowed").optional(),
+  items: z.array(galleryItemSchema).max(30, "Maximum 30 gallery images allowed").optional(),
   // Legacy field for backward compatibility - will be migrated to items
-  assetIds: z.array(z.string().cuid()).max(20).optional(),
+  assetIds: z.array(z.string().cuid()).max(30).optional(),
   // Display settings (all optional for backward compatibility)
   displayMode: galleryDisplayModeSchema.optional(),
   autoPlay: z.boolean().optional(),
@@ -434,7 +434,7 @@ export const partyMemberSchema = z.object({
 export const weddingPartySectionDataSchema = z.object({
   heading: z.string().max(80, "Heading must be 80 characters or less").default("The Wedding Party"),
   description: z.string().max(300, "Description must be 300 characters or less").optional(),
-  members: z.array(partyMemberSchema).max(16, "Maximum 16 party members allowed"),
+  members: z.array(partyMemberSchema).max(30, "Maximum 30 party members allowed"),
 });
 
 export const weddingPartySectionSchema = z.object({
@@ -699,11 +699,12 @@ export type EventPageConfigV1 = z.infer<typeof eventPageConfigV1Schema>;
 
 export const PAGE_CONFIG_LIMITS = {
   maxSections: 12,
-  maxGalleryImages: 20,
+  maxGalleryImages: 30,
   maxFaqItems: 10,
   maxScheduleItems: 20,
   maxSpeakers: 12,
   maxSponsors: 20,
+  maxPartyMembers: 30,
   heroTitleLength: 80,
   heroSubtitleLength: 120,
   maxFileSizeBytes: 5 * 1024 * 1024, // 5MB
