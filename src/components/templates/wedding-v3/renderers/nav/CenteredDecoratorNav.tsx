@@ -157,10 +157,12 @@ export function CenteredDecoratorNav({
             stays reachable on small screens. */}
         <MobileNavMenu
           className="fine-art-mobile-menu"
-          items={[...navSections, ...overflow].map(({ id, label, href }) => ({
-            id,
-            label,
-            href: href ?? `#${id}`,
+          brand={displayMonogram}
+          items={[...navSections, ...overflow].map((s) => ({
+            id: s.id,
+            label: s.label,
+            href: s.href ?? `#${s.id}`,
+            isCta: s.id === "rsvp",
           }))}
           buttonStyle={{
             width: 36,
@@ -169,20 +171,6 @@ export function CenteredDecoratorNav({
             border: "1.5px solid rgba(255, 255, 255, 0.35)",
             color: "rgba(255, 255, 255, 0.85)",
             background: "transparent",
-            cursor: "pointer",
-          }}
-          menuStyle={{
-            background: "var(--text, #3d3830)",
-            border: "1px solid rgba(255,255,255,0.12)",
-          }}
-          itemStyle={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.72rem",
-            fontWeight: 500,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase" as const,
-            color: "rgba(255,255,255,0.85)",
-            padding: "10px 16px",
           }}
         />
       </div>

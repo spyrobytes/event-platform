@@ -68,10 +68,13 @@ export function TransparentStickyNav({
           )}
           <MobileNavMenu
             className="ed-nav-mobile-menu"
-            items={[
-              ...sections.filter((s) => s.id !== "rsvp"),
-              ...overflow,
-            ].map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+            brand={coupleNames || "Our Wedding"}
+            items={[...sections, ...overflow].map((s) => ({
+              id: s.id,
+              label: s.label,
+              href: s.href ?? `#${s.id}`,
+              isCta: s.id === "rsvp",
+            }))}
             buttonStyle={{
               width: 34,
               height: 34,
@@ -79,20 +82,6 @@ export function TransparentStickyNav({
               border: "1px solid rgba(255,255,255,0.3)",
               color: "rgba(255,255,255,0.85)",
               background: "transparent",
-              cursor: "pointer",
-            }}
-            menuStyle={{
-              background: "var(--text, #2a2622)",
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-            itemStyle={{
-              fontFamily: "var(--sans)",
-              fontSize: "0.72rem",
-              fontWeight: 500,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase" as const,
-              color: "rgba(255,255,255,0.85)",
-              padding: "10px 16px",
             }}
           />
         </div>

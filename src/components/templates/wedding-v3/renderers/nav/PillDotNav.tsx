@@ -163,10 +163,12 @@ export function PillDotNav({
         {/* Mobile-only hamburger + anchored popover. */}
         <MobileNavMenu
           className="gh-nav-mobile-menu"
-          items={[...navSections, ...overflow].map(({ id, label, href }) => ({
-            id,
-            label,
-            href: href ?? `#${id}`,
+          brand={displayMonogram}
+          items={[...navSections, ...overflow].map((s) => ({
+            id: s.id,
+            label: s.label,
+            href: s.href ?? `#${s.id}`,
+            isCta: s.id === "rsvp",
           }))}
           buttonStyle={{
             width: 36,
@@ -175,20 +177,6 @@ export function PillDotNav({
             border: "1px solid var(--border, #e8e1d6)",
             color: "var(--text-2, #786f65)",
             background: "transparent",
-            cursor: "pointer",
-          }}
-          menuStyle={{
-            background: "var(--surface, #ffffff)",
-            border: "1px solid var(--border, #e8e1d6)",
-          }}
-          itemStyle={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.72rem",
-            fontWeight: 500,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase" as const,
-            color: "var(--text, #3d3830)",
-            padding: "10px 16px",
           }}
         />
       </div>

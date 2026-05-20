@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 import styles from "./UtilityForwardNav.module.css";
 
 export function UtilityForwardNav({
@@ -24,7 +25,6 @@ export function UtilityForwardNav({
     if (typeof window === "undefined") return false;
     return window.scrollY > 80;
   });
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
 
   // Scroll detection for frosted glass
@@ -68,10 +68,6 @@ export function UtilityForwardNav({
     return () => observer.disconnect();
   }, [sections, overflow]);
 
-  const handleNavClick = () => {
-    setMobileNavOpen(false);
-  };
-
   // RSVP keeps its accent-pill styling when present in the curated visible
   // list; everything else (and overflow) renders as a standard nav link.
   const rsvpSection = sections.find((s) => s.id === "rsvp");
@@ -94,81 +90,56 @@ export function UtilityForwardNav({
           ) : null}
         </a>
 
-        {/* Section nav links with active underline */}
-        <nav
-          className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
-          aria-label="Page sections"
-        >
+        {/* Desktop nav (links + accent RSVP pill + More dropdown) */}
+        <nav className={styles.nav} aria-label="Page sections">
           {otherSections.map((s) => (
             <a
               key={s.id}
               href={s.href ?? `#${s.id}`}
               className={`${styles.navLink} ${activeSection === s.id ? styles.navLinkActive : ""}`}
-              onClick={handleNavClick}
             >
               {s.label}
             </a>
           ))}
-
-          {/* RSVP accent pill (kept visually distinct from the standard nav links) */}
           {rsvpSection && (
             <a
               key={rsvpSection.id}
               href={rsvpSection.href ?? `#${rsvpSection.id}`}
               className={`${styles.priorityLink} ${styles.priorityRsvp}`}
-              onClick={handleNavClick}
             >
               {rsvpSection.label}
             </a>
           )}
-
-          {/* Mobile drawer: render overflow as inline links so users can
-              reach every nav target without the dropdown affordance. */}
-          {overflow.length > 0 && mobileNavOpen && overflow.map((s) => (
-            <a
-              key={`overflow-${s.id}`}
-              href={s.href ?? `#${s.id}`}
-              className={`${styles.navLink} ${activeSection === s.id ? styles.navLinkActive : ""}`}
-              onClick={handleNavClick}
-            >
-              {s.label}
-            </a>
-          ))}
-
-          {/* Desktop "More ▾" — last in the nav row. Hidden when the mobile
-              drawer is open (drawer renders overflow inline above). */}
-          {overflow.length > 0 && !mobileNavOpen && (
+          {overflow.length > 0 && (
             <NavMoreDropdown
               items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
               buttonClassName={styles.navLink}
-              onSelect={handleNavClick}
             />
           )}
         </nav>
 
-        {/* Actions */}
+        {/* Mobile-only menu (shared MobileNavMenu primitive). */}
         <div className={styles.actions}>
           {(sections.length > 0 || overflow.length > 0) && (
-            <button
+            <MobileNavMenu
               className={styles.navToggle}
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              aria-label="Toggle navigation"
-              aria-expanded={mobileNavOpen}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                width={18}
-                height={18}
-              >
-                <line x1="4" y1="6" x2="20" y2="6" />
-                <line x1="4" y1="12" x2="20" y2="12" />
-                <line x1="4" y1="18" x2="20" y2="18" />
-              </svg>
-            </button>
+              brand={coupleNames || monogram || ""}
+              items={[...sections, ...overflow].map((s) => ({
+                id: s.id,
+                label: s.label,
+                href: s.href ?? `#${s.id}`,
+                isCta: s.id === "rsvp",
+              }))}
+              buttonStyle={{
+                width: 40,
+                height: 40,
+                borderRadius: 999,
+                border: "1px solid var(--border, #e8e1d6)",
+                color: "var(--text-2, #786f65)",
+                background: "transparent",
+              }}
+              desktopBreakpoint={900}
+            />
           )}
         </div>
       </div>

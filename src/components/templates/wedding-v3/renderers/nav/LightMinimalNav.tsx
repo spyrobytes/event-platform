@@ -64,10 +64,12 @@ export function LightMinimalNav({
           )}
           <MobileNavMenu
             className="im-nav-mobile-menu"
-            items={[...navSections, ...overflow].map(({ id, label, href }) => ({
-              id,
-              label,
-              href: href ?? `#${id}`,
+            brand={monogram || (coupleNames ? coupleNames.charAt(0) : "W")}
+            items={[...navSections, ...overflow, ...(hasRsvp ? [{ id: "rsvp", label: "RSVP", href: "#rsvp" }] : [])].map((s) => ({
+              id: s.id,
+              label: s.label,
+              href: s.href ?? `#${s.id}`,
+              isCta: s.id === "rsvp",
             }))}
             buttonStyle={{
               width: 34,
@@ -76,21 +78,8 @@ export function LightMinimalNav({
               border: "1.5px solid rgba(255,255,255,0.35)",
               color: "rgba(255,255,255,0.85)",
               background: "transparent",
-              cursor: "pointer",
             }}
-            menuStyle={{
-              background: "var(--text, #3c3834)",
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-            itemStyle={{
-              fontFamily: "var(--sans)",
-              fontSize: "0.72rem",
-              fontWeight: 500,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase" as const,
-              color: "rgba(255,255,255,0.85)",
-              padding: "10px 16px",
-            }}
+            desktopBreakpoint={640}
           />
         </div>
       </div>

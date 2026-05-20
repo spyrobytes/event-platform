@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ShareButton } from "@/components/features/ShareButton";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 import styles from "./Topbar.module.css";
 
 type NavSection = {
@@ -60,7 +61,6 @@ export function Topbar({
     if (typeof window === "undefined") return false;
     return window.scrollY > 40;
   });
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
 
   // Scrolled state: frosted glass after 40px
@@ -97,10 +97,6 @@ export function Topbar({
     return () => observer.disconnect();
   }, [sections, overflow]);
 
-  const handleNavClick = () => {
-    setMobileNavOpen(false);
-  };
-
   return (
     <header
       className={`${styles.topbar} ${scrolled ? styles.scrolled : ""}`}
@@ -123,12 +119,9 @@ export function Topbar({
           </div>
         </a>
 
-        {/* Section nav links */}
+        {/* Desktop nav links */}
         {(sections.length > 0 || overflow.length > 0) && (
-          <nav
-            className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
-            aria-label="Page sections"
-          >
+          <nav className={styles.nav} aria-label="Page sections">
             {sections.map(({ id, label, href, isCta }) => (
               <a
                 key={id}
@@ -140,41 +133,20 @@ export function Topbar({
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                onClick={handleNavClick}
               >
                 {label}
               </a>
             ))}
-            {/* Desktop "More ▾" — overflow items hidden when the mobile
-                 drawer is open (drawer renders them inline below). */}
-            {overflow.length > 0 && !mobileNavOpen && (
+            {overflow.length > 0 && (
               <NavMoreDropdown
                 items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
                 buttonClassName={styles.navLink}
-                onSelect={handleNavClick}
               />
             )}
-            {/* Mobile drawer: render overflow as inline links so users can
-                 reach every nav target without the dropdown affordance. */}
-            {overflow.length > 0 && mobileNavOpen && overflow.map(({ id, label, href }) => (
-              <a
-                key={`overflow-${id}`}
-                href={href ?? `#${id}`}
-                className={[
-                  styles.navLink,
-                  activeSection === id ? styles.navLinkActive : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={handleNavClick}
-              >
-                {label}
-              </a>
-            ))}
           </nav>
         )}
 
-        {/* Actions */}
+        {/* Actions: share + mobile hamburger */}
         <div className={styles.actions}>
           {canShare && shareUrl && (
             <ShareButton
@@ -186,28 +158,26 @@ export function Topbar({
           )}
 
           {(sections.length > 0 || overflow.length > 0) && (
-            <button
+            <MobileNavMenu
               className={styles.navToggle}
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              aria-label="Toggle navigation"
-              aria-expanded={mobileNavOpen}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                width={20}
-                height={20}
-              >
-                <line x1="4" y1="6" x2="20" y2="6" />
-                <line x1="4" y1="12" x2="20" y2="12" />
-                <line x1="4" y1="18" x2="20" y2="18" />
-              </svg>
-            </button>
+              brand={coupleNames || monogram || ""}
+              items={[...sections, ...overflow].map((s) => ({
+                id: s.id,
+                label: s.label,
+                href: s.href ?? `#${s.id}`,
+                isCta: s.isCta || s.id === "rsvp",
+              }))}
+              buttonStyle={{
+                width: 40,
+                height: 40,
+                borderRadius: "var(--r, 16px)",
+                border: "1px solid var(--border, #e8e1d6)",
+                color: "var(--text-2, #786f65)",
+                background: "transparent",
+              }}
+              desktopBreakpoint={900}
+            />
           )}
-
         </div>
       </div>
     </header>

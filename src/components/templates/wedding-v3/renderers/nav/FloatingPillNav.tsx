@@ -177,10 +177,13 @@ export function FloatingPillNav({
           non-RSVP visible items plus overflow. */}
       <MobileNavMenu
         className="gl-nav-mobile-menu"
-        items={[
-          ...navSections.filter((s) => s.id !== "rsvp"),
-          ...overflow,
-        ].map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+        brand={displayMonogram}
+        items={[...navSections, ...overflow].map((s) => ({
+          id: s.id,
+          label: s.label,
+          href: s.href ?? `#${s.id}`,
+          isCta: s.id === "rsvp",
+        }))}
         buttonStyle={{
           width: 32,
           height: 32,
@@ -188,22 +191,6 @@ export function FloatingPillNav({
           border: "1px solid rgba(255,255,255,0.25)",
           color: "rgba(255,255,255,0.85)",
           background: "transparent",
-          cursor: "pointer",
-        }}
-        menuStyle={{
-          background: "rgba(30, 27, 23, 0.96)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          border: "1px solid rgba(255,255,255,0.1)",
-        }}
-        itemStyle={{
-          fontFamily: "var(--sans)",
-          fontSize: "0.72rem",
-          fontWeight: 500,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase" as const,
-          color: "rgba(255,255,255,0.85)",
-          padding: "10px 16px",
         }}
       />
 
