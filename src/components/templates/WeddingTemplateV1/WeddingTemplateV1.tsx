@@ -3,6 +3,7 @@
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { AnimationProvider, AnimatedWrapper, SectionNavProvider, SectionNav } from "../shared";
+import { FloatingMobileNavMenu } from "../shared/MobileNavMenu";
 import {
   HeroSection,
   DetailsSection,
@@ -46,6 +47,19 @@ export function WeddingTemplateV1({ config, assets, eventId, eventSlug }: Weddin
 
   // Track section index for stagger animation
   let sectionIndex = 0;
+
+  // Mobile drawer items mirror the dot-rail registration rules so labels,
+  // order, and inclusion match the desktop nav exactly. RSVP is pinned
+  // to the bottom as the CTA.
+  const mobileNavItems = sections
+    .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
+    .filter((s) => s.type !== "rsvp" || Boolean(eventSlug))
+    .map((s) => ({
+      id: s.type,
+      label: resolveNavLabel(s, "wedding"),
+      href: `#${s.type}`,
+      isCta: s.type === "rsvp",
+    }));
 
   return (
     <SectionNavProvider>
@@ -163,8 +177,15 @@ export function WeddingTemplateV1({ config, assets, eventId, eventSlug }: Weddin
           </footer>
         </article>
 
-        {/* Floating Section Navigation */}
+        {/* Floating Section Navigation (desktop dot rail) */}
         <SectionNav accentColor={theme.primaryColor} />
+
+        {/* Mobile hamburger drawer — dot rail is hidden ≤768px */}
+        <FloatingMobileNavMenu
+          items={mobileNavItems}
+          brand={hero.title}
+          accentColor={theme.primaryColor}
+        />
       </AnimationProvider>
     </SectionNavProvider>
   );

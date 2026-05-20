@@ -326,6 +326,11 @@ export function AnimatedWrapper({
   return (
     <div
       ref={combinedRef}
+      // id is set so hash links (e.g. mobile drawer `href="#rsvp"`) scroll
+      // the registered wrapper into view. Section components themselves do
+      // not all carry their own id, and SectionNav navigates via context;
+      // mirroring it here makes native hash navigation work too.
+      id={shouldRegisterNav ? navId : undefined}
       className={cn(
         styles.section,
         animationClass,

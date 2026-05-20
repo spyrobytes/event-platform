@@ -1,0 +1,24 @@
+/**
+ * Floating Mobile Nav Menu trigger positioning.
+ *
+ * Pairs with MobileNavMenu to give templates without a top bar
+ * (e.g. V1 family) a hamburger trigger pinned to the corner of
+ * the viewport. Visible only at mobile widths.
+ */
+
+.trigger {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
+  right: calc(env(safe-area-inset-right, 0px) + 0.75rem);
+  z-index: 50;
+  /* !important is required because MobileNavMenu sets an inline
+     `display: inline-flex` on its wrapper div, which would otherwise
+     override the desktop-hide rule. */
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .trigger {
+    display: inline-flex !important;
+  }
+}
