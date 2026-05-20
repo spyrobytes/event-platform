@@ -100,8 +100,8 @@ export function MobileNavMenu({
   return (
     <div
       ref={containerRef}
-      className={cn("relative", className)}
-      style={{ display: "inline-flex", alignItems: "center" }}
+      className={className}
+      style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
     >
       <button
         type="button"
@@ -140,10 +140,10 @@ export function MobileNavMenu({
             position: "absolute",
             top: "calc(100% + 8px)",
             right: 0,
+            left: "auto",
             zIndex: 100,
-            width: "max-content",
-            minWidth: 180,
-            maxWidth: "min(260px, calc(100vw - 24px))",
+            width: 220,
+            maxWidth: "calc(100vw - 24px)",
             margin: 0,
             padding: "6px 0",
             listStyle: "none",

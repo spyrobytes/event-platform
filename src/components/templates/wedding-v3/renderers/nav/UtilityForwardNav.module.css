@@ -139,9 +139,10 @@
   background: var(--accent, #7a8c72);
 }
 
-/* Priority action buttons — y-padding and inline-flex centring keep the
-   pill the same height as adjacent .navLink so the row reads as a single
-   baseline. x-padding stays wider to preserve the visible CTA emphasis. */
+/* Priority action buttons — share .navLink's padding and inline-flex
+   centring so the pill aligns to the same baseline AND inter-item gap
+   as adjacent text links. Pill emphasis comes from the background fill,
+   text colour, and font-weight, not from extra padding. */
 .priorityLink {
   display: inline-flex;
   align-items: center;
@@ -152,7 +153,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
-  padding: 6px 16px;
+  padding: 6px 12px;
   border-radius: 999px;
   transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.4s ease,
     background 0.4s ease, text-shadow 0.4s ease;
