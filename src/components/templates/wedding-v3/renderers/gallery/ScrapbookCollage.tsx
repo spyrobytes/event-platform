@@ -24,6 +24,8 @@ type ResolvedItem = {
   title?: string;
   url: string;
   blurDataUrl?: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 export function ScrapbookCollage({
@@ -37,7 +39,15 @@ export function ScrapbookCollage({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { assetId: item.assetId, caption: item.caption, title: item.title, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
+        return {
+          assetId: item.assetId,
+          caption: item.caption,
+          title: item.title,
+          url: asset.publicUrl,
+          blurDataUrl: asset.blurDataUrl,
+          width: asset.width,
+          height: asset.height,
+        };
       })
       .filter(Boolean) as ResolvedItem[];
   }, [normalized.items, assets]);
@@ -370,12 +380,17 @@ function ScrapbookLightbox({
           position: "relative",
         }}
       >
-        <img
+        <EventImage
           src={item.url}
           alt={captionText || ""}
+          width={item.width ?? 1600}
+          height={item.height ?? 1200}
+          sizes="(max-width: 768px) 100vw, 1000px"
+          blurDataURL={item.blurDataUrl}
           style={{
             display: "block",
             width: "100%",
+            height: "auto",
             maxHeight: "calc(100svh - 120px)",
             objectFit: "contain",
           }}

@@ -27,7 +27,13 @@ export function SoftMasonry({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
+        return {
+          ...item,
+          url: asset.publicUrl,
+          blurDataUrl: asset.blurDataUrl,
+          width: asset.width,
+          height: asset.height,
+        };
       })
       .filter(Boolean) as Array<{
         assetId: string;
@@ -35,6 +41,8 @@ export function SoftMasonry({
         title?: string;
         url: string;
         blurDataUrl?: string | null;
+        width: number | null;
+        height: number | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -146,9 +154,13 @@ export function SoftMasonry({
               className={styles.lbFrame}
               onClick={(e) => e.stopPropagation()}
             >
-              <img
+              <EventImage
                 src={current.url}
                 alt={current.caption || ""}
+                width={current.width ?? 1600}
+                height={current.height ?? 1200}
+                sizes="(max-width: 768px) 100vw, 80vw"
+                blurDataURL={current.blurDataUrl}
                 className={styles.lbImage}
               />
               {current.caption && (

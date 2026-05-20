@@ -27,7 +27,13 @@ export function CompactStrip({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
+        return {
+          ...item,
+          url: asset.publicUrl,
+          blurDataUrl: asset.blurDataUrl,
+          width: asset.width,
+          height: asset.height,
+        };
       })
       .filter(Boolean) as Array<{
         assetId: string;
@@ -35,6 +41,8 @@ export function CompactStrip({
         title?: string;
         url: string;
         blurDataUrl?: string | null;
+        width: number | null;
+        height: number | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -114,11 +122,17 @@ export function CompactStrip({
             </button>
 
             <div className={styles.lbImageWrap} onClick={(e) => e.stopPropagation()}>
-              <img
-                src={resolvedItems[lightboxIndex]?.url}
-                alt={resolvedItems[lightboxIndex]?.caption || ""}
-                className={styles.lbImage}
-              />
+              {resolvedItems[lightboxIndex] && (
+                <EventImage
+                  src={resolvedItems[lightboxIndex].url}
+                  alt={resolvedItems[lightboxIndex].caption || ""}
+                  width={resolvedItems[lightboxIndex].width ?? 1600}
+                  height={resolvedItems[lightboxIndex].height ?? 1200}
+                  sizes="(max-width: 768px) 100vw, 80vw"
+                  blurDataURL={resolvedItems[lightboxIndex].blurDataUrl}
+                  className={styles.lbImage}
+                />
+              )}
               {resolvedItems[lightboxIndex]?.caption && (
                 <p className={styles.lbCaption}>
                   {resolvedItems[lightboxIndex].caption}
