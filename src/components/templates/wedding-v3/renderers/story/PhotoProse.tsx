@@ -10,6 +10,7 @@
 
 import type { SectionRendererProps } from "../../types";
 import type { StorySection } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 
 export function PhotoProse({
   data,
@@ -60,17 +61,20 @@ export function PhotoProse({
                   {img?.publicUrl && (
                     <div
                       style={{
+                        position: "relative",
                         aspectRatio: "16 / 10",
                         borderRadius: "var(--r-lg, 24px)",
                         overflow: "hidden",
                         marginBottom: "clamp(16px, 2vw, 24px)",
                       }}
                     >
-                      <img
+                      <EventImage
                         src={img.publicUrl}
                         alt={m.title || ""}
-                        loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 680px"
+                        blurDataURL={img.blurDataUrl}
+                        style={{ objectFit: "cover", objectPosition: "center 25%" }}
                       />
                     </div>
                   )}
@@ -118,13 +122,21 @@ export function PhotoProse({
             {mainImage?.publicUrl && (
               <div
                 style={{
+                  position: "relative",
                   aspectRatio: "16 / 10",
                   borderRadius: "var(--r-lg, 24px)",
                   overflow: "hidden",
                   marginBottom: "clamp(24px, 3vw, 40px)",
                 }}
               >
-                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }} />
+                <EventImage
+                  src={mainImage.publicUrl}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 620px"
+                  blurDataURL={mainImage.blurDataUrl}
+                  style={{ objectFit: "cover", objectPosition: "center 25%" }}
+                />
               </div>
             )}
             <p

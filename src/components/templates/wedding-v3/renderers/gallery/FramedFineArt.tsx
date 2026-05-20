@@ -15,6 +15,8 @@ import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
+import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import type { ResolvedGalleryItem } from "./types";
 import styles from "./FramedFineArt.module.css";
 
 export function FramedFineArt({
@@ -28,15 +30,15 @@ export function FramedFineArt({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
+        return {
+          ...item,
+          url: asset.publicUrl,
+          blurDataUrl: asset.blurDataUrl,
+          width: asset.width,
+          height: asset.height,
+        };
       })
-      .filter(Boolean) as Array<{
-        assetId: string;
-        caption?: string;
-        title?: string;
-        url: string;
-        blurDataUrl?: string | null;
-      }>;
+      .filter(Boolean) as ResolvedGalleryItem[];
   }, [normalized.items, assets]);
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -122,7 +124,15 @@ export function FramedFineArt({
             </button>
 
             <div className={styles.lbFrame} onClick={(e) => e.stopPropagation()}>
-              <img src={current.url} alt={current.caption || ""} className={styles.lbImage} />
+              <EventImage
+                src={current.url}
+                alt={current.caption || ""}
+                width={current.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
+                height={current.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
+                sizes="(max-width: 768px) 100vw, 80vw"
+                blurDataURL={current.blurDataUrl}
+                className={styles.lbImage}
+              />
               {current.caption && (
                 <p className={styles.lbCaption}>{current.caption}</p>
               )}

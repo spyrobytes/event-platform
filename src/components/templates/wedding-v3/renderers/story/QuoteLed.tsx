@@ -10,6 +10,7 @@
 
 import type { SectionRendererProps } from "../../types";
 import type { StorySection } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 
 export function QuoteLed({
   data,
@@ -93,8 +94,15 @@ export function QuoteLed({
         ) : (
           <div style={{ maxWidth: 640, margin: "0 auto" }}>
             {mainImage?.publicUrl && (
-              <div style={{ aspectRatio: "16 / 9", borderRadius: 2, overflow: "hidden", marginBottom: "clamp(32px, 4vw, 48px)" }}>
-                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }} />
+              <div style={{ position: "relative", aspectRatio: "16 / 9", borderRadius: 2, overflow: "hidden", marginBottom: "clamp(32px, 4vw, 48px)" }}>
+                <EventImage
+                  src={mainImage.publicUrl}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 640px"
+                  blurDataURL={mainImage.blurDataUrl}
+                  style={{ objectFit: "cover", objectPosition: "center 25%" }}
+                />
               </div>
             )}
             <p style={{ fontFamily: "var(--sans)", fontSize: "var(--body)", lineHeight: 1.85, color: "var(--text-2)", whiteSpace: "pre-line", textAlign: "left" }}>
