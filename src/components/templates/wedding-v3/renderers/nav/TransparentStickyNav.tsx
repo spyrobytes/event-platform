@@ -10,6 +10,7 @@
 
 import type { NavRendererProps } from "../../types";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 import styles from "./TransparentStickyNav.module.css";
 
 export function TransparentStickyNav({
@@ -58,13 +59,51 @@ export function TransparentStickyNav({
           )}
         </ul>
 
-        {/* Right: RSVP link */}
-        {hasRsvp && (
-          <a href="#rsvp" className={styles.rsvpLink}>
-            RSVP
-          </a>
-        )}
+        {/* Right cluster: RSVP (always) + mobile-only hamburger */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {hasRsvp && (
+            <a href="#rsvp" className={styles.rsvpLink}>
+              RSVP
+            </a>
+          )}
+          <MobileNavMenu
+            className="ed-nav-mobile-menu"
+            items={[
+              ...sections.filter((s) => s.id !== "rsvp"),
+              ...overflow,
+            ].map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+            buttonStyle={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              border: "1px solid rgba(255,255,255,0.3)",
+              color: "rgba(255,255,255,0.85)",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            drawerStyle={{
+              background: "var(--text, #2a2622)",
+              borderBottom: "1px solid rgba(255,255,255,0.12)",
+            }}
+            itemStyle={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.75rem",
+              fontWeight: 500,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase" as const,
+              color: "rgba(255,255,255,0.85)",
+              padding: "14px clamp(20px, 4vw, 40px)",
+            }}
+            drawerTop="calc(var(--banner-offset, 0px) + 64px)"
+          />
+        </div>
       </div>
+      <style>{`
+        .ed-nav-mobile-menu { display: none !important; }
+        @media (max-width: 768px) {
+          .ed-nav-mobile-menu { display: inline-flex !important; }
+        }
+      `}</style>
     </nav>
   );
 }

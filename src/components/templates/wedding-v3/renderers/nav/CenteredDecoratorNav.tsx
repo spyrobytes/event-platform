@@ -10,6 +10,7 @@
 
 import type { NavRendererProps } from "../../types";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 
 export function CenteredDecoratorNav({
   monogram,
@@ -151,36 +152,42 @@ export function CenteredDecoratorNav({
           )}
         </div>
 
-        {/* Mobile-only menu — combines visible + overflow into a single
-            "Menu ▾" so the full nav is reachable at narrow widths where
-            the centered link group is CSS-hidden. */}
-        <div
+        {/* Mobile-only hamburger + full-width drawer. The centered link
+            group is CSS-hidden at ≤768px, so this is how every nav target
+            stays reachable on small screens. */}
+        <MobileNavMenu
           className="fine-art-mobile-menu"
-          style={{
+          items={[...navSections, ...overflow].map(({ id, label, href }) => ({
+            id,
+            label,
+            href: href ?? `#${id}`,
+          }))}
+          buttonStyle={{
             position: "absolute",
             right: "clamp(20px, 4vw, 40px)",
-            display: "none",
-            alignItems: "center",
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            border: "1.5px solid rgba(255, 255, 255, 0.35)",
+            color: "rgba(255, 255, 255, 0.85)",
+            background: "transparent",
+            cursor: "pointer",
           }}
-        >
-          <NavMoreDropdown
-            items={[...navSections, ...overflow].map(({ id, label, href }) => ({
-              id,
-              label,
-              href: href ?? `#${id}`,
-            }))}
-            label="Menu"
-            buttonStyle={linkBaseStyle}
-            itemStyle={{
-              fontFamily: "var(--sans)",
-              fontSize: "0.7rem",
-              fontWeight: 500,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase" as const,
-              padding: "0.5rem 0.9rem",
-            }}
-          />
-        </div>
+          drawerStyle={{
+            background: "var(--text, #3d3830)",
+            borderBottom: "1px solid rgba(255,255,255,0.12)",
+          }}
+          itemStyle={{
+            fontFamily: "var(--sans)",
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase" as const,
+            color: "rgba(255,255,255,0.85)",
+            padding: "14px clamp(20px, 4vw, 40px)",
+          }}
+          drawerTop="calc(var(--banner-offset, 0px) + 60px)"
+        />
       </div>
 
       {/* Hover + mobile styles */}
@@ -190,9 +197,10 @@ export function CenteredDecoratorNav({
           border-color: rgba(255, 255, 255, 0.6) !important;
           box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15) !important;
         }
+        .fine-art-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
           .fine-art-desktop-links { display: none !important; }
-          .fine-art-mobile-menu { display: flex !important; }
+          .fine-art-mobile-menu { display: inline-flex !important; }
         }
       `}</style>
     </nav>

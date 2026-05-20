@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 
 export function FloatingPillNav({
   monogram,
@@ -171,35 +172,41 @@ export function FloatingPillNav({
         </div>
       )}
 
-      {/* Mobile-only menu — every non-RSVP nav target behind one "Menu ▾"
-          since the inline links are CSS-hidden at narrow widths. RSVP stays
-          inline as the primary CTA. */}
-      <div className="gl-nav-mobile-menu" style={{ display: "none", alignItems: "center" }}>
-        <NavMoreDropdown
-          items={[
-            ...navSections.filter((s) => s.id !== "rsvp"),
-            ...overflow,
-          ].map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
-          label="Menu"
-          buttonStyle={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.65rem",
-            fontWeight: 500,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase" as const,
-            color: "rgba(255,255,255,0.6)",
-            padding: "6px 10px",
-            borderRadius: 999,
-          }}
-          itemStyle={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.65rem",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase" as const,
-            padding: "0.6rem 0.9rem",
-          }}
-        />
-      </div>
+      {/* Mobile-only hamburger + full-width drawer. RSVP stays inline as
+          the primary CTA on mobile; the drawer surfaces the remaining
+          non-RSVP visible items plus overflow. */}
+      <MobileNavMenu
+        className="gl-nav-mobile-menu"
+        items={[
+          ...navSections.filter((s) => s.id !== "rsvp"),
+          ...overflow,
+        ].map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+        buttonStyle={{
+          width: 32,
+          height: 32,
+          borderRadius: 999,
+          border: "1px solid rgba(255,255,255,0.25)",
+          color: "rgba(255,255,255,0.85)",
+          background: "transparent",
+          cursor: "pointer",
+        }}
+        drawerStyle={{
+          background: "rgba(30, 27, 23, 0.96)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+        }}
+        itemStyle={{
+          fontFamily: "var(--sans)",
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase" as const,
+          color: "rgba(255,255,255,0.85)",
+          padding: "14px clamp(20px, 4vw, 40px)",
+        }}
+        drawerTop="calc(var(--banner-offset, 0px) + 72px)"
+      />
 
       {/* Hover + mobile styles */}
       <style>{`
@@ -212,6 +219,7 @@ export function FloatingPillNav({
         .gl-nav-rsvp:hover {
           filter: brightness(1.15) !important;
         }
+        .gl-nav-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
           .gl-nav-link,
           nav > div[aria-hidden] { display: none !important; }

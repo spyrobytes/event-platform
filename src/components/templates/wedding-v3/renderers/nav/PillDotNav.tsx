@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 
 export function PillDotNav({
   monogram,
@@ -159,40 +160,38 @@ export function PillDotNav({
           )}
         </div>
 
-        {/* Mobile-only menu — every nav target behind one "Menu ▾" so the
-            full nav is reachable at narrow widths. */}
-        <div className="gh-nav-mobile-menu" style={{ display: "none", alignItems: "center" }}>
-          <NavMoreDropdown
-            items={[...navSections, ...overflow].map(({ id, label, href }) => ({
-              id,
-              label,
-              href: href ?? `#${id}`,
-            }))}
-            label="Menu"
-            buttonStyle={{
-              fontFamily: "var(--sans)",
-              fontSize: "0.68rem",
-              fontWeight: 500,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase" as const,
-              color: "var(--text-2, #786f65)",
-              padding: "6px 14px",
-              borderRadius: 999,
-            }}
-            menuStyle={{
-              background: "var(--surface, #ffffff)",
-              border: "1px solid var(--border, #e8e1d6)",
-            }}
-            itemStyle={{
-              fontFamily: "var(--sans)",
-              fontSize: "0.68rem",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase" as const,
-              color: "var(--text, #3d3830)",
-              padding: "0.55rem 0.9rem",
-            }}
-          />
-        </div>
+        {/* Mobile-only hamburger + full-width drawer. */}
+        <MobileNavMenu
+          className="gh-nav-mobile-menu"
+          items={[...navSections, ...overflow].map(({ id, label, href }) => ({
+            id,
+            label,
+            href: href ?? `#${id}`,
+          }))}
+          buttonStyle={{
+            width: 36,
+            height: 36,
+            borderRadius: 999,
+            border: "1px solid var(--border, #e8e1d6)",
+            color: "var(--text-2, #786f65)",
+            background: "transparent",
+            cursor: "pointer",
+          }}
+          drawerStyle={{
+            background: "var(--surface, #ffffff)",
+            borderBottom: "1px solid var(--border, #e8e1d6)",
+          }}
+          itemStyle={{
+            fontFamily: "var(--sans)",
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase" as const,
+            color: "var(--text, #3d3830)",
+            padding: "14px clamp(16px, 3vw, 32px)",
+          }}
+          drawerTop="calc(var(--banner-offset, 0px) + 60px)"
+        />
       </div>
 
       {/* Hover + mobile styles */}
@@ -208,9 +207,10 @@ export function PillDotNav({
         .gh-nav-rsvp:hover {
           filter: brightness(0.88) !important;
         }
+        .gh-nav-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
           .gh-nav-desktop-links { display: none !important; }
-          .gh-nav-mobile-menu { display: flex !important; }
+          .gh-nav-mobile-menu { display: inline-flex !important; }
         }
       `}</style>
     </nav>
