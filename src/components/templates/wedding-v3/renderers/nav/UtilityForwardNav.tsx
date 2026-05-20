@@ -110,14 +110,16 @@ export function UtilityForwardNav({
             </a>
           ))}
 
-          {/* Desktop "More ▾" — hidden when the mobile drawer is open
-              (drawer renders overflow inline below). */}
-          {overflow.length > 0 && !mobileNavOpen && (
-            <NavMoreDropdown
-              items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
-              buttonClassName={styles.navLink}
-              onSelect={handleNavClick}
-            />
+          {/* RSVP accent pill (kept visually distinct from the standard nav links) */}
+          {rsvpSection && (
+            <a
+              key={rsvpSection.id}
+              href={rsvpSection.href ?? `#${rsvpSection.id}`}
+              className={`${styles.priorityLink} ${styles.priorityRsvp}`}
+              onClick={handleNavClick}
+            >
+              {rsvpSection.label}
+            </a>
           )}
 
           {/* Mobile drawer: render overflow as inline links so users can
@@ -133,16 +135,14 @@ export function UtilityForwardNav({
             </a>
           ))}
 
-          {/* RSVP accent pill (kept visually distinct from the standard nav links) */}
-          {rsvpSection && (
-            <a
-              key={rsvpSection.id}
-              href={rsvpSection.href ?? `#${rsvpSection.id}`}
-              className={`${styles.priorityLink} ${styles.priorityRsvp}`}
-              onClick={handleNavClick}
-            >
-              {rsvpSection.label}
-            </a>
+          {/* Desktop "More ▾" — last in the nav row. Hidden when the mobile
+              drawer is open (drawer renders overflow inline above). */}
+          {overflow.length > 0 && !mobileNavOpen && (
+            <NavMoreDropdown
+              items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+              buttonClassName={styles.navLink}
+              onSelect={handleNavClick}
+            />
           )}
         </nav>
 

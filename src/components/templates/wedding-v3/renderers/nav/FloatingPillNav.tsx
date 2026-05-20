@@ -121,29 +121,6 @@ export function FloatingPillNav({
           </a>
         ))}
 
-      {overflow.length > 0 && (
-        <NavMoreDropdown
-          items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
-          buttonStyle={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.65rem",
-            fontWeight: 500,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase" as const,
-            color: "rgba(255,255,255,0.6)",
-            padding: "6px 10px",
-            borderRadius: 999,
-          }}
-          itemStyle={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.65rem",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase" as const,
-            padding: "0.6rem 0.9rem",
-          }}
-        />
-      )}
-
       {/* RSVP accent pill */}
       {navSections.some((s) => s.id === "rsvp") && (
         <a
@@ -166,6 +143,29 @@ export function FloatingPillNav({
         >
           RSVP
         </a>
+      )}
+
+      {overflow.length > 0 && (
+        <NavMoreDropdown
+          items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+          buttonStyle={{
+            fontFamily: "var(--sans)",
+            fontSize: "0.65rem",
+            fontWeight: 500,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase" as const,
+            color: "rgba(255,255,255,0.6)",
+            padding: "6px 10px",
+            borderRadius: 999,
+          }}
+          itemStyle={{
+            fontFamily: "var(--sans)",
+            fontSize: "0.65rem",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase" as const,
+            padding: "0.6rem 0.9rem",
+          }}
+        />
       )}
 
       {/* Hover + mobile styles */}
