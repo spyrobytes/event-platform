@@ -36,7 +36,9 @@ export function FloatingPillNav({
     monogram || (coupleNames ? coupleNames.charAt(0) : "W");
 
   return (
+    <>
     <nav
+      className="gl-nav-pill"
       style={{
         position: "fixed",
         top: "calc(16px + var(--banner-offset, 0px))",
@@ -172,28 +174,7 @@ export function FloatingPillNav({
         </div>
       )}
 
-      {/* Mobile menu. RSVP stays inline as the CTA; the drawer surfaces
-          everything else. */}
-      <MobileNavMenu
-        className="gl-nav-mobile-menu"
-        brand={displayMonogram}
-        items={[...navSections, ...overflow].map((s) => ({
-          id: s.id,
-          label: s.label,
-          href: s.href ?? `#${s.id}`,
-          isCta: s.id === "rsvp",
-        }))}
-        buttonStyle={{
-          width: 32,
-          height: 32,
-          borderRadius: 999,
-          border: "1px solid rgba(255,255,255,0.25)",
-          color: "rgba(255,255,255,0.85)",
-          background: "transparent",
-        }}
-      />
-
-      {/* Hover + mobile styles */}
+      {/* Hover + mobile styles for the desktop pill */}
       <style>{`
         .gl-nav-monogram:hover {
           background: rgba(197, 165, 90, 0.15) !important;
@@ -204,14 +185,51 @@ export function FloatingPillNav({
         .gl-nav-rsvp:hover {
           filter: brightness(1.15) !important;
         }
-        .gl-nav-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
-          .gl-nav-link,
-          nav > div[aria-hidden] { display: none !important; }
-          .gl-nav-desktop-more { display: none !important; }
-          .gl-nav-mobile-menu { display: inline-flex !important; }
+          /* The pill is for desktop only — the standalone hamburger
+             (rendered outside this nav) is the mobile entry point and
+             must not be gated on scroll. */
+          .gl-nav-pill { display: none !important; }
         }
       `}</style>
     </nav>
+
+    {/* Mobile hamburger — rendered OUTSIDE the scroll-gated pill so it
+        is visible immediately on mobile. Pinned top-right at all times. */}
+    <MobileNavMenu
+      className="gl-nav-mobile-menu"
+      brand={displayMonogram}
+      items={[...navSections, ...overflow].map((s) => ({
+        id: s.id,
+        label: s.label,
+        href: s.href ?? `#${s.id}`,
+        isCta: s.id === "rsvp",
+      }))}
+      buttonStyle={{
+        width: 40,
+        height: 40,
+        borderRadius: 999,
+        border: "1px solid rgba(255,255,255,0.35)",
+        color: "rgba(255,255,255,0.92)",
+        background: "rgba(30, 27, 23, 0.6)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+      }}
+    />
+    <style>{`
+      .gl-nav-mobile-menu {
+        display: none !important;
+      }
+      @media (max-width: 768px) {
+        .gl-nav-mobile-menu {
+          position: fixed !important;
+          top: calc(env(safe-area-inset-top, 0px) + 0.75rem + var(--banner-offset, 0px)) !important;
+          right: calc(env(safe-area-inset-right, 0px) + 0.75rem) !important;
+          z-index: 101 !important;
+          display: inline-flex !important;
+        }
+      }
+    `}</style>
+    </>
   );
 }
