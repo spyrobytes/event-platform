@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 export type MobileNavItem = {
@@ -127,9 +128,14 @@ export function MobileNavMenu({
         </button>
       </div>
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <>
-          {/* Backdrop (click-to-close). */}
+          {/* Backdrop (click-to-close). Portaled to body so it escapes any
+              transformed/filtered/contained ancestor (e.g. the Grand Luxe
+              floating pill has `transform: translateX(-50%)` on its <nav>,
+              which would otherwise make it the containing block for
+              `position: fixed` descendants and trap the drawer inside the
+              pill's rect). */}
           <div
             onClick={close}
             aria-hidden
@@ -318,7 +324,8 @@ export function MobileNavMenu({
               }
             }
           `}</style>
-        </>
+        </>,
+        document.body,
       )}
     </>
   );
