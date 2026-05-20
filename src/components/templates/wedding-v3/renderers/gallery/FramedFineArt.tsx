@@ -15,6 +15,8 @@ import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
+import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import type { ResolvedGalleryItem } from "./types";
 import styles from "./FramedFineArt.module.css";
 
 export function FramedFineArt({
@@ -36,15 +38,7 @@ export function FramedFineArt({
           height: asset.height,
         };
       })
-      .filter(Boolean) as Array<{
-        assetId: string;
-        caption?: string;
-        title?: string;
-        url: string;
-        blurDataUrl?: string | null;
-        width: number | null;
-        height: number | null;
-      }>;
+      .filter(Boolean) as ResolvedGalleryItem[];
   }, [normalized.items, assets]);
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -133,8 +127,8 @@ export function FramedFineArt({
               <EventImage
                 src={current.url}
                 alt={current.caption || ""}
-                width={current.width ?? 1600}
-                height={current.height ?? 1200}
+                width={current.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
+                height={current.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
                 sizes="(max-width: 768px) 100vw, 80vw"
                 blurDataURL={current.blurDataUrl}
                 className={styles.lbImage}

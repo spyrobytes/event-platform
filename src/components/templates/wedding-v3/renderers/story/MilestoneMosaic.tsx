@@ -71,7 +71,7 @@ export function MilestoneMosaic({
                         src={img.publicUrl}
                         alt={m.title || ""}
                         fill
-                        sizes="(max-width: 768px) 100vw, 320px"
+                        sizes="(max-width: 768px) 100vw, 280px"
                         blurDataURL={img.blurDataUrl}
                         style={{ objectFit: "cover", objectPosition: "center 25%" }}
                       />

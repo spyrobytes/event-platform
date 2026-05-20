@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { EventImage } from "@/components/media/EventImage";
+import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -414,8 +415,8 @@ function Lightbox({
         <EventImage
           src={item.url}
           alt={item.alt}
-          width={item.width ?? 1600}
-          height={item.height ?? 1200}
+          width={item.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
+          height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
           sizes="(max-width: 768px) 100vw, 80vw"
           blurDataURL={item.blurDataUrl}
         />

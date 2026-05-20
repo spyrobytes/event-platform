@@ -14,19 +14,11 @@ import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
+import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import type { ResolvedGalleryItem } from "./types";
 
 // Slight rotation angles for scrapbook feel
 const ROTATIONS = ["-2deg", "1.5deg", "-1deg", "2.5deg", "-1.5deg", "1deg", "-2.5deg", "0.5deg"];
-
-type ResolvedItem = {
-  assetId: string;
-  caption?: string;
-  title?: string;
-  url: string;
-  blurDataUrl?: string | null;
-  width: number | null;
-  height: number | null;
-};
 
 export function ScrapbookCollage({
   data,
@@ -49,7 +41,7 @@ export function ScrapbookCollage({
           height: asset.height,
         };
       })
-      .filter(Boolean) as ResolvedItem[];
+      .filter(Boolean) as ResolvedGalleryItem[];
   }, [normalized.items, assets]);
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -218,7 +210,7 @@ function ScrapbookLightbox({
   onPrev,
   onNext,
 }: {
-  items: ResolvedItem[];
+  items: ResolvedGalleryItem[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
@@ -383,8 +375,8 @@ function ScrapbookLightbox({
         <EventImage
           src={item.url}
           alt={captionText || ""}
-          width={item.width ?? 1600}
-          height={item.height ?? 1200}
+          width={item.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
+          height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
           sizes="(max-width: 768px) 100vw, 1000px"
           blurDataURL={item.blurDataUrl}
           style={{
