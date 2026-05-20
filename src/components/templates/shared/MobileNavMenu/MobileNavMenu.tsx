@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type SetStateAction,
+} from "react";
+import { createPortal, flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,10 +46,9 @@ function captureThemeVars(el: HTMLElement | null): React.CSSProperties {
 }
 
 /**
- * Synchronously release the body scroll lock. Called from link onClick so
- * the body's inline overflow is reset BEFORE the browser snapshots the
- * page for BFCache; otherwise hitting Back restores a frozen page with
- * `overflow: hidden` still applied and the menu appears unresponsive.
+ * Synchronously release the body scroll lock. Called from link onClick and
+ * page lifecycle handlers so the body's inline overflow is reset BEFORE the
+ * browser snapshots the page for BFCache.
  */
 function releaseScrollLock(previous: string) {
   if (typeof document !== "undefined") {
@@ -90,8 +96,64 @@ export function MobileNavMenu({
   const drawerId = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const previousOverflowRef = useRef<string>("");
+  const openRef = useRef(false);
 
-  const close = useCallback(() => setOpen(false), []);
+  // setOpen wrapper that also mirrors the resolved value into openRef
+  // from INSIDE the updater. The conventional pattern is a separate
+  // `useEffect(() => { openRef.current = open }, [open])` mirror, but
+  // that lags by a render: a synchronous reader fired between the state
+  // update and the next commit would see the stale value. The pagehide
+  // listener (registered once, fires whenever the browser is about to
+  // snapshot for BFCache) is exactly such a reader — it guards on
+  // openRef.current and must see the latest committed-or-pending value.
+  //
+  // The mirror is idempotent (the ref is assigned the same value the
+  // updater returns, not derived from the previous ref), so React's
+  // "no side effects in updaters" guidance does not bite here.
+  const setOpenState = useCallback((next: SetStateAction<boolean>) => {
+    setOpen((current) => {
+      const resolved =
+        typeof next === "function"
+          ? (next as (value: boolean) => boolean)(current)
+          : next;
+      openRef.current = resolved;
+      return resolved;
+    });
+  }, []);
+
+  const close = useCallback(() => setOpenState(false), [setOpenState]);
+
+  /**
+   * Synchronous-commit close path for browser navigation and BFCache
+   * lifecycle events. Browser Back restores BFCache snapshots
+   * byte-for-byte; if a link navigates away before React commits the
+   * drawer close, the fixed backdrop can be restored above the
+   * hamburger and intercept every click. `flushSync` forces the portal
+   * to unmount in the same tick.
+   *
+   * Invariant: MUST be called from outside React's render/commit/effect
+   * phase. React warns (and the flush is downgraded to async) when
+   * `flushSync` runs nested inside another commit. Safe call sites are
+   * DOM event handlers — link `onClick`, the `pagehide` listener, the
+   * persisted-`pageshow` listener. Never call from a `useEffect` body
+   * or from inside another `flushSync`.
+   */
+  const closeBeforePageCacheSnapshot = useCallback(() => {
+    if (!openRef.current) return;
+
+    // Explicit synchronous scroll-lock release BEFORE the flushSync
+    // below. The scroll-lock useEffect's cleanup will also call
+    // releaseScrollLock when `open` flips to false in the commit, so
+    // this is intentionally a double-release — idempotent on the second
+    // pass, load-bearing on the first: the `pagehide` path needs the
+    // body to have overflow cleared BEFORE the browser snapshots, and
+    // we can't trust React's cleanup to land before snapshotting.
+    releaseScrollLock(previousOverflowRef.current);
+
+    flushSync(() => {
+      setOpenState(false);
+    });
+  }, [setOpenState]);
   const toggle = useCallback(() => {
     // Snapshot the wrapper's theme tokens before the portal mounts. The
     // wrapper lives inside the article scope where per-variant CSS vars
@@ -101,8 +163,8 @@ export function MobileNavMenu({
     if (wrapperRef.current) {
       setThemeVars(captureThemeVars(wrapperRef.current));
     }
-    setOpen((o) => !o);
-  }, []);
+    setOpenState((o) => !o);
+  }, [setOpenState]);
 
   // Body scroll lock when drawer is open. The cleanup also runs on BFCache
   // restore via the pageshow listener below.
@@ -120,12 +182,11 @@ export function MobileNavMenu({
   // open-state drawer carried in by BFCache.
   useEffect(() => {
     const onPageHide = () => {
-      document.body.style.overflow = "";
+      closeBeforePageCacheSnapshot();
     };
     const onPageShow = (e: PageTransitionEvent) => {
       if (!e.persisted) return;
-      document.body.style.overflow = "";
-      setOpen(false);
+      closeBeforePageCacheSnapshot();
     };
     window.addEventListener("pagehide", onPageHide);
     window.addEventListener("pageshow", onPageShow);
@@ -133,15 +194,12 @@ export function MobileNavMenu({
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("pageshow", onPageShow);
     };
-  }, []);
+  }, [closeBeforePageCacheSnapshot]);
 
-  // Called from drawer link onClick. Releases the body scroll lock
-  // SYNCHRONOUSLY before the browser starts navigation — React's state
-  // update would otherwise run after the page is already cached.
-  const onItemClick = useCallback(() => {
-    releaseScrollLock(previousOverflowRef.current);
-    setOpen(false);
-  }, []);
+  // Drawer link clicks go through the sync-commit close so a real
+  // document navigation can't outrun the portal unmount. See
+  // `closeBeforePageCacheSnapshot` for the why.
+  const onItemClick = closeBeforePageCacheSnapshot;
 
   // Escape + auto-close when widening past mobile breakpoint.
   useEffect(() => {
