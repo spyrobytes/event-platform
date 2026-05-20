@@ -81,20 +81,19 @@ export function TransparentStickyNav({
               background: "transparent",
               cursor: "pointer",
             }}
-            drawerStyle={{
+            menuStyle={{
               background: "var(--text, #2a2622)",
-              borderBottom: "1px solid rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.12)",
             }}
             itemStyle={{
               fontFamily: "var(--sans)",
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
               fontWeight: 500,
               letterSpacing: "0.14em",
               textTransform: "uppercase" as const,
               color: "rgba(255,255,255,0.85)",
-              padding: "14px clamp(20px, 4vw, 40px)",
+              padding: "10px 16px",
             }}
-            drawerTop="calc(var(--banner-offset, 0px) + 64px)"
           />
         </div>
       </div>

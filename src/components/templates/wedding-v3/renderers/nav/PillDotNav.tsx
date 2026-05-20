@@ -177,20 +177,19 @@ export function PillDotNav({
             background: "transparent",
             cursor: "pointer",
           }}
-          drawerStyle={{
+          menuStyle={{
             background: "var(--surface, #ffffff)",
-            borderBottom: "1px solid var(--border, #e8e1d6)",
+            border: "1px solid var(--border, #e8e1d6)",
           }}
           itemStyle={{
             fontFamily: "var(--sans)",
-            fontSize: "0.75rem",
+            fontSize: "0.72rem",
             fontWeight: 500,
             letterSpacing: "0.1em",
             textTransform: "uppercase" as const,
             color: "var(--text, #3d3830)",
-            padding: "14px clamp(16px, 3vw, 32px)",
+            padding: "10px 16px",
           }}
-          drawerTop="calc(var(--banner-offset, 0px) + 60px)"
         />
       </div>
 

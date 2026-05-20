@@ -190,22 +190,21 @@ export function FloatingPillNav({
           background: "transparent",
           cursor: "pointer",
         }}
-        drawerStyle={{
+        menuStyle={{
           background: "rgba(30, 27, 23, 0.96)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.1)",
         }}
         itemStyle={{
           fontFamily: "var(--sans)",
-          fontSize: "0.75rem",
+          fontSize: "0.72rem",
           fontWeight: 500,
           letterSpacing: "0.1em",
           textTransform: "uppercase" as const,
           color: "rgba(255,255,255,0.85)",
-          padding: "14px clamp(20px, 4vw, 40px)",
+          padding: "10px 16px",
         }}
-        drawerTop="calc(var(--banner-offset, 0px) + 72px)"
       />
 
       {/* Hover + mobile styles */}

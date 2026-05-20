@@ -1,33 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type MobileNavItem = {
   id: string;
   label: string;
   href: string;
-  isCta?: boolean;
 };
 
 type MobileNavMenuProps = {
   items: MobileNavItem[];
   /** Outer container className. Each template sets a `*-mobile-only` class
    *  here and pairs it with a media query in its own <style> block to
-   *  show the hamburger at narrow widths only. */
+   *  show the hamburger at narrow widths only. The container is
+   *  `position: relative` so the menu popover anchors to it. */
   className?: string;
   /** Theme overrides for the hamburger button trigger. */
   buttonStyle?: React.CSSProperties;
-  /** Theme overrides for the drawer panel. */
-  drawerStyle?: React.CSSProperties;
-  /** Theme overrides for each link in the drawer. */
+  /** Theme overrides for the popover container. */
+  menuStyle?: React.CSSProperties;
+  /** Theme overrides for each link in the popover. */
   itemStyle?: React.CSSProperties;
-  /** Theme overrides for a CTA-flagged link (e.g. RSVP). */
-  ctaItemStyle?: React.CSSProperties;
-  /** CSS top value for the drawer panel. Defaults to clearing the banner
-   *  offset plus a 60px nav. Templates with taller/shorter nav bars should
-   *  pass an explicit value. */
-  drawerTop?: string;
   /** Hamburger button aria-label. */
   ariaLabel?: string;
 };
@@ -51,36 +45,73 @@ export function MobileNavMenu({
   items,
   className,
   buttonStyle,
-  drawerStyle,
+  menuStyle,
   itemStyle,
-  ctaItemStyle,
-  drawerTop = "calc(var(--banner-offset, 0px) + 60px)",
   ariaLabel = "Open navigation",
 }: MobileNavMenuProps) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+
   const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        close();
+      }
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         close();
       }
     };
+    document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open, close]);
+
+  useEffect(() => {
+    if (open) itemRefs.current[0]?.focus();
+  }, [open]);
 
   if (items.length === 0) return null;
 
+  const handleMenuKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = (activeIndex + 1) % items.length;
+      setActiveIndex(next);
+      itemRefs.current[next]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const next = (activeIndex - 1 + items.length) % items.length;
+      setActiveIndex(next);
+      itemRefs.current[next]?.focus();
+    }
+  };
+
   return (
-    <div className={className} style={{ display: "inline-flex", alignItems: "center" }}>
+    <div
+      ref={containerRef}
+      className={cn("relative", className)}
+      style={{ display: "inline-flex", alignItems: "center" }}
+    >
       <button
         type="button"
         aria-label={ariaLabel}
+        aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) setActiveIndex(0);
+          setOpen((o) => !o);
+        }}
         style={buttonStyle}
         className={cn(
           "inline-flex items-center justify-center transition-colors",
@@ -101,59 +132,62 @@ export function MobileNavMenu({
         </svg>
       </button>
       {open && (
-        <>
-          {/* Click-outside backdrop (transparent — drawer sits above). */}
-          <div
-            onClick={close}
-            aria-hidden
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 99,
-              background: "transparent",
-            }}
-          />
-          {/* Full-viewport-width drawer panel. */}
-          <div
-            role="menu"
-            aria-label="Mobile navigation"
-            style={{
-              position: "fixed",
-              top: drawerTop,
-              left: 0,
-              right: 0,
-              zIndex: 100,
-              display: "flex",
-              flexDirection: "column",
-              background: "var(--surface, #ffffff)",
-              borderBottom:
-                "1px solid color-mix(in srgb, var(--text-on-card, var(--text, #000)) 18%, transparent)",
-              boxShadow: "0 12px 28px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08)",
-              padding: "8px 0",
-              maxHeight: "calc(100vh - var(--banner-offset, 0px) - 80px)",
-              overflowY: "auto",
-              ...drawerStyle,
-            }}
-          >
-            {items.map((item) => (
-              <a
-                key={item.id}
-                role="menuitem"
-                href={item.href}
-                onClick={close}
-                style={{
-                  color: "var(--text-on-card, var(--text, #1f1f1f))",
-                  textDecoration: "none",
-                  padding: "12px 24px",
-                  fontSize: "0.9rem",
-                  ...(item.isCta ? ctaItemStyle : itemStyle),
-                }}
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-        </>
+        <ul
+          role="menu"
+          aria-label="Mobile navigation"
+          onKeyDown={handleMenuKey}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            right: 0,
+            zIndex: 100,
+            minWidth: 200,
+            maxWidth: "calc(100vw - 24px)",
+            margin: 0,
+            padding: "6px 0",
+            listStyle: "none",
+            background: "var(--surface, #ffffff)",
+            border:
+              "1px solid color-mix(in srgb, var(--text-on-card, var(--text, #000)) 22%, transparent)",
+            borderRadius: 8,
+            boxShadow: "0 12px 28px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.12)",
+            maxHeight: "calc(100vh - var(--banner-offset, 0px) - 96px)",
+            overflowY: "auto",
+            ...menuStyle,
+          }}
+        >
+          {items.map((item, i) => {
+            const isActive = activeIndex === i;
+            return (
+              <li key={item.id} role="none">
+                <a
+                  ref={(el) => {
+                    itemRefs.current[i] = el;
+                  }}
+                  role="menuitem"
+                  href={item.href}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onFocus={() => setActiveIndex(i)}
+                  onClick={close}
+                  style={{
+                    display: "block",
+                    color: "var(--text-on-card, var(--text, #1f1f1f))",
+                    textDecoration: "none",
+                    padding: "10px 16px",
+                    fontSize: "0.85rem",
+                    background: isActive
+                      ? "color-mix(in srgb, var(--accent, #000) 14%, transparent)"
+                      : "transparent",
+                    transition: "background 0.15s ease",
+                    ...itemStyle,
+                  }}
+                >
+                  {item.label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

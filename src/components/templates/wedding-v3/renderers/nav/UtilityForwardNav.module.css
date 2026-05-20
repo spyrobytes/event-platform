@@ -137,7 +137,8 @@
   background: var(--accent, #7a8c72);
 }
 
-/* Priority action buttons */
+/* Priority action buttons — y-padding matches .navLink so the pill
+   shares the same height as adjacent text links in the nav row. */
 .priorityLink {
   font-family: var(--sans);
   font-size: 0.68rem;
@@ -145,8 +146,9 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
-  padding: 7px 16px;
+  padding: 6px 16px;
   border-radius: 999px;
+  line-height: 1.4;
   transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.4s ease,
     background 0.4s ease, text-shadow 0.4s ease;
 }

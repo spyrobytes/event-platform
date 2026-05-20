@@ -163,8 +163,6 @@ export function CenteredDecoratorNav({
             href: href ?? `#${id}`,
           }))}
           buttonStyle={{
-            position: "absolute",
-            right: "clamp(20px, 4vw, 40px)",
             width: 36,
             height: 36,
             borderRadius: "50%",
@@ -173,20 +171,19 @@ export function CenteredDecoratorNav({
             background: "transparent",
             cursor: "pointer",
           }}
-          drawerStyle={{
+          menuStyle={{
             background: "var(--text, #3d3830)",
-            borderBottom: "1px solid rgba(255,255,255,0.12)",
+            border: "1px solid rgba(255,255,255,0.12)",
           }}
           itemStyle={{
             fontFamily: "var(--sans)",
-            fontSize: "0.75rem",
+            fontSize: "0.72rem",
             fontWeight: 500,
             letterSpacing: "0.14em",
             textTransform: "uppercase" as const,
             color: "rgba(255,255,255,0.85)",
-            padding: "14px clamp(20px, 4vw, 40px)",
+            padding: "10px 16px",
           }}
-          drawerTop="calc(var(--banner-offset, 0px) + 60px)"
         />
       </div>
 
@@ -200,7 +197,11 @@ export function CenteredDecoratorNav({
         .fine-art-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
           .fine-art-desktop-links { display: none !important; }
-          .fine-art-mobile-menu { display: inline-flex !important; }
+          .fine-art-mobile-menu {
+            display: inline-flex !important;
+            position: absolute !important;
+            right: clamp(20px, 4vw, 40px);
+          }
         }
       `}</style>
     </nav>
