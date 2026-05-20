@@ -254,6 +254,11 @@ type AnimatedWrapperProps = {
   navLabel?: string;
   /** Chapter ID for navigation grouping */
   navChapterId?: string;
+  /** When true, also sets the wrapping div's DOM id to navId so native
+   *  hash anchors (e.g. mobile drawer href="#rsvp") scroll here. Opt-in
+   *  because V2 / V3 templates already set ids on their inner section
+   *  elements — turning this on globally would create duplicate ids. */
+  setDomId?: boolean;
 };
 
 export function AnimatedWrapper({
@@ -266,6 +271,7 @@ export function AnimatedWrapper({
   navId,
   navLabel,
   navChapterId,
+  setDomId = false,
 }: AnimatedWrapperProps) {
   // Get animation settings from context (or defaults if no provider)
   const { effectiveAnimationLevel, getSectionDelay } = useAnimation();
@@ -326,6 +332,10 @@ export function AnimatedWrapper({
   return (
     <div
       ref={combinedRef}
+      // Opt-in DOM id. Used by V1 templates whose inner section components
+      // don't carry their own id; V2/V3 leave this off because their
+      // renderers already set ids on the inner <section>.
+      id={setDomId && shouldRegisterNav ? navId : undefined}
       className={cn(
         styles.section,
         animationClass,
