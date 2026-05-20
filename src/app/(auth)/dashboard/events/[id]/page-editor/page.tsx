@@ -1431,7 +1431,7 @@ export default function PageEditorPage() {
             </div>
             {(() => {
               const family = getTemplateFamily(templateId);
-              const defaultShown = DEFAULT_NAV_SHOW[family].has(section.type);
+              const defaultShown = DEFAULT_NAV_SHOW[family].includes(section.type);
               const explicit = section.nav?.show;
               const effectiveShow = explicit ?? defaultShown;
               const placeholderLabel = resolveNavLabel(

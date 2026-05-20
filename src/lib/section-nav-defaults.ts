@@ -10,10 +10,18 @@ export function getTemplateFamily(templateId: string | null | undefined): Templa
   return "wedding";
 }
 
-export const DEFAULT_NAV_SHOW: Record<TemplateFamily, ReadonlySet<string>> = {
-  wedding: new Set(["story", "schedule", "rsvp", "gallery", "details"]),
-  conference: new Set(["schedule", "speakers", "rsvp", "map"]),
-  party: new Set(["schedule", "rsvp", "gallery", "map"]),
+/**
+ * Default-on AND priority-ordered nav set per template family. The array
+ * order is the canonical nav order — wedding always reads as Story · Schedule ·
+ * RSVP · Gallery · Details regardless of where those sections sit in the
+ * page-section array. Anything an organizer toggles on via the editor that
+ * is not in this list appears after the priority items, in section array
+ * order.
+ */
+export const DEFAULT_NAV_SHOW: Record<TemplateFamily, readonly string[]> = {
+  wedding: ["story", "schedule", "rsvp", "gallery", "details"],
+  conference: ["schedule", "speakers", "rsvp", "map"],
+  party: ["schedule", "rsvp", "gallery", "map"],
 };
 
 export const MAX_VISIBLE_NAV_ITEMS: Record<TemplateFamily, number> = {
@@ -41,7 +49,42 @@ export const TEMPLATE_LABEL_OVERRIDES: Record<TemplateFamily, Record<string, str
 
 export function shouldShowInNav(section: Section, family: TemplateFamily): boolean {
   if (section.nav?.show !== undefined) return section.nav.show;
-  return DEFAULT_NAV_SHOW[family]?.has(section.type) ?? false;
+  return DEFAULT_NAV_SHOW[family]?.includes(section.type) ?? false;
+}
+
+/**
+ * Returns the sections that should appear in nav, ordered by template
+ * priority first (per DEFAULT_NAV_SHOW), then any extras the organizer
+ * toggled on via the editor, in section array order.
+ */
+export function orderSectionsForNav<T extends Section>(
+  sections: T[],
+  family: TemplateFamily,
+): T[] {
+  const priority = DEFAULT_NAV_SHOW[family] ?? [];
+
+  const eligible = new Map<string, T>();
+  for (const s of sections) {
+    if (s.enabled && shouldShowInNav(s, family)) {
+      eligible.set(s.type, s);
+    }
+  }
+
+  const ordered: T[] = [];
+  for (const type of priority) {
+    const s = eligible.get(type);
+    if (s) {
+      ordered.push(s);
+      eligible.delete(type);
+    }
+  }
+  for (const s of sections) {
+    if (eligible.has(s.type)) {
+      ordered.push(s);
+      eligible.delete(s.type);
+    }
+  }
+  return ordered;
 }
 
 const NAV_LABEL_MAX = 20;
@@ -76,13 +119,11 @@ export function buildNavItems(
   const family = getTemplateFamily(templateId);
   const cap = MAX_VISIBLE_NAV_ITEMS[family];
 
-  const candidates: NavItem[] = sections
-    .filter((s) => s.enabled && shouldShowInNav(s, family))
-    .map((s) => ({
-      id: getSectionId ? getSectionId(s.type) : s.type,
-      label: resolveNavLabel(s, family),
-      href: `#${getSectionId ? getSectionId(s.type) : s.type}`,
-    }));
+  const candidates: NavItem[] = orderSectionsForNav(sections, family).map((s) => ({
+    id: getSectionId ? getSectionId(s.type) : s.type,
+    label: resolveNavLabel(s, family),
+    href: `#${getSectionId ? getSectionId(s.type) : s.type}`,
+  }));
 
   return {
     visible: candidates.slice(0, cap),

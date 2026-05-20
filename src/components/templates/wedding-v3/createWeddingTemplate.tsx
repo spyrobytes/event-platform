@@ -51,8 +51,8 @@ import { FooterSkyline } from "../wedding-v2/chrome/FooterSkyline";
 // Shared utilities
 import {
   MAX_VISIBLE_NAV_ITEMS,
+  orderSectionsForNav,
   resolveNavLabel,
-  shouldShowInNav,
 } from "@/lib/section-nav-defaults";
 
 // V2 global styles (shared across V3 templates until each gets its own)
@@ -183,15 +183,13 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     }, [sections]);
 
     const { visibleNav, overflowNav } = useMemo(() => {
-      const candidates = sections
-        .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
-        .map((s) => {
-          const id = getSectionId(s.type);
-          const label = resolveNavLabel(s, "wedding");
-          const isOnPage = !navLinkBase || s.type === subPageSection;
-          const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
-          return { id, label, href };
-        });
+      const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
+        const id = getSectionId(s.type);
+        const label = resolveNavLabel(s, "wedding");
+        const isOnPage = !navLinkBase || s.type === subPageSection;
+        const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
+        return { id, label, href };
+      });
       const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
       return {
         visibleNav: candidates.slice(0, cap),

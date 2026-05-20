@@ -54,8 +54,8 @@ import "./WeddingTemplateV2.module.css";
 
 import {
   MAX_VISIBLE_NAV_ITEMS,
+  orderSectionsForNav,
   resolveNavLabel,
-  shouldShowInNav,
 } from "@/lib/section-nav-defaults";
 
 type WeddingTemplateV2Props = {
@@ -220,21 +220,21 @@ export function WeddingTemplateV2({
   // pill button. When eventSlug is unavailable (preview without slug context),
   // we fall back to the standard anchor scroll.
   const { visibleNav, overflowNav } = useMemo(() => {
-    const candidates = sections
-      .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
-      .map((s) => {
-        const id = getSectionId(s.type);
-        const label = resolveNavLabel(s, "wedding");
-        const isOnPage = !navLinkBase || s.type === subPageSection;
-        const isRsvp = s.type === "rsvp";
-        const href = isRsvp && eventSlug
-          ? `/e/${eventSlug}/rsvp`
-          : isOnPage
-            ? `#${id}`
-            : `${navLinkBase}#${id}`;
-        return { id, label, href, isCta: isRsvp };
-      });
+    const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
+      const id = getSectionId(s.type);
+      const label = resolveNavLabel(s, "wedding");
+      const isOnPage = !navLinkBase || s.type === subPageSection;
+      const isRsvp = s.type === "rsvp";
+      const href = isRsvp && eventSlug
+        ? `/e/${eventSlug}/rsvp`
+        : isOnPage
+          ? `#${id}`
+          : `${navLinkBase}#${id}`;
+      return { id, label, href, isCta: isRsvp };
+    });
 
+    // RSVP is always pinned to the visible row as the accent CTA pill,
+    // even if the priority slice would push it past the cap.
     const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
     const rsvpItem = candidates.find((c) => c.isCta);
     const nonRsvp = candidates.filter((c) => !c.isCta);
