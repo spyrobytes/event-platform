@@ -17,6 +17,7 @@ import type { WeddingPartySection } from "@/schemas/event-page";
 import type { PartySide } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./ScrapbookWeddingParty.module.css";
 
 // Same rotation set as ScrapbookCollage gallery for visual cohesion
@@ -30,10 +31,9 @@ type PartyMember = {
   side?: PartySide;
 };
 
-function getAssetUrl(assetId: string | undefined, assets: MediaAsset[]): string | null {
+function getAsset(assetId: string | undefined, assets: MediaAsset[]): MediaAsset | null {
   if (!assetId) return null;
-  const asset = assets.find((a) => a.id === assetId);
-  return asset?.publicUrl || null;
+  return assets.find((a) => a.id === assetId) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ function FlipCard({
   isSpecial?: boolean;
 }) {
   const [flipped, setFlipped] = useState(false);
-  const imageUrl = getAssetUrl(member.imageAssetId, assets);
+  const asset = getAsset(member.imageAssetId, assets);
   const initial = member.name.charAt(0).toUpperCase();
 
   const toggle = useCallback(() => setFlipped((f) => !f), []);
@@ -127,11 +127,13 @@ function FlipCard({
         {/* Front — scrapbook photo */}
         <div className={`${styles.face} ${styles.front}`}>
           <div className={styles.photoFrame}>
-            {imageUrl ? (
-              <img
-                src={imageUrl}
+            {asset?.publicUrl ? (
+              <EventImage
+                src={asset.publicUrl}
                 alt={member.name}
-                loading="lazy"
+                fill
+                sizes="(max-width: 768px) 50vw, 280px"
+                blurDataURL={asset.blurDataUrl}
                 className={styles.photo}
               />
             ) : (
