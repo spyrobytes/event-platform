@@ -145,9 +145,42 @@ export function FloatingPillNav({
         </a>
       )}
 
+      {/* Desktop overflow dropdown */}
       {overflow.length > 0 && (
+        <div className="gl-nav-desktop-more" style={{ display: "inline-flex", alignItems: "center" }}>
+          <NavMoreDropdown
+            items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+            buttonStyle={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.65rem",
+              fontWeight: 500,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase" as const,
+              color: "rgba(255,255,255,0.6)",
+              padding: "6px 10px",
+              borderRadius: 999,
+            }}
+            itemStyle={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.65rem",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase" as const,
+              padding: "0.6rem 0.9rem",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Mobile-only menu — every non-RSVP nav target behind one "Menu ▾"
+          since the inline links are CSS-hidden at narrow widths. RSVP stays
+          inline as the primary CTA. */}
+      <div className="gl-nav-mobile-menu" style={{ display: "none", alignItems: "center" }}>
         <NavMoreDropdown
-          items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+          items={[
+            ...navSections.filter((s) => s.id !== "rsvp"),
+            ...overflow,
+          ].map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+          label="Menu"
           buttonStyle={{
             fontFamily: "var(--sans)",
             fontSize: "0.65rem",
@@ -166,7 +199,7 @@ export function FloatingPillNav({
             padding: "0.6rem 0.9rem",
           }}
         />
-      )}
+      </div>
 
       {/* Hover + mobile styles */}
       <style>{`
@@ -182,6 +215,8 @@ export function FloatingPillNav({
         @media (max-width: 768px) {
           .gl-nav-link,
           nav > div[aria-hidden] { display: none !important; }
+          .gl-nav-desktop-more { display: none !important; }
+          .gl-nav-mobile-menu { display: inline-flex !important; }
         }
       `}</style>
     </nav>

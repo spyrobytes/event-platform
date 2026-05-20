@@ -51,7 +51,7 @@ import {
   DEFAULT_NAV_SHOW,
   resolveNavLabel,
 } from "@/lib/section-nav-defaults";
-import { isAccessibleColor } from "@/schemas/event-page";
+import { isAccessibleColor, PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
@@ -1479,7 +1479,7 @@ export default function PageEditorPage() {
                         } as Partial<Section>);
                       }}
                       placeholder={placeholderLabel}
-                      maxLength={20}
+                      maxLength={PAGE_CONFIG_LIMITS.navLabelMaxLength}
                       disabled={!effectiveShow}
                       className="h-8 w-40 text-sm"
                     />

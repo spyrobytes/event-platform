@@ -87,8 +87,9 @@ export function CenteredDecoratorNav({
           {displayMonogram}
         </a>
 
-        {/* Centered links with dot separators */}
+        {/* Centered links with dot separators (desktop) */}
         <div
+          className="fine-art-desktop-links"
           style={{
             display: "flex",
             alignItems: "center",
@@ -149,6 +150,37 @@ export function CenteredDecoratorNav({
             </span>
           )}
         </div>
+
+        {/* Mobile-only menu — combines visible + overflow into a single
+            "Menu ▾" so the full nav is reachable at narrow widths where
+            the centered link group is CSS-hidden. */}
+        <div
+          className="fine-art-mobile-menu"
+          style={{
+            position: "absolute",
+            right: "clamp(20px, 4vw, 40px)",
+            display: "none",
+            alignItems: "center",
+          }}
+        >
+          <NavMoreDropdown
+            items={[...navSections, ...overflow].map(({ id, label, href }) => ({
+              id,
+              label,
+              href: href ?? `#${id}`,
+            }))}
+            label="Menu"
+            buttonStyle={linkBaseStyle}
+            itemStyle={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.7rem",
+              fontWeight: 500,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase" as const,
+              padding: "0.5rem 0.9rem",
+            }}
+          />
+        </div>
       </div>
 
       {/* Hover + mobile styles */}
@@ -159,8 +191,8 @@ export function CenteredDecoratorNav({
           box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15) !important;
         }
         @media (max-width: 768px) {
-          nav > div > div:last-child { display: none !important; }
-          nav > div { justify-content: center !important; }
+          .fine-art-desktop-links { display: none !important; }
+          .fine-art-mobile-menu { display: flex !important; }
         }
       `}</style>
     </nav>

@@ -1,4 +1,4 @@
-import type { Section } from "@/schemas/event-page";
+import { PAGE_CONFIG_LIMITS, type Section } from "@/schemas/event-page";
 import { SECTION_LABELS } from "@/lib/guest-access";
 
 export type TemplateFamily = "wedding" | "conference" | "party";
@@ -63,41 +63,46 @@ export function orderSectionsForNav<T extends Section>(
 ): T[] {
   const priority = DEFAULT_NAV_SHOW[family] ?? [];
 
-  const eligible = new Map<string, T>();
-  for (const s of sections) {
-    if (s.enabled && shouldShowInNav(s, family)) {
-      eligible.set(s.type, s);
-    }
-  }
+  const eligibleIdx: number[] = [];
+  sections.forEach((s, i) => {
+    if (s.enabled && shouldShowInNav(s, family)) eligibleIdx.push(i);
+  });
 
   const ordered: T[] = [];
+  const consumed = new Set<number>();
+
+  // Priority pass: first eligible section of each priority type claims that
+  // nav slot. If two sections share the same type (the page array doesn't
+  // enforce uniqueness), the first wins the priority slot; subsequent ones
+  // fall through to the extras pass below.
   for (const type of priority) {
-    const s = eligible.get(type);
-    if (s) {
-      ordered.push(s);
-      eligible.delete(type);
+    const matchIdx = eligibleIdx.find(
+      (i) => !consumed.has(i) && sections[i].type === type,
+    );
+    if (matchIdx !== undefined) {
+      ordered.push(sections[matchIdx]);
+      consumed.add(matchIdx);
     }
   }
-  for (const s of sections) {
-    if (eligible.has(s.type)) {
-      ordered.push(s);
-      eligible.delete(s.type);
-    }
+
+  // Extras pass: unconsumed eligible sections in section array order.
+  for (const i of eligibleIdx) {
+    if (!consumed.has(i)) ordered.push(sections[i]);
   }
+
   return ordered;
 }
-
-const NAV_LABEL_MAX = 20;
 
 export function resolveNavLabel(section: Section, family: TemplateFamily): string {
   const explicit = section.nav?.label?.trim();
   if (explicit) return explicit;
 
+  const max = PAGE_CONFIG_LIMITS.navLabelMaxLength;
   const heading =
     "heading" in section.data && typeof section.data.heading === "string"
       ? section.data.heading.trim()
       : undefined;
-  if (heading && heading.length > 0 && heading.length <= NAV_LABEL_MAX) return heading;
+  if (heading && heading.length > 0 && heading.length <= max) return heading;
 
   const override = TEMPLATE_LABEL_OVERRIDES[family]?.[section.type];
   if (override) return override;

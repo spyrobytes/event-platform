@@ -108,6 +108,7 @@ export function NavMoreDropdown({
         style={buttonStyle}
         className={cn(
           "inline-flex items-center gap-1 transition-opacity hover:opacity-70",
+          "focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current focus-visible:rounded-sm",
           buttonClassName,
         )}
       >
