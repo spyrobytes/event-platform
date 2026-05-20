@@ -124,19 +124,32 @@ export function MobileNavMenu({
     };
   }, [open]);
 
-  // Browser back via BFCache restores the page with overflow:hidden still
-  // applied if the user clicked a link before React got to commit the
-  // close(). Listen for pageshow.persisted and force the menu closed +
-  // scroll lock released.
+  // BFCache survival. pagehide fires just before the page is snapshotted
+  // (hard navigation, tab close, etc.) — we synchronously release the
+  // scroll lock here so the cached snapshot never has overflow:hidden
+  // pinned to body. pageshow with event.persisted=true fires when the
+  // user navigates back to the cached snapshot — we close the drawer
+  // and clear lingering state. Without these, V2's external RSVP route
+  // (/e/[slug]/rsvp) leaves the cached page with body locked and an
+  // open-state drawer; on Back the entire page appears unresponsive
+  // until refresh. V3 doesn't hit this because its RSVP links are
+  // in-page anchors (#rsvp) and don't trigger a BFCache cycle.
   useEffect(() => {
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        releaseScrollLock("");
-        setOpen(false);
-      }
+    const onPageHide = () => {
+      document.body.style.overflow = "";
     };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      document.body.style.overflow = "";
+      setOpen(false);
+      setThemeVars({});
+    };
+    window.addEventListener("pagehide", onPageHide);
     window.addEventListener("pageshow", onPageShow);
-    return () => window.removeEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, []);
 
   // Called from drawer link onClick. Releases the body scroll lock
