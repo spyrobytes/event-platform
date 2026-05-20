@@ -1,4 +1,5 @@
 import { SectionWrapper, SectionTitle } from "../../shared";
+import { EventImage } from "@/components/media/EventImage";
 import type { MediaAsset } from "@prisma/client";
 import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 import type { PartySide } from "@/schemas/event-page";
@@ -34,11 +35,10 @@ export function WeddingPartySection({
 }: WeddingPartySectionProps) {
   const { heading = "The Wedding Party", description, members } = data;
 
-  // Helper to get asset URL
-  const getAssetUrl = (assetId?: string): string | null => {
+  // Helper to find the full asset (so we can pass blurDataUrl through).
+  const getAsset = (assetId?: string): MediaAsset | null => {
     if (!assetId) return null;
-    const asset = assets.find((a) => a.id === assetId);
-    return asset?.publicUrl || null;
+    return assets.find((a) => a.id === assetId) ?? null;
   };
 
   // Partition: special roles first, then bride/groom using explicit `side`
@@ -50,20 +50,23 @@ export function WeddingPartySection({
   const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
 
   const renderMember = (member: PartyMember, index: number) => {
-    const imageUrl = getAssetUrl(member.imageAssetId);
+    const asset = getAsset(member.imageAssetId);
 
     return (
       <div key={index} className="flex flex-col items-center text-center">
         {/* Photo or placeholder */}
         <div
-          className="mb-4 h-32 w-32 overflow-hidden rounded-full border-4 shadow-md"
+          className="relative mb-4 h-32 w-32 overflow-hidden rounded-full border-4 shadow-md"
           style={{ borderColor: `${primaryColor}30` }}
         >
-          {imageUrl ? (
-            <img
-              src={imageUrl}
+          {asset?.publicUrl ? (
+            <EventImage
+              src={asset.publicUrl}
               alt={member.name}
-              className="h-full w-full object-cover"
+              fill
+              sizes="128px"
+              blurDataURL={asset.blurDataUrl}
+              className="object-cover"
             />
           ) : (
             <div

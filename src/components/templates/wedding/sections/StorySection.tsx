@@ -1,4 +1,5 @@
 import { SectionWrapper, SectionTitle } from "../../shared";
+import { EventImage } from "@/components/media/EventImage";
 import type { MediaAsset } from "@prisma/client";
 
 type StorySectionProps = {
@@ -50,14 +51,17 @@ export function StorySection({ data, assets, primaryColor }: StorySectionProps) 
           <div className="grid gap-8 md:grid-cols-2 items-center">
             {/* Image or placeholder */}
             <div
-              className="aspect-[4/5] overflow-hidden rounded-2xl"
+              className="relative aspect-[4/5] overflow-hidden rounded-2xl"
               style={{ backgroundColor: `${primaryColor}10` }}
             >
               {imageUrl ? (
-                <img
+                <EventImage
                   src={imageUrl}
                   alt={imageAsset?.alt || "Our story"}
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  blurDataURL={imageAsset?.blurDataUrl}
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
