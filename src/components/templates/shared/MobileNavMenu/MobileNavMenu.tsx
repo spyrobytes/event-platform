@@ -1,8 +1,54 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+
+/**
+ * CSS custom properties to copy from the wrapper's computed style onto the
+ * portal root, so the drawer (rendered to document.body via createPortal)
+ * inherits the same per-variant theme tokens the article scope defines.
+ * Without this the drawer would resolve var(--surface) etc. against :root,
+ * where they may be space-separated rgb tuples for use with rgb() and
+ * render invalid as plain background values — making the drawer transparent.
+ */
+const PORTAL_INHERITED_VARS = [
+  "--surface",
+  "--bg",
+  "--text",
+  "--text-on-card",
+  "--text-2",
+  "--text-2-on-card",
+  "--muted",
+  "--accent",
+  "--accent-foreground",
+  "--border",
+  "--sans",
+  "--serif",
+] as const;
+
+function captureThemeVars(el: HTMLElement | null): React.CSSProperties {
+  if (!el || typeof window === "undefined") return {};
+  const computed = window.getComputedStyle(el);
+  const out: Record<string, string> = {};
+  for (const name of PORTAL_INHERITED_VARS) {
+    const value = computed.getPropertyValue(name).trim();
+    if (value) out[name] = value;
+  }
+  return out as React.CSSProperties;
+}
+
+/**
+ * Synchronously release the body scroll lock. Called from link onClick so
+ * the body's inline overflow is reset BEFORE the browser snapshots the
+ * page for BFCache; otherwise hitting Back restores a frozen page with
+ * `overflow: hidden` still applied and the menu appears unresponsive.
+ */
+function releaseScrollLock(previous: string) {
+  if (typeof document !== "undefined") {
+    document.body.style.overflow = previous;
+  }
+}
 
 export type MobileNavItem = {
   id: string;
@@ -49,19 +95,57 @@ export function MobileNavMenu({
   desktopBreakpoint = 768,
 }: MobileNavMenuProps) {
   const [open, setOpen] = useState(false);
+  const [themeVars, setThemeVars] = useState<React.CSSProperties>({});
   const drawerId = useId();
-  const close = useCallback(() => setOpen(false), []);
-  const toggle = useCallback(() => setOpen((o) => !o), []);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const previousOverflowRef = useRef<string>("");
 
-  // Body scroll lock when drawer is open.
+  const close = useCallback(() => setOpen(false), []);
+  const toggle = useCallback(() => {
+    // Snapshot the wrapper's theme tokens before the portal mounts. The
+    // wrapper lives inside the article scope where per-variant CSS vars
+    // are defined; capturing them here so the portaled drawer can inherit
+    // them on the body root (where :root's globals would otherwise win
+    // with non-color values and render the drawer transparent).
+    if (wrapperRef.current) {
+      setThemeVars(captureThemeVars(wrapperRef.current));
+    }
+    setOpen((o) => !o);
+  }, []);
+
+  // Body scroll lock when drawer is open. The cleanup also runs on BFCache
+  // restore via the pageshow listener below.
   useEffect(() => {
     if (!open) return;
-    const previous = document.body.style.overflow;
+    previousOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previous;
+      releaseScrollLock(previousOverflowRef.current);
     };
   }, [open]);
+
+  // Browser back via BFCache restores the page with overflow:hidden still
+  // applied if the user clicked a link before React got to commit the
+  // close(). Listen for pageshow.persisted and force the menu closed +
+  // scroll lock released.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        releaseScrollLock("");
+        setOpen(false);
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  // Called from drawer link onClick. Releases the body scroll lock
+  // SYNCHRONOUSLY before the browser starts navigation — React's state
+  // update would otherwise run after the page is already cached.
+  const onItemClick = useCallback(() => {
+    releaseScrollLock(previousOverflowRef.current);
+    setOpen(false);
+  }, []);
 
   // Escape + auto-close when widening past mobile breakpoint.
   useEffect(() => {
@@ -91,6 +175,7 @@ export function MobileNavMenu({
   return (
     <>
       <div
+        ref={wrapperRef}
         className={className}
         style={{ display: "inline-flex", alignItems: "center" }}
       >
@@ -129,7 +214,7 @@ export function MobileNavMenu({
       </div>
 
       {open && typeof document !== "undefined" && createPortal(
-        <>
+        <div style={themeVars}>
           {/* Backdrop (click-to-close). Portaled to body so it escapes any
               transformed/filtered/contained ancestor (e.g. the Grand Luxe
               floating pill has `transform: translateX(-50%)` on its <nav>,
@@ -231,7 +316,7 @@ export function MobileNavMenu({
                 <a
                   key={item.id}
                   href={item.href}
-                  onClick={close}
+                  onClick={onItemClick}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -269,7 +354,7 @@ export function MobileNavMenu({
                 <a
                   key={item.id}
                   href={item.href}
-                  onClick={close}
+                  onClick={onItemClick}
                   style={{
                     marginTop: "0.75rem",
                     display: "flex",
@@ -324,7 +409,7 @@ export function MobileNavMenu({
               }
             }
           `}</style>
-        </>,
+        </div>,
         document.body,
       )}
     </>
