@@ -22,7 +22,7 @@ type WeddingTemplateV1Props = {
   eventSlug?: string;
 };
 
-import { getSectionLabel } from "@/lib/guest-access";
+import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
 
 /**
  * Classic Wedding Template (v1) - Legacy
@@ -68,15 +68,16 @@ export function WeddingTemplateV1({ config, assets, eventId, eventSlug }: Weddin
 
             const key = `${section.type}-${index}`;
             const currentSectionIndex = sectionIndex++;
-            const sectionLabel = getSectionLabel(section.type);
+            const inNav = shouldShowInNav(section, "wedding");
+            const sectionLabel = resolveNavLabel(section, "wedding");
 
             // Common wrapper for animation and nav registration
             const wrapWithAnimation = (content: React.ReactNode) => (
               <AnimatedWrapper
                 key={key}
                 sectionIndex={currentSectionIndex}
-                navId={section.type}
-                navLabel={sectionLabel}
+                navId={inNav ? section.type : undefined}
+                navLabel={inNav ? sectionLabel : undefined}
               >
                 {content}
               </AnimatedWrapper>

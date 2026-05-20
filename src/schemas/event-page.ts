@@ -100,6 +100,19 @@ export const sectionVisibilitySchema = z.enum(["public", "guests", "hidden"]);
 export type SectionVisibility = z.infer<typeof sectionVisibilitySchema>;
 
 // =============================================================================
+// SECTION NAV OVERRIDE (Top-bar curation)
+// =============================================================================
+
+export const sectionNavOverrideSchema = z
+  .object({
+    show: z.boolean().optional(),
+    label: z.string().max(20, "Nav label must be 20 characters or less").optional(),
+  })
+  .optional();
+
+export type SectionNavOverride = z.infer<typeof sectionNavOverrideSchema>;
+
+// =============================================================================
 // SECTION SCHEMAS
 // =============================================================================
 
@@ -123,6 +136,7 @@ export const detailsSectionSchema = z.object({
   type: z.literal("details"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: detailsSectionDataSchema,
 });
 
@@ -153,6 +167,7 @@ export const scheduleSectionSchema = z.object({
   type: z.literal("schedule"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: scheduleSectionDataSchema,
 });
 
@@ -172,6 +187,7 @@ export const faqSectionSchema = z.object({
   type: z.literal("faq"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: faqSectionDataSchema,
 });
 
@@ -205,6 +221,7 @@ export const gallerySectionSchema = z.object({
   type: z.literal("gallery"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: gallerySectionDataSchema,
 });
 
@@ -250,6 +267,7 @@ export const rsvpSectionSchema = z.object({
   type: z.literal("rsvp"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: rsvpSectionDataSchema,
 });
 
@@ -277,6 +295,7 @@ export const speakersSectionSchema = z.object({
   type: z.literal("speakers"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: speakersSectionDataSchema,
 });
 
@@ -302,6 +321,7 @@ export const sponsorsSectionSchema = z.object({
   type: z.literal("sponsors"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: sponsorsSectionDataSchema,
 });
 
@@ -353,6 +373,7 @@ export const mapSectionSchema = z.object({
   type: z.literal("map"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: mapSectionDataSchema,
 });
 
@@ -383,6 +404,7 @@ export const storySectionSchema = z.object({
   type: z.literal("story"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: storySectionDataSchema,
 });
 
@@ -416,6 +438,7 @@ export const travelStaySectionSchema = z.object({
   type: z.literal("travelStay"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: travelStaySectionDataSchema,
 });
 
@@ -441,6 +464,7 @@ export const weddingPartySectionSchema = z.object({
   type: z.literal("weddingParty"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: weddingPartySectionDataSchema,
 });
 
@@ -480,6 +504,7 @@ export const attireSectionSchema = z.object({
   type: z.literal("attire"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: attireSectionDataSchema,
 });
 
@@ -504,6 +529,7 @@ export const thingsToDoSectionSchema = z.object({
   type: z.literal("thingsToDo"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: thingsToDoSectionDataSchema,
 });
 
@@ -547,6 +573,7 @@ export const registrySectionSchema = z.object({
   type: z.literal("registry"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: registrySectionDataSchema,
 });
 
@@ -572,6 +599,7 @@ export const wishesSectionSchema = z.object({
   type: z.literal("wishes"),
   enabled: z.boolean(),
   visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
   data: wishesSectionDataSchema,
 });
 
@@ -705,6 +733,7 @@ export const PAGE_CONFIG_LIMITS = {
   maxSpeakers: 12,
   maxSponsors: 20,
   maxPartyMembers: 30,
+  navLabelMaxLength: 20,
   heroTitleLength: 80,
   heroSubtitleLength: 120,
   maxFileSizeBytes: 5 * 1024 * 1024, // 5MB

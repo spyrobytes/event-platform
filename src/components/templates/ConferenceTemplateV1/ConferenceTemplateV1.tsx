@@ -22,17 +22,7 @@ type ConferenceTemplateV1Props = {
   eventSlug?: string;
 };
 
-import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
-
-const CONFERENCE_LABEL_OVERRIDES: Record<string, string> = {
-  schedule: "Agenda",
-  rsvp: "Register",
-  map: "Venue",
-};
-
-function getSectionLabel(type: string): string {
-  return CONFERENCE_LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
-}
+import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
 
 /**
  * Modern Conference Template (v1)
@@ -75,15 +65,16 @@ export function ConferenceTemplateV1({ config, assets, eventId, eventSlug }: Con
 
             const key = `${section.type}-${index}`;
             const currentSectionIndex = sectionIndex++;
-            const sectionLabel = getSectionLabel(section.type);
+            const inNav = shouldShowInNav(section, "conference");
+            const sectionLabel = resolveNavLabel(section, "conference");
 
             // Common wrapper for animation and nav registration
             const wrapWithAnimation = (content: React.ReactNode) => (
               <AnimatedWrapper
                 key={key}
                 sectionIndex={currentSectionIndex}
-                navId={section.type}
-                navLabel={sectionLabel}
+                navId={inNav ? section.type : undefined}
+                navLabel={inNav ? sectionLabel : undefined}
               >
                 {content}
               </AnimatedWrapper>

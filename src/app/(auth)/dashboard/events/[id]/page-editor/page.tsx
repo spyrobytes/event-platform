@@ -46,7 +46,12 @@ import { templateSupportsSocialLinks } from "@/components/templates";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
-import { isAccessibleColor } from "@/schemas/event-page";
+import {
+  getTemplateFamily,
+  DEFAULT_NAV_SHOW,
+  resolveNavLabel,
+} from "@/lib/section-nav-defaults";
+import { isAccessibleColor, PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
@@ -1424,6 +1429,64 @@ export default function PageEditorPage() {
                 </Button>
               </div>
             </div>
+            {(() => {
+              const family = getTemplateFamily(templateId);
+              const defaultShown = DEFAULT_NAV_SHOW[family].includes(section.type);
+              const explicit = section.nav?.show;
+              const effectiveShow = explicit ?? defaultShown;
+              const placeholderLabel = resolveNavLabel(
+                { ...section, nav: { ...(section.nav ?? {}), label: undefined } } as Section,
+                family,
+              );
+              return (
+                <div className="mt-3 flex flex-wrap items-center gap-4 border-t pt-3">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={effectiveShow}
+                      onChange={(e) =>
+                        updateSection(index, {
+                          nav: { ...(section.nav ?? {}), show: e.target.checked },
+                        } as Partial<Section>)
+                      }
+                      className="rounded"
+                    />
+                    Show in event navigation
+                    {explicit === undefined && (
+                      <span className="text-xs text-muted-foreground">
+                        (default: {defaultShown ? "visible" : "hidden"})
+                      </span>
+                    )}
+                  </label>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Label htmlFor={`nav-label-${index}`} className="text-sm">
+                      Nav label
+                    </Label>
+                    <Input
+                      id={`nav-label-${index}`}
+                      type="text"
+                      value={section.nav?.label ?? ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const next = { ...(section.nav ?? {}) };
+                        if (value.trim()) {
+                          next.label = value;
+                        } else {
+                          delete next.label;
+                        }
+                        updateSection(index, {
+                          nav: Object.keys(next).length ? next : undefined,
+                        } as Partial<Section>);
+                      }}
+                      placeholder={placeholderLabel}
+                      maxLength={PAGE_CONFIG_LIMITS.navLabelMaxLength}
+                      disabled={!effectiveShow}
+                      className="h-8 w-40 text-sm"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </CardHeader>
           <CardContent>
             {!section.enabled && (

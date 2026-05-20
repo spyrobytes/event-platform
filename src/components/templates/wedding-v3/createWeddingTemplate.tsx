@@ -49,7 +49,11 @@ import { ScrollProgress } from "../wedding-v2/chrome/ScrollProgress";
 import { FooterSkyline } from "../wedding-v2/chrome/FooterSkyline";
 
 // Shared utilities
-import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
+import {
+  MAX_VISIBLE_NAV_ITEMS,
+  orderSectionsForNav,
+  resolveNavLabel,
+} from "@/lib/section-nav-defaults";
 
 // V2 global styles (shared across V3 templates until each gets its own)
 import "../wedding-v2/WeddingTemplateV2.module.css";
@@ -57,15 +61,6 @@ import "../wedding-v2/WeddingTemplateV2.module.css";
 // ---------------------------------------------------------------------------
 // Label + ID helpers
 // ---------------------------------------------------------------------------
-
-const LABEL_OVERRIDES: Record<string, string> = {
-  travelStay: "Travel",
-  registry: "Registry",
-};
-
-function getSectionLabel(type: string): string {
-  return LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
-}
 
 function getSectionId(type: string): string {
   const ids: Record<string, string> = {
@@ -187,16 +182,19 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       }));
     }, [sections]);
 
-    const navSections = useMemo(() => {
-      return sections
-        .filter((s) => s.enabled)
-        .map((s) => {
-          const id = getSectionId(s.type);
-          const label = getSectionLabel(s.type);
-          const isOnPage = !navLinkBase || s.type === subPageSection;
-          const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
-          return { id, label, href };
-        });
+    const { visibleNav, overflowNav } = useMemo(() => {
+      const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
+        const id = getSectionId(s.type);
+        const label = resolveNavLabel(s, "wedding");
+        const isOnPage = !navLinkBase || s.type === subPageSection;
+        const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
+        return { id, label, href };
+      });
+      const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
+      return {
+        visibleNav: candidates.slice(0, cap),
+        overflowNav: candidates.slice(cap),
+      };
     }, [sections, navLinkBase, subPageSection]);
 
     const dateText = hero.subtitle || "";
@@ -209,7 +207,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
 
       const key = `${section.type}-${arrayIndex}`;
       const currentSectionIndex = sectionIndex++;
-      const sectionLabel = getSectionLabel(section.type);
+      const sectionLabel = resolveNavLabel(section, "wedding");
 
       const wrapWithAnimation = (content: React.ReactNode) => (
         <AnimatedWrapper
@@ -357,7 +355,8 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 monogram={hero.monogram}
                 coupleNames={hero.coupleNames}
                 dateText={dateText}
-                sections={navSections}
+                sections={visibleNav}
+                overflow={overflowNav}
                 accentColor={primaryColor}
                 hasHeroImage={!!heroAsset?.publicUrl}
                 homeHref={navLinkBase ? `${navLinkBase}#top` : undefined}
@@ -398,7 +397,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 monogram={hero.monogram}
                 coupleNames={hero.coupleNames}
                 dateText={dateText}
-                sections={navSections}
+                sections={[...visibleNav, ...overflowNav]}
                 socialLinks={socialLinks}
               />
             </article>

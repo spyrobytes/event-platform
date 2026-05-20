@@ -9,13 +9,27 @@
  */
 
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 
 export function CenteredDecoratorNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   const navSections = sections;
+  const linkBaseStyle: React.CSSProperties = {
+    fontFamily: "var(--sans)",
+    fontSize: "0.7rem",
+    fontWeight: 500,
+    letterSpacing: "0.14em",
+    textTransform: "uppercase" as const,
+    color: "rgba(255, 255, 255, 0.6)",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+    transition: "color 0.3s ease",
+  };
 
   // Derive a monogram fallback from couple names initials
   const displayMonogram = monogram
@@ -74,8 +88,9 @@ export function CenteredDecoratorNav({
           {displayMonogram}
         </a>
 
-        {/* Centered links with dot separators */}
+        {/* Centered links with dot separators (desktop) */}
         <div
+          className="fine-art-desktop-links"
           style={{
             display: "flex",
             alignItems: "center",
@@ -98,25 +113,64 @@ export function CenteredDecoratorNav({
                 />
               )}
               <a
-                href={`#${s.id}`}
+                href={s.href ?? `#${s.id}`}
                 className="fine-art-nav-link"
-                style={{
-                  fontFamily: "var(--sans)",
-                  fontSize: "0.7rem",
-                  fontWeight: 500,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase" as const,
-                  color: "rgba(255, 255, 255, 0.6)",
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                  transition: "color 0.3s ease",
-                }}
+                style={linkBaseStyle}
               >
                 {s.label}
               </a>
             </span>
           ))}
+          {overflow.length > 0 && (
+            <span style={{ display: "flex", alignItems: "center" }}>
+              {navSections.length > 0 && (
+                <span
+                  style={{
+                    width: 3,
+                    height: 3,
+                    borderRadius: "50%",
+                    background: "rgba(255, 255, 255, 0.25)",
+                    margin: "0 clamp(10px, 1.5vw, 18px)",
+                    flexShrink: 0,
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+              <NavMoreDropdown
+                items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+                buttonStyle={linkBaseStyle}
+                itemStyle={{
+                  fontFamily: "var(--sans)",
+                  fontSize: "0.7rem",
+                  fontWeight: 500,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase" as const,
+                  padding: "0.5rem 0.9rem",
+                }}
+              />
+            </span>
+          )}
         </div>
+
+        {/* Mobile menu (centered link group is CSS-hidden at ≤768px). */}
+        <MobileNavMenu
+          className="fine-art-mobile-menu"
+          brand={displayMonogram}
+          items={[...navSections, ...overflow].map((s) => ({
+            id: s.id,
+            label: s.label,
+            href: s.href ?? `#${s.id}`,
+            isCta: s.id === "rsvp",
+          }))}
+          buttonStyle={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            border: "1.5px solid rgba(255, 255, 255, 0.35)",
+            color: "rgba(255, 255, 255, 0.85)",
+            background: "transparent",
+          }}
+        />
       </div>
 
       {/* Hover + mobile styles */}
@@ -126,9 +180,14 @@ export function CenteredDecoratorNav({
           border-color: rgba(255, 255, 255, 0.6) !important;
           box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15) !important;
         }
+        .fine-art-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
-          nav > div > div:last-child { display: none !important; }
-          nav > div { justify-content: center !important; }
+          .fine-art-desktop-links { display: none !important; }
+          .fine-art-mobile-menu {
+            display: inline-flex !important;
+            position: absolute !important;
+            right: clamp(20px, 4vw, 40px);
+          }
         }
       `}</style>
     </nav>

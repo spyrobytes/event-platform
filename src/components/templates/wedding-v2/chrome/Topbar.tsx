@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ShareButton } from "@/components/features/ShareButton";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 import styles from "./Topbar.module.css";
 
 type NavSection = {
@@ -19,6 +21,9 @@ type TopbarProps = {
   coupleNames?: string;
   dateText?: string;
   sections?: NavSection[];
+  /** Items that didn't fit in the curated top bar; rendered under a
+   *  "More ▾" dropdown on desktop and inlined into the mobile drawer. */
+  overflow?: NavSection[];
   accentColor?: string;
   homeHref?: string;
   /** When true, renders a ShareButton (navigator.share + clipboard fallback)
@@ -46,6 +51,7 @@ export function Topbar({
   coupleNames,
   dateText,
   sections = [],
+  overflow = [],
   homeHref,
   canShare = false,
   shareTitle,
@@ -55,7 +61,6 @@ export function Topbar({
     if (typeof window === "undefined") return false;
     return window.scrollY > 40;
   });
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
 
   // Scrolled state: frosted glass after 40px
@@ -70,7 +75,8 @@ export function Topbar({
 
   // Active nav highlight via IntersectionObserver
   useEffect(() => {
-    if (sections.length === 0) return;
+    const allIds = [...sections, ...overflow].map((s) => s.id);
+    if (allIds.length === 0) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -83,17 +89,13 @@ export function Topbar({
       { rootMargin: "-30% 0px -65% 0px", threshold: 0.01 }
     );
 
-    sections.forEach(({ id }) => {
+    allIds.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, [sections]);
-
-  const handleNavClick = () => {
-    setMobileNavOpen(false);
-  };
+  }, [sections, overflow]);
 
   return (
     <header
@@ -117,12 +119,9 @@ export function Topbar({
           </div>
         </a>
 
-        {/* Section nav links */}
-        {sections.length > 0 && (
-          <nav
-            className={`${styles.nav} ${mobileNavOpen ? styles.navOpen : ""}`}
-            aria-label="Page sections"
-          >
+        {/* Desktop nav links */}
+        {(sections.length > 0 || overflow.length > 0) && (
+          <nav className={styles.nav} aria-label="Page sections">
             {sections.map(({ id, label, href, isCta }) => (
               <a
                 key={id}
@@ -134,15 +133,20 @@ export function Topbar({
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                onClick={handleNavClick}
               >
                 {label}
               </a>
             ))}
+            {overflow.length > 0 && (
+              <NavMoreDropdown
+                items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+                buttonClassName={styles.navLink}
+              />
+            )}
           </nav>
         )}
 
-        {/* Actions */}
+        {/* Actions: share + mobile hamburger */}
         <div className={styles.actions}>
           {canShare && shareUrl && (
             <ShareButton
@@ -153,29 +157,27 @@ export function Topbar({
             />
           )}
 
-          {sections.length > 0 && (
-            <button
+          {(sections.length > 0 || overflow.length > 0) && (
+            <MobileNavMenu
               className={styles.navToggle}
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              aria-label="Toggle navigation"
-              aria-expanded={mobileNavOpen}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                width={20}
-                height={20}
-              >
-                <line x1="4" y1="6" x2="20" y2="6" />
-                <line x1="4" y1="12" x2="20" y2="12" />
-                <line x1="4" y1="18" x2="20" y2="18" />
-              </svg>
-            </button>
+              brand={coupleNames || monogram || ""}
+              items={[...sections, ...overflow].map((s) => ({
+                id: s.id,
+                label: s.label,
+                href: s.href ?? `#${s.id}`,
+                isCta: s.isCta || s.id === "rsvp",
+              }))}
+              buttonStyle={{
+                width: 40,
+                height: 40,
+                borderRadius: "var(--r, 16px)",
+                border: "1px solid var(--border, #e8e1d6)",
+                color: "var(--text-2, #786f65)",
+                background: "transparent",
+              }}
+              desktopBreakpoint={900}
+            />
           )}
-
         </div>
       </div>
     </header>

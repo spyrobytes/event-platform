@@ -91,6 +91,8 @@
 }
 
 .navLink {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--sans);
   font-size: 0.68rem;
   font-weight: 500;
@@ -137,15 +139,21 @@
   background: var(--accent, #7a8c72);
 }
 
-/* Priority action buttons */
+/* Priority action buttons — share .navLink's padding and inline-flex
+   centring so the pill aligns to the same baseline AND inter-item gap
+   as adjacent text links. Pill emphasis comes from the background fill,
+   text colour, and font-weight, not from extra padding. */
 .priorityLink {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--sans);
   font-size: 0.68rem;
   font-weight: 600;
+  line-height: inherit;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
-  padding: 7px 16px;
+  padding: 6px 12px;
   border-radius: 999px;
   transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.4s ease,
     background 0.4s ease, text-shadow 0.4s ease;
@@ -178,22 +186,11 @@
   flex-shrink: 0;
 }
 
-/* Mobile hamburger */
+/* Mobile hamburger wrapper — only visible at ≤900px; the actual button
+   styling is owned by the shared MobileNavMenu primitive. !important
+   overrides the inline display:inline-flex the primitive applies. */
 .navToggle {
-  display: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: 1px solid var(--border, #e8e1d6);
-  place-items: center;
-  color: var(--text-2, #786f65);
-  background: none;
-  cursor: pointer;
-  transition: background 0.3s ease, color 0.4s ease, border-color 0.4s ease;
-}
-
-.navToggle:hover {
-  background: color-mix(in srgb, var(--accent, #7a8c72) 6%, transparent);
+  display: none !important;
 }
 
 /* ===== OVER-IMAGE STATE ===== */
@@ -245,38 +242,6 @@
   }
 
   .navToggle {
-    display: grid;
-  }
-
-  .navOpen {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--glass-bg-mobile, rgba(248, 245, 240, 0.97));
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border, #e8e1d6);
-    padding: 12px var(--pad, 40px);
-    gap: 2px;
-  }
-
-  .navOpen .navLink {
-    padding: 12px 16px;
-    width: 100%;
-    border-radius: var(--r, 16px);
-    /* Mobile drawer always uses dark text (has opaque backdrop) */
-    color: var(--text-2, #786f65);
-    text-shadow: none;
-  }
-
-  .navOpen .navLink:hover {
-    color: var(--text, #3d3830);
-  }
-
-  .navOpen .navLink::after {
-    display: none;
+    display: inline-flex !important;
   }
 }

@@ -11,11 +11,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { NavRendererProps } from "../../types";
+import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
+import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 
 export function FloatingPillNav({
   monogram,
   coupleNames,
   sections,
+  overflow = [],
 }: NavRendererProps) {
   const [visible, setVisible] = useState(false);
 
@@ -99,7 +102,7 @@ export function FloatingPillNav({
         .map((s) => (
           <a
             key={s.id}
-            href={`#${s.id}`}
+            href={s.href ?? `#${s.id}`}
             className="gl-nav-link"
             style={{
               fontFamily: "var(--sans)",
@@ -143,6 +146,53 @@ export function FloatingPillNav({
         </a>
       )}
 
+      {/* Desktop overflow dropdown */}
+      {overflow.length > 0 && (
+        <div className="gl-nav-desktop-more" style={{ display: "inline-flex", alignItems: "center" }}>
+          <NavMoreDropdown
+            items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
+            buttonStyle={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.65rem",
+              fontWeight: 500,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase" as const,
+              color: "rgba(255,255,255,0.6)",
+              padding: "6px 10px",
+              borderRadius: 999,
+            }}
+            itemStyle={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.65rem",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase" as const,
+              padding: "0.6rem 0.9rem",
+            }}
+          />
+        </div>
+      )}
+
+      {/* Mobile menu. RSVP stays inline as the CTA; the drawer surfaces
+          everything else. */}
+      <MobileNavMenu
+        className="gl-nav-mobile-menu"
+        brand={displayMonogram}
+        items={[...navSections, ...overflow].map((s) => ({
+          id: s.id,
+          label: s.label,
+          href: s.href ?? `#${s.id}`,
+          isCta: s.id === "rsvp",
+        }))}
+        buttonStyle={{
+          width: 32,
+          height: 32,
+          borderRadius: 999,
+          border: "1px solid rgba(255,255,255,0.25)",
+          color: "rgba(255,255,255,0.85)",
+          background: "transparent",
+        }}
+      />
+
       {/* Hover + mobile styles */}
       <style>{`
         .gl-nav-monogram:hover {
@@ -154,9 +204,12 @@ export function FloatingPillNav({
         .gl-nav-rsvp:hover {
           filter: brightness(1.15) !important;
         }
+        .gl-nav-mobile-menu { display: none !important; }
         @media (max-width: 768px) {
           .gl-nav-link,
           nav > div[aria-hidden] { display: none !important; }
+          .gl-nav-desktop-more { display: none !important; }
+          .gl-nav-mobile-menu { display: inline-flex !important; }
         }
       `}</style>
     </nav>

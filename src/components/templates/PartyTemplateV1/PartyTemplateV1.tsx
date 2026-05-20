@@ -22,17 +22,7 @@ type PartyTemplateV1Props = {
   eventSlug?: string;
 };
 
-import { getSectionLabel as baseGetSectionLabel } from "@/lib/guest-access";
-
-const PARTY_LABEL_OVERRIDES: Record<string, string> = {
-  gallery: "Photos",
-  speakers: "Hosts",
-  sponsors: "Thanks",
-};
-
-function getSectionLabel(type: string): string {
-  return PARTY_LABEL_OVERRIDES[type] || baseGetSectionLabel(type);
-}
+import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
 
 /**
  * Celebration Party Template (v1)
@@ -75,15 +65,16 @@ export function PartyTemplateV1({ config, assets, eventId, eventSlug }: PartyTem
 
             const key = `${section.type}-${index}`;
             const currentSectionIndex = sectionIndex++;
-            const sectionLabel = getSectionLabel(section.type);
+            const inNav = shouldShowInNav(section, "party");
+            const sectionLabel = resolveNavLabel(section, "party");
 
             // Common wrapper for animation and nav registration
             const wrapWithAnimation = (content: React.ReactNode) => (
               <AnimatedWrapper
                 key={key}
                 sectionIndex={currentSectionIndex}
-                navId={section.type}
-                navLabel={sectionLabel}
+                navId={inNav ? section.type : undefined}
+                navLabel={inNav ? sectionLabel : undefined}
               >
                 {content}
               </AnimatedWrapper>
