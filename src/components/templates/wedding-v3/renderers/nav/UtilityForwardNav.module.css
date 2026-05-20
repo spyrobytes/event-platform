@@ -91,6 +91,8 @@
 }
 
 .navLink {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--sans);
   font-size: 0.68rem;
   font-weight: 500;
@@ -137,18 +139,21 @@
   background: var(--accent, #7a8c72);
 }
 
-/* Priority action buttons — y-padding matches .navLink so the pill
-   shares the same height as adjacent text links in the nav row. */
+/* Priority action buttons — y-padding and inline-flex centring keep the
+   pill the same height as adjacent .navLink so the row reads as a single
+   baseline. x-padding stays wider to preserve the visible CTA emphasis. */
 .priorityLink {
+  display: inline-flex;
+  align-items: center;
   font-family: var(--sans);
   font-size: 0.68rem;
   font-weight: 600;
+  line-height: inherit;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
   padding: 6px 16px;
   border-radius: 999px;
-  line-height: 1.4;
   transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.4s ease,
     background 0.4s ease, text-shadow 0.4s ease;
 }

@@ -160,7 +160,7 @@ export function PillDotNav({
           )}
         </div>
 
-        {/* Mobile-only hamburger + full-width drawer. */}
+        {/* Mobile-only hamburger + anchored popover. */}
         <MobileNavMenu
           className="gh-nav-mobile-menu"
           items={[...navSections, ...overflow].map(({ id, label, href }) => ({
