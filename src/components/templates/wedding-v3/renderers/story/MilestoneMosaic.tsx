@@ -10,6 +10,7 @@
 
 import type { SectionRendererProps } from "../../types";
 import type { StorySection } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 
 export function MilestoneMosaic({
   data,
@@ -65,12 +66,14 @@ export function MilestoneMosaic({
                   }}
                 >
                   {img?.publicUrl && (
-                    <div style={{ aspectRatio: "16 / 10", overflow: "hidden" }}>
-                      <img
+                    <div style={{ position: "relative", aspectRatio: "16 / 10", overflow: "hidden" }}>
+                      <EventImage
                         src={img.publicUrl}
                         alt={m.title || ""}
-                        loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 320px"
+                        blurDataURL={img.blurDataUrl}
+                        style={{ objectFit: "cover", objectPosition: "center 25%" }}
                       />
                     </div>
                   )}
@@ -111,8 +114,15 @@ export function MilestoneMosaic({
         ) : (
           <div style={{ maxWidth: 620, margin: "0 auto" }}>
             {mainImage?.publicUrl && (
-              <div style={{ aspectRatio: "16 / 10", borderRadius: "var(--r, 16px)", overflow: "hidden", marginBottom: "clamp(24px, 3vw, 40px)" }}>
-                <img src={mainImage.publicUrl} alt="" loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }} />
+              <div style={{ position: "relative", aspectRatio: "16 / 10", borderRadius: "var(--r, 16px)", overflow: "hidden", marginBottom: "clamp(24px, 3vw, 40px)" }}>
+                <EventImage
+                  src={mainImage.publicUrl}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 620px"
+                  blurDataURL={mainImage.blurDataUrl}
+                  style={{ objectFit: "cover", objectPosition: "center 25%" }}
+                />
               </div>
             )}
             <p style={{ fontFamily: "var(--sans)", fontSize: "var(--body)", lineHeight: 1.85, color: "var(--text-2)", whiteSpace: "pre-line", textAlign: "left" }}>

@@ -10,6 +10,7 @@
 
 import type { SectionRendererProps } from "../../types";
 import type { StorySection } from "@/schemas/event-page";
+import { EventImage } from "@/components/media/EventImage";
 
 export function ChapterCards({
   data,
@@ -82,6 +83,7 @@ export function ChapterCards({
                   {img?.publicUrl && (
                     <div
                       style={{
+                        position: "relative",
                         width: 80,
                         height: 80,
                         borderRadius: "50%",
@@ -90,11 +92,13 @@ export function ChapterCards({
                         border: "2px solid var(--border, #e8e1d6)",
                       }}
                     >
-                      <img
+                      <EventImage
                         src={img.publicUrl}
                         alt={m.title || ""}
-                        loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
+                        fill
+                        sizes="80px"
+                        blurDataURL={img.blurDataUrl}
+                        style={{ objectFit: "cover", objectPosition: "center 25%" }}
                       />
                     </div>
                   )}
@@ -149,6 +153,7 @@ export function ChapterCards({
             {mainImage?.publicUrl && (
               <div
                 style={{
+                  position: "relative",
                   aspectRatio: "4 / 3",
                   borderRadius: "var(--r, 16px)",
                   overflow: "hidden",
@@ -156,11 +161,13 @@ export function ChapterCards({
                   border: "1px solid var(--border, #e8e1d6)",
                 }}
               >
-                <img
+                <EventImage
                   src={mainImage.publicUrl}
                   alt=""
-                  loading="lazy"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 25%", display: "block" }}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 580px"
+                  blurDataURL={mainImage.blurDataUrl}
+                  style={{ objectFit: "cover", objectPosition: "center 25%" }}
                 />
               </div>
             )}

@@ -12,7 +12,7 @@
 
 import type { SectionRendererProps } from "../../types";
 import type { StorySection } from "@/schemas/event-page";
-import type { MediaAsset } from "@prisma/client";
+import { EventImage } from "@/components/media/EventImage";
 import styles from "./EditorialBlocks.module.css";
 
 export function EditorialBlocks({
@@ -48,10 +48,12 @@ export function EditorialBlocks({
                 {/* Image */}
                 <div className={styles.blockImage}>
                   {milestoneImage?.publicUrl ? (
-                    <img
+                    <EventImage
                       src={milestoneImage.publicUrl}
                       alt={milestone.title || ""}
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      blurDataURL={milestoneImage.blurDataUrl}
                     />
                   ) : (
                     <div
@@ -90,10 +92,12 @@ export function EditorialBlocks({
           <div className={styles.singleBlock}>
             {mainImage?.publicUrl && (
               <div className={styles.singleImage}>
-                <img
+                <EventImage
                   src={mainImage.publicUrl}
                   alt=""
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  blurDataURL={mainImage.blurDataUrl}
                 />
               </div>
             )}
