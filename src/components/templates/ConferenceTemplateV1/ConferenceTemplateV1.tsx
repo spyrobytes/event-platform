@@ -89,6 +89,7 @@ export function ConferenceTemplateV1({ config, assets, eventId, eventSlug }: Con
                 sectionIndex={currentSectionIndex}
                 navId={inNav ? section.type : undefined}
                 navLabel={inNav ? sectionLabel : undefined}
+                setDomId
               >
                 {content}
               </AnimatedWrapper>

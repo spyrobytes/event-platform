@@ -89,6 +89,7 @@ export function PartyTemplateV1({ config, assets, eventId, eventSlug }: PartyTem
                 sectionIndex={currentSectionIndex}
                 navId={inNav ? section.type : undefined}
                 navLabel={inNav ? sectionLabel : undefined}
+                setDomId
               >
                 {content}
               </AnimatedWrapper>

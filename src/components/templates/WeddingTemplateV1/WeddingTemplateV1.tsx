@@ -92,6 +92,7 @@ export function WeddingTemplateV1({ config, assets, eventId, eventSlug }: Weddin
                 sectionIndex={currentSectionIndex}
                 navId={inNav ? section.type : undefined}
                 navLabel={inNav ? sectionLabel : undefined}
+                setDomId
               >
                 {content}
               </AnimatedWrapper>
