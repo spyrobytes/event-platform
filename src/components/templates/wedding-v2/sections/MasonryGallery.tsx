@@ -22,6 +22,8 @@ type ResolvedItem = {
   url: string;
   alt: string;
   blurDataUrl: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 /** Grid span class cycling pattern for masonry mode */
@@ -68,6 +70,8 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
             url: asset.publicUrl,
             alt: asset.alt || item.caption || item.title || "Gallery image",
             blurDataUrl: asset?.blurDataUrl ?? null,
+            width: asset.width,
+            height: asset.height,
           };
         })
         .filter(Boolean) as ResolvedItem[],
@@ -295,7 +299,7 @@ function Lightbox({
   onPrev,
   onNext,
 }: {
-  items: Array<{ url: string; alt: string; caption?: string; title?: string }>;
+  items: ResolvedItem[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
@@ -407,8 +411,14 @@ function Lightbox({
       </button>
 
       <div className={styles.lightboxStage}>
-        {/* Lightbox keeps plain <img> — dynamic full-screen sizing doesn't suit next/image */}
-        <img src={item.url} alt={item.alt} />
+        <EventImage
+          src={item.url}
+          alt={item.alt}
+          width={item.width ?? 1600}
+          height={item.height ?? 1200}
+          sizes="(max-width: 768px) 100vw, 80vw"
+          blurDataURL={item.blurDataUrl}
+        />
         {captionText && (
           <div className={styles.lightboxCaption}>{captionText}</div>
         )}
