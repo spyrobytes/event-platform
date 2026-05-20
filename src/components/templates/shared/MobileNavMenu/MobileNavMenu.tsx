@@ -95,6 +95,8 @@ export function MobileNavMenu({
   const [themeVars, setThemeVars] = useState<React.CSSProperties>({});
   const drawerId = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousOverflowRef = useRef<string>("");
   const openRef = useRef(false);
 
@@ -121,7 +123,14 @@ export function MobileNavMenu({
     });
   }, []);
 
-  const close = useCallback(() => setOpenState(false), [setOpenState]);
+  const close = useCallback(() => {
+    setOpenState(false);
+    // Return focus to the hamburger trigger so keyboard users land
+    // back where they invoked the drawer. Skipped automatically when
+    // the trigger is gone (e.g. resized past desktop breakpoint, or
+    // hidden by CSS in templates with a desktop nav).
+    triggerRef.current?.focus();
+  }, [setOpenState]);
 
   /**
    * Synchronous-commit close path for browser navigation and BFCache
@@ -137,6 +146,10 @@ export function MobileNavMenu({
    * DOM event handlers — link `onClick`, the `pagehide` listener, the
    * persisted-`pageshow` listener. Never call from a `useEffect` body
    * or from inside another `flushSync`.
+   *
+   * No focus restoration here: hash navigation hands focus to the link
+   * target, full navigations leave the page entirely, and a BFCache
+   * restore shouldn't yank focus from wherever the user is now.
    */
   const closeBeforePageCacheSnapshot = useCallback(() => {
     if (!openRef.current) return;
@@ -198,16 +211,57 @@ export function MobileNavMenu({
 
   // Drawer link clicks go through the sync-commit close so a real
   // document navigation can't outrun the portal unmount. See
-  // `closeBeforePageCacheSnapshot` for the why.
+  // `closeBeforePageCacheSnapshot` for the full rationale (including
+  // why focus is intentionally NOT restored on this path).
   const onItemClick = closeBeforePageCacheSnapshot;
 
-  // Escape + auto-close when widening past mobile breakpoint.
+  // Move focus into the drawer when it opens so keyboard users land
+  // inside the dialog rather than on the (now-aria-hidden-by-modal)
+  // page content behind it.
+  useEffect(() => {
+    if (!open) return;
+    // Defer to next frame so the portal has mounted and refs are
+    // populated before we call .focus().
+    const raf = requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
+
+  // Escape, Tab focus trap, and auto-close on resize past mobile.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         close();
+        return;
+      }
+      if (e.key === "Tab") {
+        // Keep focus inside the drawer. Without this, Tab leaks into
+        // the page behind the modal overlay.
+        const drawer = document.getElementById(drawerId);
+        if (!drawer) return;
+        const focusable = drawer.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+        // If focus has escaped the drawer entirely, pull it back.
+        if (!active || !drawer.contains(active)) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+          return;
+        }
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     const onResize = () => {
@@ -219,7 +273,7 @@ export function MobileNavMenu({
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
     };
-  }, [open, close, desktopBreakpoint]);
+  }, [open, close, drawerId, desktopBreakpoint]);
 
   if (items.length === 0) return null;
 
@@ -234,10 +288,12 @@ export function MobileNavMenu({
         style={{ display: "inline-flex", alignItems: "center" }}
       >
         <button
+          ref={triggerRef}
           type="button"
           aria-label={open ? "Close menu" : ariaLabel}
           aria-expanded={open}
           aria-controls={drawerId}
+          aria-haspopup="dialog"
           onClick={toggle}
           style={buttonStyle}
           className={cn(
@@ -289,9 +345,12 @@ export function MobileNavMenu({
             }}
           />
 
-          {/* Side drawer. */}
+          {/* Side drawer. Marked as a modal dialog so screen readers
+              announce it correctly and the focus trap is meaningful. */}
           <aside
             id={drawerId}
+            role="dialog"
+            aria-modal="true"
             aria-label="Mobile navigation"
             style={{
               position: "fixed",
@@ -333,6 +392,7 @@ export function MobileNavMenu({
                 {brand}
               </span>
               <button
+                ref={closeButtonRef}
                 type="button"
                 aria-label="Close menu"
                 onClick={close}
