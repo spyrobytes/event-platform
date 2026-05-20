@@ -172,9 +172,8 @@ export function FloatingPillNav({
         </div>
       )}
 
-      {/* Mobile-only hamburger + anchored popover. RSVP stays inline as
-          the primary CTA on mobile; the popover surfaces the remaining
-          non-RSVP visible items plus overflow. */}
+      {/* Mobile menu. RSVP stays inline as the CTA; the drawer surfaces
+          everything else. */}
       <MobileNavMenu
         className="gl-nav-mobile-menu"
         brand={displayMonogram}

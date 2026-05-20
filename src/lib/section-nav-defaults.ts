@@ -1,13 +1,31 @@
 import { PAGE_CONFIG_LIMITS, type Section } from "@/schemas/event-page";
 import { SECTION_LABELS } from "@/lib/guest-access";
+import type { TemplateId } from "@/schemas/event";
 
 export type TemplateFamily = "wedding" | "conference" | "party";
 
+/**
+ * templateId → family map. Exhaustive over VALID_TEMPLATE_IDS — TypeScript
+ * will refuse to compile when a new template ID is added to event.ts until
+ * its family is declared here, so we can't silently route a new ID to the
+ * wedding default the way a startsWith prefix heuristic would.
+ */
+const TEMPLATE_ID_TO_FAMILY: Record<TemplateId, TemplateFamily> = {
+  wedding_v1: "wedding",
+  wedding_v2: "wedding",
+  wedding_editorial: "wedding",
+  wedding_intimate_note: "wedding",
+  wedding_fine_art: "wedding",
+  wedding_garden_house: "wedding",
+  wedding_grand_luxe: "wedding",
+  wedding_celebration: "wedding",
+  conference_v1: "conference",
+  party_v1: "party",
+};
+
 export function getTemplateFamily(templateId: string | null | undefined): TemplateFamily {
   if (!templateId) return "wedding";
-  if (templateId.startsWith("conference")) return "conference";
-  if (templateId.startsWith("party")) return "party";
-  return "wedding";
+  return TEMPLATE_ID_TO_FAMILY[templateId as TemplateId] ?? "wedding";
 }
 
 /**

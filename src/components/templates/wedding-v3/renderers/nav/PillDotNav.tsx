@@ -160,7 +160,7 @@ export function PillDotNav({
           )}
         </div>
 
-        {/* Mobile-only hamburger + anchored popover. */}
+        {/* Mobile menu. */}
         <MobileNavMenu
           className="gh-nav-mobile-menu"
           brand={displayMonogram}

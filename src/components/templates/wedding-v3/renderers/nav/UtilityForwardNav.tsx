@@ -118,7 +118,7 @@ export function UtilityForwardNav({
           )}
         </nav>
 
-        {/* Mobile-only menu (shared MobileNavMenu primitive). */}
+        {/* Mobile menu. */}
         <div className={styles.actions}>
           {(sections.length > 0 || overflow.length > 0) && (
             <MobileNavMenu

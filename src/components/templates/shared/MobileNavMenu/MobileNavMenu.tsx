@@ -69,12 +69,6 @@ type MobileNavMenuProps = {
   className?: string;
   /** Inline style overrides for the hamburger button. */
   buttonStyle?: React.CSSProperties;
-  /** Inline style overrides for the drawer panel. */
-  drawerStyle?: React.CSSProperties;
-  /** Inline style overrides for each link in the drawer. */
-  itemStyle?: React.CSSProperties;
-  /** Inline style overrides for items flagged isCta. */
-  ctaItemStyle?: React.CSSProperties;
   /** Hamburger button aria-label. */
   ariaLabel?: string;
   /** Width at which the drawer auto-closes when the viewport widens.
@@ -88,9 +82,6 @@ export function MobileNavMenu({
   brand,
   className,
   buttonStyle,
-  drawerStyle,
-  itemStyle,
-  ctaItemStyle,
   ariaLabel = "Open menu",
   desktopBreakpoint = 768,
 }: MobileNavMenuProps) {
@@ -124,16 +115,9 @@ export function MobileNavMenu({
     };
   }, [open]);
 
-  // BFCache survival. pagehide fires just before the page is snapshotted
-  // (hard navigation, tab close, etc.) — we synchronously release the
-  // scroll lock here so the cached snapshot never has overflow:hidden
-  // pinned to body. pageshow with event.persisted=true fires when the
-  // user navigates back to the cached snapshot — we close the drawer
-  // and clear lingering state. Without these, V2's external RSVP route
-  // (/e/[slug]/rsvp) leaves the cached page with body locked and an
-  // open-state drawer; on Back the entire page appears unresponsive
-  // until refresh. V3 doesn't hit this because its RSVP links are
-  // in-page anchors (#rsvp) and don't trigger a BFCache cycle.
+  // BFCache survival. The cached snapshot must not be taken with
+  // overflow:hidden pinned, and a restored snapshot must clear any
+  // open-state drawer carried in by BFCache.
   useEffect(() => {
     const onPageHide = () => {
       document.body.style.overflow = "";
@@ -142,7 +126,6 @@ export function MobileNavMenu({
       if (!e.persisted) return;
       document.body.style.overflow = "";
       setOpen(false);
-      setThemeVars({});
     };
     window.addEventListener("pagehide", onPageHide);
     window.addEventListener("pageshow", onPageShow);
@@ -268,7 +251,6 @@ export function MobileNavMenu({
               animation: "mnm-slide-in 360ms cubic-bezier(0.22, 1, 0.36, 1)",
               display: "flex",
               flexDirection: "column",
-              ...drawerStyle,
             }}
           >
             <div
@@ -345,7 +327,6 @@ export function MobileNavMenu({
                     animation: `mnm-item-in 320ms cubic-bezier(0.22, 1, 0.36, 1) ${
                       i * 45
                     }ms both`,
-                    ...itemStyle,
                   }}
                   className="mnm-item"
                 >
@@ -387,7 +368,6 @@ export function MobileNavMenu({
                     animation: `mnm-item-in 320ms cubic-bezier(0.22, 1, 0.36, 1) ${
                       (nonCtaItems.length + i) * 45
                     }ms both`,
-                    ...ctaItemStyle,
                   }}
                 >
                   {item.label}

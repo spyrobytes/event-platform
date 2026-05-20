@@ -152,9 +152,7 @@ export function CenteredDecoratorNav({
           )}
         </div>
 
-        {/* Mobile-only hamburger + anchored popover. The centered link
-            group is CSS-hidden at ≤768px, so this is how every nav target
-            stays reachable on small screens. */}
+        {/* Mobile menu (centered link group is CSS-hidden at ≤768px). */}
         <MobileNavMenu
           className="fine-art-mobile-menu"
           brand={displayMonogram}
