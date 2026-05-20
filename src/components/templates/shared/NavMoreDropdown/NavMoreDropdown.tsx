@@ -136,31 +136,39 @@ export function NavMoreDropdown({
             menuClassName,
           )}
         >
-          {items.map((item, i) => (
-            <li key={item.id} role="none">
-              <a
-                ref={(el) => {
-                  itemRefs.current[i] = el;
-                }}
-                role="menuitem"
-                href={item.href}
-                onClick={() => {
-                  close();
-                  onSelect?.(item);
-                }}
-                style={{
-                  color: "var(--text, #1f1f1f)",
-                  ...itemStyle,
-                }}
-                className={cn(
-                  "block px-3 py-2 text-sm transition-colors focus:outline-none hover:bg-black/5 focus:bg-black/5",
-                  itemClassName,
-                )}
-              >
-                {item.label}
-              </a>
-            </li>
-          ))}
+          {items.map((item, i) => {
+            const isActive = activeIndex === i;
+            return (
+              <li key={item.id} role="none">
+                <a
+                  ref={(el) => {
+                    itemRefs.current[i] = el;
+                  }}
+                  role="menuitem"
+                  href={item.href}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onFocus={() => setActiveIndex(i)}
+                  onClick={() => {
+                    close();
+                    onSelect?.(item);
+                  }}
+                  style={{
+                    color: "var(--text, #1f1f1f)",
+                    background: isActive
+                      ? "color-mix(in srgb, var(--accent, #000) 14%, transparent)"
+                      : "transparent",
+                    ...itemStyle,
+                  }}
+                  className={cn(
+                    "block px-3 py-2 text-sm transition-colors focus:outline-none",
+                    itemClassName,
+                  )}
+                >
+                  {item.label}
+                </a>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
