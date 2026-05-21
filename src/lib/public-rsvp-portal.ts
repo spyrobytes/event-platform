@@ -18,6 +18,10 @@ export type InvitePreview = {
    *  `wishes` section is enabled and accepting submissions. Surfaces the
    *  "Message for the couple" textarea on the respond form. */
   enableWishes: boolean;
+  /** Event templateId — drives wedding-only UI on the respond form (side
+   *  selector). Optional for backward compat with sessions written by
+   *  older clients still in sessionStorage. */
+  templateId?: string | null;
 };
 
 export function readInvitePreview(): InvitePreview | null {
@@ -35,6 +39,7 @@ export function readInvitePreview(): InvitePreview | null {
       return {
         ...parsed,
         enableWishes: typeof parsed?.enableWishes === "boolean" ? parsed.enableWishes : false,
+        templateId: typeof parsed?.templateId === "string" ? parsed.templateId : null,
       } as InvitePreview;
     }
     return null;

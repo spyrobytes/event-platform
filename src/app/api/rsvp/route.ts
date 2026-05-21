@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
           musicSuggestions: data.musicSuggestions,
           notes: data.notes,
           messageToHost: data.messageToHost,
+          side: data.side,
         },
         update: {
           response: data.response,
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
           dietaryRestrictions: data.dietaryRestrictions,
           musicSuggestions: data.musicSuggestions,
           notes: data.notes,
+          side: data.side,
           updatedAt: new Date(),
           ...(messageChanged && {
             messageToHost: data.messageToHost,

@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         rsvpDeadline: true,
         startAt: true,
         pageConfig: true,
+        templateId: true,
       },
     });
 
@@ -166,6 +167,7 @@ export async function POST(request: NextRequest) {
         hasEmail: !!invite.email,
         plusOnesAllowed: invite.plusOnesAllowed,
         enableWishes,
+        templateId: event.templateId,
       },
     });
 

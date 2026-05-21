@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const RSVP_SIDE_VALUES = ["GROOMS_SIDE", "BRIDES_SIDE", "BOTH"] as const;
+export type RsvpSide = (typeof RSVP_SIDE_VALUES)[number];
+
+const sideField = z.enum(RSVP_SIDE_VALUES).optional();
+
 const additionalGuestNamesField = z
   .array(
     z
@@ -49,7 +54,7 @@ export function buildSubmitRsvpSchema({
         .optional(),
       musicSuggestions: z
         .string()
-        .max(500, "Song requests must be less than 500 characters")
+        .max(500, "Song suggestions must be less than 500 characters")
         .optional(),
       notes: z
         .string()
@@ -63,6 +68,7 @@ export function buildSubmitRsvpSchema({
           return trimmed.length > 0 ? trimmed : undefined;
         })
         .optional(),
+      side: sideField,
     })
     .superRefine((data, ctx) => {
       if (data.response === "YES" && data.guestCount > 1) {
@@ -155,6 +161,7 @@ export const publicPortalSubmitSchema = z
         return trimmed.length > 0 ? trimmed : undefined;
       })
       .optional(),
+    side: sideField,
     hp: z.string().optional(),
   })
   .superRefine((data, ctx) => {

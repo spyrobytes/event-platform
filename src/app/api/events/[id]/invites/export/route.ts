@@ -87,6 +87,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
             musicSuggestions: true,
             notes: true,
             respondedAt: true,
+            side: true,
           },
         },
       },
@@ -110,8 +111,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
       "Seat Assignment",
       "Planner Notes",
       "Dietary Restrictions",
-      "Song Requests",
+      "Song Suggestions",
+      "Side",
     ];
+
+    const sideLabel = (
+      side: "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH" | null | undefined
+    ): string => {
+      if (side === "GROOMS_SIDE") return "Groom's";
+      if (side === "BRIDES_SIDE") return "Bride's";
+      if (side === "BOTH") return "Both";
+      return "";
+    };
 
     const rows = invites.map((invite) => [
       invite.name || invite.rsvp?.guestName || "",
@@ -128,6 +139,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       invite.plannerNotes || "",
       invite.rsvp?.dietaryRestrictions || "",
       invite.rsvp?.musicSuggestions || "",
+      sideLabel(invite.rsvp?.side),
     ]);
 
     const csv = generateCSV(headers, rows);

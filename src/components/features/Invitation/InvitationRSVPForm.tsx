@@ -13,6 +13,7 @@ import {
 } from "@/lib/tracking";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
+type RsvpSide = "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH";
 
 type InvitationRSVPFormProps = {
   inviteToken: string;
@@ -30,7 +31,15 @@ type InvitationRSVPFormProps = {
   /** When true, show the "Message for the couple" field. Set by event pages
    *  whose page config has the `wishes` section enabled. */
   enableWishes?: boolean;
+  /** Event templateId — drives wedding-only UI (the side selector). */
+  templateId?: string | null;
 };
+
+const SIDE_OPTIONS: { value: RsvpSide; label: string }[] = [
+  { value: "GROOMS_SIDE", label: "Groom's Side" },
+  { value: "BRIDES_SIDE", label: "Bride's Side" },
+  { value: "BOTH", label: "Both" },
+];
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
   { value: "YES", label: "Yes, I'll be there!", description: "Count me in for this event" },
@@ -54,8 +63,10 @@ export function InvitationRSVPForm({
   needsEmail = false,
   inviteRef,
   enableWishes = false,
+  templateId,
 }: InvitationRSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
+  const [selectedSide, setSelectedSide] = useState<RsvpSide | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -63,6 +74,8 @@ export function InvitationRSVPForm({
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const [submittedResponse, setSubmittedResponse] = useState<RsvpResponse | null>(null);
   const [additionalGuestNames, setAdditionalGuestNames] = useState<string[]>([]);
+
+  const showSideField = typeof templateId === "string" && templateId.startsWith("wedding");
 
   // Analytics tracking refs
   const formStarted = useRef(false);
@@ -125,6 +138,7 @@ export function InvitationRSVPForm({
       dietaryRestrictions: "",
       musicSuggestions: "",
       notes: "",
+      side: undefined as RsvpSide | undefined,
     },
   });
 
@@ -306,6 +320,40 @@ export function InvitationRSVPForm({
           )}
         </div>
 
+        {/* Side selection (wedding events only) */}
+        {showSideField && (
+          <div className="space-y-3">
+            <label className={labelStyles}>
+              Which side are you with?{" "}
+              <span className="text-[var(--inv-text-secondary)]">(optional)</span>
+            </label>
+            <p className="text-xs text-[var(--inv-text-secondary)] -mt-2">
+              Helps the couple with seating arrangements.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {SIDE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    handleFormInteraction("side");
+                    setSelectedSide(option.value);
+                    setValue("side", option.value);
+                  }}
+                  className={cn(
+                    "rounded-lg border-2 px-3 py-2 text-sm text-center transition-all duration-200",
+                    selectedSide === option.value
+                      ? "border-[var(--inv-accent)] bg-[var(--inv-accent)]/10 font-medium"
+                      : "border-[var(--inv-border)] hover:border-[var(--inv-accent)]/50 bg-[var(--inv-card-bg)]"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Guest Name */}
         <div>
           <label htmlFor="guestName" className={labelStyles}>
@@ -449,15 +497,15 @@ export function InvitationRSVPForm({
           </div>
         )}
 
-        {/* Song Requests */}
+        {/* Song Suggestions */}
         {selectedResponse === "YES" && (
           <div>
             <label htmlFor="musicSuggestions" className={labelStyles}>
-              Song Requests <span className="text-[var(--inv-text-secondary)]">(optional)</span>
+              Song Suggestions <span className="text-[var(--inv-text-secondary)]">(optional)</span>
             </label>
             <textarea
               id="musicSuggestions"
-              placeholder="Any songs you'd love to hear? Helps the host plan the playlist."
+              placeholder="Song title and artist name"
               rows={2}
               maxLength={500}
               className={inputStyles}

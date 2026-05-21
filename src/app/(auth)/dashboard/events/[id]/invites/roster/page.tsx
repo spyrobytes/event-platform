@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { formatEventDateLong } from "@/lib/utils";
 import styles from "./roster.module.css";
 
+type RsvpSide = "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH";
+
 type RosterRow = {
   id: string;
   name: string | null;
@@ -19,7 +21,14 @@ type RosterRow = {
     additionalGuestNames: string[];
     dietaryRestrictions: string | null;
     musicSuggestions: string | null;
+    side: RsvpSide | null;
   } | null;
+};
+
+const SIDE_LABEL: Record<RsvpSide, string> = {
+  GROOMS_SIDE: "Groom's",
+  BRIDES_SIDE: "Bride's",
+  BOTH: "Both",
 };
 
 type RosterData = {
@@ -136,9 +145,10 @@ export default function RosterPage() {
           <thead>
             <tr>
               <th scope="col">Guest</th>
+              <th scope="col">Side</th>
               <th scope="col">Seat</th>
               <th scope="col">Dietary</th>
-              <th scope="col">Song requests</th>
+              <th scope="col">Song suggestions</th>
               <th scope="col">Notes</th>
             </tr>
           </thead>
@@ -153,6 +163,7 @@ export default function RosterPage() {
                       <span className={styles.additionalNames}>{additional}</span>
                     )}
                   </td>
+                  <td>{row.rsvp?.side ? SIDE_LABEL[row.rsvp.side] : ""}</td>
                   <td>{row.seatAssignment ?? ""}</td>
                   <td>{row.rsvp?.dietaryRestrictions ?? ""}</td>
                   <td>{row.rsvp?.musicSuggestions ?? ""}</td>

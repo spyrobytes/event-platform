@@ -32,6 +32,7 @@ async function getInviteForRSVP(token: string) {
           status: true,
           timezone: true,
           pageConfig: true,
+          templateId: true,
         },
       },
       rsvp: {
@@ -219,6 +220,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 needsEmail={!invite.email}
                 inviteRef={inviteRef}
                 enableWishes={enableWishes}
+                templateId={event.templateId}
               />
             )}
           </div>
