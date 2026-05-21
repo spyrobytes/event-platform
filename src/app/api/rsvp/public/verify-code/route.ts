@@ -6,7 +6,7 @@ import { successResponse, errorResponse, handleApiError } from "@/lib/api-respon
 import { verifyRsvpCodeSchema } from "@/schemas/rsvp";
 import { hashRsvpCode, normalizeRsvpCode } from "@/lib/rsvp-code";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
-import { getTemplateFamily } from "@/lib/section-nav-defaults";
+import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import {
   createRsvpSession,
   RSVP_SESSION_COOKIE,
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
         hasEmail: !!invite.email,
         plusOnesAllowed: invite.plusOnesAllowed,
         enableWishes,
-        showSideField: getTemplateFamily(event.templateId) === "wedding",
+        showSideField: isWeddingTemplate(event.templateId),
       },
     });
 
