@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
+import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 import {
   trackFormStarted,
   trackFormSubmitted,
@@ -17,7 +18,6 @@ import {
 } from "@/lib/tracking";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
-type RsvpSide = "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH";
 
 type RSVPFormProps = {
   inviteToken?: string;
@@ -44,12 +44,6 @@ const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: strin
   { value: "YES", label: "Yes, I'll be there!", description: "Count me in for this event" },
   { value: "NO", label: "No, I can't make it", description: "I won't be able to attend" },
   { value: "MAYBE", label: "Maybe", description: "I'm not sure yet" },
-];
-
-const SIDE_OPTIONS: { value: RsvpSide; label: string }[] = [
-  { value: "GROOMS_SIDE", label: "Groom's Side" },
-  { value: "BRIDES_SIDE", label: "Bride's Side" },
-  { value: "BOTH", label: "Both" },
 ];
 
 export function RSVPForm({

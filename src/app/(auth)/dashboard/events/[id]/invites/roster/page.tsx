@@ -6,9 +6,8 @@ import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { formatEventDateLong } from "@/lib/utils";
+import { SIDE_LABEL, type RsvpSide } from "@/lib/rsvp-side";
 import styles from "./roster.module.css";
-
-type RsvpSide = "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH";
 
 type RosterRow = {
   id: string;
@@ -23,12 +22,6 @@ type RosterRow = {
     musicSuggestions: string | null;
     side: RsvpSide | null;
   } | null;
-};
-
-const SIDE_LABEL: Record<RsvpSide, string> = {
-  GROOMS_SIDE: "Groom's",
-  BRIDES_SIDE: "Bride's",
-  BOTH: "Both",
 };
 
 type RosterData = {

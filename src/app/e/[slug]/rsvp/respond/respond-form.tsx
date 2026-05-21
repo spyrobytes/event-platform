@@ -7,20 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { clearInvitePreview, type InvitePreview } from "@/lib/public-rsvp-portal";
+import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
-type RsvpSide = "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH";
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
   { value: "YES", label: "Yes, I'll be there!", description: "Count me in for this event" },
   { value: "NO", label: "No, I can't make it", description: "I won't be able to attend" },
   { value: "MAYBE", label: "Maybe", description: "I'm not sure yet" },
-];
-
-const SIDE_OPTIONS: { value: RsvpSide; label: string }[] = [
-  { value: "GROOMS_SIDE", label: "Groom's Side" },
-  { value: "BRIDES_SIDE", label: "Bride's Side" },
-  { value: "BOTH", label: "Both" },
 ];
 
 const ERROR_MESSAGES: Record<string, string> = {

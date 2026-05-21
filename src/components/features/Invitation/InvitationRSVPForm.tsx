@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
+import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 import {
   trackFormStarted,
   trackFormSubmitted,
@@ -13,7 +14,6 @@ import {
 } from "@/lib/tracking";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
-type RsvpSide = "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH";
 
 type InvitationRSVPFormProps = {
   inviteToken: string;
@@ -34,12 +34,6 @@ type InvitationRSVPFormProps = {
   /** Event templateId — drives wedding-only UI (the side selector). */
   templateId?: string | null;
 };
-
-const SIDE_OPTIONS: { value: RsvpSide; label: string }[] = [
-  { value: "GROOMS_SIDE", label: "Groom's Side" },
-  { value: "BRIDES_SIDE", label: "Bride's Side" },
-  { value: "BOTH", label: "Both" },
-];
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
   { value: "YES", label: "Yes, I'll be there!", description: "Count me in for this event" },

@@ -4,6 +4,7 @@ import { requireEventOwner } from "@/lib/authorization";
 import { db } from "@/lib/db";
 import { generateCSV, formatDateForCSV } from "@/lib/csv";
 import { handleApiError } from "@/lib/api-response";
+import { formatSideForCsv } from "@/lib/rsvp-side";
 import type { Prisma } from "@prisma/client";
 
 type RouteContext = {
@@ -115,15 +116,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
       "Side",
     ];
 
-    const sideLabel = (
-      side: "GROOMS_SIDE" | "BRIDES_SIDE" | "BOTH" | null | undefined
-    ): string => {
-      if (side === "GROOMS_SIDE") return "Groom's";
-      if (side === "BRIDES_SIDE") return "Bride's";
-      if (side === "BOTH") return "Both";
-      return "";
-    };
-
     const rows = invites.map((invite) => [
       invite.name || invite.rsvp?.guestName || "",
       invite.email || "",
@@ -139,7 +131,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       invite.plannerNotes || "",
       invite.rsvp?.dietaryRestrictions || "",
       invite.rsvp?.musicSuggestions || "",
-      sideLabel(invite.rsvp?.side),
+      formatSideForCsv(invite.rsvp?.side),
     ]);
 
     const csv = generateCSV(headers, rows);
