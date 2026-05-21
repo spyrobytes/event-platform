@@ -82,6 +82,7 @@ export const createEventSchema = z.object({
   reminderEnabled: z.boolean().default(false),
   attachQrToConfirmation: z.boolean().default(true),
   passBackdropStyle: z.enum(PASS_BACKDROP_STYLES).default("NONE"),
+  passBackdropImageUrl: z.string().url().optional().or(z.literal("")),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -123,6 +124,7 @@ export const updateEventSchema = z.object({
   reminderEnabled: z.boolean().optional(),
   attachQrToConfirmation: z.boolean().optional(),
   passBackdropStyle: z.enum(PASS_BACKDROP_STYLES).optional(),
+  passBackdropImageUrl: z.string().url().nullable().optional().or(z.literal("")),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

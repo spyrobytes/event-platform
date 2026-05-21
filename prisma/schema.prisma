@@ -131,11 +131,14 @@ model Event {
   attachQrToConfirmation Boolean @default(true) @map("attach_qr_to_confirmation")
 
   // Access-card (pass view) backdrop style. NONE renders the default white
-  // card. CARD fills the card itself with the event cover image + scrim
+  // card. CARD fills the card itself with `passBackdropImageUrl` + scrim
   // (text flips to white). PAGE fills the page background with the image
-  // and keeps the card white. Falls back to NONE at read time if
-  // `coverImageUrl` is null.
-  passBackdropStyle PassBackdropStyle @default(NONE) @map("pass_backdrop_style")
+  // and keeps the card white. Falls back to NONE at read time if the
+  // image URL is null.
+  passBackdropStyle    PassBackdropStyle @default(NONE) @map("pass_backdrop_style")
+  // Separate from `coverImageUrl` so organizers can use a different image
+  // (or no image) on the pass than on the public event page.
+  passBackdropImageUrl String?           @map("pass_backdrop_image_url")
 
   // Custom page configuration
   templateId    String? @map("template_id")

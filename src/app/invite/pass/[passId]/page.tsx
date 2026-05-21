@@ -69,9 +69,9 @@ export default async function InvitePassPage({ params }: PageProps) {
           timezone: true,
           venueName: true,
           address: true,
-          coverImageUrl: true,
           templateId: true,
           passBackdropStyle: true,
+          passBackdropImageUrl: true,
           invitationConfig: {
             select: {
               receptionStartAt: true,
@@ -116,12 +116,12 @@ export default async function InvitePassPage({ params }: PageProps) {
   const eventDate = formatEventDateLong(passMoment.startAt, invite.event.timezone);
   const eventTime = formatEventTime(passMoment.startAt, invite.event.timezone);
 
-  // Fall back to NONE at read time if no cover image is configured — an
-  // organizer who removed the image after picking a photo style shouldn't
-  // see a broken card.
-  const coverImageUrl = invite.event.coverImageUrl;
+  // Fall back to NONE at read time if no backdrop image is configured —
+  // an organizer who removed the image after picking a photo style
+  // shouldn't see a broken card.
+  const backdropImageUrl = invite.event.passBackdropImageUrl;
   const effectiveBackdrop =
-    coverImageUrl && invite.event.passBackdropStyle !== "NONE"
+    backdropImageUrl && invite.event.passBackdropStyle !== "NONE"
       ? invite.event.passBackdropStyle
       : "NONE";
   const isCardBackdrop = effectiveBackdrop === "CARD";
@@ -230,12 +230,12 @@ export default async function InvitePassPage({ params }: PageProps) {
     </>
   );
 
-  if (effectiveBackdrop === "CARD" && coverImageUrl) {
+  if (effectiveBackdrop === "CARD" && backdropImageUrl) {
     return (
       <main className="min-h-dvh flex items-center justify-center bg-slate-50 px-6 py-12">
         <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg">
           <Image
-            src={coverImageUrl}
+            src={backdropImageUrl}
             alt=""
             fill
             sizes="(max-width: 640px) 100vw, 384px"
@@ -251,11 +251,11 @@ export default async function InvitePassPage({ params }: PageProps) {
     );
   }
 
-  if (effectiveBackdrop === "PAGE" && coverImageUrl) {
+  if (effectiveBackdrop === "PAGE" && backdropImageUrl) {
     return (
       <main className="relative min-h-dvh flex items-center justify-center px-6 py-12">
         <Image
-          src={coverImageUrl}
+          src={backdropImageUrl}
           alt=""
           fill
           sizes="100vw"
