@@ -10,6 +10,7 @@ import {
   SectionNav,
   TemporalProvider,
   TemporalHeroOverlay,
+  PreludeBlock,
 } from "../shared";
 import type { TemporalData } from "../index";
 
@@ -472,6 +473,9 @@ export function WeddingTemplateV2({
 
             {/* Temporal Hero Overlay */}
             <TemporalHeroOverlay accentColor={primaryColor} />
+
+            {/* Prelude (optional welcome note rendered between hero and first section) */}
+            <PreludeBlock prelude={config.prelude} />
 
             {/* Dynamic Sections */}
             {sections.map((section, index) => renderSection(section, index))}

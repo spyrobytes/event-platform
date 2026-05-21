@@ -190,4 +190,6 @@ export const EDITORIAL: TemplateDefinition = {
   ],
 
   scrollProgressGradient: "linear-gradient(90deg, #2a2622, #6b645c, #9c958c)",
+
+  supportsPrelude: true,
 };

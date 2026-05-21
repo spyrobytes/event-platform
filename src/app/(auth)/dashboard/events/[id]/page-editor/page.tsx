@@ -28,6 +28,7 @@ import {
   VersionHistory,
   PreviewShareCard,
   MediaUploadCard,
+  PreludeEditor,
   StoryEditor,
   TravelStayEditor,
   WeddingPartyEditor,
@@ -58,6 +59,7 @@ import type {
   Section,
   ChromeConfig,
   SocialLink,
+  Prelude,
 } from "@/schemas/event-page";
 
 const GENERIC_SECTIONS: Section["type"][] = [
@@ -80,6 +82,25 @@ const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
   wedding_celebration: new Set(V3_WEDDING_SECTIONS),
   conference_v1: new Set(GENERIC_SECTIONS),
   party_v1: new Set(GENERIC_SECTIONS),
+};
+
+// Templates that render the optional Prelude (welcome note) between Hero
+// and the first section. Mirrors `supportsPrelude` on V3 definitions and the
+// hard-coded V2 wiring in WeddingTemplateV2. Intimate Note skipped — its hero
+// already functions as a handwritten welcome card.
+const TEMPLATES_WITH_PRELUDE: ReadonlySet<string> = new Set([
+  "wedding_v2",
+  "wedding_editorial",
+  "wedding_fine_art",
+  "wedding_garden_house",
+  "wedding_grand_luxe",
+  "wedding_celebration",
+]);
+
+const DEFAULT_PRELUDE: Prelude = {
+  enabled: false,
+  body: "",
+  font: "romantic-script",
 };
 
 type PageConfigResponse = {
@@ -273,6 +294,15 @@ export default function PageEditorPage() {
     setConfig((prev) => {
       if (!prev) return prev;
       return { ...prev, hero: { ...prev.hero, ...updates } };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const updatePrelude = useCallback((updates: Partial<Prelude>) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const current = prev.prelude ?? DEFAULT_PRELUDE;
+      return { ...prev, prelude: { ...current, ...updates } };
     });
     setHasChanges(true);
   }, []);
@@ -683,6 +713,9 @@ export default function PageEditorPage() {
       setupItems.push({ id: "pe-theme", label: "Theme" });
     }
     setupItems.push({ id: "pe-hero", label: "Hero Section" });
+    if (TEMPLATES_WITH_PRELUDE.has(templateId)) {
+      setupItems.push({ id: "pe-prelude", label: "Prelude" });
+    }
     setupItems.push({ id: "pe-media", label: "Media Library" });
 
     const supportedSet = TEMPLATE_SUPPORTED_SECTIONS[templateId];
@@ -1314,6 +1347,25 @@ export default function PageEditorPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Prelude (Welcome Note) — only on templates that render it */}
+      {TEMPLATES_WITH_PRELUDE.has(templateId) && (
+        <Card id="pe-prelude" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle>Prelude</CardTitle>
+            <CardDescription>
+              A short cursive welcome note rendered between the Hero and the
+              rest of your page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PreludeEditor
+              prelude={config.prelude}
+              onChange={updatePrelude}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Media Library */}
       <div id="pe-media" className="scroll-mt-20">

@@ -2,6 +2,7 @@ export { SectionWrapper, SectionTitle } from "./SectionWrapper";
 export { SocialIconRow } from "./SocialIconRow";
 export type { SocialIconRowProps } from "./SocialIconRow";
 export { AnimatedSection, AnimatedSectionTitle, AnimatedWrapper } from "./AnimatedSection";
+export { PreludeBlock } from "./Prelude";
 export { AnimationProvider, useAnimation, useHasAnimationProvider } from "./AnimationContext";
 export type { MotionPresetConfig } from "./AnimationContext";
 export {

@@ -191,4 +191,6 @@ export const CELEBRATION: TemplateDefinition = {
   ],
 
   scrollProgressGradient: "linear-gradient(90deg, #c48820, #d07050, #a04060)",
+
+  supportsPrelude: true,
 };

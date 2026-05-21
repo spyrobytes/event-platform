@@ -372,4 +372,11 @@ export type TemplateDefinition = {
    * footer renderer. When false/undefined, the prop is never populated.
    */
   supportsSocialLinks?: boolean;
+
+  /**
+   * Whether this template renders the optional Prelude (welcome note) between
+   * the hero and the first section. When true, the factory renders the
+   * `PreludeBlock` if `config.prelude` is enabled.
+   */
+  supportsPrelude?: boolean;
 };

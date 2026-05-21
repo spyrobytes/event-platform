@@ -187,4 +187,6 @@ export const GARDEN_HOUSE: TemplateDefinition = {
   ],
 
   scrollProgressGradient: "linear-gradient(90deg, #7a8c6e, #a4b498, #cac6b8)",
+
+  supportsPrelude: true,
 };

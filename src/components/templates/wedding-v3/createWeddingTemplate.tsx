@@ -12,6 +12,7 @@ import {
   SectionNav,
   TemporalProvider,
   TemporalHeroOverlay,
+  PreludeBlock,
 } from "../shared";
 
 import {
@@ -383,6 +384,11 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
 
               {/* Temporal Hero Overlay */}
               <TemporalHeroOverlay accentColor={primaryColor} />
+
+              {/* Prelude (optional welcome note — opt-in per template definition) */}
+              {definition.supportsPrelude && (
+                <PreludeBlock prelude={config.prelude} />
+              )}
 
               {/* Dynamic Sections */}
               {sections.map((section, index) => renderSection(section, index))}

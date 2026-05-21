@@ -9,6 +9,9 @@ export { VersionHistory } from "./VersionHistory";
 export { PreviewShareCard } from "./PreviewShareCard";
 export { MediaUploadCard } from "./MediaUploadCard";
 
+// Top-level page editors (not inside the sections list)
+export { PreludeEditor } from "./PreludeEditor";
+
 // Wedding-specific section editors
 export { StoryEditor } from "./StoryEditor";
 export { TravelStayEditor } from "./TravelStayEditor";

@@ -40,6 +40,7 @@ export {
   VersionHistory,
   PreviewShareCard,
   MediaUploadCard,
+  PreludeEditor,
   StoryEditor,
   TravelStayEditor,
   WeddingPartyEditor,
