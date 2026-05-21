@@ -5,6 +5,7 @@ import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { buildPortalUrl } from "@/lib/guest-access";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
+import { getTemplateFamily } from "@/lib/section-nav-defaults";
 import { InvitationShell, InvitationRSVPForm } from "@/components/features/Invitation";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -220,7 +221,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 needsEmail={!invite.email}
                 inviteRef={inviteRef}
                 enableWishes={enableWishes}
-                templateId={event.templateId}
+                showSideField={getTemplateFamily(event.templateId) === "wedding"}
               />
             )}
           </div>

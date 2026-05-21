@@ -61,9 +61,7 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
   const [side, setSide] = useState<RsvpSide | null>(null);
   const [hp, setHp] = useState("");
 
-  const showSideField =
-    typeof invitePreview.templateId === "string" &&
-    invitePreview.templateId.startsWith("wedding");
+  const showSideField = invitePreview.showSideField ?? false;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -36,8 +36,9 @@ type RSVPFormProps = {
   /** When true, show the "Message for the couple" field. Set by event pages
    *  whose page config has the `wishes` section enabled. */
   enableWishes?: boolean;
-  /** Event templateId — drives wedding-only UI (the side selector). */
-  templateId?: string | null;
+  /** When true, show the wedding-only side selector. Pages compute this
+   *  from the event's template family so the form stays template-agnostic. */
+  showSideField?: boolean;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -59,11 +60,10 @@ export function RSVPForm({
   needsEmail = false,
   inviteRef,
   enableWishes = false,
-  templateId,
+  showSideField = false,
 }: RSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
   const [selectedSide, setSelectedSide] = useState<RsvpSide | null>(null);
-  const showSideField = typeof templateId === "string" && templateId.startsWith("wedding");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -301,7 +301,6 @@ export function RSVPForm({
           )}
         </div>
 
-        {/* Side selection (wedding events only) */}
         {showSideField && (
           <div className="space-y-2">
             <Label>Which side are you with? (optional)</Label>
