@@ -141,7 +141,7 @@ export function VelocityChart({ eventId, className }: VelocityChartProps) {
 
       {/* Chart */}
       <div className="h-[200px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <AreaChart
             data={chartData}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

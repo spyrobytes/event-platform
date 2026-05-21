@@ -7,6 +7,9 @@ import { isReservedSlug } from "@/lib/reserved-slugs";
 export const VALID_TEMPLATE_IDS = ["wedding_v1", "wedding_v2", "wedding_editorial", "wedding_intimate_note", "wedding_fine_art", "wedding_garden_house", "wedding_grand_luxe", "wedding_celebration", "conference_v1", "party_v1"] as const;
 export type TemplateId = (typeof VALID_TEMPLATE_IDS)[number];
 
+export const PASS_BACKDROP_STYLES = ["NONE", "CARD", "PAGE"] as const;
+export type PassBackdropStyle = (typeof PASS_BACKDROP_STYLES)[number];
+
 /**
  * Custom event slug.
  *  - 3–60 chars, letters/digits/hyphen, no leading/trailing hyphen
@@ -78,6 +81,8 @@ export const createEventSchema = z.object({
   reminderDays: z.number().int().min(1).max(30).optional(),
   reminderEnabled: z.boolean().default(false),
   attachQrToConfirmation: z.boolean().default(true),
+  passBackdropStyle: z.enum(PASS_BACKDROP_STYLES).default("NONE"),
+  passBackdropImageUrl: z.string().url().optional().or(z.literal("")),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -118,6 +123,8 @@ export const updateEventSchema = z.object({
   reminderDays: z.number().int().min(1).max(30).nullable().optional(),
   reminderEnabled: z.boolean().optional(),
   attachQrToConfirmation: z.boolean().optional(),
+  passBackdropStyle: z.enum(PASS_BACKDROP_STYLES).optional(),
+  passBackdropImageUrl: z.string().url().nullable().optional().or(z.literal("")),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

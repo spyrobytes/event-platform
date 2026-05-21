@@ -21,6 +21,18 @@ describe("createEventSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("defaults passBackdropStyle to NONE when omitted", () => {
+    const result = createEventSchema.safeParse({
+      title: "Test Event",
+      startAt: getFutureDate(),
+      timezone: "UTC",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.passBackdropStyle).toBe("NONE");
+    }
+  });
+
   it("requires a title", () => {
     const invalidEvent = {
       startAt: getFutureDate(),
@@ -126,6 +138,39 @@ describe("updateEventSchema", () => {
   it("accepts an empty string for coverImageUrl", () => {
     const result = updateEventSchema.safeParse({ coverImageUrl: "" });
     expect(result.success).toBe(true);
+  });
+
+  it.each(["NONE", "CARD", "PAGE"] as const)(
+    "accepts passBackdropStyle=%s",
+    (style) => {
+      const result = updateEventSchema.safeParse({ passBackdropStyle: style });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.passBackdropStyle).toBe(style);
+      }
+    }
+  );
+
+  it("rejects an unknown passBackdropStyle value", () => {
+    const result = updateEventSchema.safeParse({ passBackdropStyle: "FANCY" });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a valid passBackdropImageUrl", () => {
+    const result = updateEventSchema.safeParse({
+      passBackdropImageUrl: "https://example.com/backdrop.jpg",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty string for passBackdropImageUrl", () => {
+    const result = updateEventSchema.safeParse({ passBackdropImageUrl: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a malformed passBackdropImageUrl", () => {
+    const result = updateEventSchema.safeParse({ passBackdropImageUrl: "not-a-url" });
+    expect(result.success).toBe(false);
   });
 });
 

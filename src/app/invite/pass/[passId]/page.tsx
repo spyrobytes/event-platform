@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
+import { isWeddingTemplate } from "@/lib/section-nav-defaults";
+import { SIDE_PILL_LABEL } from "@/lib/rsvp-side";
 import {
   ACCESS_BANNER,
   RSVP_BADGE,
@@ -54,6 +57,7 @@ export default async function InvitePassPage({ params }: PageProps) {
           guestCount: true,
           response: true,
           additionalGuestNames: true,
+          side: true,
         },
       },
       event: {
@@ -65,6 +69,9 @@ export default async function InvitePassPage({ params }: PageProps) {
           timezone: true,
           venueName: true,
           address: true,
+          templateId: true,
+          passBackdropStyle: true,
+          passBackdropImageUrl: true,
           invitationConfig: {
             select: {
               receptionStartAt: true,
@@ -109,48 +116,149 @@ export default async function InvitePassPage({ params }: PageProps) {
   const eventDate = formatEventDateLong(passMoment.startAt, invite.event.timezone);
   const eventTime = formatEventTime(passMoment.startAt, invite.event.timezone);
 
+  // Fall back to NONE at read time if no backdrop image is configured —
+  // an organizer who removed the image after picking a photo style
+  // shouldn't see a broken card.
+  const backdropImageUrl = invite.event.passBackdropImageUrl;
+  const effectiveBackdrop =
+    backdropImageUrl && invite.event.passBackdropStyle !== "NONE"
+      ? invite.event.passBackdropStyle
+      : "NONE";
+  const isCardBackdrop = effectiveBackdrop === "CARD";
+
+  // Mode-keyed text/border/pill palette. Light-on-dark over the photo card,
+  // dark-on-light over plain white. Keeping all the variants in one place
+  // prevents the two states from drifting node-by-node.
+  const palette = isCardBackdrop
+    ? {
+        h1: "text-white",
+        eventTitle: "text-white",
+        partyLabel: "text-white/90",
+        partyMembers: "text-white/80",
+        venue: "text-white/90",
+        body: "text-white/85",
+        small: "text-white/70",
+        border: "border-white/20",
+        sidePill: "bg-white/15 text-white ring-1 ring-white/30",
+      }
+    : {
+        h1: "text-slate-900",
+        eventTitle: "text-slate-900",
+        partyLabel: "text-slate-600",
+        partyMembers: "text-slate-500",
+        venue: "text-slate-700",
+        body: "text-slate-600",
+        small: "text-slate-500",
+        border: "border-slate-200",
+        sidePill: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+      };
+
+  const sideLabel =
+    isWeddingTemplate(invite.event.templateId) && invite.rsvp?.side
+      ? SIDE_PILL_LABEL[invite.rsvp.side]
+      : null;
+
+  const cardContent = (
+    <>
+      <h1
+        className={`text-[40px] font-semibold leading-[1.1] break-words ${palette.h1}`}
+      >
+        {guestName}
+      </h1>
+
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <span
+          className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium ${rsvpBadge.classes}`}
+        >
+          {rsvpBadge.label}
+        </span>
+        {sideLabel && (
+          <span
+            className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium ${palette.sidePill}`}
+          >
+            {sideLabel}
+          </span>
+        )}
+      </div>
+
+      {partyLabel && (
+        <p className={`mt-4 text-sm font-medium ${palette.partyLabel}`}>
+          {partyLabel}
+        </p>
+      )}
+
+      {partyMembers.length > 0 && (
+        <p className={`mt-1 text-sm break-words ${palette.partyMembers}`}>
+          with {partyMembers.join(", ")}
+        </p>
+      )}
+
+      <div className={`mt-8 border-t pt-6 ${palette.border}`}>
+        <p className={`text-base font-medium ${palette.eventTitle}`}>
+          {invite.event.title}
+        </p>
+        {passMoment.label && (
+          <p className={`mt-0.5 text-xs uppercase tracking-wide ${palette.small}`}>
+            {passMoment.label}
+          </p>
+        )}
+        <p className={`mt-1 text-sm ${palette.body}`}>
+          {eventDate} · {eventTime}
+        </p>
+        {passMoment.venue && (
+          <p className={`mt-2 text-sm ${palette.venue}`}>{passMoment.venue}</p>
+        )}
+        {passMoment.address && (
+          <p className={`text-xs ${palette.small}`}>{passMoment.address}</p>
+        )}
+      </div>
+    </>
+  );
+
+  if (effectiveBackdrop === "CARD" && backdropImageUrl) {
+    return (
+      <main className="min-h-dvh flex items-center justify-center bg-slate-50 px-6 py-12">
+        <div className="relative w-full max-w-sm aspect-[3/4] rounded-2xl overflow-hidden shadow-lg">
+          <Image
+            src={backdropImageUrl}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 100vw, 384px"
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/85" />
+          <div className="absolute inset-x-0 bottom-0 p-6 text-center">
+            {cardContent}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (effectiveBackdrop === "PAGE" && backdropImageUrl) {
+    return (
+      <main className="relative min-h-dvh flex items-center justify-center px-6 py-12">
+        <Image
+          src={backdropImageUrl}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover -z-10"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/45 -z-10" />
+        <div className="relative w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+          {cardContent}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-dvh flex items-center justify-center bg-slate-50 px-6 py-12">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-lg">
-        <h1 className="text-[40px] font-semibold leading-[1.1] text-slate-900 break-words">
-          {guestName}
-        </h1>
-
-        <div className="mt-6 flex justify-center">
-          <span
-            className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium ${rsvpBadge.classes}`}
-          >
-            {rsvpBadge.label}
-          </span>
-        </div>
-
-        {partyLabel && (
-          <p className="mt-4 text-sm font-medium text-slate-600">{partyLabel}</p>
-        )}
-
-        {partyMembers.length > 0 && (
-          <p className="mt-1 text-sm text-slate-500 break-words">
-            with {partyMembers.join(", ")}
-          </p>
-        )}
-
-        <div className="mt-8 border-t border-slate-200 pt-6">
-          <p className="text-base font-medium text-slate-900">{invite.event.title}</p>
-          {passMoment.label && (
-            <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
-              {passMoment.label}
-            </p>
-          )}
-          <p className="mt-1 text-sm text-slate-600">
-            {eventDate} · {eventTime}
-          </p>
-          {passMoment.venue && (
-            <p className="mt-2 text-sm text-slate-700">{passMoment.venue}</p>
-          )}
-          {passMoment.address && (
-            <p className="text-xs text-slate-500">{passMoment.address}</p>
-          )}
-        </div>
+        {cardContent}
       </div>
     </main>
   );

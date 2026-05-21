@@ -76,6 +76,7 @@ describe("InvitePassPage — 404 paths", () => {
             guestCount: true,
             response: true,
             additionalGuestNames: true,
+            side: true,
           },
         },
         event: {
@@ -87,6 +88,9 @@ describe("InvitePassPage — 404 paths", () => {
             timezone: true,
             venueName: true,
             address: true,
+            templateId: true,
+            passBackdropStyle: true,
+            passBackdropImageUrl: true,
             invitationConfig: {
               select: {
                 receptionStartAt: true,

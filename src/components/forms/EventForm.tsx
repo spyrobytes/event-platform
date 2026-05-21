@@ -183,6 +183,8 @@ export function EventForm({
       reminderDays: defaultValues?.reminderDays,
       reminderEnabled: defaultValues?.reminderEnabled ?? false,
       attachQrToConfirmation: defaultValues?.attachQrToConfirmation ?? true,
+      passBackdropStyle: defaultValues?.passBackdropStyle ?? "NONE",
+      passBackdropImageUrl: defaultValues?.passBackdropImageUrl ?? "",
       // Date fields render in `<input type="datetime-local">` as wall-clock
       // strings interpreted in the event's timezone. The empty default and
       // the cast match RHF's expected shape; setValueAs (below) keeps the
@@ -218,6 +220,10 @@ export function EventForm({
   const templateId = watch("templateId");
   const reminderEnabled = watch("reminderEnabled");
   const coverImageUrl = watch("coverImageUrl");
+  const passBackdropImageUrl = watch("passBackdropImageUrl");
+  const photoBackdropOptionClass = passBackdropImageUrl
+    ? "cursor-pointer"
+    : "cursor-not-allowed opacity-60";
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
@@ -582,6 +588,89 @@ export function EventForm({
                 className="h-5 w-5 rounded border-border"
                 {...register("attachQrToConfirmation")}
               />
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <div>
+              <Label className="text-base">Access card backdrop</Label>
+              <p className="text-sm text-muted-foreground">
+                Pick an image and choose how it appears on the guest&apos;s access card.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Backdrop image</Label>
+              <CoverImagePicker
+                eventId={eventId}
+                value={passBackdropImageUrl ?? ""}
+                onChange={(url) =>
+                  setValue("passBackdropImageUrl", url, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+                getIdToken={getIdToken}
+                disabled={isLoading}
+              />
+              {errors.passBackdropImageUrl && (
+                <p className="text-sm text-destructive">
+                  {errors.passBackdropImageUrl.message}
+                </p>
+              )}
+            </div>
+
+            {!passBackdropImageUrl && (
+              <p className="text-sm text-muted-foreground">
+                Set a backdrop image to enable the photo options below.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  value="NONE"
+                  className="mt-1 h-4 w-4 border-border"
+                  {...register("passBackdropStyle")}
+                />
+                <div>
+                  <p className="text-sm font-medium">None</p>
+                  <p className="text-xs text-muted-foreground">
+                    Default white card.
+                  </p>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 ${photoBackdropOptionClass}`}>
+                <input
+                  type="radio"
+                  value="CARD"
+                  disabled={!passBackdropImageUrl}
+                  className="mt-1 h-4 w-4 border-border"
+                  {...register("passBackdropStyle")}
+                />
+                <div>
+                  <p className="text-sm font-medium">Use as card backdrop</p>
+                  <p className="text-xs text-muted-foreground">
+                    The card itself becomes a photo card; text appears over a dark scrim.
+                  </p>
+                </div>
+              </label>
+              <label className={`flex items-start gap-3 ${photoBackdropOptionClass}`}>
+                <input
+                  type="radio"
+                  value="PAGE"
+                  disabled={!passBackdropImageUrl}
+                  className="mt-1 h-4 w-4 border-border"
+                  {...register("passBackdropStyle")}
+                />
+                <div>
+                  <p className="text-sm font-medium">Use as page backdrop</p>
+                  <p className="text-xs text-muted-foreground">
+                    The page fills with the image; the card stays white over it.
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
         </CardContent>

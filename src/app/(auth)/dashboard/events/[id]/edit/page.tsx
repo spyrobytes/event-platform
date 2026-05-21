@@ -6,7 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { EventForm } from "@/components/forms";
 import { Button } from "@/components/ui/button";
-import type { CreateEventInput } from "@/schemas/event";
+import type { CreateEventInput, PassBackdropStyle } from "@/schemas/event";
 
 type EventDetail = {
   id: string;
@@ -27,6 +27,8 @@ type EventDetail = {
   rsvpDeadline?: string | null;
   reminderDays?: number | null;
   reminderEnabled?: boolean | null;
+  passBackdropStyle?: PassBackdropStyle | null;
+  passBackdropImageUrl?: string | null;
 };
 
 export default function EditEventPage() {
@@ -148,6 +150,8 @@ export default function EditEventPage() {
     rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : undefined,
     reminderDays: event.reminderDays ?? undefined,
     reminderEnabled: event.reminderEnabled ?? false,
+    passBackdropStyle: event.passBackdropStyle ?? "NONE",
+    passBackdropImageUrl: event.passBackdropImageUrl ?? "",
   };
 
   return (
