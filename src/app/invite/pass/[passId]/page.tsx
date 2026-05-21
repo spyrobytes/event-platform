@@ -126,6 +126,33 @@ export default async function InvitePassPage({ params }: PageProps) {
       : "NONE";
   const isCardBackdrop = effectiveBackdrop === "CARD";
 
+  // Mode-keyed text/border/pill palette. Light-on-dark over the photo card,
+  // dark-on-light over plain white. Keeping all the variants in one place
+  // prevents the two states from drifting node-by-node.
+  const palette = isCardBackdrop
+    ? {
+        h1: "text-white",
+        eventTitle: "text-white",
+        partyLabel: "text-white/90",
+        partyMembers: "text-white/80",
+        venue: "text-white/90",
+        body: "text-white/85",
+        small: "text-white/70",
+        border: "border-white/20",
+        sidePill: "bg-white/15 text-white ring-1 ring-white/30",
+      }
+    : {
+        h1: "text-slate-900",
+        eventTitle: "text-slate-900",
+        partyLabel: "text-slate-600",
+        partyMembers: "text-slate-500",
+        venue: "text-slate-700",
+        body: "text-slate-600",
+        small: "text-slate-500",
+        border: "border-slate-200",
+        sidePill: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
+      };
+
   const sideLabel =
     isWeddingTemplate(invite.event.templateId) && invite.rsvp?.side
       ? SIDE_PILL_LABEL[invite.rsvp.side]
@@ -134,9 +161,7 @@ export default async function InvitePassPage({ params }: PageProps) {
   const cardContent = (
     <>
       <h1
-        className={`text-[40px] font-semibold leading-[1.1] break-words ${
-          isCardBackdrop ? "text-white" : "text-slate-900"
-        }`}
+        className={`text-[40px] font-semibold leading-[1.1] break-words ${palette.h1}`}
       >
         {guestName}
       </h1>
@@ -149,11 +174,7 @@ export default async function InvitePassPage({ params }: PageProps) {
         </span>
         {sideLabel && (
           <span
-            className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium ${
-              isCardBackdrop
-                ? "bg-white/15 text-white ring-1 ring-white/30"
-                : "bg-slate-100 text-slate-700 ring-1 ring-slate-200"
-            }`}
+            className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-medium ${palette.sidePill}`}
           >
             {sideLabel}
           </span>
@@ -161,70 +182,34 @@ export default async function InvitePassPage({ params }: PageProps) {
       </div>
 
       {partyLabel && (
-        <p
-          className={`mt-4 text-sm font-medium ${
-            isCardBackdrop ? "text-white/90" : "text-slate-600"
-          }`}
-        >
+        <p className={`mt-4 text-sm font-medium ${palette.partyLabel}`}>
           {partyLabel}
         </p>
       )}
 
       {partyMembers.length > 0 && (
-        <p
-          className={`mt-1 text-sm break-words ${
-            isCardBackdrop ? "text-white/80" : "text-slate-500"
-          }`}
-        >
+        <p className={`mt-1 text-sm break-words ${palette.partyMembers}`}>
           with {partyMembers.join(", ")}
         </p>
       )}
 
-      <div
-        className={`mt-8 border-t pt-6 ${
-          isCardBackdrop ? "border-white/20" : "border-slate-200"
-        }`}
-      >
-        <p
-          className={`text-base font-medium ${
-            isCardBackdrop ? "text-white" : "text-slate-900"
-          }`}
-        >
+      <div className={`mt-8 border-t pt-6 ${palette.border}`}>
+        <p className={`text-base font-medium ${palette.eventTitle}`}>
           {invite.event.title}
         </p>
         {passMoment.label && (
-          <p
-            className={`mt-0.5 text-xs uppercase tracking-wide ${
-              isCardBackdrop ? "text-white/70" : "text-slate-500"
-            }`}
-          >
+          <p className={`mt-0.5 text-xs uppercase tracking-wide ${palette.small}`}>
             {passMoment.label}
           </p>
         )}
-        <p
-          className={`mt-1 text-sm ${
-            isCardBackdrop ? "text-white/85" : "text-slate-600"
-          }`}
-        >
+        <p className={`mt-1 text-sm ${palette.body}`}>
           {eventDate} · {eventTime}
         </p>
         {passMoment.venue && (
-          <p
-            className={`mt-2 text-sm ${
-              isCardBackdrop ? "text-white/90" : "text-slate-700"
-            }`}
-          >
-            {passMoment.venue}
-          </p>
+          <p className={`mt-2 text-sm ${palette.venue}`}>{passMoment.venue}</p>
         )}
         {passMoment.address && (
-          <p
-            className={`text-xs ${
-              isCardBackdrop ? "text-white/70" : "text-slate-500"
-            }`}
-          >
-            {passMoment.address}
-          </p>
+          <p className={`text-xs ${palette.small}`}>{passMoment.address}</p>
         )}
       </div>
     </>

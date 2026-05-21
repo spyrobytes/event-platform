@@ -221,6 +221,9 @@ export function EventForm({
   const reminderEnabled = watch("reminderEnabled");
   const coverImageUrl = watch("coverImageUrl");
   const passBackdropImageUrl = watch("passBackdropImageUrl");
+  const photoBackdropOptionClass = passBackdropImageUrl
+    ? "cursor-pointer"
+    : "cursor-not-allowed opacity-60";
 
   const handleFormSubmit: SubmitHandler<CreateEventInput> = async (data) => {
     try {
@@ -638,9 +641,7 @@ export function EventForm({
                   </p>
                 </div>
               </label>
-              <label
-                className={`flex items-start gap-3 ${passBackdropImageUrl ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
-              >
+              <label className={`flex items-start gap-3 ${photoBackdropOptionClass}`}>
                 <input
                   type="radio"
                   value="CARD"
@@ -655,9 +656,7 @@ export function EventForm({
                   </p>
                 </div>
               </label>
-              <label
-                className={`flex items-start gap-3 ${passBackdropImageUrl ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
-              >
+              <label className={`flex items-start gap-3 ${photoBackdropOptionClass}`}>
                 <input
                   type="radio"
                   value="PAGE"
