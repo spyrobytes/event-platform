@@ -18,6 +18,11 @@ export type InvitePreview = {
    *  `wishes` section is enabled and accepting submissions. Surfaces the
    *  "Message for the couple" textarea on the respond form. */
   enableWishes: boolean;
+  /** True for wedding-family events — surfaces the side selector on the
+   *  respond form. Computed server-side from the event's template family.
+   *  Optional for backward compat with sessions written by older clients
+   *  still in sessionStorage. */
+  showSideField?: boolean;
 };
 
 export function readInvitePreview(): InvitePreview | null {
@@ -35,6 +40,7 @@ export function readInvitePreview(): InvitePreview | null {
       return {
         ...parsed,
         enableWishes: typeof parsed?.enableWishes === "boolean" ? parsed.enableWishes : false,
+        showSideField: typeof parsed?.showSideField === "boolean" ? parsed.showSideField : false,
       } as InvitePreview;
     }
     return null;

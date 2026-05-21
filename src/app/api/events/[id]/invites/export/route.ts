@@ -4,6 +4,7 @@ import { requireEventOwner } from "@/lib/authorization";
 import { db } from "@/lib/db";
 import { generateCSV, formatDateForCSV } from "@/lib/csv";
 import { handleApiError } from "@/lib/api-response";
+import { formatSideForCsv } from "@/lib/rsvp-side";
 import type { Prisma } from "@prisma/client";
 
 type RouteContext = {
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
             musicSuggestions: true,
             notes: true,
             respondedAt: true,
+            side: true,
           },
         },
       },
@@ -110,7 +112,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       "Seat Assignment",
       "Planner Notes",
       "Dietary Restrictions",
-      "Song Requests",
+      "Song Suggestions",
+      "Side",
     ];
 
     const rows = invites.map((invite) => [
@@ -128,6 +131,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       invite.plannerNotes || "",
       invite.rsvp?.dietaryRestrictions || "",
       invite.rsvp?.musicSuggestions || "",
+      formatSideForCsv(invite.rsvp?.side),
     ]);
 
     const csv = generateCSV(headers, rows);

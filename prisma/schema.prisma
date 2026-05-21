@@ -275,6 +275,11 @@ model RSVP {
   dietaryRestrictions  String?      @map("dietary_restrictions")
   musicSuggestions     String?      @map("music_suggestions")
 
+  // Wedding-only: which side of the couple the guest belongs to. Captured
+  // on the RSVP form for wedding-template events and surfaced on the roster
+  // for seating planning. Null for non-wedding events / pre-existing rows.
+  side RsvpSide? @map("side")
+
   // Wedding-wishes / message-to-host. Captured on the RSVP form when the
   // event has a `wishes` page section enabled. Distinct from `notes` so
   // logistical info (dietary, accessibility) doesn't end up on the public
@@ -299,6 +304,12 @@ enum RsvpSource {
   EMAIL_INVITE
   PUBLIC_PORTAL_CODE
   PUBLIC_PORTAL_SELF_SERVE
+}
+
+enum RsvpSide {
+  GROOMS_SIDE
+  BRIDES_SIDE
+  BOTH
 }
 
 // Short-lived (20 min) single-submit session created after a guest verifies

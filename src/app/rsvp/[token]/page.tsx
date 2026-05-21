@@ -6,6 +6,7 @@ import { PageViewTracker } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
+import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ async function getInviteByToken(token: string) {
           status: true,
           rsvpDeadline: true,
           pageConfig: true,
+          templateId: true,
         },
       },
       rsvp: {
@@ -305,6 +307,7 @@ export default async function RSVPPage({ params }: PageProps) {
           needsEmail={!invite.email}
           inviteRef={inviteRef}
           enableWishes={enableWishes}
+          showSideField={isWeddingTemplate(event.templateId)}
         />
       </div>
     </div>

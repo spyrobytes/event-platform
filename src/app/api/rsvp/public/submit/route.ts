@@ -243,6 +243,7 @@ export async function POST(request: NextRequest) {
           musicSuggestions: data.musicSuggestions,
           notes: data.notes,
           messageToHost: data.messageToHost,
+          side: data.side,
           source: "PUBLIC_PORTAL_CODE",
         },
         update: {
@@ -254,6 +255,7 @@ export async function POST(request: NextRequest) {
           dietaryRestrictions: data.dietaryRestrictions,
           musicSuggestions: data.musicSuggestions,
           notes: data.notes,
+          side: data.side,
           source: "PUBLIC_PORTAL_CODE",
           updatedAt: new Date(),
           ...(messageChanged && {

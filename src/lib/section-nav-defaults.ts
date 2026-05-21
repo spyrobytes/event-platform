@@ -29,6 +29,17 @@ export function getTemplateFamily(templateId: string | null | undefined): Templa
 }
 
 /**
+ * Strict wedding-family check. Distinct from `getTemplateFamily(...) === "wedding"`:
+ * this returns `false` for null/undefined/unknown IDs instead of defaulting
+ * to wedding. Use this for gates that should only fire on explicitly
+ * recognized wedding templates (e.g. the RSVP side selector).
+ */
+export function isWeddingTemplate(templateId: string | null | undefined): boolean {
+  if (!templateId) return false;
+  return TEMPLATE_ID_TO_FAMILY[templateId as TemplateId] === "wedding";
+}
+
+/**
  * Default-on AND priority-ordered nav set per template family. The array
  * order is the canonical nav order — wedding always reads as Story · Schedule ·
  * RSVP · Gallery · Details regardless of where those sections sit in the

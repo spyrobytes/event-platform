@@ -5,6 +5,7 @@ import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
 import { buildPortalUrl } from "@/lib/guest-access";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
+import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { InvitationShell, InvitationRSVPForm } from "@/components/features/Invitation";
 import { PageViewTracker } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
@@ -32,6 +33,7 @@ async function getInviteForRSVP(token: string) {
           status: true,
           timezone: true,
           pageConfig: true,
+          templateId: true,
         },
       },
       rsvp: {
@@ -219,6 +221,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
                 needsEmail={!invite.email}
                 inviteRef={inviteRef}
                 enableWishes={enableWishes}
+                showSideField={isWeddingTemplate(event.templateId)}
               />
             )}
           </div>

@@ -18,6 +18,7 @@ describe("public-rsvp-portal sessionStorage helpers", () => {
       hasEmail: true,
       plusOnesAllowed: 2,
       enableWishes: true,
+      showSideField: true,
     };
     writeInvitePreview(preview);
     expect(readInvitePreview()).toEqual(preview);
@@ -83,6 +84,7 @@ describe("public-rsvp-portal sessionStorage helpers", () => {
       hasEmail: false,
       plusOnesAllowed: 0,
       enableWishes: false,
+      showSideField: false,
     });
     const result = readInvitePreview();
     expect(result).toEqual({
@@ -90,6 +92,7 @@ describe("public-rsvp-portal sessionStorage helpers", () => {
       hasEmail: false,
       plusOnesAllowed: 0,
       enableWishes: false,
+      showSideField: false,
     });
   });
 
@@ -103,6 +106,26 @@ describe("public-rsvp-portal sessionStorage helpers", () => {
       hasEmail: true,
       plusOnesAllowed: 0,
       enableWishes: false,
+      showSideField: false,
+    });
+  });
+
+  it("defaults showSideField to false when missing from stored value (back-compat)", () => {
+    sessionStorage.setItem(
+      SESSION_PREVIEW_KEY,
+      JSON.stringify({
+        name: "Alice",
+        hasEmail: true,
+        plusOnesAllowed: 0,
+        enableWishes: true,
+      })
+    );
+    expect(readInvitePreview()).toEqual({
+      name: "Alice",
+      hasEmail: true,
+      plusOnesAllowed: 0,
+      enableWishes: true,
+      showSideField: false,
     });
   });
 });

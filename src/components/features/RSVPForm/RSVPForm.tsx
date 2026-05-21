@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
+import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 import {
   trackFormStarted,
   trackFormSubmitted,
@@ -35,6 +36,9 @@ type RSVPFormProps = {
   /** When true, show the "Message for the couple" field. Set by event pages
    *  whose page config has the `wishes` section enabled. */
   enableWishes?: boolean;
+  /** When true, show the wedding-only side selector. Pages compute this
+   *  from the event's template family so the form stays template-agnostic. */
+  showSideField?: boolean;
 };
 
 const RESPONSE_OPTIONS: { value: RsvpResponse; label: string; description: string }[] = [
@@ -56,8 +60,10 @@ export function RSVPForm({
   needsEmail = false,
   inviteRef,
   enableWishes = false,
+  showSideField = false,
 }: RSVPFormProps) {
   const [selectedResponse, setSelectedResponse] = useState<RsvpResponse | null>(null);
+  const [selectedSide, setSelectedSide] = useState<RsvpSide | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -127,6 +133,7 @@ export function RSVPForm({
       dietaryRestrictions: "",
       musicSuggestions: "",
       notes: "",
+      side: undefined as RsvpSide | undefined,
     },
   });
 
@@ -294,6 +301,35 @@ export function RSVPForm({
           )}
         </div>
 
+        {showSideField && (
+          <div className="space-y-2">
+            <Label>Which side are you with? (optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Helps the couple with seating arrangements.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {SIDE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    handleFormInteraction("side");
+                    setSelectedSide(option.value);
+                    setValue("side", option.value);
+                  }}
+                  className={`rounded-lg border px-3 py-2 text-sm text-center transition-colors ${
+                    selectedSide === option.value
+                      ? "border-primary bg-primary/10 font-medium"
+                      : "border-border hover:border-primary/50 hover:bg-muted/50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Guest Name */}
         <div className="space-y-2">
           <Label htmlFor="guestName">Your Name *</Label>
@@ -419,13 +455,13 @@ export function RSVPForm({
           </div>
         )}
 
-        {/* Song Requests */}
+        {/* Song Suggestions */}
         {selectedResponse === "YES" && (
           <div className="space-y-2">
-            <Label htmlFor="musicSuggestions">Song Requests (optional)</Label>
+            <Label htmlFor="musicSuggestions">Song Suggestions (optional)</Label>
             <Textarea
               id="musicSuggestions"
-              placeholder="Any songs you'd love to hear? Helps the host plan the playlist."
+              placeholder="Song title and artist name"
               rows={2}
               maxLength={500}
               {...register("musicSuggestions")}

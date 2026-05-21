@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { clearInvitePreview, type InvitePreview } from "@/lib/public-rsvp-portal";
+import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
@@ -57,7 +58,10 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
   const [musicSuggestions, setMusicSuggestions] = useState("");
   const [notes, setNotes] = useState("");
   const [messageToHost, setMessageToHost] = useState("");
+  const [side, setSide] = useState<RsvpSide | null>(null);
   const [hp, setHp] = useState("");
+
+  const showSideField = invitePreview.showSideField ?? false;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +100,7 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
           musicSuggestions: musicSuggestions.trim() || undefined,
           notes: notes.trim() || undefined,
           messageToHost: messageToHost.trim() || undefined,
+          side: side ?? undefined,
           hp: hp || undefined,
         }),
       });
@@ -153,6 +158,32 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
           ))}
         </div>
       </div>
+
+      {showSideField && (
+        <div className="space-y-2">
+          <Label>Which side are you with? (optional)</Label>
+          <p className="text-xs text-muted-foreground">
+            Helps the couple with seating arrangements.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {SIDE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setSide(option.value)}
+                className={`rounded-lg border px-3 py-2 text-sm text-center transition-colors ${
+                  side === option.value
+                    ? "border-ring ring-2 ring-ring ring-offset-2 bg-accent/10 font-medium"
+                    : "border-border hover:border-ring/50 hover:bg-muted/50"
+                }`}
+                disabled={submitting}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="guestName">Your name</Label>
@@ -246,12 +277,12 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="musicSuggestions">Song requests (optional)</Label>
+            <Label htmlFor="musicSuggestions">Song suggestions (optional)</Label>
             <Textarea
               id="musicSuggestions"
               value={musicSuggestions}
               onChange={(e) => setMusicSuggestions(e.target.value)}
-              placeholder="Any songs you'd love to hear? Helps the host plan the playlist."
+              placeholder="Song title and artist name"
               rows={2}
               maxLength={500}
               disabled={submitting}

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { formatEventDateLong } from "@/lib/utils";
+import { SIDE_LABEL, type RsvpSide } from "@/lib/rsvp-side";
 import styles from "./roster.module.css";
 
 type RosterRow = {
@@ -19,6 +20,7 @@ type RosterRow = {
     additionalGuestNames: string[];
     dietaryRestrictions: string | null;
     musicSuggestions: string | null;
+    side: RsvpSide | null;
   } | null;
 };
 
@@ -136,9 +138,10 @@ export default function RosterPage() {
           <thead>
             <tr>
               <th scope="col">Guest</th>
+              <th scope="col">Side</th>
               <th scope="col">Seat</th>
               <th scope="col">Dietary</th>
-              <th scope="col">Song requests</th>
+              <th scope="col">Song suggestions</th>
               <th scope="col">Notes</th>
             </tr>
           </thead>
@@ -153,6 +156,7 @@ export default function RosterPage() {
                       <span className={styles.additionalNames}>{additional}</span>
                     )}
                   </td>
+                  <td>{row.rsvp?.side ? SIDE_LABEL[row.rsvp.side] : ""}</td>
                   <td>{row.seatAssignment ?? ""}</td>
                   <td>{row.rsvp?.dietaryRestrictions ?? ""}</td>
                   <td>{row.rsvp?.musicSuggestions ?? ""}</td>

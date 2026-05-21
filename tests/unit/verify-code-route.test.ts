@@ -120,6 +120,7 @@ describe("POST /api/rsvp/public/verify-code", () => {
       hasEmail: true,
       plusOnesAllowed: 2,
       enableWishes: false,
+      showSideField: false,
     });
     expect(body.data.rsvpSessionToken).toBe("raw-session-token");
 
@@ -151,6 +152,24 @@ describe("POST /api/rsvp/public/verify-code", () => {
     const res = await POST(makeRequest({ eventId: "evt_1", code: "EVG-ABCD-EFGH-IJKL" }));
     const body = await res.json();
     expect(body.data.invitePreview.enableWishes).toBe(true);
+  });
+
+  it("surfaces showSideField=true for wedding-template events", async () => {
+    dbMock.event.findUnique.mockResolvedValue({ ...validEvent, templateId: "wedding_v1" });
+    dbMock.invite.findUnique.mockResolvedValue(validInvite);
+
+    const res = await POST(makeRequest({ eventId: "evt_1", code: "EVG-ABCD-EFGH-IJKL" }));
+    const body = await res.json();
+    expect(body.data.invitePreview.showSideField).toBe(true);
+  });
+
+  it("keeps showSideField=false for non-wedding templates", async () => {
+    dbMock.event.findUnique.mockResolvedValue({ ...validEvent, templateId: "conference_v1" });
+    dbMock.invite.findUnique.mockResolvedValue(validInvite);
+
+    const res = await POST(makeRequest({ eventId: "evt_1", code: "EVG-ABCD-EFGH-IJKL" }));
+    const body = await res.json();
+    expect(body.data.invitePreview.showSideField).toBe(false);
   });
 
   it("keeps enableWishes=false when the wishes section is enabled but submissions are off", async () => {
