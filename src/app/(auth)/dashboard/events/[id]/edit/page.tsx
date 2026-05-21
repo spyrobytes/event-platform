@@ -27,6 +27,8 @@ type EventDetail = {
   rsvpDeadline?: string | null;
   reminderDays?: number | null;
   reminderEnabled?: boolean | null;
+  passBackdropStyle?: "NONE" | "CARD" | "PAGE" | null;
+  passBackdropImageUrl?: string | null;
 };
 
 export default function EditEventPage() {
@@ -148,6 +150,8 @@ export default function EditEventPage() {
     rsvpDeadline: event.rsvpDeadline ? new Date(event.rsvpDeadline) : undefined,
     reminderDays: event.reminderDays ?? undefined,
     reminderEnabled: event.reminderEnabled ?? false,
+    passBackdropStyle: event.passBackdropStyle ?? "NONE",
+    passBackdropImageUrl: event.passBackdropImageUrl ?? "",
   };
 
   return (
