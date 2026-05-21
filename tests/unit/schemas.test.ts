@@ -155,6 +155,23 @@ describe("updateEventSchema", () => {
     const result = updateEventSchema.safeParse({ passBackdropStyle: "FANCY" });
     expect(result.success).toBe(false);
   });
+
+  it("accepts a valid passBackdropImageUrl", () => {
+    const result = updateEventSchema.safeParse({
+      passBackdropImageUrl: "https://example.com/backdrop.jpg",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty string for passBackdropImageUrl", () => {
+    const result = updateEventSchema.safeParse({ passBackdropImageUrl: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a malformed passBackdropImageUrl", () => {
+    const result = updateEventSchema.safeParse({ passBackdropImageUrl: "not-a-url" });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("createInviteSchema", () => {

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
-import { SIDE_OPTIONS } from "@/lib/rsvp-side";
+import { SIDE_PILL_LABEL } from "@/lib/rsvp-side";
 import {
   ACCESS_BANNER,
   RSVP_BADGE,
@@ -128,7 +128,7 @@ export default async function InvitePassPage({ params }: PageProps) {
 
   const sideLabel =
     isWeddingTemplate(invite.event.templateId) && invite.rsvp?.side
-      ? SIDE_OPTIONS.find((o) => o.value === invite.rsvp?.side)?.label ?? null
+      ? SIDE_PILL_LABEL[invite.rsvp.side]
       : null;
 
   const cardContent = (

@@ -17,6 +17,12 @@ export const SIDE_LABEL: Record<RsvpSide, string> = {
   BOTH: "Both",
 };
 
+// Longer-form labels for surfaces with room (RSVP form buttons, access-card
+// pill). Derived from SIDE_OPTIONS so the two cannot drift.
+export const SIDE_PILL_LABEL: Record<RsvpSide, string> = Object.fromEntries(
+  SIDE_OPTIONS.map((o) => [o.value, o.label])
+) as Record<RsvpSide, string>;
+
 // Empty string for null/undefined so the CSV column stays positionally
 // aligned for non-wedding events.
 export function formatSideForCsv(side: RsvpSide | null | undefined): string {
