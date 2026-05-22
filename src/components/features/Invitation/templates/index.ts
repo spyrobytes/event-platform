@@ -5,6 +5,7 @@ export { CinematicScroll } from "./CinematicScroll";
 export { TimeBasedReveal } from "./TimeBasedReveal";
 export { TimeBasedRevealV2 } from "./TimeBasedRevealV2";
 export { SplitRevealCard } from "./SplitRevealCard";
+export { SplitRevealCardV2 } from "./SplitRevealCardV2";
 export { GoldenCardReveal } from "./GoldenCardReveal";
 export { FlipFlapReveal } from "./FlipFlapReveal";
 export { WeddingStorybook } from "./WeddingStorybook";
@@ -19,6 +20,7 @@ import { CinematicScroll } from "./CinematicScroll";
 import { TimeBasedReveal } from "./TimeBasedReveal";
 import { TimeBasedRevealV2 } from "./TimeBasedRevealV2";
 import { SplitRevealCard } from "./SplitRevealCard";
+import { SplitRevealCardV2 } from "./SplitRevealCardV2";
 import { GoldenCardReveal } from "./GoldenCardReveal";
 import { FlipFlapReveal } from "./FlipFlapReveal";
 import { WeddingStorybook } from "./WeddingStorybook";
@@ -55,6 +57,7 @@ export type TemplateId =
   | "ENVELOPE_REVEAL"
   | "ENVELOPE_REVEAL_V2"
   | "SPLIT_REVEAL"
+  | "SPLIT_REVEAL_V2"
   | "LAYERED_UNFOLD"
   | "CINEMATIC_SCROLL"
   | "TIME_BASED_REVEAL"
@@ -84,6 +87,7 @@ const templateRegistry: Record<
   ENVELOPE_REVEAL: { component: EnvelopeReveal, type: "wrapper" },
   ENVELOPE_REVEAL_V2: { component: EnvelopeRevealV2 as ComponentType<InvitationTemplateProps>, type: "wrapper" },
   SPLIT_REVEAL: { component: SplitRevealCard, type: "data-driven" },
+  SPLIT_REVEAL_V2: { component: SplitRevealCardV2, type: "data-driven" },
   LAYERED_UNFOLD: { component: LayeredUnfold, type: "data-driven" },
   CINEMATIC_SCROLL: { component: CinematicScroll, type: "data-driven" },
   TIME_BASED_REVEAL: { component: TimeBasedReveal, type: "data-driven" },
@@ -120,6 +124,12 @@ export const templateMetadata: Record<
   SPLIT_REVEAL: {
     name: "Split Reveal",
     description: "Dramatic split-door with wax seal",
+    available: true,
+    type: "data-driven",
+  },
+  SPLIT_REVEAL_V2: {
+    name: "Split Reveal V2",
+    description: "Photo-forward split-door — best for traditional names and family invitations",
     available: true,
     type: "data-driven",
   },
@@ -200,6 +210,7 @@ export const templateFieldSupport: Record<TemplateId, ReadonlySet<TemplateField>
   ENVELOPE_REVEAL:     new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode", "ceremonyReception"]),
   ENVELOPE_REVEAL_V2:  new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "monogram", "customMessage", "dressCode", "ceremonyReception"]),
   SPLIT_REVEAL:        new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode", "ceremonyReception"]),
+  SPLIT_REVEAL_V2:     new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "monogram", "heroImageUrl", "customMessage", "dressCode", "ceremonyReception"]),
   LAYERED_UNFOLD:      new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),
   CINEMATIC_SCROLL:    new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "headerMode", "person1FamilyName", "person2FamilyName", "familyInviteText", "eventTypeText", "heroImageUrl", "customMessage", "dressCode", "ceremonyReception"]),
   TIME_BASED_REVEAL:   new Set(["coupleDisplayName", "person1Name", "person2Name", "headerText", "eventTypeText", "customMessage", "dressCode", "ceremonyReception"]),

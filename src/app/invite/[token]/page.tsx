@@ -9,6 +9,7 @@ import {
   EnvelopeReveal,
   EnvelopeRevealV2,
   SplitRevealCard,
+  SplitRevealCardV2,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
@@ -296,6 +297,14 @@ export default async function InvitationPage({ params }: PageProps) {
         case "SPLIT_REVEAL":
           return (
             <SplitRevealCard
+              data={invitationData}
+              initialState={hasResponded ? "open" : undefined}
+              showReplay={!hasResponded}
+            />
+          );
+        case "SPLIT_REVEAL_V2":
+          return (
+            <SplitRevealCardV2
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
               showReplay={!hasResponded}

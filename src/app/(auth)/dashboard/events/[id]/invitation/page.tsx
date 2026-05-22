@@ -72,6 +72,7 @@ const TEMPLATE_OPTIONS: { value: InvitationTemplate; label: string; available: b
   { value: "ENVELOPE_REVEAL", label: "Envelope Reveal", available: true },
   { value: "ENVELOPE_REVEAL_V2", label: "Envelope Reveal V2", available: true },
   { value: "SPLIT_REVEAL", label: "Split Reveal", available: true },
+  { value: "SPLIT_REVEAL_V2", label: "Split Reveal V2 (Photo Cover)", available: true },
   { value: "LAYERED_UNFOLD", label: "Layered Unfold", available: true },
   { value: "CINEMATIC_SCROLL", label: "Cinematic Scroll", available: true },
   { value: "TIME_BASED_REVEAL", label: "Time-Based Reveal", available: true },

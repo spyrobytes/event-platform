@@ -11,6 +11,7 @@ import {
   EnvelopeReveal,
   EnvelopeRevealV2,
   SplitRevealCard,
+  SplitRevealCardV2,
   LayeredUnfold,
   CinematicScroll,
   TimeBasedReveal,
@@ -240,6 +241,8 @@ export default function InvitationPreviewPage() {
           return <TimeBasedRevealV2 data={invitationData} showReplay={true} />;
         case "SPLIT_REVEAL":
           return <SplitRevealCard data={invitationData} showReplay={true} />;
+        case "SPLIT_REVEAL_V2":
+          return <SplitRevealCardV2 data={invitationData} showReplay={true} />;
         case "GOLDEN_CARD_REVEAL":
           return <GoldenCardReveal data={invitationData} showReplay={true} showHint={true} />;
         case "FLIP_FLAP_REVEAL":
