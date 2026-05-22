@@ -8,6 +8,7 @@ import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
 import { classifyInvitationDensity } from "@/lib/invitation-density";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./SplitRevealCardV2.module.css";
 
@@ -157,7 +158,7 @@ export function SplitRevealCardV2({
   // Density classifier (shared with V1 + dashboard) — replaces V1's narrow
   // ceremony+reception-only gate with signals that also catch traditional
   // headers and long couple/family names.
-  const { isDense, isExtremeDense } = classifyInvitationDensity({
+  const { isDense, isExtremeDense, hasLongCoupleNames } = classifyInvitationDensity({
     person1Name: person1,
     person2Name: person2,
     person1FamilyName: data.person1FamilyName,
@@ -277,6 +278,7 @@ export function SplitRevealCardV2({
               styles.contentInner,
               isOpen && styles.contentVisible,
               isDense && styles.contentInnerCompact,
+              hasLongCoupleNames && styles.shrinkNames,
               isExtremeDense && styles.contentInnerExtreme
             )}
           >
@@ -414,6 +416,7 @@ export function SplitRevealCardV2({
               sizes="(max-width: 480px) 110px, (min-width: 1025px) 150px, 130px"
               className={styles.coverImg}
               priority
+              unoptimized={!isAllowedImageHost(data.heroImageUrl)}
             />
             <div className={styles.coverRing} aria-hidden="true" />
           </div>

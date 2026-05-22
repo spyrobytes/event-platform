@@ -378,6 +378,20 @@
   font-size: 0.65rem;
 }
 
+/* shrinkNames — applied when hasLongCoupleNames triggers without
+   hasCeremonyAndReception (so .contentInnerExtreme doesn't fire). Brings
+   .names font-size down enough to fit long couple names within the fixed
+   card. Mirrors the same modifier in V1 so behavior is consistent across
+   variants. */
+.shrinkNames .names {
+  font-size: 1.3rem;
+}
+
+.shrinkNames .ampersand {
+  font-size: 1rem;
+  margin: 0.05rem 0;
+}
+
 /* =============================================================================
    EXTREME MODE — traditional header + ceremony + reception, or long family
    names + ceremony + reception. Tightens further; clamps custom message.
