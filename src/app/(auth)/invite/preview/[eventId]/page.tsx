@@ -240,7 +240,7 @@ export default function InvitationPreviewPage() {
         case "TIME_BASED_REVEAL_V2":
           return <TimeBasedRevealV2 data={invitationData} showReplay={true} />;
         case "SPLIT_REVEAL":
-          return <SplitRevealCard data={invitationData} showReplay={true} />;
+          return <SplitRevealCard data={invitationData} themeId={themeId} showReplay={true} />;
         case "SPLIT_REVEAL_V2":
           return <SplitRevealCardV2 data={invitationData} themeId={themeId} showReplay={true} />;
         case "GOLDEN_CARD_REVEAL":

@@ -298,6 +298,7 @@ export default async function InvitationPage({ params }: PageProps) {
           return (
             <SplitRevealCard
               data={invitationData}
+              themeId={themeId}
               initialState={hasResponded ? "open" : undefined}
               showReplay={!hasResponded}
             />

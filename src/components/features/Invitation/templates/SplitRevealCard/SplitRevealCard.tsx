@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { classifyInvitationDensity } from "@/lib/invitation-density";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./SplitRevealCard.module.css";
 
@@ -30,7 +33,9 @@ export type SplitRevealCardProps = {
   showHint?: boolean;
   /** Enable confetti on reveal */
   showConfetti?: boolean;
-  /** Override theme (defaults to mapping from InvitationShell theme) */
+  /** InvitationShell theme ID (ivory, blush, sage, midnight, champagne) — mapped to one of three SplitReveal palettes. */
+  themeId?: string;
+  /** Explicit theme override; takes precedence over themeId mapping. */
   theme?: SplitRevealTheme;
   /** Additional CSS classes */
   className?: string;
@@ -138,6 +143,7 @@ export function SplitRevealCard({
   showReplay = true,
   showHint = true,
   showConfetti = true,
+  themeId,
   theme,
   className,
 }: SplitRevealCardProps) {
@@ -152,8 +158,9 @@ export function SplitRevealCard({
   // Derive invitation state from isOpen
   const state: InvitationState = isOpen ? "open" : "idle";
 
-  // Resolve theme
-  const resolvedTheme = theme || mapTheme();
+  // Resolve theme — mapTheme translates InvitationShell themeId
+  // (ivory|blush|sage|midnight|champagne) into one of V1's three palettes.
+  const resolvedTheme = theme || mapTheme(themeId);
 
   // Use structured names if provided, otherwise parse from coupleNames
   const parsedNames = parseCoupleNames(data.coupleNames);
@@ -177,6 +184,23 @@ export function SplitRevealCard({
   }).format(data.eventDate);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
+  // Density classifier — extends the compact trigger beyond V1's original
+  // ceremony+reception-only gate to also catch traditional headers and long
+  // names. isExtremeDense additionally clamps customMessage and tightens
+  // typography. Photo size is scoped to hasCeremonyAndReception via the
+  // separate .shrinkPhoto class so the V1 photo doesn't shrink under
+  // traditional-alone or long-names-alone conditions.
+  const { isDense, isExtremeDense, hasCeremonyAndReception, hasLongCoupleNames } =
+    classifyInvitationDensity({
+      person1Name: person1,
+      person2Name: person2,
+      person1FamilyName: data.person1FamilyName,
+      person2FamilyName: data.person2FamilyName,
+      headerMode: data.headerMode,
+      hasCeremonyDate: !!data.ceremonyDate,
+      hasReceptionDate: !!data.receptionDate,
+    });
 
   // Notify parent of state changes
   useEffect(() => {
@@ -294,18 +318,27 @@ export function SplitRevealCard({
             className={cn(
               styles.contentInner,
               isOpen && styles.contentVisible,
-              hasCeremonyReception &&
-                data.ceremonyDate &&
-                data.receptionDate &&
-                styles.contentInnerCompact
+              isDense && styles.contentInnerCompact,
+              hasCeremonyAndReception && styles.shrinkPhoto,
+              hasLongCoupleNames && styles.shrinkNames,
+              isExtremeDense && styles.contentInnerExtreme
             )}
           >
-            {/* Couple Photo */}
+            {/* Couple Photo — actual rendered size is governed by .photo CSS
+                (90px base, 75px ≤480, 64px when .shrinkPhoto applies).
+                width/height props are aspect-ratio hints; className styles
+                take precedence. `unoptimized` is set for hosts not in
+                next.config.ts remotePatterns so external URLs (legacy data,
+                non-Supabase hosts) render instead of throwing. */}
             {data.heroImageUrl && (
-              <img
+              <Image
                 src={data.heroImageUrl}
                 alt={`${person1} & ${person2}`}
+                width={90}
+                height={90}
+                sizes="90px"
                 className={styles.photo}
+                unoptimized={!isAllowedImageHost(data.heroImageUrl)}
               />
             )}
 
@@ -327,13 +360,14 @@ export function SplitRevealCard({
               familyInviteClassName={styles.familyInviteText}
             />
 
-            {/* Couple Names */}
+            {/* Couple Names — schema-bounded; wrap protection in CSS handles
+                multi-part formal names. Use compact/extreme cascade for fit. */}
             <h1 className={styles.names}>
-              {truncateWithEllipsis(person1, 30)}
+              {truncateWithEllipsis(person1, CONTENT_LIMITS.personName.max)}
               {person2 && (
                 <>
                   <span className={styles.ampersand}>&</span>
-                  {truncateWithEllipsis(person2, 30)}
+                  {truncateWithEllipsis(person2, CONTENT_LIMITS.personName.max)}
                 </>
               )}
             </h1>
