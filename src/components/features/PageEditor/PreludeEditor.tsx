@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  greatVibes,
+  dancingScript,
+} from "@/components/templates/shared/Prelude";
 import type { Prelude, PreludeFont } from "@/schemas/event-page";
 
 const MIN_BODY = 40;
@@ -27,7 +30,8 @@ type FontOption = {
   value: PreludeFont;
   label: string;
   description: string;
-  preview: string;
+  /** className from next/font that renders the live preview in the actual cursive */
+  previewClassName: string;
   premium?: boolean;
 };
 
@@ -36,13 +40,13 @@ const FONT_OPTIONS: FontOption[] = [
     value: "romantic-script",
     label: "Romantic Script",
     description: "Formal flourished calligraphy (Great Vibes)",
-    preview: "Welcome",
+    previewClassName: greatVibes.className,
   },
   {
     value: "modern-script",
     label: "Modern Script",
     description: "Playful, casual cursive (Dancing Script)",
-    preview: "Welcome",
+    previewClassName: dancingScript.className,
     premium: true,
   },
 ];
@@ -61,13 +65,6 @@ export function PreludeEditor({ prelude, onChange }: PreludeEditorProps) {
   const enabled = current.enabled;
   const showMinWarning = enabled && bodyLength > 0 && bodyLength < MIN_BODY;
   const showEmptyError = enabled && bodyLength === 0;
-
-  const setFont = useCallback(
-    (font: PreludeFont) => {
-      onChange({ font });
-    },
-    [onChange]
-  );
 
   return (
     <div className="space-y-4">
@@ -166,7 +163,7 @@ export function PreludeEditor({ prelude, onChange }: PreludeEditorProps) {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setFont(option.value)}
+                onClick={() => onChange({ font: option.value })}
                 disabled={!enabled}
                 aria-pressed={isSelected}
                 className={cn(
@@ -182,11 +179,22 @@ export function PreludeEditor({ prelude, onChange }: PreludeEditorProps) {
                     Premium
                   </span>
                 )}
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{option.label}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {option.description}
+                <div className="space-y-2">
+                  <p
+                    aria-hidden="true"
+                    className={cn(
+                      "text-3xl leading-none text-foreground",
+                      option.previewClassName
+                    )}
+                  >
+                    Welcome
                   </p>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{option.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {option.description}
+                    </p>
+                  </div>
                 </div>
               </button>
             );

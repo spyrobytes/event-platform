@@ -43,7 +43,7 @@ import {
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
-import { templateSupportsSocialLinks } from "@/components/templates";
+import { templateSupportsSocialLinks, templateSupportsPrelude } from "@/components/templates";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -83,19 +83,6 @@ const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
   conference_v1: new Set(GENERIC_SECTIONS),
   party_v1: new Set(GENERIC_SECTIONS),
 };
-
-// Templates that render the optional Prelude (welcome note) between Hero
-// and the first section. Mirrors `supportsPrelude` on V3 definitions and the
-// hard-coded V2 wiring in WeddingTemplateV2. Intimate Note skipped — its hero
-// already functions as a handwritten welcome card.
-const TEMPLATES_WITH_PRELUDE: ReadonlySet<string> = new Set([
-  "wedding_v2",
-  "wedding_editorial",
-  "wedding_fine_art",
-  "wedding_garden_house",
-  "wedding_grand_luxe",
-  "wedding_celebration",
-]);
 
 const DEFAULT_PRELUDE: Prelude = {
   enabled: false,
@@ -713,7 +700,7 @@ export default function PageEditorPage() {
       setupItems.push({ id: "pe-theme", label: "Theme" });
     }
     setupItems.push({ id: "pe-hero", label: "Hero Section" });
-    if (TEMPLATES_WITH_PRELUDE.has(templateId)) {
+    if (templateSupportsPrelude(templateId)) {
       setupItems.push({ id: "pe-prelude", label: "Prelude" });
     }
     setupItems.push({ id: "pe-media", label: "Media Library" });
@@ -1349,7 +1336,7 @@ export default function PageEditorPage() {
       </Card>
 
       {/* Prelude (Welcome Note) — only on templates that render it */}
-      {TEMPLATES_WITH_PRELUDE.has(templateId) && (
+      {templateSupportsPrelude(templateId) && (
         <Card id="pe-prelude" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Prelude</CardTitle>
