@@ -8,6 +8,7 @@ import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
 import { classifyInvitationDensity } from "@/lib/invitation-density";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./SplitRevealCard.module.css";
 
@@ -187,16 +188,19 @@ export function SplitRevealCard({
   // Density classifier — extends the compact trigger beyond V1's original
   // ceremony+reception-only gate to also catch traditional headers and long
   // names. isExtremeDense additionally clamps customMessage and tightens
-  // typography. Photo size is unchanged (compact's existing 64px applies).
-  const { isDense, isExtremeDense } = classifyInvitationDensity({
-    person1Name: person1,
-    person2Name: person2,
-    person1FamilyName: data.person1FamilyName,
-    person2FamilyName: data.person2FamilyName,
-    headerMode: data.headerMode,
-    hasCeremonyDate: !!data.ceremonyDate,
-    hasReceptionDate: !!data.receptionDate,
-  });
+  // typography. Photo size is scoped to hasCeremonyAndReception via the
+  // separate .shrinkPhoto class so the V1 photo doesn't shrink under
+  // traditional-alone or long-names-alone conditions.
+  const { isDense, isExtremeDense, hasCeremonyAndReception, hasLongCoupleNames } =
+    classifyInvitationDensity({
+      person1Name: person1,
+      person2Name: person2,
+      person1FamilyName: data.person1FamilyName,
+      person2FamilyName: data.person2FamilyName,
+      headerMode: data.headerMode,
+      hasCeremonyDate: !!data.ceremonyDate,
+      hasReceptionDate: !!data.receptionDate,
+    });
 
   // Notify parent of state changes
   useEffect(() => {
@@ -315,12 +319,17 @@ export function SplitRevealCard({
               styles.contentInner,
               isOpen && styles.contentVisible,
               isDense && styles.contentInnerCompact,
+              hasCeremonyAndReception && styles.shrinkPhoto,
+              hasLongCoupleNames && styles.shrinkNames,
               isExtremeDense && styles.contentInnerExtreme
             )}
           >
             {/* Couple Photo — actual rendered size is governed by .photo CSS
-                (90px base, 75px ≤480, 64px compact). width/height props are
-                aspect-ratio hints; className styles take precedence. */}
+                (90px base, 75px ≤480, 64px when .shrinkPhoto applies).
+                width/height props are aspect-ratio hints; className styles
+                take precedence. `unoptimized` is set for hosts not in
+                next.config.ts remotePatterns so external URLs (legacy data,
+                non-Supabase hosts) render instead of throwing. */}
             {data.heroImageUrl && (
               <Image
                 src={data.heroImageUrl}
@@ -329,6 +338,7 @@ export function SplitRevealCard({
                 height={90}
                 sizes="90px"
                 className={styles.photo}
+                unoptimized={!isAllowedImageHost(data.heroImageUrl)}
               />
             )}
 

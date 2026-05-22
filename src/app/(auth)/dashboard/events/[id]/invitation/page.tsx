@@ -490,6 +490,13 @@ export default function InvitationConfigPage() {
         })
       : null;
 
+  // The hint suggests Split Reveal V2, which is added by a separate PR. Gate
+  // the suggestion behind a runtime check so the hint never recommends a
+  // dropdown option that doesn't exist in this deployment.
+  const splitRevealV2Available = TEMPLATE_OPTIONS.some(
+    (opt) => (opt.value as string) === "SPLIT_REVEAL_V2"
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -556,7 +563,7 @@ export default function InvitationConfigPage() {
                 Choose how the invitation reveals itself to guests
               </p>
 
-              {splitRevealDensity?.isExtremeDense && (
+              {splitRevealDensity?.isExtremeDense && splitRevealV2Available && (
                 <div
                   className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
                   role="note"

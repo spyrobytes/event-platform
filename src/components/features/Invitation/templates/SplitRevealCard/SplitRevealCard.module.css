@@ -300,16 +300,34 @@
   margin: 0;
 }
 
-/* Compact modifier — applied to .contentInner when both ceremony AND
-   reception render. Tightens type + spacing across the whole stack
-   (photo, names, header, event sections) so both blocks + RSVP fit
-   the fixed container. Needed especially in traditional header mode,
-   which adds ~30-40px for the families label + invite text lines. */
-.contentInnerCompact .photo {
+/* Compact modifier — applied to .contentInner whenever the density classifier
+   flags isDense (ceremony+reception, traditional header, OR long names).
+   Tightens type + spacing across the stack so blocks + RSVP fit the fixed
+   container.
+
+   NOTE: photo-shrink is intentionally scoped to .shrinkPhoto (applied only
+   when hasCeremonyAndReception is true), NOT to .contentInnerCompact —
+   the V1 hero photo is essential to the design and must not shrink under
+   the broader isDense conditions (traditional alone, long names alone).
+   See finding F1 in code review. */
+.shrinkPhoto .photo {
   width: 64px;
   height: 64px;
   margin-bottom: 0.4rem;
   border-width: 2px;
+}
+
+/* shrinkNames — applied when hasLongCoupleNames triggers without
+   hasCeremonyAndReception (so .contentInnerExtreme doesn't fire). Brings
+   .names font-size down enough to fit long couple names within the fixed
+   card without relying on the more aggressive extreme cascade. */
+.shrinkNames .names {
+  font-size: 1.3rem;
+}
+
+.shrinkNames .ampersand {
+  font-size: 1rem;
+  margin: 0.05rem 0;
 }
 
 .contentInnerCompact .greeting {
