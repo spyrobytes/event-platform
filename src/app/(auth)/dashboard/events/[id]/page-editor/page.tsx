@@ -1270,6 +1270,18 @@ export default function PageEditorPage() {
               <p className="text-xs text-muted-foreground">
                 A portrait photo that floats over the hero background. Works best with a close-up of the couple.
               </p>
+              {templateId === "wedding_grand_luxe" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1.5">
+                  <svg className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <span>
+                    Upload a head-and-shoulders portrait — Grand Luxe clips the
+                    photo to a heart silhouette, so wide framing or full-body
+                    shots may crop awkwardly.
+                  </span>
+                </p>
+              )}
               {pageData?.assets?.filter((a) => a.tags?.includes("hero")).length ? (
                 <div className="flex gap-2 flex-wrap">
                   <button

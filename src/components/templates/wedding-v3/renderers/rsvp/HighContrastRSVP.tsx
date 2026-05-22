@@ -61,12 +61,25 @@ export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
               to 1.16 contrast against the dark cinematic background inside the
               wedding template scope. Bg uses var(--accent) directly (the hex)
               instead of bg-accent → rgb(var(--accent)), which fails because
-              wedding palettes emit --accent as a hex string. */}
+              wedding palettes emit --accent as a hex string.
+
+              ⚠️ Duplicates RsvpCta defaults (URL pattern, label, help text).
+              Keep in sync if RsvpCta's API or defaults change — or, when this
+              scope rule lifts, extend RsvpCta with a buttonClassName/style
+              passthrough so this inline can be removed. */}
           <div className="text-center">
+            {/* Public-portal CTA, not inline form. The /e/[slug]/rsvp route
+                gates submissions behind an invite code; an inline form on
+                this public page would let anyone POST an RSVP. See
+                docs/public-event-portal/rsvp-from-public-portal-Implementation-plan-v3.md §1, §11. */}
             <Link href={`/e/${eventSlug}/rsvp`} className="inline-block">
               <Button
                 type="button"
                 size="lg"
+                // `!` forces override of the default variant's
+                // text-accent-foreground. cn() may not reliably merge an
+                // arbitrary-value class against a named one, so the
+                // important keyword is belt-and-suspenders here.
                 className="!text-[var(--text,#1e1b17)] hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: "var(--accent, #c5a55a)" }}
               >
