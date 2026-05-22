@@ -19,10 +19,7 @@ let cachedSupabaseHost: string | null | undefined;
 
 function getSupabaseHost(): string | null {
   if (cachedSupabaseHost !== undefined) return cachedSupabaseHost;
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    "";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   if (!supabaseUrl) {
     cachedSupabaseHost = null;
     return null;
