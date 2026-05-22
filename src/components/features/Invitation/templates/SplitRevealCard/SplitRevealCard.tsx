@@ -6,6 +6,7 @@ import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { classifyInvitationDensity } from "@/lib/invitation-density";
 import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./SplitRevealCard.module.css";
 
@@ -178,6 +179,20 @@ export function SplitRevealCard({
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 
+  // Density classifier — extends the compact trigger beyond V1's original
+  // ceremony+reception-only gate to also catch traditional headers and long
+  // names. isExtremeDense additionally clamps customMessage and tightens
+  // typography. Photo size is unchanged (compact's existing 64px applies).
+  const { isDense, isExtremeDense } = classifyInvitationDensity({
+    person1Name: person1,
+    person2Name: person2,
+    person1FamilyName: data.person1FamilyName,
+    person2FamilyName: data.person2FamilyName,
+    headerMode: data.headerMode,
+    hasCeremonyDate: !!data.ceremonyDate,
+    hasReceptionDate: !!data.receptionDate,
+  });
+
   // Notify parent of state changes
   useEffect(() => {
     onStateChange?.(state);
@@ -294,10 +309,8 @@ export function SplitRevealCard({
             className={cn(
               styles.contentInner,
               isOpen && styles.contentVisible,
-              hasCeremonyReception &&
-                data.ceremonyDate &&
-                data.receptionDate &&
-                styles.contentInnerCompact
+              isDense && styles.contentInnerCompact,
+              isExtremeDense && styles.contentInnerExtreme
             )}
           >
             {/* Couple Photo */}
@@ -327,13 +340,14 @@ export function SplitRevealCard({
               familyInviteClassName={styles.familyInviteText}
             />
 
-            {/* Couple Names */}
+            {/* Couple Names — schema-bounded; wrap protection in CSS handles
+                multi-part formal names. Use compact/extreme cascade for fit. */}
             <h1 className={styles.names}>
-              {truncateWithEllipsis(person1, 30)}
+              {truncateWithEllipsis(person1, CONTENT_LIMITS.personName.max)}
               {person2 && (
                 <>
                   <span className={styles.ampersand}>&</span>
-                  {truncateWithEllipsis(person2, 30)}
+                  {truncateWithEllipsis(person2, CONTENT_LIMITS.personName.max)}
                 </>
               )}
             </h1>

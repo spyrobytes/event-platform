@@ -22,6 +22,7 @@ import {
   type TextDirection,
 } from "@/schemas/invitation";
 import { templateSupportsField, type TemplateField } from "@/components/features/Invitation/templates";
+import { classifyInvitationDensity } from "@/lib/invitation-density";
 import { fromDatetimeLocalInTz, toDatetimeLocalInTz } from "@/lib/datetime";
 
 type TimelineEntry = {
@@ -474,6 +475,21 @@ export default function InvitationConfigPage() {
     );
   }
 
+  // Density check for Split Reveal — surfaces a hint to switch templates when
+  // the form content would crowd V1's fixed-size card.
+  const splitRevealDensity =
+    template === "SPLIT_REVEAL"
+      ? classifyInvitationDensity({
+          person1Name,
+          person2Name,
+          person1FamilyName,
+          person2FamilyName,
+          headerMode,
+          hasCeremonyDate: !!ceremonyDate,
+          hasReceptionDate: !!receptionDate,
+        })
+      : null;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -539,6 +555,22 @@ export default function InvitationConfigPage() {
               <p className="text-xs text-muted-foreground">
                 Choose how the invitation reveals itself to guests
               </p>
+
+              {splitRevealDensity?.isExtremeDense && (
+                <div
+                  className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+                  role="note"
+                >
+                  <p className="font-medium">Heads up — your content may be cropped on Split Reveal.</p>
+                  <p className="mt-1">
+                    Long family names combined with separate ceremony &amp; reception
+                    details exceed Split Reveal&rsquo;s fixed card. Consider switching to{" "}
+                    <strong>Split Reveal V2 (Photo Cover)</strong> from the dropdown above —
+                    it moves the couple photo to the card&rsquo;s cover, freeing room inside
+                    for traditional names and richer event blocks.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
