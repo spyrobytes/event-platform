@@ -93,6 +93,49 @@ export const heroSchema = z.object({
 export type HeroConfig = z.infer<typeof heroSchema>;
 
 // =============================================================================
+// PRELUDE (Welcome Note)
+// =============================================================================
+// Tone-setting block rendered between Hero and the first section on supported
+// wedding templates. Position-locked and always public — modeled as a top-level
+// page config field (like hero), not a user-orderable section.
+
+export const preludeFontSchema = z.enum(["romantic-script", "modern-script"]);
+
+// Body is loosely typed in the base shape so disabled drafts can persist
+// with empty content; the refine enforces the 40-char minimum only when
+// the prelude is enabled. The base shape is also exported (as the partial
+// update schema) so partials work without ZodEffects fighting us.
+const preludeBaseSchema = z.object({
+  enabled: z.boolean().default(false),
+  heading: z.string().max(40, "Heading must be 40 characters or less").optional(),
+  body: z.string().max(280, "Prelude must be 280 characters or less"),
+  signature: z.string().max(60, "Signature must be 60 characters or less").optional(),
+  font: preludeFontSchema.default("romantic-script"),
+});
+
+export const preludeSchema = preludeBaseSchema.refine(
+  (data) => !data.enabled || data.body.length >= 40,
+  {
+    message: "Prelude must be at least 40 characters when enabled",
+    path: ["body"],
+  }
+);
+
+export type Prelude = z.infer<typeof preludeSchema>;
+export type PreludeFont = z.infer<typeof preludeFontSchema>;
+
+/**
+ * Canonical default Prelude. Used by the page editor when initializing a
+ * freshly-toggled prelude and by PreludeEditor when no prelude is set yet.
+ * Keep in sync with the Zod defaults on `preludeBaseSchema` above.
+ */
+export const DEFAULT_PRELUDE: Prelude = {
+  enabled: false,
+  body: "",
+  font: "romantic-script",
+};
+
+// =============================================================================
 // SECTION VISIBILITY (Guest Portal)
 // =============================================================================
 
@@ -712,6 +755,8 @@ export const eventPageConfigV1Schema = z.object({
   variantId: z.string().max(50).optional(), // Wedding variant ID (e.g., "classic", "modern_minimal")
   theme: themeSchema,
   hero: heroSchema,
+  // Optional welcome note rendered between hero and the first section
+  prelude: preludeSchema.optional(),
   sections: z.array(sectionSchema).max(12, "Maximum 12 sections allowed"),
   // V2 chrome settings
   chrome: chromeConfigSchema.optional(),
@@ -757,11 +802,19 @@ export const updateHeroSchema = heroSchema.partial();
 export type UpdateHeroInput = z.infer<typeof updateHeroSchema>;
 
 /**
+ * Schema for updating prelude only — partial-friendly base (no refine).
+ * The full refine is enforced on save via `preludeSchema` in the page config.
+ */
+export const updatePreludeSchema = preludeBaseSchema.partial();
+export type UpdatePreludeInput = z.infer<typeof updatePreludeSchema>;
+
+/**
  * Schema for updating the full page config
  */
 export const updatePageConfigSchema = z.object({
   theme: themeSchema.optional(),
   hero: heroSchema.optional(),
+  prelude: preludeSchema.optional(),
   sections: z.array(sectionSchema).max(12).optional(),
 });
 

@@ -1,0 +1,116 @@
+.section {
+  padding: 4rem 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .section {
+    padding: 6rem 2rem;
+  }
+}
+
+.container {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+  /* Soft "pressed-paper" edge effect: thin side rules + inset side-vignettes,
+   * no top/bottom border. Uses currentColor via color-mix so the warmth
+   * adapts to each template's palette (dark text on light bg → warm tint;
+   * light text on dark bg → cool tint). */
+  padding: 2.75rem 1.75rem;
+  border-left: 1px solid color-mix(in srgb, currentColor 7%, transparent);
+  border-right: 1px solid color-mix(in srgb, currentColor 7%, transparent);
+  border-radius: 2.5rem;
+  box-shadow:
+    inset 12px 0 24px color-mix(in srgb, currentColor 4%, transparent),
+    inset -12px 0 24px color-mix(in srgb, currentColor 4%, transparent);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 3.5rem 2.75rem;
+  }
+}
+
+.heading {
+  margin: 0 0 2rem;
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text, currentColor);
+}
+
+@media (min-width: 768px) {
+  .heading {
+    font-size: 1.75rem;
+    margin-bottom: 2.5rem;
+  }
+}
+
+.body {
+  margin: 0;
+  color: var(--text, currentColor);
+  font-weight: 400;
+}
+
+.signature {
+  margin: 2rem 0 0;
+  color: var(--text, currentColor);
+  opacity: 0.85;
+  text-align: right;
+}
+
+/* Romantic Script (Great Vibes) — formal flourished calligraphy. Needs a larger size to read at body distances. */
+.romanticScript {
+  font-family: var(--font-prelude-romantic), "Great Vibes", cursive;
+}
+
+.body.romanticScript {
+  font-size: 2.25rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .body.romanticScript {
+    font-size: 2.75rem;
+    line-height: 1.45;
+  }
+}
+
+.signature.romanticScript {
+  font-size: 1.625rem;
+  line-height: 1.3;
+}
+
+@media (min-width: 768px) {
+  .signature.romanticScript {
+    font-size: 1.875rem;
+  }
+}
+
+/* Modern Script (Dancing Script) — playful informal cursive. Sits a touch smaller; less flourish per glyph. */
+.modernScript {
+  font-family: var(--font-prelude-modern), "Dancing Script", cursive;
+}
+
+.body.modernScript {
+  font-size: 1.875rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 768px) {
+  .body.modernScript {
+    font-size: 2.25rem;
+    line-height: 1.55;
+  }
+}
+
+.signature.modernScript {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .signature.modernScript {
+    font-size: 1.75rem;
+  }
+}

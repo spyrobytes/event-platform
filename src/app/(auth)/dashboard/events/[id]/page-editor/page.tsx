@@ -28,6 +28,7 @@ import {
   VersionHistory,
   PreviewShareCard,
   MediaUploadCard,
+  PreludeEditor,
   StoryEditor,
   TravelStayEditor,
   WeddingPartyEditor,
@@ -42,7 +43,7 @@ import {
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
-import { templateSupportsSocialLinks } from "@/components/templates";
+import { templateSupportsSocialLinks, templateSupportsPrelude } from "@/components/templates";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -53,11 +54,13 @@ import {
 } from "@/lib/section-nav-defaults";
 import { isAccessibleColor, PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
+import { DEFAULT_PRELUDE } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
   Section,
   ChromeConfig,
   SocialLink,
+  Prelude,
 } from "@/schemas/event-page";
 
 const GENERIC_SECTIONS: Section["type"][] = [
@@ -273,6 +276,15 @@ export default function PageEditorPage() {
     setConfig((prev) => {
       if (!prev) return prev;
       return { ...prev, hero: { ...prev.hero, ...updates } };
+    });
+    setHasChanges(true);
+  }, []);
+
+  const updatePrelude = useCallback((updates: Partial<Prelude>) => {
+    setConfig((prev) => {
+      if (!prev) return prev;
+      const current = prev.prelude ?? DEFAULT_PRELUDE;
+      return { ...prev, prelude: { ...current, ...updates } };
     });
     setHasChanges(true);
   }, []);
@@ -683,6 +695,9 @@ export default function PageEditorPage() {
       setupItems.push({ id: "pe-theme", label: "Theme" });
     }
     setupItems.push({ id: "pe-hero", label: "Hero Section" });
+    if (templateSupportsPrelude(templateId)) {
+      setupItems.push({ id: "pe-prelude", label: "Prelude" });
+    }
     setupItems.push({ id: "pe-media", label: "Media Library" });
 
     const supportedSet = TEMPLATE_SUPPORTED_SECTIONS[templateId];
@@ -1314,6 +1329,25 @@ export default function PageEditorPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Prelude (Welcome Note) — only on templates that render it */}
+      {templateSupportsPrelude(templateId) && (
+        <Card id="pe-prelude" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle>Prelude</CardTitle>
+            <CardDescription>
+              A short cursive welcome note rendered between the Hero and the
+              rest of your page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PreludeEditor
+              prelude={config.prelude}
+              onChange={updatePrelude}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Media Library */}
       <div id="pe-media" className="scroll-mt-20">

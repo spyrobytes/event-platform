@@ -190,4 +190,6 @@ export const GRAND_LUXE: TemplateDefinition = {
 
   heroImageTip:
     "This template works best with a light or bright hero image — the dark cinematic overlay creates rich contrast. Very dark images may reduce text visibility.",
+
+  supportsPrelude: true,
 };

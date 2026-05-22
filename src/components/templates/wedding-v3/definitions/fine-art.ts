@@ -185,4 +185,6 @@ export const FINE_ART: TemplateDefinition = {
     "gallery",
     "rsvp",
   ],
+
+  supportsPrelude: true,
 };

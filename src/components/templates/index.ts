@@ -17,6 +17,10 @@ import { WeddingGardenHouseTemplate } from "./wedding-v3/templates/garden-house-
 import { WeddingGrandLuxeTemplate } from "./wedding-v3/templates/grand-luxe-template";
 import { WeddingCelebrationTemplate } from "./wedding-v3/templates/celebration-template";
 
+// V3 definition registry — used by capability helpers below to derive
+// support flags directly from each template's TemplateDefinition.
+import { getV3Definition } from "./wedding-v3";
+
 /**
  * Temporal data for time-aware page rendering
  */
@@ -149,6 +153,18 @@ export const TEMPLATES_WITH_SOCIAL_LINKS: ReadonlySet<string> = new Set([
 
 export function templateSupportsSocialLinks(templateId: string): boolean {
   return TEMPLATES_WITH_SOCIAL_LINKS.has(templateId);
+}
+
+/**
+ * Whether this template renders the optional Prelude (welcome note) between
+ * Hero and the first section. V3 templates carry `supportsPrelude` on their
+ * definition; V2 is treated as always-supporting (its renderer wires the
+ * block unconditionally). Single source of truth so editor + renderer can't
+ * drift apart when new V3 templates ship.
+ */
+export function templateSupportsPrelude(templateId: string): boolean {
+  if (templateId === "wedding_v2") return true;
+  return getV3Definition(templateId)?.supportsPrelude ?? false;
 }
 
 /**
