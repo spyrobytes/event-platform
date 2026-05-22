@@ -55,7 +55,18 @@ export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
           }}
         >
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--accent, #c5a55a), transparent)" }} />
-          <RsvpCta eventSlug={eventSlug} />
+          {/* Override the default Button variant's foreground/background:
+           *  `text-accent-foreground` (near-black) on its own collapses to
+           *  ~1.16 contrast against this dark cinematic card. Bg uses
+           *  var(--accent) directly because `bg-accent` resolves via
+           *  `rgb(var(--accent))`, which fails inside wedding template
+           *  scope where --accent is emitted as a hex string. */}
+          <RsvpCta
+            eventSlug={eventSlug}
+            buttonClassName="text-[var(--text,#1e1b17)] hover:opacity-90 transition-opacity"
+            buttonStyle={{ backgroundColor: "var(--accent, #c5a55a)" }}
+            helpTextClassName="text-white/70"
+          />
         </div>
       </div>
     </section>

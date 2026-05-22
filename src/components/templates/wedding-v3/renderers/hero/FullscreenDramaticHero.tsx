@@ -66,18 +66,38 @@ export function FullscreenDramaticHero({
         <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
-      {/* Couple portrait — top left */}
+      {/* Couple portrait — top left, heart-clipped */}
       {couplePhotoAsset?.publicUrl && (
-        <div className={styles.couplePhoto}>
-          <EventImage
-            src={couplePhotoAsset.publicUrl}
-            alt={coupleNames || "Couple"}
-            fill
-            sizes="100vw"
-            priority
-            blurDataURL={couplePhotoAsset.blurDataUrl}
-          />
-        </div>
+        <>
+          {/* Shared clipPath defs for the heart frame. clipPathUnits=objectBoundingBox
+              normalizes the path to 0..1, so the clip scales with any container size. */}
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            width="0"
+            height="0"
+            style={{ position: "absolute", pointerEvents: "none" }}
+          >
+            <defs>
+              <clipPath id="gl-heart-clip" clipPathUnits="objectBoundingBox">
+                {/* Shallow-notch heart: valley at y=0.10 (not 0.20) so the top
+                 *  of a head-and-shoulders portrait isn't clipped by the V
+                 *  between the two lobes. */}
+                <path d="M0.5,0.88 C0.3,0.72 0.04,0.56 0.04,0.32 C0.04,0.14 0.18,0.04 0.32,0.04 C0.42,0.04 0.48,0.08 0.5,0.12 C0.52,0.08 0.58,0.04 0.68,0.04 C0.82,0.04 0.96,0.14 0.96,0.32 C0.96,0.56 0.7,0.72 0.5,0.88 Z" />
+              </clipPath>
+            </defs>
+          </svg>
+          <div className={styles.couplePhoto}>
+            <EventImage
+              src={couplePhotoAsset.publicUrl}
+              alt={coupleNames || "Couple"}
+              fill
+              sizes="100vw"
+              priority
+              blurDataURL={couplePhotoAsset.blurDataUrl}
+            />
+          </div>
+        </>
       )}
 
       <div className={styles.content}>

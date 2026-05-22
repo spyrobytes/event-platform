@@ -68,14 +68,19 @@
   top: clamp(20px, 3vw, 36px);
   left: clamp(20px, 3vw, 40px);
   z-index: 4;
-  width: clamp(80px, 10vw, 130px);
-  height: clamp(100px, 13vw, 170px);
-  border-radius: 10px 5px 10px 5px;
-  overflow: hidden;
-  border: none;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+  /* Square container — heart shape reads best in a 1:1 box. Sized generously
+   * so head-and-shoulders portraits fit inside the heart silhouette without
+   * the face getting clipped by the notch or the lobe edges. */
+  width: clamp(140px, 16vw, 220px);
+  height: clamp(140px, 16vw, 220px);
+  /* Heart silhouette — references the inline <clipPath id="gl-heart-clip">
+   * mounted by FullscreenDramaticHero. clipPathUnits=objectBoundingBox lets
+   * the path scale to whatever the clamp() resolves to. */
+  -webkit-clip-path: url(#gl-heart-clip);
+  clip-path: url(#gl-heart-clip);
+  /* clip-path clips box-shadow; use filter: drop-shadow so the soft halo
+   * traces the heart silhouette instead of an invisible rectangle. */
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
   opacity: 0;
   animation: luxeFadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform: translateY(20px);
@@ -85,6 +90,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Anchor the photo's upper region (25% from top) at the container's vertical
+   * center. Head-and-shoulders portraits typically have the face in the top
+   * third of the image; this lands the face in the heart's widest part
+   * instead of the narrower top region where lobes can clip it. */
+  object-position: center 25%;
   display: block;
   filter: contrast(1.05) brightness(0.95);
 }

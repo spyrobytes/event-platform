@@ -366,6 +366,11 @@ export type TemplateDefinition = {
   /** Optional tip shown to organizers about hero image selection */
   heroImageTip?: string;
 
+  /** Optional tip shown to organizers about couple-photo selection — surfaces
+   *  template-specific cropping or framing constraints (e.g. Grand Luxe's
+   *  heart silhouette clip). */
+  couplePhotoTip?: string;
+
   /**
    * Whether this template renders optional social links in its footer.
    * When true, the factory passes `config.socialLinks` through to the

@@ -21,7 +21,7 @@ export const GRAND_LUXE: TemplateDefinition = {
 
   heroRenderer: "fullscreen-dramatic",
   navRenderer: "floating-pill",
-  galleryRenderer: "cinematic-slider",
+  galleryRenderer: "scrapbook-collage",
   scheduleRenderer: "stacked-luxe",
   storyRenderer: "quote-led",
   rsvpRenderer: "high-contrast",
@@ -190,6 +190,9 @@ export const GRAND_LUXE: TemplateDefinition = {
 
   heroImageTip:
     "This template works best with a light or bright hero image — the dark cinematic overlay creates rich contrast. Very dark images may reduce text visibility.",
+
+  couplePhotoTip:
+    "Upload a head-and-shoulders portrait — Grand Luxe clips the photo to a heart silhouette, so wide framing or full-body shots may crop awkwardly.",
 
   supportsPrelude: true,
 };
