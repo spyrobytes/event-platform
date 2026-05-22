@@ -242,7 +242,7 @@ export default function InvitationPreviewPage() {
         case "SPLIT_REVEAL":
           return <SplitRevealCard data={invitationData} showReplay={true} />;
         case "SPLIT_REVEAL_V2":
-          return <SplitRevealCardV2 data={invitationData} showReplay={true} />;
+          return <SplitRevealCardV2 data={invitationData} themeId={themeId} showReplay={true} />;
         case "GOLDEN_CARD_REVEAL":
           return <GoldenCardReveal data={invitationData} showReplay={true} showHint={true} />;
         case "FLIP_FLAP_REVEAL":

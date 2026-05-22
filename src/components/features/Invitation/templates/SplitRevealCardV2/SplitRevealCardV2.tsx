@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { classifyInvitationDensity } from "@/lib/invitation-density";
 import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./SplitRevealCardV2.module.css";
 
@@ -23,6 +25,9 @@ export type SplitRevealCardV2Props = {
   showReplay?: boolean;
   showHint?: boolean;
   showConfetti?: boolean;
+  /** InvitationShell theme ID (ivory, blush, sage, midnight, champagne) — mapped to one of three SplitReveal palettes. */
+  themeId?: string;
+  /** Explicit theme override; takes precedence over themeId mapping. */
   theme?: SplitRevealV2Theme;
   className?: string;
 };
@@ -50,10 +55,6 @@ const CONFETTI_COLORS: Record<SplitRevealV2Theme, string[]> = {
 };
 
 const CONFETTI_SHAPES = ["■", "●", "◆", "★", "♥"];
-
-// Density thresholds — tuned for the 380x540 base card.
-const LONG_COUPLE_NAMES_THRESHOLD = 30;
-const LONG_FAMILY_NAME_THRESHOLD = 25;
 
 // =============================================================================
 // UTILITIES
@@ -115,6 +116,7 @@ export function SplitRevealCardV2({
   showReplay = true,
   showHint = true,
   showConfetti = true,
+  themeId,
   theme,
   className,
 }: SplitRevealCardV2Props) {
@@ -127,7 +129,7 @@ export function SplitRevealCardV2({
 
   const state: InvitationState = isOpen ? "open" : "idle";
 
-  const resolvedTheme = theme || mapTheme();
+  const resolvedTheme = theme || mapTheme(themeId);
 
   const parsedNames = parseCoupleNames(data.coupleNames);
   const person1 = data.person1Name || parsedNames.person1;
@@ -151,23 +153,19 @@ export function SplitRevealCardV2({
   const hasCeremony = !!data.ceremonyDate;
   const hasReception = !!data.receptionDate;
   const hasCeremonyReception = hasCeremony || hasReception;
-  const hasCeremonyAndReception = hasCeremony && hasReception;
 
-  // Density classifier — replaces the V1 "compact when both ceremony+reception"
-  // gate with signals that also catch traditional headers and long names.
-  const hasTraditionalHeader =
-    isTraditional && !!data.person1FamilyName && !!data.person2FamilyName;
-  const longCoupleNames = person1.length + person2.length > LONG_COUPLE_NAMES_THRESHOLD;
-  const longFamilyNames =
-    hasTraditionalHeader &&
-    ((data.person1FamilyName?.length ?? 0) > LONG_FAMILY_NAME_THRESHOLD ||
-      (data.person2FamilyName?.length ?? 0) > LONG_FAMILY_NAME_THRESHOLD);
-
-  const isDense =
-    hasCeremonyAndReception || hasTraditionalHeader || longCoupleNames || longFamilyNames;
-  const isExtremeDense =
-    (hasTraditionalHeader && hasCeremonyAndReception) ||
-    (longFamilyNames && hasCeremonyAndReception);
+  // Density classifier (shared with V1 + dashboard) — replaces V1's narrow
+  // ceremony+reception-only gate with signals that also catch traditional
+  // headers and long couple/family names.
+  const { isDense, isExtremeDense } = classifyInvitationDensity({
+    person1Name: person1,
+    person2Name: person2,
+    person1FamilyName: data.person1FamilyName,
+    person2FamilyName: data.person2FamilyName,
+    headerMode: data.headerMode,
+    hasCeremonyDate: hasCeremony,
+    hasReceptionDate: hasReception,
+  });
 
   // V2 differentiator: the cover is the photo. If no photo, behave like V1.
   const hasCover = !!data.heroImageUrl;
@@ -404,15 +402,18 @@ export function SplitRevealCardV2({
         </div>
 
         {/* Photo Cover — V2 differentiator. Sits above the seal; fades on open. */}
-        {hasCover && (
+        {hasCover && data.heroImageUrl && (
           <div
             className={cn(styles.cover, isOpen && styles.coverHidden)}
             aria-hidden="true"
           >
-            <img
-              src={data.heroImageUrl!}
+            <Image
+              src={data.heroImageUrl}
               alt=""
+              fill
+              sizes="(max-width: 480px) 110px, (min-width: 1025px) 150px, 130px"
               className={styles.coverImg}
+              priority
             />
             <div className={styles.coverRing} aria-hidden="true" />
           </div>
