@@ -8,18 +8,13 @@ import {
   greatVibes,
   dancingScript,
 } from "@/components/templates/shared/Prelude";
+import { DEFAULT_PRELUDE } from "@/schemas/event-page";
 import type { Prelude, PreludeFont } from "@/schemas/event-page";
 
 const MIN_BODY = 40;
 const MAX_BODY = 280;
 const MAX_HEADING = 40;
 const MAX_SIGNATURE = 60;
-
-const DEFAULT_PRELUDE: Prelude = {
-  enabled: false,
-  body: "",
-  font: "romantic-script",
-};
 
 type PreludeEditorProps = {
   prelude: Prelude | undefined;
@@ -65,6 +60,15 @@ export function PreludeEditor({ prelude, onChange }: PreludeEditorProps) {
   const enabled = current.enabled;
   const showMinWarning = enabled && bodyLength > 0 && bodyLength < MIN_BODY;
   const showEmptyError = enabled && bodyLength === 0;
+
+  let bodyHelperText: string;
+  if (showEmptyError) {
+    bodyHelperText = ` — a note is required when Prelude is enabled (minimum ${MIN_BODY})`;
+  } else if (showMinWarning) {
+    bodyHelperText = ` — minimum ${MIN_BODY} required (${MIN_BODY - bodyLength} more needed)`;
+  } else {
+    bodyHelperText = ` (minimum ${MIN_BODY})`;
+  }
 
   return (
     <div className="space-y-4">
@@ -124,12 +128,7 @@ export function PreludeEditor({ prelude, onChange }: PreludeEditorProps) {
               : "text-muted-foreground"
           )}
         >
-          {bodyLength}/{MAX_BODY}
-          {showEmptyError
-            ? ` — a note is required when Prelude is enabled (minimum ${MIN_BODY})`
-            : showMinWarning
-              ? ` — minimum ${MIN_BODY} required (${MIN_BODY - bodyLength} more needed)`
-              : ` (minimum ${MIN_BODY})`}
+          {bodyLength}/{MAX_BODY}{bodyHelperText}
         </p>
       </div>
 
@@ -167,10 +166,10 @@ export function PreludeEditor({ prelude, onChange }: PreludeEditorProps) {
                 disabled={!enabled}
                 aria-pressed={isSelected}
                 className={cn(
-                  "relative rounded-lg border-2 bg-surface p-4 text-left transition-all",
+                  "relative rounded-lg border-2 p-4 text-left transition-all",
                   isSelected
-                    ? "border-accent ring-2 ring-accent/20"
-                    : "border-muted hover:border-muted-foreground",
+                    ? "border-accent bg-accent/5"
+                    : "border-border hover:border-accent/50 bg-surface",
                   !enabled && "cursor-not-allowed opacity-50"
                 )}
               >

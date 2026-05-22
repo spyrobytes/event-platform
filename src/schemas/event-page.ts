@@ -124,6 +124,17 @@ export const preludeSchema = preludeBaseSchema.refine(
 export type Prelude = z.infer<typeof preludeSchema>;
 export type PreludeFont = z.infer<typeof preludeFontSchema>;
 
+/**
+ * Canonical default Prelude. Used by the page editor when initializing a
+ * freshly-toggled prelude and by PreludeEditor when no prelude is set yet.
+ * Keep in sync with the Zod defaults on `preludeBaseSchema` above.
+ */
+export const DEFAULT_PRELUDE: Prelude = {
+  enabled: false,
+  body: "",
+  font: "romantic-script",
+};
+
 // =============================================================================
 // SECTION VISIBILITY (Guest Portal)
 // =============================================================================

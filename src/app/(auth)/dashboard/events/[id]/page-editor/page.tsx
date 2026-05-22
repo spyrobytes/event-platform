@@ -54,6 +54,7 @@ import {
 } from "@/lib/section-nav-defaults";
 import { isAccessibleColor, PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
+import { DEFAULT_PRELUDE } from "@/schemas/event-page";
 import type {
   EventPageConfigV1,
   Section,
@@ -82,12 +83,6 @@ const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
   wedding_celebration: new Set(V3_WEDDING_SECTIONS),
   conference_v1: new Set(GENERIC_SECTIONS),
   party_v1: new Set(GENERIC_SECTIONS),
-};
-
-const DEFAULT_PRELUDE: Prelude = {
-  enabled: false,
-  body: "",
-  font: "romantic-script",
 };
 
 type PageConfigResponse = {
