@@ -21,7 +21,7 @@ export const GRAND_LUXE: TemplateDefinition = {
 
   heroRenderer: "fullscreen-dramatic",
   navRenderer: "floating-pill",
-  galleryRenderer: "cinematic-slider",
+  galleryRenderer: "scrapbook-collage",
   scheduleRenderer: "stacked-luxe",
   storyRenderer: "quote-led",
   rsvpRenderer: "high-contrast",

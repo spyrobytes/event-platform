@@ -5,8 +5,9 @@
  * inverted color scheme. Dramatic and premium.
  */
 
+import Link from "next/link";
 import type { RSVPRendererProps } from "../../types";
-import { RsvpCta } from "@/components/features/RSVPForm";
+import { Button } from "@/components/ui/button";
 
 export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
@@ -55,7 +56,27 @@ export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
           }}
         >
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--accent, #c5a55a), transparent)" }} />
-          <RsvpCta eventSlug={eventSlug} />
+          {/* Inlined Link+Button rather than using <RsvpCta> so we can override
+              the default variant's text-accent-foreground rule, which collapses
+              to 1.16 contrast against the dark cinematic background inside the
+              wedding template scope. Bg uses var(--accent) directly (the hex)
+              instead of bg-accent → rgb(var(--accent)), which fails because
+              wedding palettes emit --accent as a hex string. */}
+          <div className="text-center">
+            <Link href={`/e/${eventSlug}/rsvp`} className="inline-block">
+              <Button
+                type="button"
+                size="lg"
+                className="!text-[var(--text,#1e1b17)] hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: "var(--accent, #c5a55a)" }}
+              >
+                RSVP
+              </Button>
+            </Link>
+            <p className="mt-3 text-sm text-white/70">
+              Have your invitation code ready.
+            </p>
+          </div>
         </div>
       </div>
     </section>

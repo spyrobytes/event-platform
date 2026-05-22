@@ -23,7 +23,11 @@ export function FloatingPillNav({
   const [visible, setVisible] = useState(false);
 
   const handleScroll = useCallback(() => {
-    setVisible(window.scrollY > window.innerHeight * 0.7);
+    // Show the pill once the user has clearly begun scrolling past the hero.
+    // 0.2 ≈ 20% of viewport height — small enough that the dramatic hero
+    // doesn't keep users navless for a full viewport scroll, large enough
+    // that the pill doesn't pop on the first wheel-notch.
+    setVisible(window.scrollY > window.innerHeight * 0.2);
   }, []);
 
   useEffect(() => {
