@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
@@ -31,7 +32,9 @@ export type SplitRevealCardProps = {
   showHint?: boolean;
   /** Enable confetti on reveal */
   showConfetti?: boolean;
-  /** Override theme (defaults to mapping from InvitationShell theme) */
+  /** InvitationShell theme ID (ivory, blush, sage, midnight, champagne) — mapped to one of three SplitReveal palettes. */
+  themeId?: string;
+  /** Explicit theme override; takes precedence over themeId mapping. */
   theme?: SplitRevealTheme;
   /** Additional CSS classes */
   className?: string;
@@ -139,6 +142,7 @@ export function SplitRevealCard({
   showReplay = true,
   showHint = true,
   showConfetti = true,
+  themeId,
   theme,
   className,
 }: SplitRevealCardProps) {
@@ -153,8 +157,9 @@ export function SplitRevealCard({
   // Derive invitation state from isOpen
   const state: InvitationState = isOpen ? "open" : "idle";
 
-  // Resolve theme
-  const resolvedTheme = theme || mapTheme();
+  // Resolve theme — mapTheme translates InvitationShell themeId
+  // (ivory|blush|sage|midnight|champagne) into one of V1's three palettes.
+  const resolvedTheme = theme || mapTheme(themeId);
 
   // Use structured names if provided, otherwise parse from coupleNames
   const parsedNames = parseCoupleNames(data.coupleNames);
@@ -313,11 +318,16 @@ export function SplitRevealCard({
               isExtremeDense && styles.contentInnerExtreme
             )}
           >
-            {/* Couple Photo */}
+            {/* Couple Photo — actual rendered size is governed by .photo CSS
+                (90px base, 75px ≤480, 64px compact). width/height props are
+                aspect-ratio hints; className styles take precedence. */}
             {data.heroImageUrl && (
-              <img
+              <Image
                 src={data.heroImageUrl}
                 alt={`${person1} & ${person2}`}
+                width={90}
+                height={90}
+                sizes="90px"
                 className={styles.photo}
               />
             )}
