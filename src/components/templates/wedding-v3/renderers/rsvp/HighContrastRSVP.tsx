@@ -5,9 +5,8 @@
  * inverted color scheme. Dramatic and premium.
  */
 
-import Link from "next/link";
 import type { RSVPRendererProps } from "../../types";
-import { Button } from "@/components/ui/button";
+import { RsvpCta } from "@/components/features/RSVPForm";
 
 export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
   const heading = data.heading || "RSVP";
@@ -56,40 +55,18 @@ export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
           }}
         >
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--accent, #c5a55a), transparent)" }} />
-          {/* Inlined Link+Button rather than using <RsvpCta> so we can override
-              the default variant's text-accent-foreground rule, which collapses
-              to 1.16 contrast against the dark cinematic background inside the
-              wedding template scope. Bg uses var(--accent) directly (the hex)
-              instead of bg-accent → rgb(var(--accent)), which fails because
-              wedding palettes emit --accent as a hex string.
-
-              ⚠️ Duplicates RsvpCta defaults (URL pattern, label, help text).
-              Keep in sync if RsvpCta's API or defaults change — or, when this
-              scope rule lifts, extend RsvpCta with a buttonClassName/style
-              passthrough so this inline can be removed. */}
-          <div className="text-center">
-            {/* Public-portal CTA, not inline form. The /e/[slug]/rsvp route
-                gates submissions behind an invite code; an inline form on
-                this public page would let anyone POST an RSVP. See
-                docs/public-event-portal/rsvp-from-public-portal-Implementation-plan-v3.md §1, §11. */}
-            <Link href={`/e/${eventSlug}/rsvp`} className="inline-block">
-              <Button
-                type="button"
-                size="lg"
-                // `!` forces override of the default variant's
-                // text-accent-foreground. cn() may not reliably merge an
-                // arbitrary-value class against a named one, so the
-                // important keyword is belt-and-suspenders here.
-                className="!text-[var(--text,#1e1b17)] hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: "var(--accent, #c5a55a)" }}
-              >
-                RSVP
-              </Button>
-            </Link>
-            <p className="mt-3 text-sm text-white/70">
-              Have your invitation code ready.
-            </p>
-          </div>
+          {/* Override the default Button variant's foreground/background:
+           *  `text-accent-foreground` (near-black) on its own collapses to
+           *  ~1.16 contrast against this dark cinematic card. Bg uses
+           *  var(--accent) directly because `bg-accent` resolves via
+           *  `rgb(var(--accent))`, which fails inside wedding template
+           *  scope where --accent is emitted as a hex string. */}
+          <RsvpCta
+            eventSlug={eventSlug}
+            buttonClassName="text-[var(--text,#1e1b17)] hover:opacity-90 transition-opacity"
+            buttonStyle={{ backgroundColor: "var(--accent, #c5a55a)" }}
+            helpTextClassName="text-white/70"
+          />
         </div>
       </div>
     </section>

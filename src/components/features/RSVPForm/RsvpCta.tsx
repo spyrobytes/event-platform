@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Props = {
   eventSlug: string;
@@ -9,6 +11,16 @@ type Props = {
   variant?: "default" | "outline" | "secondary";
   /** Optional description shown beneath the button. */
   helpText?: string;
+  /** Extra classes appended to the underlying Button — lets renderers on
+   *  dark/cinematic backgrounds override the default variant's foreground. */
+  buttonClassName?: string;
+  /** Inline style applied to the underlying Button — useful for setting
+   *  background-color directly when `bg-accent` can't resolve cleanly
+   *  inside a template scope. */
+  buttonStyle?: CSSProperties;
+  /** Extra classes for the helpText paragraph — lets dark-backed renderers
+   *  bump the contrast (e.g. `text-white/70` instead of `text-muted-foreground`). */
+  helpTextClassName?: string;
 };
 
 /**
@@ -26,6 +38,9 @@ export function RsvpCta({
   label = "RSVP",
   variant = "default",
   helpText = "Have your invitation code ready.",
+  buttonClassName,
+  buttonStyle,
+  helpTextClassName,
 }: Props) {
   return (
     <div className="text-center">
@@ -33,12 +48,25 @@ export function RsvpCta({
           render it as a presentational element. The whole link is clickable
           and Tailwind classes from Button cascade through. */}
       <Link href={`/e/${eventSlug}/rsvp`} className="inline-block">
-        <Button type="button" size="lg" variant={variant}>
+        <Button
+          type="button"
+          size="lg"
+          variant={variant}
+          className={buttonClassName}
+          style={buttonStyle}
+        >
           {label}
         </Button>
       </Link>
       {helpText && (
-        <p className="mt-3 text-sm text-muted-foreground">{helpText}</p>
+        <p
+          className={cn(
+            "mt-3 text-sm",
+            helpTextClassName ?? "text-muted-foreground"
+          )}
+        >
+          {helpText}
+        </p>
       )}
     </div>
   );
