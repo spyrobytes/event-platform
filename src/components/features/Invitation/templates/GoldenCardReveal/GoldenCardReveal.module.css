@@ -58,6 +58,33 @@
   --duration: 1400ms;
   --easing: cubic-bezier(0.23, 1, 0.32, 1);
 
+  /* Content-stack tokens — overridden by viewport cascade (max-width: 425/375/340)
+     and by density modifiers (.compact / .extreme). Centralizing as vars lets a
+     single override re-scale the whole stack without per-rule re-declarations. */
+  --gcr-pad: 1.5rem;
+  --gcr-photo: 100px;
+  --gcr-photo-margin: 1rem;
+  --gcr-name-size: clamp(1.6rem, 6vw, 2.2rem);
+  --gcr-name-margin: 0.5rem;
+  --gcr-header-tracking: 4px;
+  --gcr-header-margin: 0.75rem;
+  --gcr-event-type-tracking: 3px;
+  --gcr-event-date-size: 1.1rem;
+  --gcr-event-time-size: 0.75rem;
+  --gcr-event-venue-size: 0.8rem;
+  --gcr-event-label-size: 0.55rem;
+  --gcr-event-block-date-size: 0.9rem;
+  --gcr-event-block-venue-size: 0.7rem;
+  --gcr-event-block-gap: 0.35rem;
+  --gcr-details-margin: 0.75rem;
+  --gcr-rsvp-pad: 0.6rem 1.5rem;
+  --gcr-rsvp-font: 0.7rem;
+  --gcr-rsvp-tracking: 2px;
+  --gcr-rsvp-margin: 1rem;
+  --gcr-seal-size: 80px;
+  --gcr-flourish-size: 50px;
+  --gcr-flourish-offset: 20px;
+
   position: absolute;
   inset: 0;
   cursor: pointer;
@@ -161,7 +188,7 @@
   transform: rotateY(180deg);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: var(--gcr-pad);
 }
 
 /* Subtle border on front */
@@ -179,8 +206,8 @@
    ============================================ */
 .cornerFlourish {
   position: absolute;
-  width: 50px;
-  height: 50px;
+  width: var(--gcr-flourish-size);
+  height: var(--gcr-flourish-size);
   opacity: 0.4;
   color: var(--gcr-card-border);
 }
@@ -192,25 +219,25 @@
 }
 
 .topLeft {
-  top: 20px;
-  left: 20px;
+  top: var(--gcr-flourish-offset);
+  left: var(--gcr-flourish-offset);
 }
 
 .topRight {
-  top: 20px;
-  right: 20px;
+  top: var(--gcr-flourish-offset);
+  right: var(--gcr-flourish-offset);
   transform: scaleX(-1);
 }
 
 .bottomLeft {
-  bottom: 20px;
-  left: 20px;
+  bottom: var(--gcr-flourish-offset);
+  left: var(--gcr-flourish-offset);
   transform: scaleY(-1);
 }
 
 .bottomRight {
-  bottom: 20px;
-  right: 20px;
+  bottom: var(--gcr-flourish-offset);
+  right: var(--gcr-flourish-offset);
   transform: scale(-1);
 }
 
@@ -226,8 +253,8 @@
 }
 
 .seal {
-  width: 80px;
-  height: 80px;
+  width: var(--gcr-seal-size);
+  height: var(--gcr-seal-size);
   border-radius: 50%;
   background: var(--gcr-seal-bg);
   --shadow-x: 0px;
@@ -336,8 +363,8 @@
    ============================================ */
 .sealHalf {
   position: absolute;
-  width: 80px;
-  height: 80px;
+  width: var(--gcr-seal-size);
+  height: var(--gcr-seal-size);
   border-radius: 50%;
   background: var(--gcr-seal-bg);
   box-shadow:
@@ -444,9 +471,10 @@
   font-size: 0.65rem;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 4px;
+  letter-spacing: var(--gcr-header-tracking);
   color: var(--gcr-text-accent);
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--gcr-header-margin);
+  max-width: 100%;
 }
 
 .traditionalHeader {
@@ -472,6 +500,9 @@
   font-weight: 400;
   color: var(--gcr-text-primary);
   line-height: 1.2;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .familyNames span {
@@ -488,29 +519,27 @@
   color: var(--gcr-text-accent);
 }
 
-/* Tighten card spacing when traditional header is present */
-.traditionalLayout .coupleNames {
-  font-size: clamp(1.3rem, 5vw, 1.8rem);
-  margin-bottom: 0.25rem;
-}
-
-.traditionalLayout .eventDetails {
-  margin: 0.35rem 0;
-}
-
-.traditionalLayout .invitationPhoto {
-  width: 80px;
-  height: 80px;
-  margin: 0.5rem 0;
+/* Tighten card spacing when traditional header is present.
+   Traditional layout treats the photo as decorative-only (smaller) and
+   tightens the names stack to keep room for the family lines above. */
+.traditionalLayout {
+  --gcr-name-size: clamp(1.3rem, 5vw, 1.8rem);
+  --gcr-name-margin: 0.25rem;
+  --gcr-photo: 80px;
+  --gcr-photo-margin: 0.5rem;
+  --gcr-details-margin: 0.35rem;
 }
 
 .coupleNames {
   font-family: var(--inv-font-script, "Cormorant Garamond", serif);
-  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  font-size: var(--gcr-name-size);
   font-weight: 400;
   color: var(--gcr-text-primary);
   line-height: 1.2;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 var(--gcr-name-margin) 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ampersand {
@@ -524,28 +553,30 @@
   font-size: 0.65rem;
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 3px;
+  letter-spacing: var(--gcr-event-type-tracking);
   color: var(--gcr-text-secondary);
   margin-top: 0.25rem;
+  max-width: 100%;
 }
 
 .invitationPhoto {
-  width: 100px;
-  height: 100px;
+  width: var(--gcr-photo);
+  height: var(--gcr-photo);
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid var(--gcr-card-border);
-  margin: 1rem 0;
+  margin: var(--gcr-photo-margin) 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .eventDetails {
-  margin: 0.75rem 0;
+  margin: var(--gcr-details-margin) 0;
+  max-width: 100%;
 }
 
 .eventBlock {
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: var(--gcr-event-block-gap);
 }
 
 .eventBlock:last-child {
@@ -553,7 +584,7 @@
 }
 
 .eventBlock .eventDate {
-  font-size: 0.9rem;
+  font-size: var(--gcr-event-block-date-size);
   margin: 0 0 0.1rem 0;
 }
 
@@ -562,12 +593,12 @@
 }
 
 .eventBlock .eventVenue {
-  font-size: 0.7rem;
+  font-size: var(--gcr-event-block-venue-size);
 }
 
 .eventLabel {
   font-family: var(--inv-font-body, sans-serif);
-  font-size: 0.55rem;
+  font-size: var(--gcr-event-label-size);
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -577,7 +608,7 @@
 
 .eventDate {
   font-family: var(--inv-font-script, "Cormorant Garamond", serif);
-  font-size: 1.1rem;
+  font-size: var(--gcr-event-date-size);
   font-weight: 600;
   color: var(--gcr-text-primary);
   margin: 0 0 0.25rem 0;
@@ -585,17 +616,20 @@
 
 .eventTime {
   font-family: var(--inv-font-body, sans-serif);
-  font-size: 0.75rem;
+  font-size: var(--gcr-event-time-size);
   color: var(--gcr-text-secondary);
   margin: 0 0 0.5rem 0;
 }
 
 .eventVenue {
   font-family: var(--inv-font-body, sans-serif);
-  font-size: 0.8rem;
+  font-size: var(--gcr-event-venue-size);
   color: var(--gcr-text-secondary);
   line-height: 1.5;
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .venueName {
@@ -605,17 +639,17 @@
 }
 
 .rsvpButton {
-  margin-top: 1rem;
-  padding: 0.6rem 1.5rem;
+  margin-top: var(--gcr-rsvp-margin);
+  padding: var(--gcr-rsvp-pad);
   background: var(--gcr-seal-bg);
   color: var(--gcr-seal-text);
   border: none;
   border-radius: 24px;
   font-family: var(--inv-font-body, "Montserrat", sans-serif);
-  font-size: 0.7rem;
+  font-size: var(--gcr-rsvp-font);
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: var(--gcr-rsvp-tracking);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -711,39 +745,6 @@
 }
 
 /* ============================================
-   REPLAY BUTTON
-   ============================================ */
-.replayButton {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--gcr-card-border);
-  border-radius: 20px;
-  font-family: var(--inv-font-body, sans-serif);
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--gcr-text-primary);
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.replayButton:hover {
-  background: rgba(255, 255, 255, 1);
-  transform: scale(1.05);
-}
-
-.replayButton svg {
-  width: 14px;
-  height: 14px;
-}
-
-/* ============================================
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
@@ -779,29 +780,251 @@
 }
 
 /* ============================================
-   RESPONSIVE
+   DENSITY MODIFIERS (content-driven, viewport-independent)
+
+   Applied via classifyInvitationDensity output:
+   - .compact     → isDense (ceremony+reception OR traditional OR long names)
+   - .extreme     → isExtremeDense (traditional + ceremony+reception, etc.)
+   - .shrinkPhoto → hasCeremonyAndReception (scoped photo shrink)
+   - .shrinkNames → hasLongCoupleNames (scoped names shrink)
+
+   Modifiers tighten the same vars the viewport cascade uses, so the two
+   compose: a 360px viewport rendering an extreme-dense card gets both
+   reductions stacked.
    ============================================ */
+.compact {
+  --gcr-pad: 1.1rem;
+  --gcr-header-tracking: 3px;
+  --gcr-header-margin: 0.4rem;
+  --gcr-name-size: clamp(1.4rem, 5.4vw, 1.85rem);
+  --gcr-name-margin: 0.25rem;
+  --gcr-photo-margin: 0.55rem;
+  --gcr-event-date-size: 0.95rem;
+  --gcr-event-time-size: 0.7rem;
+  --gcr-event-venue-size: 0.72rem;
+  --gcr-event-block-date-size: 0.8rem;
+  --gcr-event-block-venue-size: 0.65rem;
+  --gcr-event-block-gap: 0.2rem;
+  --gcr-details-margin: 0.4rem;
+  --gcr-rsvp-margin: 0.55rem;
+  --gcr-rsvp-pad: 0.5rem 1.3rem;
+  --gcr-rsvp-font: 0.65rem;
+}
+
+.extreme {
+  --gcr-pad: 0.95rem;
+  --gcr-header-tracking: 2.5px;
+  --gcr-header-margin: 0.3rem;
+  --gcr-name-size: clamp(1.25rem, 5vw, 1.6rem);
+  --gcr-name-margin: 0.2rem;
+  --gcr-event-date-size: 0.85rem;
+  --gcr-event-time-size: 0.65rem;
+  --gcr-event-venue-size: 0.68rem;
+  --gcr-event-block-date-size: 0.75rem;
+  --gcr-event-block-venue-size: 0.62rem;
+  --gcr-event-block-gap: 0.15rem;
+  --gcr-details-margin: 0.3rem;
+  --gcr-rsvp-margin: 0.4rem;
+  --gcr-rsvp-pad: 0.45rem 1.15rem;
+  --gcr-rsvp-font: 0.62rem;
+}
+
+/* Photo-shrink scoped to ceremony+reception. Mirrors SplitRevealCard's
+   approach — photo is essential to the design and must not shrink under
+   broader isDense conditions (traditional alone, long names alone). */
+.shrinkPhoto {
+  --gcr-photo: 72px;
+  --gcr-photo-margin: 0.5rem;
+}
+
+/* Names-shrink scoped to long couple names that don't otherwise trigger
+   extreme. Brings names down enough to fit without the more aggressive
+   extreme cascade. */
+.shrinkNames {
+  --gcr-name-size: 1.4rem;
+}
+
+/* ============================================
+   RESPONSIVE CASCADE
+
+   Viewport-driven token cascade. Each step overrides the same --gcr-*
+   vars the density modifiers above use, so the two compose at narrow
+   widths. At ≤375px and ≤340px the cascade additionally includes
+   worst-case `.card.modifier` rules — these set tighter values than the
+   plain `.card` override for crowded content configs (extreme density,
+   ceremony+reception photo shrink) that would otherwise still clip the
+   90vw card. See the comment on `.card.extreme` below for the cascade
+   mechanics.
+   ============================================ */
+/* Bumps stage width from 85vw → 90vw on phones for more visual presence,
+   but keeps the 380px cap so there's no discontinuity at the 480/481
+   boundary (without the cap, stage would jump from 380px → 432px crossing
+   into this @media). Below ~422px viewport, 90vw takes over. */
 @media (max-width: 480px) {
   .stage {
-    width: 90vw;
+    width: min(380px, 90vw);
   }
+}
 
-  .cardFront {
-    padding: 1rem;
-  }
-
-  .invitationPhoto {
-    width: 80px;
-    height: 80px;
-  }
-
-  .seal,
-  .sealHalf {
-    width: 70px;
-    height: 70px;
+@media (max-width: 425px) {
+  .card {
+    --gcr-pad: 1rem;
+    --gcr-photo: 72px;
+    --gcr-photo-margin: 0.6rem;
+    --gcr-name-size: clamp(1.5rem, 5.8vw, 1.85rem);
+    --gcr-name-margin: 0.35rem;
+    --gcr-header-tracking: 2.5px;
+    --gcr-header-margin: 0.5rem;
+    --gcr-event-type-tracking: 2.5px;
+    --gcr-event-date-size: 1rem;
+    --gcr-event-time-size: 0.72rem;
+    --gcr-event-venue-size: 0.72rem;
+    --gcr-event-block-date-size: 0.82rem;
+    --gcr-event-block-venue-size: 0.66rem;
+    --gcr-event-block-gap: 0.22rem;
+    --gcr-details-margin: 0.5rem;
+    --gcr-rsvp-margin: 0.6rem;
+    --gcr-rsvp-pad: 0.5rem 1.3rem;
+    --gcr-rsvp-font: 0.66rem;
+    --gcr-rsvp-tracking: 1.6px;
+    --gcr-seal-size: 64px;
+    --gcr-flourish-size: 40px;
+    --gcr-flourish-offset: 12px;
   }
 
   .sealMonogram {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .card {
+    --gcr-pad: 0.85rem;
+    --gcr-photo: 64px;
+    --gcr-photo-margin: 0.45rem;
+    --gcr-name-size: clamp(1.35rem, 5.4vw, 1.6rem);
+    --gcr-name-margin: 0.25rem;
+    --gcr-header-tracking: 2px;
+    --gcr-header-margin: 0.35rem;
+    --gcr-event-type-tracking: 2px;
+    --gcr-event-date-size: 0.9rem;
+    --gcr-event-time-size: 0.68rem;
+    --gcr-event-venue-size: 0.68rem;
+    --gcr-event-block-date-size: 0.75rem;
+    --gcr-event-block-venue-size: 0.62rem;
+    --gcr-event-block-gap: 0.18rem;
+    --gcr-details-margin: 0.4rem;
+    --gcr-rsvp-margin: 0.5rem;
+    --gcr-rsvp-pad: 0.45rem 1.2rem;
+    --gcr-rsvp-font: 0.62rem;
+    --gcr-rsvp-tracking: 1.4px;
+    --gcr-seal-size: 60px;
+    --gcr-flourish-size: 36px;
+    --gcr-flourish-offset: 10px;
+  }
+
+  /* Composition rules for extreme density + this viewport. The plain
+     `.extreme` selector (specificity 0,1,0) ties `.card` inside @media
+     (also 0,1,0); source order makes the @media rule win, but its
+     values are calibrated for typical content — not enough headroom
+     for traditional + ceremony+reception + photo. `.card.extreme`
+     (0,2,0) wins both via higher specificity and applies the tighter
+     worst-case values. Same reasoning for `.card.shrinkPhoto`. */
+  .card.extreme {
+    --gcr-pad: 0.8rem;
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.35rem;
+    --gcr-name-size: clamp(1.15rem, 4.9vw, 1.45rem);
+    --gcr-event-date-size: 0.78rem;
+    --gcr-event-time-size: 0.62rem;
+    --gcr-event-venue-size: 0.62rem;
+    --gcr-event-block-date-size: 0.72rem;
+    --gcr-event-block-venue-size: 0.6rem;
+    --gcr-event-block-gap: 0.12rem;
+    --gcr-rsvp-pad: 0.42rem 1.1rem;
+    --gcr-rsvp-font: 0.6rem;
+  }
+
+  .card.shrinkPhoto {
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.4rem;
+  }
+
+  .sealMonogram {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .card {
+    --gcr-pad: 0.7rem;
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.35rem;
+    --gcr-name-size: 1.3rem;
+    --gcr-name-margin: 0.2rem;
+    --gcr-header-tracking: 1.5px;
+    --gcr-header-margin: 0.25rem;
+    --gcr-event-type-tracking: 1.5px;
+    --gcr-event-date-size: 0.82rem;
+    --gcr-event-time-size: 0.62rem;
+    --gcr-event-venue-size: 0.62rem;
+    --gcr-event-block-date-size: 0.7rem;
+    --gcr-event-block-venue-size: 0.58rem;
+    --gcr-event-block-gap: 0.14rem;
+    --gcr-details-margin: 0.3rem;
+    --gcr-rsvp-margin: 0.4rem;
+    --gcr-rsvp-pad: 0.4rem 1rem;
+    --gcr-rsvp-font: 0.58rem;
+    --gcr-rsvp-tracking: 1.2px;
+    --gcr-seal-size: 54px;
+    --gcr-flourish-size: 30px;
+    --gcr-flourish-offset: 8px;
+  }
+
+  /* Composition rules for the worst-case content config at the narrowest
+     viewport (traditional + ceremony+reception + photo + RSVP at ≤340px).
+     `.card.extreme` (0,2,0) wins over both `.extreme` (0,1,0) and `.card`
+     inside @media (0,1,0) by specificity, regardless of source order —
+     applying the tightest values where they're actually needed. Same
+     reasoning for `.card.compact` and `.card.shrinkPhoto`. */
+  .card.extreme {
+    --gcr-pad: 0.6rem;
+    --gcr-header-tracking: 1.5px;
+    --gcr-header-margin: 0.2rem;
+    --gcr-name-size: clamp(1.05rem, 4.6vw, 1.35rem);
+    --gcr-name-margin: 0.15rem;
+    --gcr-photo: 50px;
+    --gcr-photo-margin: 0.25rem;
+    --gcr-event-date-size: 0.7rem;
+    --gcr-event-time-size: 0.58rem;
+    --gcr-event-venue-size: 0.58rem;
+    --gcr-event-block-date-size: 0.66rem;
+    --gcr-event-block-venue-size: 0.56rem;
+    --gcr-event-block-gap: 0.08rem;
+    --gcr-details-margin: 0.2rem;
+    --gcr-rsvp-margin: 0.3rem;
+    --gcr-rsvp-pad: 0.35rem 0.95rem;
+    --gcr-rsvp-font: 0.55rem;
+    --gcr-rsvp-tracking: 1px;
+  }
+
+  .card.compact {
+    --gcr-pad: 0.65rem;
+    --gcr-photo: 56px;
+    --gcr-name-size: clamp(1.15rem, 4.8vw, 1.4rem);
+    --gcr-event-block-gap: 0.12rem;
+    --gcr-rsvp-pad: 0.38rem 1rem;
+    --gcr-rsvp-font: 0.56rem;
+  }
+
+  /* shrinkPhoto on its own (long names alone wouldn't trigger; this
+     catches ceremony+reception without traditional header). */
+  .card.shrinkPhoto {
+    --gcr-photo: 50px;
+    --gcr-photo-margin: 0.3rem;
+  }
+
+  .sealMonogram {
+    font-size: 1.1rem;
   }
 }
