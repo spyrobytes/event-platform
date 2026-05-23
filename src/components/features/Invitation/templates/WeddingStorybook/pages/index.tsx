@@ -127,6 +127,7 @@ export function CoverLeft({ data, active }: PageProps) {
               fill
               style={{ objectFit: "cover" }}
               sizes="200px"
+              priority
               unoptimized={!isAllowedImageHost(data.couplePhotoUrl)}
             />
           )}
