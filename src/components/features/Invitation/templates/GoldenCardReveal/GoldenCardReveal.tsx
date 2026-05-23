@@ -632,6 +632,7 @@ export function GoldenCardReveal({
                       alt={`${coupleNames.partner1} and ${coupleNames.partner2}`}
                       width={100}
                       height={100}
+                      sizes="100px"
                       unoptimized={!isAllowedImageHost(data.heroImageUrl)}
                     />
                   )}
