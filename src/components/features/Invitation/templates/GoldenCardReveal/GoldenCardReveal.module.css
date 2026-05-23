@@ -847,10 +847,14 @@
 /* ============================================
    RESPONSIVE CASCADE
 
-   Each step overrides the same content-stack vars used by the density
-   modifiers, so the two compose (a narrow viewport rendering an extreme-
-   dense card gets both reductions). We only override vars here — not full
-   rules — to keep this block small and orthogonal to design changes.
+   Viewport-driven token cascade. Each step overrides the same --gcr-*
+   vars the density modifiers above use, so the two compose at narrow
+   widths. At ≤375px and ≤340px the cascade additionally includes
+   worst-case `.card.modifier` rules — these set tighter values than the
+   plain `.card` override for crowded content configs (extreme density,
+   ceremony+reception photo shrink) that would otherwise still clip the
+   90vw card. See the comment on `.card.extreme` below for the cascade
+   mechanics.
    ============================================ */
 @media (max-width: 480px) {
   .stage {
@@ -869,6 +873,7 @@
     --gcr-header-margin: 0.5rem;
     --gcr-event-type-tracking: 2.5px;
     --gcr-event-date-size: 1rem;
+    --gcr-event-time-size: 0.72rem;
     --gcr-event-venue-size: 0.72rem;
     --gcr-event-block-date-size: 0.82rem;
     --gcr-event-block-venue-size: 0.66rem;
@@ -914,6 +919,33 @@
     --gcr-flourish-offset: 10px;
   }
 
+  /* Composition rules for extreme density + this viewport. The plain
+     `.extreme` selector (specificity 0,1,0) ties `.card` inside @media
+     (also 0,1,0); source order makes the @media rule win, but its
+     values are calibrated for typical content — not enough headroom
+     for traditional + ceremony+reception + photo. `.card.extreme`
+     (0,2,0) wins both via higher specificity and applies the tighter
+     worst-case values. Same reasoning for `.card.shrinkPhoto`. */
+  .card.extreme {
+    --gcr-pad: 0.8rem;
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.35rem;
+    --gcr-name-size: clamp(1.15rem, 4.9vw, 1.45rem);
+    --gcr-event-date-size: 0.78rem;
+    --gcr-event-time-size: 0.62rem;
+    --gcr-event-venue-size: 0.62rem;
+    --gcr-event-block-date-size: 0.72rem;
+    --gcr-event-block-venue-size: 0.6rem;
+    --gcr-event-block-gap: 0.12rem;
+    --gcr-rsvp-pad: 0.42rem 1.1rem;
+    --gcr-rsvp-font: 0.6rem;
+  }
+
+  .card.shrinkPhoto {
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.4rem;
+  }
+
   .sealMonogram {
     font-size: 1.25rem;
   }
@@ -945,13 +977,12 @@
     --gcr-flourish-offset: 8px;
   }
 
-  /* Worst-case composition: extreme density at ≤340px viewport (traditional
-     header + ceremony + reception + photo + RSVP). The plain `.extreme`
-     rule defined earlier has specificity 0,2,0 and would otherwise win over
-     `.card` (0,1,0) inside this @media, restoring values that don't fit
-     the 90vw card. This rule matches the same 0,2,0 specificity but is
-     defined later in source, so it wins where both apply — shrinking the
-     photo and tightening the stack enough to keep RSVP visible. */
+  /* Composition rules for the worst-case content config at the narrowest
+     viewport (traditional + ceremony+reception + photo + RSVP at ≤340px).
+     `.card.extreme` (0,2,0) wins over both `.extreme` (0,1,0) and `.card`
+     inside @media (0,1,0) by specificity, regardless of source order —
+     applying the tightest values where they're actually needed. Same
+     reasoning for `.card.compact` and `.card.shrinkPhoto`. */
   .card.extreme {
     --gcr-pad: 0.6rem;
     --gcr-header-tracking: 1.5px;
@@ -973,8 +1004,6 @@
     --gcr-rsvp-tracking: 1px;
   }
 
-  /* Compact (non-extreme) at ≤340px also needs to compose past .compact's
-     0,2,0 specificity. Slightly less aggressive than .card.extreme. */
   .card.compact {
     --gcr-pad: 0.65rem;
     --gcr-photo: 56px;
@@ -984,9 +1013,8 @@
     --gcr-rsvp-font: 0.56rem;
   }
 
-  /* shrinkPhoto on its own (long names alone wouldn't trigger; this catches
-     ceremony+reception without traditional header) — photo shrinks to match
-     the .card.extreme value at this viewport. */
+  /* shrinkPhoto on its own (long names alone wouldn't trigger; this
+     catches ceremony+reception without traditional header). */
   .card.shrinkPhoto {
     --gcr-photo: 50px;
     --gcr-photo-margin: 0.3rem;
@@ -994,29 +1022,5 @@
 
   .sealMonogram {
     font-size: 1.1rem;
-  }
-}
-
-/* Same composition fix at ≤375px — modifier rules' 0,2,0 specificity would
-   otherwise shadow the viewport rule. Slightly less aggressive than ≤340. */
-@media (max-width: 375px) {
-  .card.extreme {
-    --gcr-pad: 0.8rem;
-    --gcr-photo: 56px;
-    --gcr-photo-margin: 0.35rem;
-    --gcr-name-size: clamp(1.15rem, 4.9vw, 1.45rem);
-    --gcr-event-date-size: 0.78rem;
-    --gcr-event-time-size: 0.62rem;
-    --gcr-event-venue-size: 0.62rem;
-    --gcr-event-block-date-size: 0.72rem;
-    --gcr-event-block-venue-size: 0.6rem;
-    --gcr-event-block-gap: 0.12rem;
-    --gcr-rsvp-pad: 0.42rem 1.1rem;
-    --gcr-rsvp-font: 0.6rem;
-  }
-
-  .card.shrinkPhoto {
-    --gcr-photo: 56px;
-    --gcr-photo-margin: 0.4rem;
   }
 }
