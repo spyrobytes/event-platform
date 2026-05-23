@@ -14,6 +14,7 @@ import Link from "next/link";
 import { cn, formatEventDateLong } from "@/lib/utils";
 import { getGoldenCardThemeTokens } from "@/lib/invitation-themes";
 import { isAllowedImageHost } from "@/lib/images/host";
+import { classifyInvitationDensity } from "@/lib/invitation-density";
 import { InvitationHeader } from "../../InvitationHeader";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { GoldenCardRevealProps, ConfettiShape, CardState } from "./types";
@@ -115,7 +116,6 @@ export function GoldenCardReveal({
   data,
   initialState,
   onStateChange,
-  showReplay = true,
   showHint = true,
   disableConfetti = false,
   disableTilt = false,
@@ -205,6 +205,21 @@ export function GoldenCardReveal({
   }, [data.eventDate, data.timezone]);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
+
+  // Density classifier — matches the SplitRevealCard pattern. Produces modifier
+  // signals so the content stack tightens for crowded layouts (traditional
+  // header, ceremony+reception, long couple/family names) independent of
+  // viewport width. CSS composes these with the responsive cascade.
+  const { isDense, isExtremeDense, hasCeremonyAndReception, hasLongCoupleNames } =
+    classifyInvitationDensity({
+      person1Name: coupleNames.partner1,
+      person2Name: coupleNames.partner2,
+      person1FamilyName: data.person1FamilyName,
+      person2FamilyName: data.person2FamilyName,
+      headerMode: data.headerMode,
+      hasCeremonyDate: !!data.ceremonyDate,
+      hasReceptionDate: !!data.receptionDate,
+    });
 
   /**
    * Create confetti burst animation
@@ -359,27 +374,6 @@ export function GoldenCardReveal({
   ]);
 
   /**
-   * Handle replay button click
-   */
-  const handleReplay = useCallback(() => {
-    if (cardState.isAnimating) return;
-
-    // [Fix #10] Immediate reset for reduced motion
-    if (prefersReducedMotion) {
-      setCardState({ isFlipped: false, isAnimating: false, isBreaking: false });
-      return;
-    }
-
-    // Close the card first
-    setCardState({ isFlipped: false, isAnimating: true, isBreaking: true });
-
-    // Reset seal break after flip completes
-    safeTimeout(() => {
-      setCardState({ isFlipped: false, isAnimating: false, isBreaking: false });
-    }, 1400);
-  }, [cardState.isAnimating, prefersReducedMotion, safeTimeout]);
-
-  /**
    * Handle keyboard navigation
    * [Fix #1] Updated type from HTMLButtonElement to HTMLDivElement
    */
@@ -509,27 +503,6 @@ export function GoldenCardReveal({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Replay button */}
-        {showReplay && cardState.isFlipped && !cardState.isAnimating && (
-          <button
-            type="button"
-            className={styles.replayButton}
-            onClick={handleReplay}
-            aria-label="Replay animation"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M1 4v6h6M23 20v-6h-6" />
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-            </svg>
-            Replay
-          </button>
-        )}
-
         {/* [Fix #1] Changed from <button> to <div role="button"> so that
             the nested <Link> (RSVP button) is valid HTML. Interactive content
             cannot be nested inside <button> per the HTML spec. */}
@@ -547,10 +520,10 @@ export function GoldenCardReveal({
           }
           aria-expanded={cardState.isFlipped}
         >
-          <span className={styles.cardWrapper}>
-            <span className={styles.cardContent}>
+          <div className={styles.cardWrapper}>
+            <div className={styles.cardContent}>
               {/* BACK FACE (Sealed) */}
-              <span className={cn(styles.cardFace, styles.cardBack)}>
+              <div className={cn(styles.cardFace, styles.cardBack)}>
                 {/* Corner flourishes */}
                 <span className={cn(styles.cornerFlourish, styles.topLeft)}>
                   <svg viewBox="0 0 50 50">
@@ -594,11 +567,23 @@ export function GoldenCardReveal({
 
                 {/* Glare effect */}
                 <span className={styles.cardGlare} />
-              </span>
+              </div>
 
-              {/* FRONT FACE (Revealed) */}
-              <span className={cn(styles.cardFace, styles.cardFront)}>
-                <span className={cn(styles.invitationContent, isTraditional && styles.traditionalLayout)}>
+              {/* FRONT FACE (Revealed) — block-level descendants (h1, p,
+                  div) require block-level wrappers, so this face uses <div>
+                  rather than <span>. The .cardFace class still controls
+                  positioning/flip behavior identically. */}
+              <div className={cn(styles.cardFace, styles.cardFront)}>
+                <div
+                  className={cn(
+                    styles.invitationContent,
+                    isTraditional && styles.traditionalLayout,
+                    isDense && styles.compact,
+                    isExtremeDense && styles.extreme,
+                    hasCeremonyAndReception && styles.shrinkPhoto,
+                    hasLongCoupleNames && styles.shrinkNames
+                  )}
+                >
                   <InvitationHeader
                     data={data}
                     inline
@@ -620,9 +605,7 @@ export function GoldenCardReveal({
                   </h1>
 
                   {eventTypeText && (
-                    <span className={styles.eventTypeText}>
-                      {eventTypeText}
-                    </span>
+                    <p className={styles.eventTypeText}>{eventTypeText}</p>
                   )}
 
                   {data.heroImageUrl && (
@@ -637,11 +620,11 @@ export function GoldenCardReveal({
                     />
                   )}
 
-                  <span className={styles.eventDetails}>
+                  <div className={styles.eventDetails}>
                     {hasCeremonyReception ? (
                       <>
                         {data.ceremonyDate && (
-                          <span className={styles.eventBlock}>
+                          <div className={styles.eventBlock}>
                             <p className={styles.eventLabel}>Ceremony</p>
                             <p className={styles.eventDate}>{data.ceremonyDate}</p>
                             <p className={styles.eventTime}>{data.ceremonyTime || data.eventTime}</p>
@@ -650,10 +633,10 @@ export function GoldenCardReveal({
                                 <strong className={styles.venueName}>{data.ceremonyVenue}</strong>
                               </p>
                             )}
-                          </span>
+                          </div>
                         )}
                         {data.receptionDate && (
-                          <span className={styles.eventBlock}>
+                          <div className={styles.eventBlock}>
                             <p className={styles.eventLabel}>Reception</p>
                             <p className={styles.eventDate}>{data.receptionDate}</p>
                             {data.receptionTime && <p className={styles.eventTime}>{data.receptionTime}</p>}
@@ -662,7 +645,7 @@ export function GoldenCardReveal({
                                 <strong className={styles.venueName}>{data.receptionVenue}</strong>
                               </p>
                             )}
-                          </span>
+                          </div>
                         )}
                       </>
                     ) : (
@@ -677,7 +660,7 @@ export function GoldenCardReveal({
                         </p>
                       </>
                     )}
-                  </span>
+                  </div>
 
                   {data.rsvpUrl && (
                     <Link
@@ -688,13 +671,13 @@ export function GoldenCardReveal({
                       RSVP
                     </Link>
                   )}
-                </span>
+                </div>
 
                 {/* Glare effect for front face */}
                 <span className={styles.cardGlare} />
-              </span>
-            </span>
-          </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

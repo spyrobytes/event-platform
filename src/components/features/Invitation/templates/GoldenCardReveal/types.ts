@@ -14,9 +14,6 @@ export type GoldenCardRevealProps = {
   /** Callback when state changes */
   onStateChange?: (state: InvitationState) => void;
 
-  /** Whether to show replay button when open */
-  showReplay?: boolean;
-
   /** Whether to show the "Tap to Open" hint */
   showHint?: boolean;
 

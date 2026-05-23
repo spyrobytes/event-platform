@@ -317,7 +317,6 @@ export default async function InvitationPage({ params }: PageProps) {
             <GoldenCardReveal
               data={invitationData}
               initialState={hasResponded ? "open" : undefined}
-              showReplay={!hasResponded}
               showHint={!hasResponded}
             />
           );
