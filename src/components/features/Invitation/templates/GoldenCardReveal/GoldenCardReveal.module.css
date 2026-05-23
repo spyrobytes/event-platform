@@ -856,9 +856,13 @@
    90vw card. See the comment on `.card.extreme` below for the cascade
    mechanics.
    ============================================ */
+/* Bumps stage width from 85vw → 90vw on phones for more visual presence,
+   but keeps the 380px cap so there's no discontinuity at the 480/481
+   boundary (without the cap, stage would jump from 380px → 432px crossing
+   into this @media). Below ~422px viewport, 90vw takes over. */
 @media (max-width: 480px) {
   .stage {
-    width: 90vw;
+    width: min(380px, 90vw);
   }
 }
 
