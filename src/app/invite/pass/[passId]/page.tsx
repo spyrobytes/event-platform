@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { SIDE_PILL_LABEL } from "@/lib/rsvp-side";
 import {
@@ -226,6 +227,7 @@ export default async function InvitePassPage({ params }: PageProps) {
             sizes="(max-width: 640px) 100vw, 384px"
             className="object-cover"
             priority
+            unoptimized={!isAllowedImageHost(backdropImageUrl)}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/30 to-black/85" />
           <div className="absolute inset-x-0 bottom-0 p-6 text-center">
@@ -246,6 +248,7 @@ export default async function InvitePassPage({ params }: PageProps) {
           sizes="100vw"
           className="object-cover -z-10"
           priority
+          unoptimized={!isAllowedImageHost(backdropImageUrl)}
         />
         <div className="absolute inset-0 bg-black/45 -z-10" />
         <div className="relative w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
