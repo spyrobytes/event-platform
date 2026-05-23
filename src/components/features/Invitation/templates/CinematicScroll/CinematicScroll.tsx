@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { InvitationHeader } from "../../InvitationHeader";
 import styles from "./CinematicScroll.module.css";
 
@@ -241,14 +243,21 @@ export function CinematicScroll({
           )}
           <div className={styles.divider} aria-hidden="true" />
 
-          {/* Hero image */}
+          {/* Hero image — width/height are placeholder aspect-ratio hints;
+              `style={{ height: 'auto' }}` lets the actual photo's intrinsic
+              ratio drive the rendered height once loaded. */}
           {data.heroImageUrl && (
             <div className={styles.heroImageContainer}>
-              <img
+              <Image
                 src={data.heroImageUrl}
                 alt=""
+                width={1200}
+                height={1200}
+                sizes="(max-width: 480px) 100vw, 400px"
                 className={styles.heroImage}
-                loading="eager"
+                style={{ width: "100%", height: "auto" }}
+                priority
+                unoptimized={!isAllowedImageHost(data.heroImageUrl)}
               />
             </div>
           )}
