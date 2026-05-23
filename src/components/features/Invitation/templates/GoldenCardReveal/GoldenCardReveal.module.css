@@ -945,7 +945,78 @@
     --gcr-flourish-offset: 8px;
   }
 
+  /* Worst-case composition: extreme density at ≤340px viewport (traditional
+     header + ceremony + reception + photo + RSVP). The plain `.extreme`
+     rule defined earlier has specificity 0,2,0 and would otherwise win over
+     `.card` (0,1,0) inside this @media, restoring values that don't fit
+     the 90vw card. This rule matches the same 0,2,0 specificity but is
+     defined later in source, so it wins where both apply — shrinking the
+     photo and tightening the stack enough to keep RSVP visible. */
+  .card.extreme {
+    --gcr-pad: 0.6rem;
+    --gcr-header-tracking: 1.5px;
+    --gcr-header-margin: 0.2rem;
+    --gcr-name-size: clamp(1.05rem, 4.6vw, 1.35rem);
+    --gcr-name-margin: 0.15rem;
+    --gcr-photo: 50px;
+    --gcr-photo-margin: 0.25rem;
+    --gcr-event-date-size: 0.7rem;
+    --gcr-event-time-size: 0.58rem;
+    --gcr-event-venue-size: 0.58rem;
+    --gcr-event-block-date-size: 0.66rem;
+    --gcr-event-block-venue-size: 0.56rem;
+    --gcr-event-block-gap: 0.08rem;
+    --gcr-details-margin: 0.2rem;
+    --gcr-rsvp-margin: 0.3rem;
+    --gcr-rsvp-pad: 0.35rem 0.95rem;
+    --gcr-rsvp-font: 0.55rem;
+    --gcr-rsvp-tracking: 1px;
+  }
+
+  /* Compact (non-extreme) at ≤340px also needs to compose past .compact's
+     0,2,0 specificity. Slightly less aggressive than .card.extreme. */
+  .card.compact {
+    --gcr-pad: 0.65rem;
+    --gcr-photo: 56px;
+    --gcr-name-size: clamp(1.15rem, 4.8vw, 1.4rem);
+    --gcr-event-block-gap: 0.12rem;
+    --gcr-rsvp-pad: 0.38rem 1rem;
+    --gcr-rsvp-font: 0.56rem;
+  }
+
+  /* shrinkPhoto on its own (long names alone wouldn't trigger; this catches
+     ceremony+reception without traditional header) — photo shrinks to match
+     the .card.extreme value at this viewport. */
+  .card.shrinkPhoto {
+    --gcr-photo: 50px;
+    --gcr-photo-margin: 0.3rem;
+  }
+
   .sealMonogram {
     font-size: 1.1rem;
+  }
+}
+
+/* Same composition fix at ≤375px — modifier rules' 0,2,0 specificity would
+   otherwise shadow the viewport rule. Slightly less aggressive than ≤340. */
+@media (max-width: 375px) {
+  .card.extreme {
+    --gcr-pad: 0.8rem;
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.35rem;
+    --gcr-name-size: clamp(1.15rem, 4.9vw, 1.45rem);
+    --gcr-event-date-size: 0.78rem;
+    --gcr-event-time-size: 0.62rem;
+    --gcr-event-venue-size: 0.62rem;
+    --gcr-event-block-date-size: 0.72rem;
+    --gcr-event-block-venue-size: 0.6rem;
+    --gcr-event-block-gap: 0.12rem;
+    --gcr-rsvp-pad: 0.42rem 1.1rem;
+    --gcr-rsvp-font: 0.6rem;
+  }
+
+  .card.shrinkPhoto {
+    --gcr-photo: 56px;
+    --gcr-photo-margin: 0.4rem;
   }
 }

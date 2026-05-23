@@ -469,11 +469,23 @@ export function GoldenCardReveal({
     return tokenVars as React.CSSProperties;
   }, [themeTokens]);
 
-  // Card state classes
+  // Card state + density modifier classes. Density modifiers live on .card
+  // (rather than .invitationContent) so their CSS-var overrides cascade to
+  // BOTH .cardFront (which consumes --gcr-pad) AND .invitationContent's
+  // children (which consume --gcr-photo, --gcr-name-size, etc.) at the same
+  // ancestor level as the @media viewport rules — otherwise the closer
+  // ancestor (.invitationContent) would shadow the viewport-narrow values
+  // set on .card and the photo/name/event-block sizes wouldn't shrink at
+  // ≤340px for extreme-density content.
   const cardClasses = cn(
     styles.card,
     cardState.isFlipped && styles.flipped,
-    cardState.isBreaking && styles.breaking
+    cardState.isBreaking && styles.breaking,
+    isTraditional && styles.traditionalLayout,
+    isDense && styles.compact,
+    isExtremeDense && styles.extreme,
+    hasCeremonyAndReception && styles.shrinkPhoto,
+    hasLongCoupleNames && styles.shrinkNames
   );
 
   return (
@@ -574,16 +586,7 @@ export function GoldenCardReveal({
                   rather than <span>. The .cardFace class still controls
                   positioning/flip behavior identically. */}
               <div className={cn(styles.cardFace, styles.cardFront)}>
-                <div
-                  className={cn(
-                    styles.invitationContent,
-                    isTraditional && styles.traditionalLayout,
-                    isDense && styles.compact,
-                    isExtremeDense && styles.extreme,
-                    hasCeremonyAndReception && styles.shrinkPhoto,
-                    hasLongCoupleNames && styles.shrinkNames
-                  )}
-                >
+                <div className={styles.invitationContent}>
                   <InvitationHeader
                     data={data}
                     inline
