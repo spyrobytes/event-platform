@@ -12,6 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn, formatEventDateLong } from "@/lib/utils";
 import { getFlipFlapThemeTokens } from "@/lib/invitation-themes";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { FlipFlapRevealProps, ConfettiPiece, CardState } from "./types";
 import { InvitationHeader } from "../../InvitationHeader";
@@ -543,7 +544,7 @@ export function FlipFlapReveal({
                     sizes="(max-width: 400px) 260px, 292px"
                     style={{ objectFit: "cover" }}
                     priority
-                    unoptimized={photoUrl.startsWith("http")}
+                    unoptimized={!isAllowedImageHost(photoUrl)}
                   />
                 )}
                 {/* Names overlay on photo */}

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { isAllowedImageHost } from "@/lib/images/host";
 import type { StorybookData } from "../types";
 import { ScatterText } from "../ScatterText";
 
@@ -126,6 +127,7 @@ export function CoverLeft({ data, active }: PageProps) {
               fill
               style={{ objectFit: "cover" }}
               sizes="200px"
+              unoptimized={!isAllowedImageHost(data.couplePhotoUrl)}
             />
           )}
 
@@ -913,6 +915,7 @@ export function DetailsLeft({ data, active }: PageProps) {
             fill
             style={{ objectFit: "cover" }}
             sizes="650px"
+            unoptimized={!isAllowedImageHost(data.venuePhotoUrl)}
           />
         )}
       </div>
