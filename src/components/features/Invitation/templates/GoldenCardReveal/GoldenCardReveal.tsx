@@ -13,6 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn, formatEventDateLong } from "@/lib/utils";
 import { getGoldenCardThemeTokens } from "@/lib/invitation-themes";
+import { isAllowedImageHost } from "@/lib/images/host";
 import { InvitationHeader } from "../../InvitationHeader";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { GoldenCardRevealProps, ConfettiShape, CardState } from "./types";
@@ -631,7 +632,8 @@ export function GoldenCardReveal({
                       alt={`${coupleNames.partner1} and ${coupleNames.partner2}`}
                       width={100}
                       height={100}
-                      unoptimized
+                      sizes="100px"
+                      unoptimized={!isAllowedImageHost(data.heroImageUrl)}
                     />
                   )}
 
