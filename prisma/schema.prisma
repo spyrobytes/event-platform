@@ -558,13 +558,16 @@ model EventGallery {
   coverMediaAssetId  String? @map("cover_media_asset_id")
   // Soft reference to an EventGalleryItem.id (no FK to avoid circular FK
   // with event_gallery_items). Resolver in src/lib/gallery-cover.ts falls
-  // back gracefully if the referenced item is deleted.
+  // back gracefully if the referenced item is deleted. The item-delete
+  // handler in PR #7 also nulls this column to keep covers consistent.
   coverGalleryItemId String? @map("cover_gallery_item_id")
 
   sourceType GallerySourceType @map("source_type")
-  // Provider-specific reference data. Shape validated at app layer via Zod
-  // discriminated union (src/schemas/gallery.ts). Examples:
-  //   EXTERNAL_LINK: { url, ctaLabel?, providerHint? }
+  // Provider-specific reference data. NOT enforced at the DB layer because
+  // the shape differs per provider; validation lives at the app boundary
+  // via the Zod discriminated union in src/schemas/gallery.ts. Any code
+  // path that mutates this column must go through that schema. Examples:
+  //   EXTERNAL_LINK: { url, ctaLabel?, providerHint? }   (url required)
   //   GOOGLE_DRIVE:  { folderId?, pickedAt }
   sourceRef  Json?             @map("source_ref")
 
@@ -613,7 +616,9 @@ model EventGalleryItem {
 
   sortOrder Int     @default(0) @map("sort_order")
   isHidden  Boolean @default(false) @map("is_hidden")
-  alt       String?
+  // Always-present alt for a11y; matches MediaAsset.alt. Empty string is
+  // valid for decorative images. Workers fill from EXIF/filename when blank.
+  alt       String  @default("")
   caption   String?
 
   // Worker fan-out state. `lockedAt` is the stale-recovery sentinel — items
@@ -633,7 +638,13 @@ model EventGalleryItem {
 
   @@index([galleryId])
   @@index([status])
-  // Worker claim query: WHERE status='PENDING' OR (status='IMPORTING' AND locked_at < ...)
+  // Worker claim query: WHERE status='PENDING' OR (status='IMPORTING' AND
+  // locked_at < ...). The composite (status, locked_at) index serves this
+  // well at MVP scale (≤50 items per gallery). If batch sizes grow, switch
+  // to a partial index — Prisma can't express it, so it would be added via
+  // raw SQL (see the partial-unique-index pattern on `invites`):
+  //   CREATE INDEX ... ON event_gallery_items (locked_at)
+  //     WHERE status IN ('PENDING', 'IMPORTING');
   @@index([status, lockedAt])
   @@index([galleryId, sortOrder])
   @@map("event_gallery_items")
@@ -641,6 +652,10 @@ model EventGalleryItem {
 
 // State machine for a single import session. Multiple jobs can exist per
 // gallery over time (re-imports, retries). `initiatedBy` is for audit.
+// `eventId` is denormalized from `gallery.eventId` so admin/support
+// queries can filter by event without a join (see plan §17). Drift is
+// impossible: galleries cascade-delete with their event, and a gallery
+// can't be moved between events.
 model GalleryImportJob {
   id          String @id @default(cuid())
   eventId     String @map("event_id")
