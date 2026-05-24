@@ -19,7 +19,7 @@
    ============================================================================= */
 
 .wrapper {
-  /* Ivory & Gold (default) */
+  /* Ivory & Gold (default) — matches "ivory" theme in src/lib/invitation-themes.ts */
   --card-bg: #f7f4ef;
   --card-bg-deep: #ebe6db;
   --card-doors: #faf8f3;
@@ -35,6 +35,13 @@
   --card-seal-shadow: rgba(166, 139, 61, 0.4);
   --card-pattern-opacity: 0.04;
   --card-shimmer: rgba(201, 169, 97, 0.12);
+
+  /* RSVP button — split out so each palette can pair button bg with a
+     text color that meets WCAG AA. See V1 module for full rationale. */
+  --card-button-bg: var(--card-gold);
+  --card-button-text: #3d3428;
+  --card-button-hover-bg: var(--card-gold-dark);
+  --card-button-hover-text: #fffdf8;
 
   --door-duration: 1s;
   --door-timing: cubic-bezier(0.23, 1, 0.32, 1);
@@ -52,6 +59,7 @@
   background: var(--card-bg);
 }
 
+/* Blush & Rose — matches "blush" theme in src/lib/invitation-themes.ts */
 .wrapper[data-theme="blush"] {
   --card-bg: #fdf5f3;
   --card-bg-deep: #f5e8e4;
@@ -66,23 +74,84 @@
   --card-cream: #fffcfb;
   --card-seal: linear-gradient(145deg, #e8bfbf 0%, #b78787 50%, #d4a5a5 100%);
   --card-seal-shadow: rgba(183, 135, 135, 0.4);
+
+  --card-button-bg: var(--card-gold);
+  --card-button-text: #4a3535;
+  --card-button-hover-bg: var(--card-gold-dark);
+  --card-button-hover-text: #fffcfb;
 }
 
-.wrapper[data-theme="navy"] {
-  --card-bg: #1a2332;
-  --card-bg-deep: #141b27;
-  --card-doors: #232f42;
-  --card-doors-shadow: rgba(0, 0, 0, 0.3);
-  --card-gold: #c0c7d1;
-  --card-gold-dark: #8a939f;
-  --card-gold-light: #e8ebf0;
-  --card-text: #f0f2f5;
-  --card-text-light: #a8b2c1;
-  --card-accent: #7a8699;
-  --card-cream: #2a3848;
-  --card-seal: linear-gradient(145deg, #d4d9e1 0%, #8a939f 50%, #c0c7d1 100%);
-  --card-seal-shadow: rgba(138, 147, 159, 0.4);
+/* Sage & Garden — matches "sage" theme in src/lib/invitation-themes.ts.
+   Light, soft botanical palette. Sage-green accents on near-white paper. */
+.wrapper[data-theme="sage"] {
+  --card-bg: #f5f8f5;
+  --card-bg-deep: #dce5dc;
+  --card-doors: #fafcfa;
+  --card-doors-shadow: rgba(139, 155, 139, 0.12);
+  --card-gold: #8b9b8b;
+  --card-gold-dark: #6a7a6a;
+  --card-gold-light: #c5d2c5;
+  --card-text: #3a4a3a;
+  --card-text-light: #6a7a6a;
+  --card-accent: #6a7a6a;
+  --card-cream: #fafcfa;
+  --card-seal: linear-gradient(145deg, #b5c5b5 0%, #6a7a6a 50%, #8b9b8b 100%);
+  --card-seal-shadow: rgba(106, 122, 106, 0.4);
+  --card-pattern-opacity: 0.04;
+  --card-shimmer: rgba(139, 155, 139, 0.12);
+
+  --card-button-bg: var(--card-gold);
+  --card-button-text: #2a3a2a;
+  --card-button-hover-bg: var(--card-gold-dark);
+  --card-button-hover-text: #ffffff;
+}
+
+/* Midnight & Gold — matches "midnight" theme in src/lib/invitation-themes.ts.
+   Dark navy paper with gold accents (replaces legacy navy-silver palette). */
+.wrapper[data-theme="midnight"] {
+  --card-bg: #1a1a2e;
+  --card-bg-deep: #14142a;
+  --card-doors: #252540;
+  --card-doors-shadow: rgba(0, 0, 0, 0.4);
+  --card-gold: #ffd700;
+  --card-gold-dark: #e6c200;
+  --card-gold-light: #ffe55c;
+  --card-text: #eeeef0;
+  --card-text-light: #b8b8c0;
+  --card-accent: #c9a961;
+  --card-cream: #2a2a40;
+  --card-seal: linear-gradient(145deg, #ffe55c 0%, #e6c200 50%, #ffd700 100%);
+  --card-seal-shadow: rgba(255, 215, 0, 0.4);
   --card-pattern-opacity: 0.06;
+  --card-shimmer: rgba(255, 215, 0, 0.15);
+
+  --card-button-bg: var(--card-gold);
+  --card-button-text: #1a1a2e;
+  --card-button-hover-bg: var(--card-gold-dark);
+  --card-button-hover-text: #1a1a2e;
+}
+
+/* Champagne — matches "champagne" theme in src/lib/invitation-themes.ts.
+   Warmer-toned paper than ivory, slightly muted gold for a softer feel. */
+.wrapper[data-theme="champagne"] {
+  --card-bg: #f7f3e9;
+  --card-bg-deep: #e8dfc8;
+  --card-doors: #faf6ed;
+  --card-doors-shadow: rgba(184, 150, 81, 0.15);
+  --card-gold: #c9a961;
+  --card-gold-dark: #b89651;
+  --card-gold-light: #e5c880;
+  --card-text: #4a3f35;
+  --card-text-light: #7a6f65;
+  --card-accent: #7a6f65;
+  --card-cream: #fffdf7;
+  --card-seal: linear-gradient(145deg, #e5c880 0%, #b89651 50%, #c9a961 100%);
+  --card-seal-shadow: rgba(184, 150, 81, 0.4);
+
+  --card-button-bg: var(--card-gold);
+  --card-button-text: #4a3f35;
+  --card-button-hover-bg: var(--card-gold-dark);
+  --card-button-hover-text: #fffdf7;
 }
 
 /* =============================================================================
@@ -510,12 +579,14 @@
   max-width: 280px;
 }
 
+/* RSVP Button — bg/text driven by per-palette --card-button-* tokens so
+   text contrast meets WCAG AA on every palette. See theme blocks above. */
 .rsvpButton {
   display: inline-block;
   margin-top: 0.75rem;
   padding: 0.55rem 1.5rem;
-  background: var(--card-gold);
-  color: white;
+  background: var(--card-button-bg);
+  color: var(--card-button-text);
   text-decoration: none;
   border: none;
   border-radius: 2px;
@@ -530,13 +601,14 @@
 }
 
 .rsvpButton:hover {
-  background: var(--card-gold-dark);
+  background: var(--card-button-hover-bg);
+  color: var(--card-button-hover-text);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px var(--card-seal-shadow);
 }
 
 .rsvpButton:focus-visible {
-  outline: 2px solid var(--card-gold);
+  outline: 2px solid var(--card-button-bg);
   outline-offset: 2px;
 }
 
