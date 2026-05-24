@@ -99,7 +99,10 @@ export function GalleryExternalLinkForm({
       className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
-        void submit(false);
+        // For a published gallery the "Save as draft" submit button is hidden;
+        // Enter-key (implicit form submission) needs to take the same code
+        // path as the visible primary button so the spinner state is correct.
+        void submit(existing?.status === "PUBLISHED");
       }}
     >
       <div className="space-y-2">
