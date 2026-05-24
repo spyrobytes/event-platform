@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { isAllowedImageHost } from "@/lib/images/host";
 
 /**
  * Polished landing card for an external-link gallery, rendered on the
@@ -61,6 +62,7 @@ export function GalleryExternalLinkLanding({
                 sizes="(max-width: 768px) 100vw, 768px"
                 className="object-cover"
                 priority
+                unoptimized={!isAllowedImageHost(coverUrl)}
               />
             </div>
           )}

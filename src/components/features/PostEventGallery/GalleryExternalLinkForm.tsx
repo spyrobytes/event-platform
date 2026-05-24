@@ -164,16 +164,29 @@ export function GalleryExternalLinkForm({
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" variant="outline" disabled={submitting !== null}>
-          {submitting === "draft" ? "Saving…" : "Save as draft"}
-        </Button>
+        {/* "Save as draft" is only meaningful when the gallery isn't already
+            published — otherwise this button would just save the title/URL
+            without changing visibility, which contradicts its label. For a
+            published gallery, the explicit Unpublish action handles state
+            transition; this form's primary button just saves changes. */}
+        {existing?.status !== "PUBLISHED" && (
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={submitting !== null}
+          >
+            {submitting === "draft" ? "Saving…" : "Save as draft"}
+          </Button>
+        )}
         <Button
           type="button"
           disabled={submitting !== null || !url.trim()}
           onClick={() => void submit(true)}
         >
           {submitting === "publish"
-            ? "Publishing…"
+            ? existing?.status === "PUBLISHED"
+              ? "Saving…"
+              : "Publishing…"
             : existing?.status === "PUBLISHED"
               ? "Save changes"
               : "Save & publish"}

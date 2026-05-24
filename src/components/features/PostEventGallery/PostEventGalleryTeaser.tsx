@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { isAllowedImageHost } from "@/lib/images/host";
 
 /**
  * Discovery block rendered at the bottom of the public event page when a
@@ -45,6 +46,7 @@ export function PostEventGalleryTeaser({
                 fill
                 sizes="(max-width: 768px) 100vw, 40vw"
                 className="object-cover transition group-hover:scale-[1.02]"
+                unoptimized={!isAllowedImageHost(coverUrl)}
               />
             </div>
           )}

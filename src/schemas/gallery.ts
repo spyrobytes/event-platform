@@ -1,6 +1,31 @@
 import { z } from "zod";
 
 /**
+ * URL validator that accepts only http:// and https:// schemes.
+ *
+ * `z.string().url()` uses the URL constructor, which happily parses
+ * `javascript:` and `data:` URIs — letting one of those reach a public
+ * `<a href>` is a stored-XSS vector. This guard is the single chokepoint
+ * for any externally-renderable URL stored on a gallery.
+ */
+const httpUrl = (max: number) =>
+  z
+    .string()
+    .url("Must be a valid URL")
+    .max(max)
+    .refine(
+      (v) => {
+        try {
+          const scheme = new URL(v).protocol;
+          return scheme === "http:" || scheme === "https:";
+        } catch {
+          return false;
+        }
+      },
+      { message: "URL must use http or https" },
+    );
+
+/**
  * Provider-specific reference payloads stored in `event_galleries.source_ref`.
  *
  * The DB column is untyped JSON; this discriminated union is the only place
@@ -9,7 +34,7 @@ import { z } from "zod";
  */
 export const externalLinkSourceRefSchema = z.object({
   kind: z.literal("EXTERNAL_LINK"),
-  url: z.string().url("Must be a valid URL").max(2048),
+  url: httpUrl(2048),
   ctaLabel: z.string().trim().min(1).max(60).optional(),
   /** Free-form provider hint (e.g. "Pixieset"). Not used for trust decisions. */
   providerHint: z.string().trim().max(60).optional(),
@@ -43,7 +68,7 @@ export type ExternalLinkSourceRef = z.infer<typeof externalLinkSourceRefSchema>;
 export const upsertExternalLinkInputSchema = z.object({
   title: z.string().trim().max(120).optional(),
   description: z.string().trim().max(1000).optional(),
-  url: z.string().url("Must be a valid URL").max(2048),
+  url: httpUrl(2048),
   ctaLabel: z.string().trim().min(1).max(60).optional(),
   /** MediaAsset.id to use as the cover. Cleared by passing null explicitly. */
   coverMediaAssetId: z.string().cuid().nullable().optional(),

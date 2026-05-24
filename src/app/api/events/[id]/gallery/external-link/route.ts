@@ -9,7 +9,10 @@ import {
 } from "@/lib/api-response";
 import { revalidateEventAndGallery } from "@/lib/revalidation";
 import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
-import { upsertExternalLinkInputSchema } from "@/schemas/gallery";
+import {
+  upsertExternalLinkInputSchema,
+  externalLinkSourceRefSchema,
+} from "@/schemas/gallery";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -52,11 +55,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       select: { id: true, status: true },
     });
 
-    const sourceRef = {
-      kind: "EXTERNAL_LINK" as const,
+    // Re-validate through the discriminated union before writing to the JSON
+    // column. The input is already validated, but parsing here is the
+    // single chokepoint that enforces the schema-comment contract: "any code
+    // path that mutates source_ref MUST validate through gallerySourceRefSchema".
+    const sourceRef = externalLinkSourceRefSchema.parse({
+      kind: "EXTERNAL_LINK",
       url: input.url,
       ...(input.ctaLabel ? { ctaLabel: input.ctaLabel } : {}),
-    };
+    });
     const targetStatus = input.publish
       ? "PUBLISHED"
       : existing?.status === "PUBLISHED"
