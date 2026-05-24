@@ -85,6 +85,11 @@ export const serverEnvSchema = z.object({
   GEOCODER_PROVIDER: z.enum(["locationiq", "none"]).default("none"),
   LOCATIONIQ_API_KEY: z.string().optional(),
 
+  // Post-event gallery feature flag. Server-side gate for API routes and
+  // server pages. Helper in src/lib/gallery-feature-flag.ts treats `"true"`
+  // as on; any other value (including empty) means off.
+  POST_EVENT_GALLERY_ENABLED: z.string().optional(),
+
   // Local development (optional)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().optional(),
@@ -116,6 +121,11 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
     .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+
+  // Post-event gallery client-side flag. Gates dashboard UI affordances
+  // (the Gallery button on the event-detail page). Server routes always
+  // re-check via POST_EVENT_GALLERY_ENABLED — this is for hiding UI only.
+  NEXT_PUBLIC_POST_EVENT_GALLERY_ENABLED: z.string().optional(),
 
   // Local development (optional)
   NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST: z.string().optional(),
