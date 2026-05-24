@@ -54,6 +54,25 @@ export const gallerySourceRefSchema = z.discriminatedUnion("kind", [
 export type GallerySourceRef = z.infer<typeof gallerySourceRefSchema>;
 export type ExternalLinkSourceRef = z.infer<typeof externalLinkSourceRefSchema>;
 
+/**
+ * String-literal mirror of the Prisma `GalleryStatus` enum, kept here so
+ * client components can type the value without pulling in `@prisma/client`
+ * (which can drag Node-specific runtime into the browser bundle — see how
+ * `wishes/page.tsx` mirrors `MessageStatus` the same way).
+ *
+ * Must stay in sync with prisma/schema.prisma `enum GalleryStatus`. If the
+ * enum changes, TypeScript won't catch the drift here — but `STATUS_LABEL`
+ * usage of `Record<GalleryStatus, ...>` will force every label to be
+ * present, which is the practical safety net.
+ */
+export type GalleryStatus =
+  | "DRAFT"
+  | "SYNCING"
+  | "READY"
+  | "PUBLISHED"
+  | "ERROR"
+  | "HIDDEN";
+
 // =============================================================================
 // API request schemas
 // =============================================================================

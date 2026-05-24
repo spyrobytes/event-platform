@@ -57,11 +57,33 @@ export async function getPublishedGalleryForEvent(
 
   if (!gallery) return null;
 
-  const heroAsset = await db.mediaAsset.findFirst({
-    where: { eventId, kind: "HERO" },
-    select: { publicUrl: true },
-    orderBy: { createdAt: "desc" },
-  });
+  // Hero is the last fallback in the cover resolver chain — only fetch it
+  // when nothing earlier will resolve. Keeps the published-gallery render
+  // path at one query in the common case (organizer set an explicit cover
+  // or has at least one ready item).
+  const explicitCoverResolves =
+    (gallery.coverMediaAssetId !== null &&
+      gallery.coverAsset?.publicUrl != null) ||
+    (gallery.coverGalleryItemId !== null &&
+      gallery.items.some(
+        (i) =>
+          i.id === gallery.coverGalleryItemId &&
+          (i.thumbnailUrl !== null || i.publicUrl !== null),
+      ));
+  const itemFallbackResolves = gallery.items.some(
+    (i) =>
+      i.status === "READY" &&
+      !i.isHidden &&
+      (i.thumbnailUrl !== null || i.publicUrl !== null),
+  );
+  const heroAsset =
+    explicitCoverResolves || itemFallbackResolves
+      ? null
+      : await db.mediaAsset.findFirst({
+          where: { eventId, kind: "HERO" },
+          select: { publicUrl: true },
+          orderBy: { createdAt: "desc" },
+        });
 
   const coverUrl = resolveGalleryCoverUrl({
     coverGalleryItemId: gallery.coverGalleryItemId,

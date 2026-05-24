@@ -7,6 +7,7 @@ import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { GalleryExternalLinkForm } from "@/components/features/PostEventGallery";
+import type { GalleryStatus } from "@/schemas/gallery";
 
 type GalleryRow = {
   id: string;
@@ -14,14 +15,16 @@ type GalleryRow = {
   description: string | null;
   sourceType: string;
   sourceRef: unknown;
-  status: string;
+  status: GalleryStatus;
   publishedAt: string | null;
   updatedAt: string;
 };
 
 type EventBasic = { id: string; title: string; slug: string };
 
-const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
+// Record<GalleryStatus, …> means adding a new status to the union forces a
+// label to land here — TypeScript will fail the build otherwise.
+const STATUS_LABEL: Record<GalleryStatus, { label: string; tone: string }> = {
   DRAFT: { label: "Draft", tone: "bg-muted text-muted-foreground" },
   PUBLISHED: { label: "Published", tone: "bg-success/15 text-success" },
   HIDDEN: { label: "Hidden", tone: "bg-amber-500/15 text-amber-600" },

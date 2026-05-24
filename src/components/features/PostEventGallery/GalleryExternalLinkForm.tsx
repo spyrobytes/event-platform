@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { upsertExternalLinkInputSchema } from "@/schemas/gallery";
+import {
+  upsertExternalLinkInputSchema,
+  type GalleryStatus,
+} from "@/schemas/gallery";
 import { getTrustedHostName } from "@/lib/gallery-trusted-hosts";
 
 type ExistingGallery = {
@@ -13,7 +16,7 @@ type ExistingGallery = {
   title: string | null;
   description: string | null;
   sourceType: string;
-  status: string;
+  status: GalleryStatus;
   sourceRef: unknown;
 };
 
@@ -41,7 +44,9 @@ export function GalleryExternalLinkForm({
   const [submitting, setSubmitting] = useState<Submitting>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const trustedHost = url ? getTrustedHostName(url) : null;
+  // trim mirrors what we send on submit, otherwise pasting a URL with
+  // trailing whitespace would suppress the badge preview but still save fine.
+  const trustedHost = url.trim() ? getTrustedHostName(url.trim()) : null;
 
   const submit = async (publish: boolean) => {
     setError(null);
