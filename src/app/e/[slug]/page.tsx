@@ -13,8 +13,11 @@ import {
 import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
 import { EventJsonLd } from "@/components/seo/EventJsonLd";
+import { PostEventGalleryTeaser } from "@/components/features/PostEventGallery";
 import { getEnabledMapSection } from "@/lib/maps/map-utils";
 import { getAbsoluteStaticMapImageUrl } from "@/lib/maps/static-map";
+import { getPublishedGalleryForEvent } from "@/lib/gallery-data";
+import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -245,6 +248,13 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     }));
   }
 
+  // Surface a teaser at the bottom of the page when a post-event gallery is
+  // published. Discoverability story for Phase 1; per-template hero CTA +
+  // above-footer placement come in a follow-up polish PR (#2.5).
+  const postEventGallery = isPostEventGalleryEnabled()
+    ? await getPublishedGalleryForEvent(event.id)
+    : null;
+
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
   // Event JSON-LD only renders for indexable views. Token-bearing requests
@@ -278,6 +288,15 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         inviteToken={tk}
         canShare={event.visibility === "PUBLIC"}
       />
+      {postEventGallery && (
+        <PostEventGalleryTeaser
+          eventSlug={slug}
+          title={postEventGallery.title ?? `${event.title} Photos`}
+          description={postEventGallery.description}
+          coverUrl={postEventGallery.coverUrl}
+          inviteToken={tk}
+        />
+      )}
     </div>
   );
 }
