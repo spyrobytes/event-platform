@@ -16,7 +16,12 @@ import styles from "./SplitRevealCard.module.css";
 // TYPES
 // =============================================================================
 
-export type SplitRevealTheme = "ivory" | "blush" | "navy";
+export type SplitRevealTheme =
+  | "ivory"
+  | "blush"
+  | "sage"
+  | "midnight"
+  | "champagne";
 
 export type SplitRevealCardProps = {
   /** Invitation data to display */
@@ -33,7 +38,7 @@ export type SplitRevealCardProps = {
   showHint?: boolean;
   /** Enable confetti on reveal */
   showConfetti?: boolean;
-  /** InvitationShell theme ID (ivory, blush, sage, midnight, champagne) — mapped to one of three SplitReveal palettes. */
+  /** InvitationShell theme ID — mapped 1:1 to a SplitReveal palette. */
   themeId?: string;
   /** Explicit theme override; takes precedence over themeId mapping. */
   theme?: SplitRevealTheme;
@@ -60,7 +65,9 @@ type ConfettiPiece = {
 const CONFETTI_COLORS: Record<SplitRevealTheme, string[]> = {
   ivory: ["#c9a961", "#e8d5a3", "#a68b3d", "#ffffff", "#8b7759"],
   blush: ["#d4a5a5", "#f0d5d5", "#b78787", "#ffffff", "#c9a5a5"],
-  navy: ["#c0c7d1", "#e8ebf0", "#8a939f", "#ffffff", "#7a8699"],
+  sage: ["#8b9b8b", "#c5d2c5", "#6a7a6a", "#ffffff", "#3a4a3a"],
+  midnight: ["#ffd700", "#ffe55c", "#e6c200", "#eeeef0", "#c9a961"],
+  champagne: ["#c9a961", "#e5c880", "#b89651", "#fffdf7", "#7a6f65"],
 };
 
 const CONFETTI_SHAPES = ["■", "●", "◆", "★", "♥"];
@@ -101,17 +108,20 @@ function generateMonogram(person1: string, person2: string): string {
 }
 
 /**
- * Map InvitationShell theme IDs to SplitRevealCard themes
+ * Map InvitationShell theme IDs to SplitRevealCard palettes 1:1.
+ * Unknown IDs fall back to ivory.
  */
 function mapTheme(themeId?: string): SplitRevealTheme {
   switch (themeId) {
     case "blush":
       return "blush";
-    case "midnight":
     case "sage":
-      return "navy";
-    case "ivory":
+      return "sage";
+    case "midnight":
+      return "midnight";
     case "champagne":
+      return "champagne";
+    case "ivory":
     default:
       return "ivory";
   }
@@ -125,7 +135,7 @@ function mapTheme(themeId?: string): SplitRevealTheme {
  * SplitRevealCard creates a dramatic wedding invitation reveal experience.
  *
  * Features split-door animation, breaking wax seal, and confetti burst.
- * Supports three theme variants: ivory, blush, and navy.
+ * Supports five theme variants: ivory, blush, sage, midnight, champagne.
  *
  * @example
  * ```tsx
@@ -158,8 +168,8 @@ export function SplitRevealCard({
   // Derive invitation state from isOpen
   const state: InvitationState = isOpen ? "open" : "idle";
 
-  // Resolve theme — mapTheme translates InvitationShell themeId
-  // (ivory|blush|sage|midnight|champagne) into one of V1's three palettes.
+  // Resolve theme — mapTheme translates InvitationShell themeId 1:1 into
+  // a SplitReveal palette (ivory|blush|sage|midnight|champagne).
   const resolvedTheme = theme || mapTheme(themeId);
 
   // Use structured names if provided, otherwise parse from coupleNames
