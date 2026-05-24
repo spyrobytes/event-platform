@@ -45,6 +45,7 @@ model User {
   organizations  OrganizationMember[]
   events         Event[]
   claimedInvites LaunchInvite[]
+  providerTokens ProviderToken[]
 
   @@map("users")
 }
@@ -167,6 +168,8 @@ model Event {
   registryClaims   RegistryClaim[]
   slugHistory      EventSlugHistory[]
   rsvpSessions     RsvpSession[]
+  galleries        EventGallery[]
+  galleryImports   GalleryImportJob[]
 
   @@index([creatorId])
   @@index([city])
@@ -509,7 +512,8 @@ model MediaAsset {
   blurDataUrl String?   @map("blur_data_url")
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  galleryCoverFor EventGallery[] @relation("GalleryCoverAsset")
 
   @@index([eventId, kind])
   @@index([ownerUserId])
@@ -534,6 +538,197 @@ model EventPageVersion {
 
   @@index([eventId, createdAt(sort: Desc)])
   @@map("event_page_versions")
+}
+
+// =============================================================================
+// POST-EVENT GALLERY
+// =============================================================================
+
+// Post-event gallery wrapper. One row per event for an external-link CTA or
+// a connected-provider import (Google Drive, etc.). Separate from the
+// in-page gallery section in pageConfig — different lifecycle
+// (DRAFT → SYNCING → READY → PUBLISHED) and different ingestion model.
+// See docs/pending-features/post-event-gallery/CONSOLIDATED-IMPLEMENTATION-PLAN.md.
+model EventGallery {
+  id          String  @id @default(cuid())
+  eventId     String  @map("event_id")
+  title       String?
+  description String?
+
+  coverMediaAssetId  String? @map("cover_media_asset_id")
+  // Soft reference to an EventGalleryItem.id (no FK to avoid circular FK
+  // with event_gallery_items). Resolver in src/lib/gallery-cover.ts falls
+  // back gracefully if the referenced item is deleted.
+  coverGalleryItemId String? @map("cover_gallery_item_id")
+
+  sourceType GallerySourceType @map("source_type")
+  // Provider-specific reference data. Shape validated at app layer via Zod
+  // discriminated union (src/schemas/gallery.ts). Examples:
+  //   EXTERNAL_LINK: { url, ctaLabel?, providerHint? }
+  //   GOOGLE_DRIVE:  { folderId?, pickedAt }
+  sourceRef  Json?             @map("source_ref")
+
+  status GalleryStatus @default(DRAFT)
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  publishedAt DateTime? @map("published_at")
+
+  event      Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  coverAsset MediaAsset?        @relation("GalleryCoverAsset", fields: [coverMediaAssetId], references: [id], onDelete: SetNull)
+  items      EventGalleryItem[]
+  importJobs GalleryImportJob[]
+
+  @@index([eventId])
+  @@index([status])
+  @@map("event_galleries")
+}
+
+// One imported (or pending) image in a gallery. Decoupled from MediaAsset
+// because gallery items have their own lifecycle and a separate per-gallery
+// cap. Source provider metadata stays here so MediaAsset doesn't bloat.
+model EventGalleryItem {
+  id        String @id @default(cuid())
+  galleryId String @map("gallery_id")
+
+  sourceProvider GallerySourceType? @map("source_provider")
+  sourceFileId   String?            @map("source_file_id")
+  sourceUrl      String?            @map("source_url")
+
+  originalName String? @map("original_name")
+  mimeType     String? @map("mime_type")
+  sizeBytes    Int?    @map("size_bytes")
+  width        Int?
+  height       Int?
+
+  // Storage layer references. publicUrl/thumbnailUrl are pre-resolved so the
+  // public payload doesn't need a sign step. bucket+key kept for re-resolution
+  // if Supabase URL format changes.
+  storageBucket String? @map("storage_bucket")
+  storageKey    String? @map("storage_key")
+  thumbnailKey  String? @map("thumbnail_key")
+  publicUrl     String? @map("public_url")
+  thumbnailUrl  String? @map("thumbnail_url")
+  blurDataUrl   String? @map("blur_data_url")
+
+  sortOrder Int     @default(0) @map("sort_order")
+  isHidden  Boolean @default(false) @map("is_hidden")
+  alt       String?
+  caption   String?
+
+  // Worker fan-out state. `lockedAt` is the stale-recovery sentinel — items
+  // stuck in IMPORTING longer than GALLERY_LIMITS.staleImportingThresholdMs
+  // are re-claimable. `attempts` caps automatic retry at workerMaxAttempts;
+  // FAILED items only retry on explicit organizer action.
+  status       MediaImportStatus @default(PENDING)
+  errorCode    String?           @map("error_code")
+  errorMessage String?           @map("error_message")
+  attempts     Int               @default(0)
+  lockedAt     DateTime?         @map("locked_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  gallery EventGallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@index([galleryId])
+  @@index([status])
+  // Worker claim query: WHERE status='PENDING' OR (status='IMPORTING' AND locked_at < ...)
+  @@index([status, lockedAt])
+  @@index([galleryId, sortOrder])
+  @@map("event_gallery_items")
+}
+
+// State machine for a single import session. Multiple jobs can exist per
+// gallery over time (re-imports, retries). `initiatedBy` is for audit.
+model GalleryImportJob {
+  id          String @id @default(cuid())
+  eventId     String @map("event_id")
+  galleryId   String @map("gallery_id")
+  initiatedBy String @map("initiated_by")
+
+  provider GallerySourceType
+  status   GalleryImportJobStatus @default(QUEUED)
+
+  totalItems     Int @default(0) @map("total_items")
+  processedItems Int @default(0) @map("processed_items")
+  failedItems    Int @default(0) @map("failed_items")
+  skippedItems   Int @default(0) @map("skipped_items")
+
+  errorCode    String? @map("error_code")
+  errorMessage String? @map("error_message")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gallery EventGallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([galleryId])
+  @@index([status])
+  @@map("gallery_import_jobs")
+}
+
+// Encrypted OAuth tokens for connected providers (Google Drive in MVP).
+// One row per (user, provider). Envelope format:
+//   <envelope> = iv (12 bytes) || authTag (16 bytes) || ciphertext
+// Encryption key from env PROVIDER_TOKEN_ENCRYPTION_KEY (base64-encoded
+// 32 bytes). Encrypt/decrypt helpers in src/lib/provider-tokens.ts.
+model ProviderToken {
+  id                   String            @id @default(cuid())
+  userId               String            @map("user_id")
+  provider             GallerySourceType
+  accessTokenEnvelope  Bytes             @map("access_token_envelope")
+  refreshTokenEnvelope Bytes?            @map("refresh_token_envelope")
+  scope                String
+  expiresAt            DateTime?         @map("expires_at")
+  revokedAt            DateTime?         @map("revoked_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("provider_tokens")
+}
+
+enum GallerySourceType {
+  EXTERNAL_LINK
+  GOOGLE_DRIVE
+  DROPBOX
+  ONEDRIVE
+  GOOGLE_PHOTOS
+  MANUAL_UPLOAD
+}
+
+enum GalleryStatus {
+  DRAFT
+  SYNCING
+  READY
+  PUBLISHED
+  ERROR
+  HIDDEN
+}
+
+enum MediaImportStatus {
+  PENDING
+  IMPORTING
+  READY
+  FAILED
+  SKIPPED
+}
+
+enum GalleryImportJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  PARTIAL
+  CANCELLED
 }
 
 // =============================================================================
