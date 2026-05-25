@@ -4,6 +4,8 @@ import { NextRequest } from "next/server";
 beforeAll(() => {
   process.env.POST_EVENT_GALLERY_ENABLED = "true";
   process.env.NEXT_PUBLIC_BASE_URL = "https://example.com";
+  // gallery-email now mints a signed unsubscribe URL per recipient.
+  process.env.RSVP_CODE_HMAC_KEY = "a".repeat(48);
 });
 
 // ---------------------------------------------------------------------------
@@ -67,6 +69,9 @@ const { POST: postPublish } = await import(
 );
 const { GET: getRecipientsPreview } = await import(
   "@/app/api/events/[id]/gallery/recipients-preview/route"
+);
+const { verifyInviteUnsubscribe } = await import(
+  "@/lib/invite-unsubscribe-signature"
 );
 
 const mockUser = { id: "user_1", status: "ACTIVE" };
@@ -153,6 +158,32 @@ describe("enqueueGalleryPublishedEmails", () => {
       "https://supabase.example/cover.webp",
     );
     expect(data[0].payload.photoCount).toBe(42);
+
+    // Each row carries a verifiable HMAC unsubscribe URL bound to its
+    // (inviteId, eventId). The signature module is mocked nowhere here —
+    // we use the real implementation so the URL we ship is the one the
+    // route will accept.
+    const url = new URL(data[0].payload.unsubscribeUrl);
+    expect(url.pathname).toBe("/unsubscribe/by-id");
+    expect(url.searchParams.get("inviteId")).toBe("inv_1");
+    expect(url.searchParams.get("eventId")).toBe("evt_1");
+    expect(
+      verifyInviteUnsubscribe(
+        "inv_1",
+        "evt_1",
+        url.searchParams.get("sig")!,
+      ),
+    ).toBe(true);
+    // Second row is signed independently with its own inviteId.
+    const url2 = new URL(data[1].payload.unsubscribeUrl);
+    expect(url2.searchParams.get("inviteId")).toBe("inv_2");
+    expect(
+      verifyInviteUnsubscribe(
+        "inv_2",
+        "evt_1",
+        url2.searchParams.get("sig")!,
+      ),
+    ).toBe(true);
   });
 
   it("returns enqueued=0 with no DB write when there are no eligible invites", async () => {
