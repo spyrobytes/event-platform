@@ -13,7 +13,10 @@ import {
 import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
 import { EventJsonLd } from "@/components/seo/EventJsonLd";
-import { PostEventGalleryTeaser } from "@/components/features/PostEventGallery";
+import {
+  HeroPostEventCta,
+  PostEventGalleryTeaser,
+} from "@/components/features/PostEventGallery";
 import { getEnabledMapSection } from "@/lib/maps/map-utils";
 import { getAbsoluteStaticMapImageUrl } from "@/lib/maps/static-map";
 import { getPublishedGalleryForEvent } from "@/lib/gallery-data";
@@ -287,16 +290,23 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         wishesMode="preview"
         inviteToken={tk}
         canShare={event.visibility === "PUBLIC"}
+        postEventGalleryCta={
+          postEventGallery ? (
+            <HeroPostEventCta eventSlug={slug} inviteToken={tk} />
+          ) : undefined
+        }
+        postEventGalleryTeaser={
+          postEventGallery ? (
+            <PostEventGalleryTeaser
+              eventSlug={slug}
+              title={postEventGallery.title ?? `${event.title} Photos`}
+              description={postEventGallery.description}
+              coverUrl={postEventGallery.coverUrl}
+              inviteToken={tk}
+            />
+          ) : undefined
+        }
       />
-      {postEventGallery && (
-        <PostEventGalleryTeaser
-          eventSlug={slug}
-          title={postEventGallery.title ?? `${event.title} Photos`}
-          description={postEventGallery.description}
-          coverUrl={postEventGallery.coverUrl}
-          inviteToken={tk}
-        />
-      )}
     </div>
   );
 }

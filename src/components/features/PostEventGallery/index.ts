@@ -9,3 +9,4 @@ export { PostEventGalleryGrid } from "./PostEventGalleryGrid";
 export { GalleryLightbox } from "./GalleryLightbox";
 export { GalleryItemsManager } from "./GalleryItemsManager";
 export { GalleryPublishDialog } from "./GalleryPublishDialog";
+export { HeroPostEventCta } from "./HeroPostEventCta";
