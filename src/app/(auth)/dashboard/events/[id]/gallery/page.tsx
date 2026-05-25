@@ -8,9 +8,13 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   GalleryExternalLinkForm,
+  GalleryItemsManager,
   GoogleDriveGallerySection,
 } from "@/components/features/PostEventGallery";
-import type { GalleryStatus } from "@/schemas/gallery";
+import type {
+  GalleryStatus,
+  OrganizerGalleryItem,
+} from "@/schemas/gallery";
 
 type GalleryRow = {
   id: string;
@@ -21,6 +25,9 @@ type GalleryRow = {
   status: GalleryStatus;
   publishedAt: string | null;
   updatedAt: string;
+  coverGalleryItemId: string | null;
+  coverMediaAssetId: string | null;
+  items: OrganizerGalleryItem[];
 };
 
 type EventBasic = { id: string; title: string; slug: string };
@@ -248,6 +255,26 @@ export default function PostEventGalleryDashboardPage() {
               />
             )}
           </div>
+
+          {gallery.sourceType !== "EXTERNAL_LINK" && gallery.items.length > 0 && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h3 className="text-base font-medium">Photos</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Reorder, hide, set a cover, or delete imported photos. Only
+                READY photos appear publicly.
+              </p>
+              <div className="mt-4">
+                <GalleryItemsManager
+                  eventId={event.id}
+                  galleryId={gallery.id}
+                  items={gallery.items}
+                  coverGalleryItemId={gallery.coverGalleryItemId}
+                  getIdToken={getIdToken}
+                  onChanged={() => void load()}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg border border-border bg-card p-6">
             <h3 className="text-base font-medium">Actions</h3>
