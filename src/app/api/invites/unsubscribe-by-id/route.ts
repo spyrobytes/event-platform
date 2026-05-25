@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { db } from "@/lib/db";
 import { verifyInviteUnsubscribe } from "@/lib/invite-unsubscribe-signature";
 import {
@@ -13,6 +13,9 @@ const bodySchema = z.object({
   eventId: z.string().min(1),
   sig: z.string().min(1),
 });
+
+const invalidLink = () =>
+  errorResponse("Invalid unsubscribe link", 404, "INVALID_LINK");
 
 /**
  * POST /api/invites/unsubscribe-by-id
@@ -28,11 +31,24 @@ const bodySchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { inviteId, eventId, sig } = bodySchema.parse(body);
+    // Parse + verify inside the try so Zod failures collapse into the same
+    // generic 404 as sig/invite mismatches — keeps the "don't enumerate IDs"
+    // policy consistent across all bad-input paths.
+    let inviteId: string;
+    let eventId: string;
+    let sig: string;
+    try {
+      const body = await request.json();
+      ({ inviteId, eventId, sig } = bodySchema.parse(body));
+    } catch (parseErr) {
+      if (parseErr instanceof ZodError || parseErr instanceof SyntaxError) {
+        return invalidLink();
+      }
+      throw parseErr;
+    }
 
     if (!verifyInviteUnsubscribe(inviteId, eventId, sig)) {
-      return errorResponse("Invalid unsubscribe link", 404, "INVALID_LINK");
+      return invalidLink();
     }
 
     // findFirst (not findUnique) so the eventId filter participates in the
@@ -48,7 +64,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!invite) {
-      return errorResponse("Invalid unsubscribe link", 404, "INVALID_LINK");
+      return invalidLink();
     }
 
     if (invite.unsubscribedAt) {

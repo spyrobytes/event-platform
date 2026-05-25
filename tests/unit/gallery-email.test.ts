@@ -70,6 +70,9 @@ const { POST: postPublish } = await import(
 const { GET: getRecipientsPreview } = await import(
   "@/app/api/events/[id]/gallery/recipients-preview/route"
 );
+const { verifyInviteUnsubscribe } = await import(
+  "@/lib/invite-unsubscribe-signature"
+);
 
 const mockUser = { id: "user_1", status: "ACTIVE" };
 
@@ -160,9 +163,6 @@ describe("enqueueGalleryPublishedEmails", () => {
     // (inviteId, eventId). The signature module is mocked nowhere here —
     // we use the real implementation so the URL we ship is the one the
     // route will accept.
-    const { verifyInviteUnsubscribe } = await import(
-      "@/lib/invite-unsubscribe-signature"
-    );
     const url = new URL(data[0].payload.unsubscribeUrl);
     expect(url.pathname).toBe("/unsubscribe/by-id");
     expect(url.searchParams.get("inviteId")).toBe("inv_1");

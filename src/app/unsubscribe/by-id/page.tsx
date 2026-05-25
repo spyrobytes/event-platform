@@ -33,9 +33,7 @@ function UnsubscribeByIdInner() {
           setMessage(data.data?.message || "You have been unsubscribed.");
         } else {
           setStatus("error");
-          setMessage(
-            data.error || "This unsubscribe link is invalid or has expired.",
-          );
+          setMessage(data.error || "This unsubscribe link is invalid.");
         }
       } catch {
         setStatus("error");
