@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
+import { buildInviteUnsubscribeUrl } from "@/lib/invite-unsubscribe-signature";
 
 // Read at call-time, not import-time, so tests + Vercel preview deploys
 // can override NEXT_PUBLIC_BASE_URL after the module has been imported.
@@ -107,7 +108,6 @@ export async function enqueueGalleryPublishedEmails(
       id: true,
       email: true,
       name: true,
-      tokenHash: true,
       rsvp: { select: { guestName: true } },
     },
   });
@@ -116,14 +116,12 @@ export async function enqueueGalleryPublishedEmails(
     return { enqueued: 0, skipped: 0 };
   }
 
-  // We have the tokenHash on each invite (hashed at issue), not the raw
-  // token. The raw token is required to build the unsubscribe URL. We
-  // can't reconstruct it from the hash — that's the security contract.
-  // Drop the unsubscribe URL when we don't have a raw token; the email
-  // still renders, just without an unsub link.
-  // (Future: pass an event-level opt-out endpoint via {eventId, inviteId}
-  // signed query; for MVP we accept the limitation.)
-  const galleryUrl = `${getBaseUrl()}/e/${input.eventSlug}/gallery`;
+  // Raw invite tokens aren't recoverable from tokenHash, so instead of the
+  // token-based `/unsubscribe/[token]` flow we mint a per-invite HMAC URL
+  // signed over `${inviteId}.${eventId}`.
+  // See src/lib/invite-unsubscribe-signature.ts.
+  const baseUrl = getBaseUrl();
+  const galleryUrl = `${baseUrl}/e/${input.eventSlug}/gallery`;
   const subject = input.isRepublish
     ? `Photos from ${input.eventTitle} are ready to view (updated)`
     : `Photos from ${input.eventTitle} are ready to view`;
@@ -143,12 +141,15 @@ export async function enqueueGalleryPublishedEmails(
         eventTitle: input.eventTitle,
         hostName: input.hostName,
         galleryUrl,
+        unsubscribeUrl: buildInviteUnsubscribeUrl(
+          baseUrl,
+          invite.id,
+          input.eventId,
+        ),
         ...(input.coverUrl ? { coverUrl: input.coverUrl } : {}),
         ...(typeof input.photoCount === "number"
           ? { photoCount: input.photoCount }
           : {}),
-        // Note: unsubscribeUrl omitted. The raw invite token isn't
-        // recoverable from tokenHash; see comment above.
       } satisfies Prisma.InputJsonValue,
       status: "QUEUED" as const,
     }));
