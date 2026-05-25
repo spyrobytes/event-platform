@@ -119,6 +119,12 @@ export function GoogleDriveGallerySection({
               );
             }
           }}
+          onReconnectRequired={() => {
+            // 409 from /access-token: token was revoked while the
+            // dashboard sat on a stale connected=true. Refetch status
+            // so the UI swaps to the Connect button.
+            void loadStatus();
+          }}
         />
       )}
       {activeJobId && (

@@ -26,6 +26,11 @@ type Props = {
     accepted: number;
     skipped: { id: string; name: string; reason: string }[];
   }) => void;
+  /** Fires when the access-token endpoint returns 409 (token revoked
+   *  while the dashboard was sitting on a stale `connected: true`). The
+   *  parent should refetch /status so the UI swaps the Picker for the
+   *  Connect button. */
+  onReconnectRequired?: () => void;
 };
 
 type LauncherState = "idle" | "loading" | "ready" | "error";
@@ -48,6 +53,7 @@ export function GoogleDrivePickerLauncher({
   busy,
   getIdToken,
   onSelected,
+  onReconnectRequired,
 }: Props) {
   const [state, setState] = useState<LauncherState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +147,11 @@ export function GoogleDrivePickerLauncher({
         headers: { Authorization: `Bearer ${token}` },
       });
       if (tokenRes.status === 409) {
-        // Token revoked / never connected — surface a reconnect prompt.
+        // Token revoked / never connected — signal the parent so it
+        // refetches /status and swaps the Picker for the Connect button.
+        // We still throw so the existing error UI shows a reconnect
+        // prompt while the parent is loading the new status.
+        onReconnectRequired?.();
         throw new Error("Reconnect Google Drive to continue.");
       }
       if (!tokenRes.ok) {
@@ -179,7 +189,7 @@ export function GoogleDrivePickerLauncher({
       setState("error");
       setError(err instanceof Error ? err.message : "Could not open Drive picker");
     }
-  }, [ensureGapiLoaded, getIdToken, submitSelection]);
+  }, [ensureGapiLoaded, getIdToken, submitSelection, onReconnectRequired]);
 
   const disabled = !connected || busy || submitting || state === "loading";
 
