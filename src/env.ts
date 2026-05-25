@@ -90,6 +90,29 @@ export const serverEnvSchema = z.object({
   // as on; any other value (including empty) means off.
   POST_EVENT_GALLERY_ENABLED: z.string().optional(),
 
+  // AES-256-GCM key used to encrypt OAuth refresh/access tokens stored in
+  // the provider_tokens table. Base64-encoded 32 bytes — generate with
+  // `openssl rand -base64 32`. Optional at the schema layer because the
+  // gallery feature is flag-gated; src/lib/provider-tokens.ts throws a
+  // helpful error if the env is missing when an encrypt/decrypt is
+  // attempted. Rotating this key invalidates every stored token.
+  PROVIDER_TOKEN_ENCRYPTION_KEY: z.string().optional(),
+
+  // HMAC key for signing the OAuth state cookie set during
+  // /api/auth/google-drive/connect and verified in /callback. Distinct from
+  // PROVIDER_TOKEN_ENCRYPTION_KEY so a state-cookie compromise doesn't
+  // imply token-store compromise. Base64-encoded ≥32 bytes. Generate with
+  // `openssl rand -base64 32`. Optional at the schema layer for the same
+  // flag-gating reason as above.
+  OAUTH_STATE_SIGNING_KEY: z.string().optional(),
+
+  // Google Drive OAuth credentials from Google Cloud Console. Required only
+  // once a user attempts to connect Drive; the route returns 503 with a
+  // clear error otherwise. Web client type, with the callback URL
+  // configured as ${NEXT_PUBLIC_BASE_URL}/api/auth/google-drive/callback.
+  GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+
   // Local development (optional)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().optional(),
