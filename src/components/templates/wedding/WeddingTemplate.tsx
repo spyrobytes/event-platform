@@ -48,6 +48,10 @@ type WeddingTemplateProps = {
   eventSlug?: string;
   /** Temporal data for time-aware rendering */
   temporal?: TemporalData;
+  /** Slots populated by the page when a post-event gallery is published.
+   *  See TemplateProps in src/components/templates/index.ts. */
+  postEventGalleryCta?: React.ReactNode;
+  postEventGalleryTeaser?: React.ReactNode;
 };
 
 import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
@@ -65,7 +69,15 @@ import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
  *
  * Variants: classic, modern_minimal, rustic_outdoor, destination, intimate_micro
  */
-export function WeddingTemplate({ config, assets, eventId, eventSlug, temporal }: WeddingTemplateProps) {
+export function WeddingTemplate({
+  config,
+  assets,
+  eventId,
+  eventSlug,
+  temporal,
+  postEventGalleryCta,
+  postEventGalleryTeaser,
+}: WeddingTemplateProps) {
   const { theme, hero, sections, variantId } = config;
 
   // Get variant configuration
@@ -304,8 +316,17 @@ export function WeddingTemplate({ config, assets, eventId, eventSlug, temporal }
             {/* Temporal Hero Overlay - Shows countdown, live indicator, or post-event message */}
             <TemporalHeroOverlay accentColor={primaryColor} />
 
+            {/* Post-event gallery CTA — appears just below the hero when a
+                gallery is published, gives organizers a discoverability
+                surface without disrupting hero design language. */}
+            {postEventGalleryCta}
+
             {/* Dynamic Sections with staggered animations */}
             {sections.map((section, index) => renderSection(section, index))}
+
+            {/* Post-event gallery teaser — full-width card immediately
+                above the footer. */}
+            {postEventGalleryTeaser}
 
             {/* Footer */}
             <footer

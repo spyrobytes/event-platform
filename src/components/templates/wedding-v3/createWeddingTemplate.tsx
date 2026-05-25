@@ -134,6 +134,8 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     inviteToken,
     navLinkBase,
     subPageSection,
+    postEventGalleryCta,
+    postEventGalleryTeaser,
   }: TemplateProps) {
     const { theme, hero, sections } = config;
     const primaryColor = theme.primaryColor;
@@ -390,8 +392,14 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 <PreludeBlock prelude={config.prelude} />
               )}
 
+              {/* Post-event gallery CTA — slot populated by page. */}
+              {postEventGalleryCta}
+
               {/* Dynamic Sections */}
               {sections.map((section, index) => renderSection(section, index))}
+
+              {/* Post-event gallery teaser — slot populated by page. */}
+              {postEventGalleryTeaser}
 
               {/* Chrome: Footer Decoration */}
               {definition.chromeKit.footerDecoration && (

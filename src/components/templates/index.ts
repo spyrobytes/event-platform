@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { EventPageConfigV1, Section } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -106,6 +106,15 @@ export type TemplateProps = {
    * UNLISTED and PRIVATE events stay false — broadcasting them defeats
    * the visibility contract. */
   canShare?: boolean;
+  /** Pre-rendered "View Photos" CTA for the post-event gallery. Templates
+   * insert it just after their hero block when set. Page-level logic
+   * decides when to render this (gallery PUBLISHED + feature flag);
+   * templates only need to drop it in the right spot. */
+  postEventGalleryCta?: ReactNode;
+  /** Pre-rendered teaser block for the post-event gallery. Templates
+   * insert it immediately before their footer when set. Same page-level
+   * gating as `postEventGalleryCta`. */
+  postEventGalleryTeaser?: ReactNode;
 };
 
 /**

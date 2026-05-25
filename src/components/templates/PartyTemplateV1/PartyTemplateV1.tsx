@@ -21,6 +21,10 @@ type PartyTemplateV1Props = {
   assets: MediaAsset[];
   eventId?: string;
   eventSlug?: string;
+  /** Slots populated by the page when a post-event gallery is published.
+   *  See TemplateProps in src/components/templates/index.ts. */
+  postEventGalleryCta?: React.ReactNode;
+  postEventGalleryTeaser?: React.ReactNode;
 };
 
 import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
@@ -36,7 +40,14 @@ import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
  * - Staggered section reveals for polished appearance
  * - Reduced motion preference support
  */
-export function PartyTemplateV1({ config, assets, eventId, eventSlug }: PartyTemplateV1Props) {
+export function PartyTemplateV1({
+  config,
+  assets,
+  eventId,
+  eventSlug,
+  postEventGalleryCta,
+  postEventGalleryTeaser,
+}: PartyTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
     ? assets.find((a) => a.id === hero.heroImageAssetId)
@@ -72,6 +83,9 @@ export function PartyTemplateV1({ config, assets, eventId, eventSlug }: PartyTem
             heroAsset={heroAsset}
             primaryColor={theme.primaryColor}
           />
+
+          {/* Post-event gallery CTA — slot populated by page. */}
+          {postEventGalleryCta}
 
           {/* Dynamic Sections with staggered animations */}
           {sections.map((section, index) => {
@@ -170,6 +184,9 @@ export function PartyTemplateV1({ config, assets, eventId, eventSlug }: PartyTem
           })}
 
           {/* Footer */}
+          {/* Post-event gallery teaser — slot populated by page. */}
+          {postEventGalleryTeaser}
+
           <footer className="py-8 text-center text-sm text-muted-foreground">
             <p>
               Made with{" "}

@@ -84,6 +84,10 @@ type WeddingTemplateV2Props = {
   /** True when the event is PUBLIC; the Topbar then renders a share
    *  button alongside its other actions. */
   canShare?: boolean;
+  /** Slots populated by the page when a post-event gallery is published.
+   *  See TemplateProps in src/components/templates/index.ts. */
+  postEventGalleryCta?: React.ReactNode;
+  postEventGalleryTeaser?: React.ReactNode;
 };
 
 /** Map section type to anchor ID */
@@ -137,6 +141,8 @@ export function WeddingTemplateV2({
   navLinkBase,
   subPageSection,
   canShare,
+  postEventGalleryCta,
+  postEventGalleryTeaser,
 }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
@@ -477,8 +483,14 @@ export function WeddingTemplateV2({
             {/* Prelude (optional welcome note rendered between hero and first section) */}
             <PreludeBlock prelude={config.prelude} />
 
+            {/* Post-event gallery CTA — slot populated by page. */}
+            {postEventGalleryCta}
+
             {/* Dynamic Sections */}
             {sections.map((section, index) => renderSection(section, index))}
+
+            {/* Post-event gallery teaser — slot populated by page. */}
+            {postEventGalleryTeaser}
 
             {/* Chrome: Footer Skyline */}
             {chrome.footerSkyline && (
