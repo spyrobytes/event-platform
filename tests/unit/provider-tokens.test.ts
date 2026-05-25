@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { encryptToken, decryptToken } from "@/lib/provider-tokens";
 import {
   generateStateNonce,
+  sanitizeNextUrl,
   signOAuthState,
   verifyOAuthState,
   InvalidOAuthStateError,
@@ -77,6 +78,40 @@ describe("provider-tokens — encryption round-trip", () => {
   });
 });
 
+describe("sanitizeNextUrl", () => {
+  it("returns dashboard paths unchanged", () => {
+    expect(sanitizeNextUrl("/dashboard")).toBe("/dashboard");
+    expect(sanitizeNextUrl("/dashboard/events/abc/gallery")).toBe(
+      "/dashboard/events/abc/gallery",
+    );
+  });
+
+  it("rejects protocol-relative URLs that would still match startsWith('/')", () => {
+    // The classic open-redirect: `//evil.com` parses as a same-protocol
+    // navigation to evil.com in the browser. startsWith("/dashboard")
+    // would return false here, but `startsWith("//")` is the explicit guard.
+    expect(sanitizeNextUrl("//evil.com")).toBeUndefined();
+    expect(sanitizeNextUrl("//evil.com/dashboard")).toBeUndefined();
+  });
+
+  it("rejects fully-qualified URLs", () => {
+    expect(sanitizeNextUrl("https://evil.com/dashboard")).toBeUndefined();
+    expect(sanitizeNextUrl("http://localhost/dashboard")).toBeUndefined();
+  });
+
+  it("rejects paths outside /dashboard", () => {
+    expect(sanitizeNextUrl("/admin")).toBeUndefined();
+    expect(sanitizeNextUrl("/")).toBeUndefined();
+    expect(sanitizeNextUrl("/e/some-event")).toBeUndefined();
+  });
+
+  it("returns undefined for nullish input", () => {
+    expect(sanitizeNextUrl(undefined)).toBeUndefined();
+    expect(sanitizeNextUrl(null)).toBeUndefined();
+    expect(sanitizeNextUrl("")).toBeUndefined();
+  });
+});
+
 describe("oauth-state — sign / verify", () => {
   it("verify accepts a freshly signed payload", () => {
     const cookie = signOAuthState({
@@ -129,6 +164,38 @@ describe("oauth-state — sign / verify", () => {
     expect(() => verifyOAuthState("not-a-signed-cookie")).toThrow(
       InvalidOAuthStateError,
     );
+  });
+
+  it("roundtrips an optional `next` URL through sign/verify", () => {
+    const cookie = signOAuthState({
+      userId: "u",
+      state: "s",
+      verifier: "v",
+      next: "/dashboard/events/abc/gallery",
+    });
+    const payload = verifyOAuthState(cookie);
+    expect(payload.next).toBe("/dashboard/events/abc/gallery");
+  });
+
+  it("verify rejects payload where next is not a string", async () => {
+    const { createHmac } = await import("node:crypto");
+    const json = Buffer.from(
+      JSON.stringify({
+        userId: "u",
+        state: "s",
+        verifier: "v",
+        exp: Date.now() + 1000,
+        next: 42, // wrong type
+      }),
+      "utf8",
+    ).toString("base64url");
+    const sig = createHmac(
+      "sha256",
+      Buffer.from(process.env.OAUTH_STATE_SIGNING_KEY!, "base64"),
+    )
+      .update(json)
+      .digest("base64url");
+    expect(() => verifyOAuthState(`${json}.${sig}`)).toThrow(/shape/i);
   });
 
   it("verify rejects payload missing required fields", async () => {

@@ -9,6 +9,7 @@ import {
 } from "@/lib/providers/google-drive";
 import {
   InvalidOAuthStateError,
+  sanitizeNextUrl,
   STATE_COOKIE_NAME,
   STATE_COOKIE_PATH,
   verifyOAuthState,
@@ -27,11 +28,17 @@ import {
  * land the user on a raw API page.
  */
 export async function GET(request: NextRequest) {
-  const dashboardBase = "/dashboard";
+  const DASHBOARD_FALLBACK = "/dashboard";
+
+  // Carries through both happy and error paths: the connect route may have
+  // stashed a `next` in the state cookie that we'll honor below. On any
+  // failure that happens BEFORE we decode the cookie, fall back to the
+  // bare dashboard.
+  let returnTo = DASHBOARD_FALLBACK;
 
   const fail = (reason: string) => {
     const url = new URL(request.url);
-    const back = new URL(dashboardBase, url.origin);
+    const back = new URL(returnTo, url.origin);
     back.searchParams.set("gdrive", "error");
     back.searchParams.set("reason", reason);
     return NextResponse.redirect(back, { status: 303 });
@@ -68,6 +75,11 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     return fail(err instanceof InvalidOAuthStateError ? "invalid_state" : "state_verification_failed");
   }
+
+  // Re-sanitize on the read side: the connect route already filtered, but
+  // re-checking here means we still refuse open redirects if anyone ever
+  // bypasses the connect helper and signs a cookie directly.
+  returnTo = sanitizeNextUrl(payload.next) ?? DASHBOARD_FALLBACK;
 
   if (payload.state !== stateParam) return fail("state_mismatch");
 
@@ -111,7 +123,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const back = new URL(dashboardBase, url.origin);
+    const back = new URL(returnTo, url.origin);
     back.searchParams.set("gdrive", "connected");
     return NextResponse.redirect(back, { status: 303 });
   } catch (err) {
