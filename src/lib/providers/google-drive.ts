@@ -28,6 +28,24 @@ export class GoogleOAuthNotConfiguredError extends Error {
   }
 }
 
+/**
+ * Typed error from Google's token endpoint. Carries the parsed `error`
+ * code so callers can branch on permanent vs transient failures —
+ * specifically, `invalid_grant` on refresh means the user revoked the
+ * app at Google's end and the local row needs to be marked revoked.
+ */
+export class GoogleTokenError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly errorCode: string | null,
+    public readonly errorDescription: string | null,
+  ) {
+    super(
+      `Google token endpoint ${status}: ${errorDescription || errorCode || "unknown"}`,
+    );
+  }
+}
+
 function getClientId(): string {
   const v = process.env.GOOGLE_OAUTH_CLIENT_ID;
   if (!v) throw new GoogleOAuthNotConfiguredError();
@@ -117,8 +135,11 @@ async function postToTokenEndpoint(body: URLSearchParams): Promise<RawTokenRespo
   });
   const data = (await res.json().catch(() => null)) as RawTokenResponse | null;
   if (!res.ok || !data) {
-    const detail = data?.error_description || data?.error || res.statusText;
-    throw new Error(`Google token endpoint ${res.status}: ${detail}`);
+    throw new GoogleTokenError(
+      res.status,
+      data?.error ?? null,
+      data?.error_description ?? null,
+    );
   }
   return data;
 }

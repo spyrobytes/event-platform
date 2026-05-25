@@ -1,6 +1,9 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
-import { refreshGoogleDriveAccessToken } from "@/lib/providers/google-drive";
+import {
+  GoogleTokenError,
+  refreshGoogleDriveAccessToken,
+} from "@/lib/providers/google-drive";
 import type { GallerySourceType } from "@prisma/client";
 
 /**
@@ -148,7 +151,26 @@ export async function getValidAccessToken(
   const refreshToken = decryptToken(token.refreshTokenEnvelope);
 
   if (provider === "GOOGLE_DRIVE") {
-    const refreshed = await refreshGoogleDriveAccessToken(refreshToken);
+    let refreshed;
+    try {
+      refreshed = await refreshGoogleDriveAccessToken(refreshToken);
+    } catch (err) {
+      // `invalid_grant` means Google has invalidated this refresh token —
+      // the user revoked the app at their Google Account, the token expired
+      // after long inactivity, or it was issued under an old client. Mark
+      // the local row revoked so the worker (PR #5) stops retrying forever
+      // and the dashboard can surface "reconnect needed." Other Google
+      // errors (5xx, transient network failures) re-throw so the caller
+      // can retry later.
+      if (err instanceof GoogleTokenError && err.errorCode === "invalid_grant") {
+        await db.providerToken.update({
+          where: { id: token.id },
+          data: { revokedAt: new Date() },
+        });
+        throw new ProviderTokenRevokedError(provider);
+      }
+      throw err;
+    }
     await db.providerToken.update({
       where: { id: token.id },
       data: {
