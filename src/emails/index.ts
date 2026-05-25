@@ -1,3 +1,4 @@
 export { InviteEmail } from "./InviteEmail";
 export { ConfirmationEmail } from "./ConfirmationEmail";
 export { ReminderEmail } from "./ReminderEmail";
+export { GalleryPublishedEmail } from "./GalleryPublishedEmail";
