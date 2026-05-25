@@ -5,3 +5,5 @@ export { GoogleDriveConnectButton } from "./GoogleDriveConnectButton";
 export { GoogleDrivePickerLauncher } from "./GoogleDrivePickerLauncher";
 export { GalleryImportProgress } from "./GalleryImportProgress";
 export { GoogleDriveGallerySection } from "./GoogleDriveGallerySection";
+export { PostEventGalleryGrid } from "./PostEventGalleryGrid";
+export { GalleryLightbox } from "./GalleryLightbox";

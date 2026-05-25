@@ -7,7 +7,11 @@ import {
 } from "@/lib/event-page-loader";
 import { getPublishedGalleryForEvent } from "@/lib/gallery-data";
 import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
-import { GalleryExternalLinkLanding } from "@/components/features/PostEventGallery";
+import {
+  GalleryExternalLinkLanding,
+  PostEventGalleryGrid,
+} from "@/components/features/PostEventGallery";
+import Link from "next/link";
 
 /**
  * Inherits the same access semantics as /e/[slug] — see §8.4. Force-dynamic
@@ -105,7 +109,44 @@ export default async function PostEventGalleryPage({
     );
   }
 
-  // Native source — Phase 4 wires up the grid. For now this branch can't be
-  // hit because no native gallery can be PUBLISHED until import items exist.
-  notFound();
+  // Native variant — render the grid + lightbox within event theme chrome
+  // (simple back link header; full template integration is PR #2.5).
+  const backHref = tk ? `/e/${slug}?tk=${encodeURIComponent(tk)}` : `/e/${slug}`;
+  const title = gallery.title ?? `${event.title} Photos`;
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+          >
+            <span aria-hidden>←</span>
+            <span>Back to {event.title}</span>
+          </Link>
+        </div>
+      </header>
+      <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">
+        <div className="mb-8 space-y-3 text-center">
+          <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            Photo Gallery
+          </div>
+          <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
+            {title}
+          </h1>
+          {gallery.description && (
+            <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
+              {gallery.description}
+            </p>
+          )}
+        </div>
+        <PostEventGalleryGrid
+          eventId={event.id}
+          initialItems={gallery.items}
+          initialNextCursor={gallery.pageInfo.nextCursor}
+          inviteToken={tk}
+        />
+      </main>
+    </div>
+  );
 }
