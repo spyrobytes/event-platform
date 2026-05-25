@@ -221,10 +221,16 @@ export async function getPublishedGalleryForEvent(
 }
 
 /**
- * Returns the (single) gallery for the event from the organizer's perspective
- * — includes drafts and hidden galleries. Used by the dashboard and by API
- * routes that need to mutate gallery state. Returns null when no gallery row
- * exists for the event.
+ * Returns the (single) gallery for the event from the organizer's
+ * perspective — includes drafts/hidden galleries and the full items
+ * list with status + error metadata so the dashboard can curate
+ * (hide, reorder, retry, delete). Returns null when no gallery row
+ * exists.
+ *
+ * MVP cap is 50 items per gallery; the full items array fits in a
+ * single response without pagination. Public-facing reads still go
+ * through `getPublicGalleryItems` which paginates and strips
+ * organizer-only fields.
  */
 export async function getGalleryForOrganizer(eventId: string) {
   return db.eventGallery.findFirst({
@@ -241,6 +247,29 @@ export async function getGalleryForOrganizer(eventId: string) {
       createdAt: true,
       updatedAt: true,
       publishedAt: true,
+      items: {
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          status: true,
+          publicUrl: true,
+          thumbnailUrl: true,
+          width: true,
+          height: true,
+          blurDataUrl: true,
+          alt: true,
+          caption: true,
+          sortOrder: true,
+          isHidden: true,
+          attempts: true,
+          errorCode: true,
+          errorMessage: true,
+          createdAt: true,
+        },
+      },
+      _count: {
+        select: { items: true },
+      },
     },
   });
 }

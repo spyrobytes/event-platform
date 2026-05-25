@@ -171,3 +171,39 @@ export type PublicGalleryItem = {
   alt: string;
   caption: string | null;
 };
+
+// =============================================================================
+// Organizer (dashboard) shapes
+// =============================================================================
+
+/**
+ * Item shape consumed by the dashboard items manager. Includes status +
+ * error metadata + sort order so the curation UI can show progress
+ * badges, the retry button, and the move-up/down arrows. Never returned
+ * by public endpoints.
+ */
+export type OrganizerGalleryItemStatus =
+  | "PENDING"
+  | "IMPORTING"
+  | "READY"
+  | "FAILED"
+  | "SKIPPED";
+
+export type OrganizerGalleryItem = {
+  id: string;
+  status: OrganizerGalleryItemStatus;
+  publicUrl: string | null;
+  thumbnailUrl: string | null;
+  width: number | null;
+  height: number | null;
+  blurDataUrl: string | null;
+  alt: string;
+  caption: string | null;
+  sortOrder: number;
+  isHidden: boolean;
+  attempts: number;
+  errorCode: string | null;
+  errorMessage: string | null;
+  /** ISO timestamp — JSON-serialized from Prisma's Date. */
+  createdAt: string;
+};
