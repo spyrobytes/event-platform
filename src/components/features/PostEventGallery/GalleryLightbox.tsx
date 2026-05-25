@@ -53,20 +53,49 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
     });
   }, [onClose]);
 
-  // Keyboard nav. Re-bound on prev/next/close deps so the closure sees
-  // current handlers.
+  // Keyboard handling: nav (Esc / ← / →) + focus-trap Tab boundary wrap.
+  // Re-bound on dep changes so the closure sees current handlers.
   useEffect(() => {
     if (!mounted) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         closeLightbox();
-      } else if (e.key === "ArrowLeft") {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         onPrev();
-      } else if (e.key === "ArrowRight") {
+        return;
+      }
+      if (e.key === "ArrowRight") {
         e.preventDefault();
         onNext();
+        return;
+      }
+      if (e.key === "Tab") {
+        // Real focus trap: query focusables inside the dialog and wrap
+        // at the boundaries. Without this, Tab past the last button
+        // leaks focus to the page underneath the modal — accessibility
+        // bug for keyboard / screen-reader users.
+        const root = containerRef.current;
+        if (!root) return;
+        const focusables = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            'button, [href], input, [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => !el.hasAttribute("disabled"));
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener("keydown", handleKey);
@@ -85,11 +114,9 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
     };
   }, [mounted]);
 
-  // Focus trap: capture the element that had focus when we opened, move
-  // focus into the dialog, restore on unmount. Tab cycle inside is
-  // best-effort — Image + 3 buttons; the browser's natural tab order is
-  // close → prev → next → image and back. We only need to keep focus
-  // from leaking out of the dialog while it's open.
+  // Open/close focus handoff: snapshot the previously-focused element,
+  // move focus into the dialog, restore on unmount. Tab cycling within
+  // the dialog is handled by the keydown trap above.
   useEffect(() => {
     if (!mounted) return;
     previousFocusRef.current = document.activeElement as HTMLElement | null;
@@ -145,7 +172,16 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
         </button>
       </header>
 
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+      <div
+        className="relative flex flex-1 items-center justify-center overflow-hidden"
+        onClick={(e) => {
+          // Mirror the dialog-root backdrop-close handler so clicks on
+          // the dark space around the image (between the image wrapper
+          // and the flex container's edges) also close. Without this,
+          // most of the on-screen backdrop area was unclickable.
+          if (e.target === e.currentTarget) closeLightbox();
+        }}
+      >
         {items.length > 1 && (
           <button
             type="button"
