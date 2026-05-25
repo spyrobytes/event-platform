@@ -15,6 +15,7 @@ import {
 } from "@/lib/providers/google-drive";
 import {
   generateStateNonce,
+  sanitizeNextUrl,
   signOAuthState,
   STATE_COOKIE_NAME,
   STATE_COOKIE_PATH,
@@ -44,6 +45,11 @@ export async function POST(request: NextRequest) {
     }
     assertCanMutate(user);
 
+    const body = await request.json().catch(() => ({}));
+    const next = sanitizeNextUrl(
+      typeof body?.next === "string" ? body.next : undefined,
+    );
+
     const state = generateStateNonce();
     const { verifier, challenge } = generatePkcePair();
 
@@ -57,7 +63,12 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    const cookieValue = signOAuthState({ userId: user.id, state, verifier });
+    const cookieValue = signOAuthState({
+      userId: user.id,
+      state,
+      verifier,
+      ...(next ? { next } : {}),
+    });
     const cookieStore = await cookies();
     cookieStore.set(STATE_COOKIE_NAME, cookieValue, {
       httpOnly: true,
