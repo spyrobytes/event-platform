@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsSnapshot, RSVPFunnel, VelocityChart } from "@/components/features/Analytics";
 import { RSVPDeadlineInfo, SlugEditor } from "@/components/features";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { isPostEventGalleryEnabledClient } from "@/lib/gallery-feature-flag";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -282,6 +283,11 @@ export default function EventDetailPage() {
               )}
             </Button>
           </Link>
+          {isPostEventGalleryEnabledClient() && (
+            <Link href={`/dashboard/events/${event.id}/gallery`}>
+              <Button variant="outline">Gallery</Button>
+            </Link>
+          )}
           <Link href={`/dashboard/events/${event.id}/edit`}>
             <Button variant="outline">Edit</Button>
           </Link>
