@@ -198,6 +198,72 @@ export async function refreshGoogleDriveAccessToken(
   };
 }
 
+const DRIVE_FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
+
+/**
+ * Typed download error so the worker can classify failures into the
+ * error_code vocabulary from plan §15 (SOURCE_FILE_NOT_FOUND,
+ * SOURCE_PERMISSION_DENIED, SOURCE_DOWNLOAD_FAILED).
+ */
+export class GoogleDriveDownloadError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly errorCode:
+      | "SOURCE_FILE_NOT_FOUND"
+      | "SOURCE_PERMISSION_DENIED"
+      | "SOURCE_DOWNLOAD_FAILED",
+    detail?: string,
+  ) {
+    super(
+      `Google Drive download ${status}: ${detail ?? errorCode}`,
+    );
+  }
+}
+
+/**
+ * Downloads a file's binary content from Drive. Returns the buffer plus
+ * the server-reported MIME type — we re-validate the MIME against the
+ * buffer's magic bytes in the worker, since the Picker's mimeType is
+ * client-reported metadata and not authoritative.
+ *
+ * The drive.file scope grants access only to files the user explicitly
+ * picked via the Picker, so a 403 here typically means the user revoked
+ * the app's access at their Google Account (handled upstream by
+ * getValidAccessToken's invalid_grant detection) — but if a single file
+ * gets shared/unshared between selection and import, we still hit 403.
+ */
+export async function downloadDriveFile(
+  accessToken: string,
+  fileId: string,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const url = `${DRIVE_FILES_ENDPOINT}/${encodeURIComponent(fileId)}?alt=media`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  } catch (err) {
+    throw new GoogleDriveDownloadError(
+      0,
+      "SOURCE_DOWNLOAD_FAILED",
+      err instanceof Error ? err.message : "fetch failed",
+    );
+  }
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new GoogleDriveDownloadError(404, "SOURCE_FILE_NOT_FOUND");
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new GoogleDriveDownloadError(res.status, "SOURCE_PERMISSION_DENIED");
+    }
+    throw new GoogleDriveDownloadError(res.status, "SOURCE_DOWNLOAD_FAILED");
+  }
+  const arrayBuf = await res.arrayBuffer();
+  const buffer = Buffer.from(arrayBuf);
+  const mimeType = res.headers.get("content-type") ?? "application/octet-stream";
+  return { buffer, mimeType };
+}
+
 /**
  * Revokes a token with Google. Accepts either an access or refresh token
  * (Google treats both as revocable). Best-effort: caller should still mark

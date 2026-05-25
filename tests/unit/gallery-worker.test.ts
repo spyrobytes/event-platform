@@ -1,0 +1,438 @@
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { randomBytes } from "node:crypto";
+
+beforeAll(() => {
+  process.env.POST_EVENT_GALLERY_ENABLED = "true";
+  process.env.PROVIDER_TOKEN_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+});
+
+// ---------------------------------------------------------------------------
+// Mock surfaces: DB, getValidAccessToken, Drive download, image pipeline.
+// ---------------------------------------------------------------------------
+
+const dbMock = {
+  eventGalleryItem: {
+    update: vi.fn(),
+    groupBy: vi.fn(),
+  },
+  eventGallery: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+  galleryImportJob: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+};
+vi.mock("@/lib/db", () => ({ db: dbMock }));
+
+const getValidAccessTokenMock = vi.fn();
+const ProviderTokenNotFoundErrorCls = class extends Error {
+  readonly code = "PROVIDER_TOKEN_NOT_FOUND";
+};
+const ProviderTokenRevokedErrorCls = class extends Error {
+  readonly code = "PROVIDER_TOKEN_REVOKED";
+};
+vi.mock("@/lib/provider-tokens", () => ({
+  getValidAccessToken: getValidAccessTokenMock,
+  encryptToken: vi.fn(),
+  decryptToken: vi.fn(),
+  ProviderTokenNotFoundError: ProviderTokenNotFoundErrorCls,
+  ProviderTokenRevokedError: ProviderTokenRevokedErrorCls,
+}));
+
+const downloadDriveFileMock = vi.fn();
+class GoogleDriveDownloadErrorCls extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly errorCode:
+      | "SOURCE_FILE_NOT_FOUND"
+      | "SOURCE_PERMISSION_DENIED"
+      | "SOURCE_DOWNLOAD_FAILED",
+    detail?: string,
+  ) {
+    super(`Google Drive download ${status}: ${detail ?? errorCode}`);
+  }
+}
+vi.mock("@/lib/providers/google-drive", () => ({
+  downloadDriveFile: downloadDriveFileMock,
+  GoogleDriveDownloadError: GoogleDriveDownloadErrorCls,
+}));
+
+const uploadFileMock = vi.fn();
+vi.mock("@/lib/supabase-storage", () => ({
+  uploadFile: uploadFileMock,
+  BUCKETS: { gallery: "gallery", eventAssets: "event-assets" },
+}));
+
+// optimizeImage + generateBlurDataUrl come from media-validation; the
+// worker calls both. Stub with deterministic outputs.
+const optimizeImageMock = vi.fn();
+const generateBlurDataUrlMock = vi.fn();
+vi.mock("@/lib/media-validation", () => ({
+  optimizeImage: optimizeImageMock,
+  generateBlurDataUrl: generateBlurDataUrlMock,
+}));
+
+// file-type uses dynamic import inside the worker. Mock the module so
+// the dynamic import resolves to our stub.
+const fileTypeFromBufferMock = vi.fn();
+vi.mock("file-type", () => ({
+  fileTypeFromBuffer: fileTypeFromBufferMock,
+}));
+
+// sharp() is called for the thumbnail and for metadata reads. The
+// optimizeImage mock already covers the large-image path; we only need
+// the thumbnail .resize(...).webp(...).toBuffer() chain here.
+const sharpThumbBuffer = Buffer.from("thumb-bytes");
+vi.mock("sharp", () => ({
+  default: vi.fn(() => ({
+    resize: vi.fn().mockReturnThis(),
+    webp: vi.fn().mockReturnThis(),
+    toBuffer: vi.fn().mockResolvedValue(sharpThumbBuffer),
+    metadata: vi.fn().mockResolvedValue({ width: 1600, height: 1200 }),
+  })),
+}));
+
+const { __testing, processGalleryImports } = await import(
+  "@/lib/gallery-worker"
+);
+const { processItem, persistOutcome, reconcileJobs } = __testing;
+
+// ---------------------------------------------------------------------------
+// Shared fixtures
+// ---------------------------------------------------------------------------
+
+const makeItem = (overrides: Partial<{ id: string; gallery_id: string; source_file_id: string; attempts: number }> = {}) => ({
+  id: overrides.id ?? "item_1",
+  gallery_id: overrides.gallery_id ?? "gal_1",
+  source_file_id: overrides.source_file_id ?? "drive_file_1",
+  attempts: overrides.attempts ?? 1,
+});
+
+const gallery = { id: "gal_1", event_id: "evt_1" };
+const event = { id: "evt_1", creator_id: "user_1" };
+
+const downloadedJpeg = {
+  buffer: Buffer.from("fake-jpeg-bytes"),
+  mimeType: "image/jpeg",
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Defaults that make the happy path succeed.
+  getValidAccessTokenMock.mockResolvedValue("ya29.fake-access-token");
+  downloadDriveFileMock.mockResolvedValue(downloadedJpeg);
+  fileTypeFromBufferMock.mockResolvedValue({ mime: "image/jpeg", ext: "jpg" });
+  optimizeImageMock.mockResolvedValue({
+    buffer: Buffer.from("optimized-bytes"),
+    width: 1600,
+    height: 1200,
+    format: "webp",
+  });
+  generateBlurDataUrlMock.mockResolvedValue("data:image/webp;base64,blur");
+  uploadFileMock.mockResolvedValue({
+    path: "events/evt_1/galleries/gal_1/items/item_1/large.webp",
+    publicUrl: "https://supabase.example/large.webp",
+  });
+});
+
+// ---------------------------------------------------------------------------
+// processItem
+// ---------------------------------------------------------------------------
+
+describe("processItem — happy path", () => {
+  it("returns READY with all storage URLs + dimensions populated", async () => {
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("READY");
+    if (result.outcome === "READY") {
+      expect(result.data.publicUrl).toMatch(/^https:/);
+      expect(result.data.width).toBe(1600);
+      expect(result.data.height).toBe(1200);
+      expect(result.data.blurDataUrl).toMatch(/^data:image\/webp/);
+      expect(result.data.storageKey).toContain("events/evt_1/galleries/gal_1");
+      expect(result.data.mimeType).toBe("image/webp");
+    }
+  });
+});
+
+describe("processItem — error classification", () => {
+  it("FAILED with SOURCE_FILE_NOT_FOUND when source_file_id is missing", async () => {
+    const result = await processItem(
+      { ...makeItem(), source_file_id: null },
+      gallery,
+      event,
+    );
+    expect(result.outcome).toBe("FAILED");
+    if (result.outcome === "FAILED") {
+      expect(result.errorCode).toBe("SOURCE_FILE_NOT_FOUND");
+    }
+  });
+
+  it("FAILED with RECONNECT_REQUIRED when token is revoked", async () => {
+    getValidAccessTokenMock.mockRejectedValueOnce(
+      new ProviderTokenRevokedErrorCls("revoked"),
+    );
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("FAILED");
+    if (result.outcome === "FAILED") {
+      expect(result.errorCode).toBe("RECONNECT_REQUIRED");
+    }
+  });
+
+  it("FAILED (permanent) on Drive 404", async () => {
+    downloadDriveFileMock.mockRejectedValueOnce(
+      new GoogleDriveDownloadErrorCls(404, "SOURCE_FILE_NOT_FOUND"),
+    );
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("FAILED");
+    if (result.outcome === "FAILED") {
+      expect(result.errorCode).toBe("SOURCE_FILE_NOT_FOUND");
+    }
+  });
+
+  it("RETRY on transient Drive failure", async () => {
+    downloadDriveFileMock.mockRejectedValueOnce(
+      new GoogleDriveDownloadErrorCls(0, "SOURCE_DOWNLOAD_FAILED", "fetch failed"),
+    );
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("RETRY");
+    if (result.outcome === "RETRY") {
+      expect(result.errorCode).toBe("SOURCE_DOWNLOAD_FAILED");
+    }
+  });
+
+  it("SKIPPED when magic-byte MIME isn't in the allowlist (HEIC, etc.)", async () => {
+    fileTypeFromBufferMock.mockResolvedValueOnce({ mime: "image/heic", ext: "heic" });
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("SKIPPED");
+    if (result.outcome === "SKIPPED") {
+      expect(result.errorCode).toBe("UNSUPPORTED_MIME_TYPE");
+    }
+  });
+
+  it("FAILED with FILE_TOO_LARGE when buffer exceeds the cap", async () => {
+    downloadDriveFileMock.mockResolvedValueOnce({
+      buffer: Buffer.alloc(11 * 1024 * 1024), // 11 MB
+      mimeType: "image/jpeg",
+    });
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("FAILED");
+    if (result.outcome === "FAILED") {
+      expect(result.errorCode).toBe("FILE_TOO_LARGE");
+    }
+  });
+
+  it("RETRY with STORAGE_UPLOAD_FAILED when uploadFile returns { error }", async () => {
+    uploadFileMock.mockResolvedValueOnce({ error: "Storage 500" });
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("RETRY");
+    if (result.outcome === "RETRY") {
+      expect(result.errorCode).toBe("STORAGE_UPLOAD_FAILED");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// persistOutcome
+// ---------------------------------------------------------------------------
+
+describe("persistOutcome", () => {
+  it("writes READY + URLs and clears errorCode/lockedAt", async () => {
+    await persistOutcome(makeItem(), {
+      outcome: "READY",
+      data: {
+        publicUrl: "u",
+        thumbnailUrl: "t",
+        storageKey: "k",
+        thumbnailKey: "tk",
+        width: 1,
+        height: 1,
+        blurDataUrl: "b",
+        sizeBytes: 1,
+        mimeType: "image/webp",
+      },
+    });
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data.status).toBe("READY");
+    expect(update.data.errorCode).toBeNull();
+    expect(update.data.lockedAt).toBeNull();
+    expect(update.data.publicUrl).toBe("u");
+  });
+
+  it("writes FAILED with errorCode for permanent errors", async () => {
+    await persistOutcome(makeItem({ attempts: 1 }), {
+      outcome: "FAILED",
+      errorCode: "SOURCE_FILE_NOT_FOUND",
+      errorMessage: "gone",
+    });
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data.status).toBe("FAILED");
+    expect(update.data.errorCode).toBe("SOURCE_FILE_NOT_FOUND");
+  });
+
+  it("writes SKIPPED with errorCode for unsupported MIME", async () => {
+    await persistOutcome(makeItem(), {
+      outcome: "SKIPPED",
+      errorCode: "UNSUPPORTED_MIME_TYPE",
+      errorMessage: "heic",
+    });
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data.status).toBe("SKIPPED");
+  });
+
+  it("RETRY under the attempt cap drops back to PENDING", async () => {
+    await persistOutcome(makeItem({ attempts: 1 }), {
+      outcome: "RETRY",
+      errorCode: "SOURCE_DOWNLOAD_FAILED",
+      errorMessage: "transient",
+    });
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data.status).toBe("PENDING");
+    expect(update.data.errorCode).toBe("SOURCE_DOWNLOAD_FAILED");
+  });
+
+  it("RETRY at/over the attempt cap becomes terminal FAILED", async () => {
+    await persistOutcome(makeItem({ attempts: 3 }), {
+      outcome: "RETRY",
+      errorCode: "SOURCE_DOWNLOAD_FAILED",
+      errorMessage: "transient",
+    });
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data.status).toBe("FAILED");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reconcileJobs
+// ---------------------------------------------------------------------------
+
+describe("reconcileJobs", () => {
+  it("marks job COMPLETED + gallery READY when all items are READY", async () => {
+    dbMock.galleryImportJob.findUnique.mockResolvedValueOnce({
+      id: "job_1",
+      galleryId: "gal_1",
+      status: "PROCESSING",
+      startedAt: new Date(),
+    });
+    dbMock.eventGalleryItem.groupBy.mockResolvedValueOnce([
+      { status: "READY", _count: { _all: 5 } },
+    ]);
+    dbMock.eventGallery.findUnique.mockResolvedValueOnce({ status: "SYNCING" });
+
+    await reconcileJobs(["job_1"]);
+
+    const jobUpdate = dbMock.galleryImportJob.update.mock.calls[0][0];
+    expect(jobUpdate.data.status).toBe("COMPLETED");
+    expect(jobUpdate.data.processedItems).toBe(5);
+    expect(jobUpdate.data.completedAt).toBeInstanceOf(Date);
+
+    const galleryUpdate = dbMock.eventGallery.update.mock.calls[0][0];
+    expect(galleryUpdate.data.status).toBe("READY");
+  });
+
+  it("marks job PARTIAL + gallery READY when some succeed and some fail", async () => {
+    dbMock.galleryImportJob.findUnique.mockResolvedValueOnce({
+      id: "job_1",
+      galleryId: "gal_1",
+      status: "PROCESSING",
+      startedAt: new Date(),
+    });
+    dbMock.eventGalleryItem.groupBy.mockResolvedValueOnce([
+      { status: "READY", _count: { _all: 3 } },
+      { status: "FAILED", _count: { _all: 2 } },
+    ]);
+    dbMock.eventGallery.findUnique.mockResolvedValueOnce({ status: "SYNCING" });
+
+    await reconcileJobs(["job_1"]);
+
+    expect(dbMock.galleryImportJob.update.mock.calls[0][0].data.status).toBe("PARTIAL");
+    expect(dbMock.eventGallery.update.mock.calls[0][0].data.status).toBe("READY");
+  });
+
+  it("marks job FAILED + gallery ERROR when every item failed", async () => {
+    dbMock.galleryImportJob.findUnique.mockResolvedValueOnce({
+      id: "job_1",
+      galleryId: "gal_1",
+      status: "PROCESSING",
+      startedAt: new Date(),
+    });
+    dbMock.eventGalleryItem.groupBy.mockResolvedValueOnce([
+      { status: "FAILED", _count: { _all: 4 } },
+    ]);
+    dbMock.eventGallery.findUnique.mockResolvedValueOnce({ status: "SYNCING" });
+
+    await reconcileJobs(["job_1"]);
+
+    expect(dbMock.galleryImportJob.update.mock.calls[0][0].data.status).toBe("FAILED");
+    expect(dbMock.eventGallery.update.mock.calls[0][0].data.status).toBe("ERROR");
+  });
+
+  it("keeps job in PROCESSING + gallery in SYNCING while items remain pending", async () => {
+    dbMock.galleryImportJob.findUnique.mockResolvedValueOnce({
+      id: "job_1",
+      galleryId: "gal_1",
+      status: "QUEUED",
+      startedAt: null,
+    });
+    dbMock.eventGalleryItem.groupBy.mockResolvedValueOnce([
+      { status: "READY", _count: { _all: 2 } },
+      { status: "PENDING", _count: { _all: 3 } },
+    ]);
+    dbMock.eventGallery.findUnique.mockResolvedValueOnce({ status: "DRAFT" });
+
+    await reconcileJobs(["job_1"]);
+
+    const jobUpdate = dbMock.galleryImportJob.update.mock.calls[0][0];
+    expect(jobUpdate.data.status).toBe("PROCESSING");
+    expect(jobUpdate.data.completedAt).toBeUndefined();
+    expect(jobUpdate.data.startedAt).toBeInstanceOf(Date);
+
+    const galleryUpdate = dbMock.eventGallery.update.mock.calls[0][0];
+    expect(galleryUpdate.data.status).toBe("SYNCING");
+  });
+
+  it("never touches a PUBLISHED gallery's status", async () => {
+    dbMock.galleryImportJob.findUnique.mockResolvedValueOnce({
+      id: "job_1",
+      galleryId: "gal_1",
+      status: "PROCESSING",
+      startedAt: new Date(),
+    });
+    dbMock.eventGalleryItem.groupBy.mockResolvedValueOnce([
+      { status: "READY", _count: { _all: 5 } },
+    ]);
+    dbMock.eventGallery.findUnique.mockResolvedValueOnce({ status: "PUBLISHED" });
+
+    await reconcileJobs(["job_1"]);
+
+    // Job is reconciled, but the gallery update is NOT called.
+    expect(dbMock.galleryImportJob.update).toHaveBeenCalledOnce();
+    expect(dbMock.eventGallery.update).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// processGalleryImports (top-level) — exercise the no-work short-circuit
+// ---------------------------------------------------------------------------
+
+describe("processGalleryImports — empty queue", () => {
+  it("returns zero counts with no DB writes when nothing is pending", async () => {
+    // claimPendingItems uses $queryRaw which we haven't mocked; if nothing
+    // is in the test DB it returns []. We override the worker's claim
+    // function indirectly by mocking $queryRaw via the db mock.
+    (dbMock as unknown as { $queryRaw: ReturnType<typeof vi.fn> }).$queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([]);
+
+    const summary = await processGalleryImports();
+    expect(summary).toEqual({
+      claimed: 0,
+      ready: 0,
+      failed: 0,
+      skipped: 0,
+      jobsReconciled: 0,
+    });
+    expect(dbMock.eventGalleryItem.update).not.toHaveBeenCalled();
+  });
+});
