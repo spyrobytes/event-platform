@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, Fragment } from "react";
+import { useMemo, Fragment, type ReactNode } from "react";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { getWeddingVariant, DEFAULT_VARIANT_ID } from "./variants";
@@ -50,8 +50,8 @@ type WeddingTemplateProps = {
   temporal?: TemporalData;
   /** Slots populated by the page when a post-event gallery is published.
    *  See TemplateProps in src/components/templates/index.ts. */
-  postEventGalleryCta?: React.ReactNode;
-  postEventGalleryTeaser?: React.ReactNode;
+  postEventGalleryCta?: ReactNode;
+  postEventGalleryTeaser?: ReactNode;
 };
 
 import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";

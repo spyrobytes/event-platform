@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { AnimationProvider, AnimatedWrapper, SectionNavProvider, SectionNav } from "../shared";
@@ -23,8 +24,8 @@ type PartyTemplateV1Props = {
   eventSlug?: string;
   /** Slots populated by the page when a post-event gallery is published.
    *  See TemplateProps in src/components/templates/index.ts. */
-  postEventGalleryCta?: React.ReactNode;
-  postEventGalleryTeaser?: React.ReactNode;
+  postEventGalleryCta?: ReactNode;
+  postEventGalleryTeaser?: ReactNode;
 };
 
 import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";

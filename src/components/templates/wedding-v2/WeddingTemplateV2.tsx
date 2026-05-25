@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, Fragment } from "react";
+import { useMemo, Fragment, type ReactNode } from "react";
 import type { EventPageConfigV1, ChromeConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import {
@@ -86,8 +86,8 @@ type WeddingTemplateV2Props = {
   canShare?: boolean;
   /** Slots populated by the page when a post-event gallery is published.
    *  See TemplateProps in src/components/templates/index.ts. */
-  postEventGalleryCta?: React.ReactNode;
-  postEventGalleryTeaser?: React.ReactNode;
+  postEventGalleryCta?: ReactNode;
+  postEventGalleryTeaser?: ReactNode;
 };
 
 /** Map section type to anchor ID */
