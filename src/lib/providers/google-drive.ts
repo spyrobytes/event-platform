@@ -200,18 +200,21 @@ export async function refreshGoogleDriveAccessToken(
 
 const DRIVE_FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 
+export type GoogleDriveDownloadErrorCode =
+  | "SOURCE_FILE_NOT_FOUND"
+  | "SOURCE_PERMISSION_DENIED"
+  | "SOURCE_DOWNLOAD_FAILED"
+  | "FILE_TOO_LARGE";
+
 /**
  * Typed download error so the worker can classify failures into the
  * error_code vocabulary from plan §15 (SOURCE_FILE_NOT_FOUND,
- * SOURCE_PERMISSION_DENIED, SOURCE_DOWNLOAD_FAILED).
+ * SOURCE_PERMISSION_DENIED, SOURCE_DOWNLOAD_FAILED, FILE_TOO_LARGE).
  */
 export class GoogleDriveDownloadError extends Error {
   constructor(
     public readonly status: number,
-    public readonly errorCode:
-      | "SOURCE_FILE_NOT_FOUND"
-      | "SOURCE_PERMISSION_DENIED"
-      | "SOURCE_DOWNLOAD_FAILED",
+    public readonly errorCode: GoogleDriveDownloadErrorCode,
     detail?: string,
   ) {
     super(
@@ -219,6 +222,10 @@ export class GoogleDriveDownloadError extends Error {
     );
   }
 }
+
+/** Half the Vercel function maxDuration. Leaves budget for processing
+ *  after the download lands. */
+const DOWNLOAD_TIMEOUT_MS = 30_000;
 
 /**
  * Downloads a file's binary content from Drive. Returns the buffer plus
@@ -231,18 +238,29 @@ export class GoogleDriveDownloadError extends Error {
  * the app's access at their Google Account (handled upstream by
  * getValidAccessToken's invalid_grant detection) — but if a single file
  * gets shared/unshared between selection and import, we still hit 403.
+ *
+ * `maxBytes` is checked against the Content-Length response header
+ * BEFORE the body is read into memory. This guards the function against
+ * OOM if Drive metadata claimed a small size but the actual file is
+ * huge. Defense-in-depth — the worker also re-checks buffer length
+ * after the download lands.
  */
 export async function downloadDriveFile(
   accessToken: string,
   fileId: string,
+  options: { maxBytes?: number; timeoutMs?: number } = {},
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   const url = `${DRIVE_FILES_ENDPOINT}/${encodeURIComponent(fileId)}?alt=media`;
+  const timeoutMs = options.timeoutMs ?? DOWNLOAD_TIMEOUT_MS;
   let res: Response;
   try {
     res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
+    // AbortError lands here when the timeout fires; treat as transient
+    // SOURCE_DOWNLOAD_FAILED so the worker auto-retries.
     throw new GoogleDriveDownloadError(
       0,
       "SOURCE_DOWNLOAD_FAILED",
@@ -257,6 +275,19 @@ export async function downloadDriveFile(
       throw new GoogleDriveDownloadError(res.status, "SOURCE_PERMISSION_DENIED");
     }
     throw new GoogleDriveDownloadError(res.status, "SOURCE_DOWNLOAD_FAILED");
+  }
+  if (options.maxBytes !== undefined) {
+    const declared = res.headers.get("content-length");
+    if (declared) {
+      const declaredSize = Number.parseInt(declared, 10);
+      if (Number.isFinite(declaredSize) && declaredSize > options.maxBytes) {
+        throw new GoogleDriveDownloadError(
+          res.status,
+          "FILE_TOO_LARGE",
+          `Declared size ${declaredSize} bytes exceeds limit ${options.maxBytes}`,
+        );
+      }
+    }
   }
   const arrayBuf = await res.arrayBuffer();
   const buffer = Buffer.from(arrayBuf);

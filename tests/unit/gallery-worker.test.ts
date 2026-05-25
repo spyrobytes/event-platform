@@ -48,7 +48,8 @@ class GoogleDriveDownloadErrorCls extends Error {
     public readonly errorCode:
       | "SOURCE_FILE_NOT_FOUND"
       | "SOURCE_PERMISSION_DENIED"
-      | "SOURCE_DOWNLOAD_FAILED",
+      | "SOURCE_DOWNLOAD_FAILED"
+      | "FILE_TOO_LARGE",
     detail?: string,
   ) {
     super(`Google Drive download ${status}: ${detail ?? errorCode}`);
@@ -216,6 +217,19 @@ describe("processItem — error classification", () => {
       buffer: Buffer.alloc(11 * 1024 * 1024), // 11 MB
       mimeType: "image/jpeg",
     });
+    const result = await processItem(makeItem(), gallery, event);
+    expect(result.outcome).toBe("FAILED");
+    if (result.outcome === "FAILED") {
+      expect(result.errorCode).toBe("FILE_TOO_LARGE");
+    }
+  });
+
+  it("FAILED with FILE_TOO_LARGE when the provider rejects on Content-Length", async () => {
+    // The provider's new Content-Length guard throws BEFORE the body is
+    // read, so we never allocate the oversized buffer in memory.
+    downloadDriveFileMock.mockRejectedValueOnce(
+      new GoogleDriveDownloadErrorCls(200, "FILE_TOO_LARGE", "declared 50MB"),
+    );
     const result = await processItem(makeItem(), gallery, event);
     expect(result.outcome).toBe("FAILED");
     if (result.outcome === "FAILED") {

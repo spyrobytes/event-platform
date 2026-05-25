@@ -209,7 +209,9 @@ async function processItem(
 
   let buffer: Buffer;
   try {
-    const downloaded = await downloadDriveFile(accessToken, item.source_file_id);
+    const downloaded = await downloadDriveFile(accessToken, item.source_file_id, {
+      maxBytes: GALLERY_LIMITS.maxImageBytes,
+    });
     buffer = downloaded.buffer;
   } catch (err) {
     const { code, message } = classifyError(err);
@@ -279,14 +281,19 @@ async function processItem(
   try {
     // uploadFile returns a discriminated union — flatten "error" arms
     // into thrown errors so the outer try/catch picks them up uniformly.
+    // upsert: true so a retry after a partial-upload failure (one leg of
+    // Promise.all succeeded, the other failed) doesn't deadlock on the
+    // existing object. Worker idempotency depends on this.
     const [largeUpload, thumbUpload] = await Promise.all([
       uploadFile(BUCKETS.gallery, storageKey, largeBuffer, {
         contentType: "image/webp",
         cacheControl: "public, max-age=31536000, immutable",
+        upsert: true,
       }),
       uploadFile(BUCKETS.gallery, thumbnailKey, thumbBuffer, {
         contentType: "image/webp",
         cacheControl: "public, max-age=31536000, immutable",
+        upsert: true,
       }),
     ]);
     if ("error" in largeUpload) throw new Error(largeUpload.error);
