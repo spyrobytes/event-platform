@@ -446,6 +446,11 @@ enum EmailTemplate {
   VERIFICATION
   PASSWORD_RESET
   NO_RESPONSE_REMINDER
+  // Post-event gallery published notification. Sent to RSVPed-yes,
+  // non-unsubscribed invites when the organizer ticks the opt-in
+  // checkbox on the publish flow (PR #8 — Phase 5). Optional, default
+  // off — organizers may want to share the gallery out-of-band.
+  GALLERY_PUBLISHED
 }
 
 enum EmailStatus {

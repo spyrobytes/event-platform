@@ -8,6 +8,7 @@ import { ReminderEmail } from "@/emails/ReminderEmail";
 import { VerificationEmail } from "@/emails/VerificationEmail";
 import { PasswordResetEmail } from "@/emails/PasswordResetEmail";
 import { NoResponseReminderEmail } from "@/emails/NoResponseReminderEmail";
+import { GalleryPublishedEmail } from "@/emails/GalleryPublishedEmail";
 import { buildPassUrl, generateQrPngBuffer, QR_ATTACHMENT_FILENAME } from "./qr";
 import { AppError } from "./errors";
 import type { EmailStatus, Prisma } from "@prisma/client";
@@ -285,6 +286,16 @@ type NoResponseReminderEmailPayload = {
   unsubscribeUrl?: string;
 };
 
+type GalleryPublishedEmailPayload = {
+  guestName: string;
+  eventTitle: string;
+  hostName: string;
+  galleryUrl: string;
+  coverUrl?: string;
+  photoCount?: number;
+  unsubscribeUrl?: string;
+};
+
 /**
  * Build an unsubscribe URL for an invite token.
  */
@@ -545,6 +556,9 @@ export async function processEmail(emailId: string): Promise<void> {
         break;
       case "NO_RESPONSE_REMINDER":
         html = await render(NoResponseReminderEmail(payload as unknown as NoResponseReminderEmailPayload));
+        break;
+      case "GALLERY_PUBLISHED":
+        html = await render(GalleryPublishedEmail(payload as unknown as GalleryPublishedEmailPayload));
         break;
       default:
         throw new Error(`Unknown template: ${email.template}`);

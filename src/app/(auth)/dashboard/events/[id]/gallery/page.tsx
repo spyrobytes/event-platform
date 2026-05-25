@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   GalleryExternalLinkForm,
   GalleryItemsManager,
+  GalleryPublishDialog,
   GoogleDriveGallerySection,
 } from "@/components/features/PostEventGallery";
 import type {
@@ -51,6 +52,8 @@ export default function PostEventGalleryDashboardPage() {
   const [gallery, setGallery] = useState<GalleryRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [publishToast, setPublishToast] = useState<string | null>(null);
   const [actionPending, setActionPending] = useState<
     "publish" | "unpublish" | "delete" | null
   >(null);
@@ -280,27 +283,33 @@ export default function PostEventGalleryDashboardPage() {
             <h3 className="text-base font-medium">Actions</h3>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               {gallery.status === "PUBLISHED" ? (
-                <Button
-                  variant="outline"
-                  disabled={actionPending !== null}
-                  onClick={async () => {
-                    const ok = await callGalleryAction("unpublish", gallery.id);
-                    if (ok) await load();
-                  }}
-                >
-                  {actionPending === "unpublish"
-                    ? "Unpublishing…"
-                    : "Unpublish"}
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    disabled={actionPending !== null}
+                    onClick={async () => {
+                      const ok = await callGalleryAction("unpublish", gallery.id);
+                      if (ok) await load();
+                    }}
+                  >
+                    {actionPending === "unpublish"
+                      ? "Unpublishing…"
+                      : "Unpublish"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={actionPending !== null}
+                    onClick={() => setShowPublishDialog(true)}
+                  >
+                    Re-notify guests
+                  </Button>
+                </>
               ) : (
                 <Button
                   disabled={actionPending !== null}
-                  onClick={async () => {
-                    const ok = await callGalleryAction("publish", gallery.id);
-                    if (ok) await load();
-                  }}
+                  onClick={() => setShowPublishDialog(true)}
                 >
-                  {actionPending === "publish" ? "Publishing…" : "Publish"}
+                  Publish
                 </Button>
               )}
               <Button
@@ -317,6 +326,38 @@ export default function PostEventGalleryDashboardPage() {
             </p>
           </div>
         </div>
+      )}
+
+      {publishToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm text-success"
+        >
+          {publishToast}
+        </div>
+      )}
+
+      {gallery && (
+        <GalleryPublishDialog
+          open={showPublishDialog}
+          eventId={event.id}
+          galleryId={gallery.id}
+          alreadyPublished={gallery.status === "PUBLISHED"}
+          getIdToken={getIdToken}
+          onCancel={() => setShowPublishDialog(false)}
+          onPublished={({ emailsQueued }) => {
+            setShowPublishDialog(false);
+            setPublishToast(
+              emailsQueued > 0
+                ? `Gallery published. Queued ${emailsQueued} guest ${emailsQueued === 1 ? "email" : "emails"} — they'll send on the next mail tick (~5 min).`
+                : "Gallery published.",
+            );
+            void load();
+            // Auto-dismiss after 8s so the toast doesn't sit forever.
+            window.setTimeout(() => setPublishToast(null), 8000);
+          }}
+        />
       )}
 
       <ConfirmDialog
