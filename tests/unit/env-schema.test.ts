@@ -56,3 +56,38 @@ describe("serverEnvSchema — optional URL fields", () => {
     expect(result.SENTRY_DSN).toBeUndefined();
   });
 });
+
+describe("serverEnvSchema — GEOCODER_PROVIDER empty-string handling", () => {
+  // Regression: an empty `GEOCODER_PROVIDER=` line in .env.example used to
+  // fail enum validation because `.default("none")` only kicks in on
+  // `undefined`. Transform-then-pipe collapses empty string to undefined
+  // first, mirroring the `optionalUrl` helper.
+  it('treats "" as "none" via the transform fallback', () => {
+    const result = serverEnvSchema.parse({
+      ...baseValidEnv,
+      GEOCODER_PROVIDER: "",
+    });
+    expect(result.GEOCODER_PROVIDER).toBe("none");
+  });
+
+  it("applies the default when the var is absent", () => {
+    const result = serverEnvSchema.parse(baseValidEnv);
+    expect(result.GEOCODER_PROVIDER).toBe("none");
+  });
+
+  it("accepts an explicit locationiq value", () => {
+    const result = serverEnvSchema.parse({
+      ...baseValidEnv,
+      GEOCODER_PROVIDER: "locationiq",
+    });
+    expect(result.GEOCODER_PROVIDER).toBe("locationiq");
+  });
+
+  it("still rejects values that aren't in the enum", () => {
+    const result = serverEnvSchema.safeParse({
+      ...baseValidEnv,
+      GEOCODER_PROVIDER: "google",
+    });
+    expect(result.success).toBe(false);
+  });
+});
