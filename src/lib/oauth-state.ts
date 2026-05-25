@@ -24,7 +24,26 @@ export type OAuthStatePayload = {
   state: string;
   verifier: string;
   exp: number;
+  /** Optional internal path the callback should redirect to on success.
+   * Validated by the caller to start with "/dashboard" — never trust the
+   * raw value as an open redirect target. */
+  next?: string;
 };
+
+/**
+ * Validates a candidate `next` URL before encoding into state. Only allows
+ * internal dashboard paths to prevent the callback from being weaponized
+ * as an open redirector. Returns `undefined` for any path that doesn't
+ * start with "/dashboard" so callers can fall back to a safe default.
+ */
+export function sanitizeNextUrl(candidate: string | undefined | null): string | undefined {
+  if (!candidate) return undefined;
+  if (!candidate.startsWith("/dashboard")) return undefined;
+  // Reject protocol-relative URLs like "//evil.com" that startsWith("/")
+  // would still match after the leading slash.
+  if (candidate.startsWith("//")) return undefined;
+  return candidate;
+}
 
 function getSigningKey(): Buffer {
   const raw = process.env.OAUTH_STATE_SIGNING_KEY;
@@ -86,7 +105,8 @@ export function verifyOAuthState(cookieValue: string): OAuthStatePayload {
     typeof payload.userId !== "string" ||
     typeof payload.state !== "string" ||
     typeof payload.verifier !== "string" ||
-    typeof payload.exp !== "number"
+    typeof payload.exp !== "number" ||
+    (payload.next !== undefined && typeof payload.next !== "string")
   ) {
     throw new InvalidOAuthStateError("State payload shape invalid");
   }

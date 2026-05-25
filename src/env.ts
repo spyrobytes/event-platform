@@ -150,6 +150,14 @@ export const clientEnvSchema = z.object({
   // re-check via POST_EVENT_GALLERY_ENABLED — this is for hiding UI only.
   NEXT_PUBLIC_POST_EVENT_GALLERY_ENABLED: z.string().optional(),
 
+  // Google Picker API key (browser-side; "API key" type in Google Cloud
+  // Console with the Picker API enabled). Required for the dashboard
+  // Picker launcher to instantiate. The Picker calls Google APIs
+  // directly from the browser using this key + the OAuth token minted by
+  // /api/auth/google-drive/access-token. Distinct from the server-side
+  // GOOGLE_OAUTH_CLIENT_ID/SECRET (used for the OAuth dance only).
+  NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: z.string().optional(),
+
   // Local development (optional)
   NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST: z.string().optional(),
 });

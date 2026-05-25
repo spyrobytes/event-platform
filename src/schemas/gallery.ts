@@ -96,6 +96,38 @@ export const upsertExternalLinkInputSchema = z.object({
 
 export type UpsertExternalLinkInput = z.infer<typeof upsertExternalLinkInputSchema>;
 
+/**
+ * POST /api/events/[id]/gallery/google-drive/selection
+ *
+ * Shape of one file as returned by Google Picker's `getDocuments()` and
+ * forwarded to the backend. The Picker actually returns more fields
+ * (parentId, lastEditedUtc, …) but we only persist what the worker needs
+ * — provider IDs are not stored beyond what's strictly required.
+ *
+ * `sizeBytes` and `thumbnailUrl` come from the Picker as best-effort and
+ * are NOT used for trust decisions — the worker re-validates everything
+ * server-side via the Drive API before importing.
+ */
+export const googleDrivePickedFileSchema = z.object({
+  id: z.string().min(1).max(120),
+  name: z.string().min(1).max(500),
+  mimeType: z.string().min(1).max(120),
+  sizeBytes: z.number().int().nonnegative().optional(),
+  thumbnailUrl: z.string().url().max(2048).optional(),
+});
+
+export const googleDriveSelectionInputSchema = z.object({
+  files: z
+    .array(googleDrivePickedFileSchema)
+    .min(1, "Pick at least one file")
+    // 200 is a generous upper-bound; per-gallery total is checked separately
+    // against GALLERY_LIMITS.maxImagesPerGallery in the route handler.
+    .max(200, "Too many files in one selection"),
+});
+
+export type GoogleDrivePickedFile = z.infer<typeof googleDrivePickedFileSchema>;
+export type GoogleDriveSelectionInput = z.infer<typeof googleDriveSelectionInputSchema>;
+
 // =============================================================================
 // Public response shapes
 // =============================================================================

@@ -6,7 +6,10 @@ import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { GalleryExternalLinkForm } from "@/components/features/PostEventGallery";
+import {
+  GalleryExternalLinkForm,
+  GoogleDriveGallerySection,
+} from "@/components/features/PostEventGallery";
 import type { GalleryStatus } from "@/schemas/gallery";
 
 type GalleryRow = {
@@ -151,8 +154,8 @@ export default function PostEventGalleryDashboardPage() {
             Post-Event Gallery
           </h1>
           <p className="text-sm text-muted-foreground">
-            Share photos with guests after the event — link out to an album or
-            (coming soon) import from Google Drive.
+            Share photos with guests after the event — link out to an external
+            album or import from Google Drive.
           </p>
         </div>
         {gallery && statusBadge && (
@@ -171,22 +174,40 @@ export default function PostEventGalleryDashboardPage() {
       )}
 
       {!gallery && (
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-lg font-medium">Add an album link</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Paste a link to your photographer&apos;s gallery (Pixieset,
-            SmugMug, a Drive folder, etc). Guests will see a polished landing
-            page that links out to your album.
-          </p>
-          <div className="mt-6">
-            <GalleryExternalLinkForm
-              eventId={event.id}
-              existing={null}
-              getIdToken={getIdToken}
-              onSaved={() => void load()}
-            />
+        <>
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h2 className="text-lg font-medium">Add an album link</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Paste a link to your photographer&apos;s gallery (Pixieset,
+              SmugMug, a Drive folder, etc). Guests will see a polished landing
+              page that links out to your album.
+            </p>
+            <div className="mt-6">
+              <GalleryExternalLinkForm
+                eventId={event.id}
+                existing={null}
+                getIdToken={getIdToken}
+                onSaved={() => void load()}
+              />
+            </div>
           </div>
-        </div>
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h2 className="text-lg font-medium">Or import from Google Drive</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Connect Drive, pick photos from a folder, and we&apos;ll host a
+              polished gallery on your event page. Up to 50 photos per event;
+              JPEG, PNG, or WebP under 10&nbsp;MB each.
+            </p>
+            <div className="mt-6">
+              <GoogleDriveGallerySection
+                eventId={event.id}
+                returnPath={`/dashboard/events/${event.id}/gallery`}
+                getIdToken={getIdToken}
+                onGalleryChanged={() => void load()}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {gallery && (
@@ -196,7 +217,9 @@ export default function PostEventGalleryDashboardPage() {
               <h2 className="text-lg font-medium">
                 {gallery.sourceType === "EXTERNAL_LINK"
                   ? "External album link"
-                  : gallery.sourceType}
+                  : gallery.sourceType === "GOOGLE_DRIVE"
+                    ? "Google Drive import"
+                    : gallery.sourceType}
               </h2>
               {gallery.status === "PUBLISHED" && (
                 <Link
@@ -209,12 +232,21 @@ export default function PostEventGalleryDashboardPage() {
                 </Link>
               )}
             </div>
-            <GalleryExternalLinkForm
-              eventId={event.id}
-              existing={gallery}
-              getIdToken={getIdToken}
-              onSaved={() => void load()}
-            />
+            {gallery.sourceType === "EXTERNAL_LINK" ? (
+              <GalleryExternalLinkForm
+                eventId={event.id}
+                existing={gallery}
+                getIdToken={getIdToken}
+                onSaved={() => void load()}
+              />
+            ) : (
+              <GoogleDriveGallerySection
+                eventId={event.id}
+                returnPath={`/dashboard/events/${event.id}/gallery`}
+                getIdToken={getIdToken}
+                onGalleryChanged={() => void load()}
+              />
+            )}
           </div>
 
           <div className="rounded-lg border border-border bg-card p-6">
