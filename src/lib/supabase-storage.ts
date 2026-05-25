@@ -38,7 +38,14 @@ export function getStorageClient(): SupabaseClient {
 }
 
 /**
- * Upload a file to Supabase Storage
+ * Upload a file to Supabase Storage.
+ *
+ * `upsert` defaults to `false` (existing behavior for media uploads — fail
+ * if the key already exists, prompting the caller to handle the conflict).
+ * The gallery import worker passes `upsert: true` because retries are
+ * expected: a partial-upload failure (large.webp succeeds, thumb.webp
+ * fails) would otherwise deadlock on the next attempt because the large
+ * key is already taken.
  */
 export async function uploadFile(
   bucket: string,
@@ -47,6 +54,7 @@ export async function uploadFile(
   options: {
     contentType: string;
     cacheControl?: string;
+    upsert?: boolean;
   }
 ): Promise<{ path: string; publicUrl: string } | { error: string }> {
   const client = getStorageClient();
@@ -54,7 +62,7 @@ export async function uploadFile(
   const { error } = await client.storage.from(bucket).upload(path, file, {
     contentType: options.contentType,
     cacheControl: options.cacheControl || "3600",
-    upsert: false,
+    upsert: options.upsert ?? false,
   });
 
   if (error) {
