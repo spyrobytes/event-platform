@@ -160,7 +160,7 @@ export function GalleryPublishDialog({
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {alreadyPublished
-            ? "The gallery is already live. Re-publishing updates the timestamp; the email checkbox below re-triggers the broadcast."
+            ? "The gallery is already live. The email checkbox below re-triggers the broadcast."
             : "Make the gallery visible on the public event page. You can unpublish at any time."}
         </p>
 

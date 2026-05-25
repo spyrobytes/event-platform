@@ -16,6 +16,7 @@ const dbMock = {
     findMany: vi.fn(),
   },
   emailOutbox: {
+    findFirst: vi.fn(),
     createMany: vi.fn(),
   },
   eventGallery: {
@@ -75,6 +76,8 @@ beforeEach(() => {
   verifyAuthMock.mockResolvedValue(mockUser);
   requireEventOwnerMock.mockResolvedValue(undefined);
   assertCanMutateMock.mockReturnValue(undefined);
+  // Default: no recent broadcast — dedupe doesn't fire.
+  dbMock.emailOutbox.findFirst.mockResolvedValue(null);
 });
 
 // ---------------------------------------------------------------------------
@@ -192,6 +195,77 @@ describe("enqueueGalleryPublishedEmails", () => {
       hostName: "Kay",
     });
     expect(result).toEqual({ enqueued: 1, skipped: 1 });
+  });
+
+  it("dedupes when a recent GALLERY_PUBLISHED row exists for the event", async () => {
+    // The findFirst-on-emailOutbox returns a hit → enqueue short-circuits
+    // and no createMany happens, even though invites would otherwise be
+    // eligible. Protects against the same-organizer-in-two-tabs case.
+    dbMock.emailOutbox.findFirst.mockResolvedValueOnce({ id: "ob_recent" });
+
+    const result = await enqueueGalleryPublishedEmails({
+      eventId: "evt_1",
+      galleryId: "gal_1",
+      eventSlug: "summer-2026",
+      eventTitle: "Summer Wedding",
+      hostName: "Kay",
+    });
+    expect(result).toEqual({ enqueued: 0, skipped: 0, deduped: true });
+    expect(dbMock.invite.findMany).not.toHaveBeenCalled();
+    expect(dbMock.emailOutbox.createMany).not.toHaveBeenCalled();
+  });
+
+  it("adds '(updated)' to the subject on republish", async () => {
+    dbMock.invite.findMany.mockResolvedValueOnce([
+      {
+        id: "inv_1",
+        email: "a@example.com",
+        name: "Ada",
+        tokenHash: "h1",
+        rsvp: { guestName: "Ada" },
+      },
+    ]);
+    dbMock.emailOutbox.createMany.mockResolvedValueOnce({ count: 1 });
+
+    await enqueueGalleryPublishedEmails({
+      eventId: "evt_1",
+      galleryId: "gal_1",
+      eventSlug: "summer-2026",
+      eventTitle: "Summer Wedding",
+      hostName: "Kay",
+      isRepublish: true,
+    });
+
+    const subject =
+      dbMock.emailOutbox.createMany.mock.calls[0][0].data[0].subject;
+    expect(subject).toBe(
+      "Photos from Summer Wedding are ready to view (updated)",
+    );
+  });
+
+  it("first publish (isRepublish omitted) gets the un-suffixed subject", async () => {
+    dbMock.invite.findMany.mockResolvedValueOnce([
+      {
+        id: "inv_1",
+        email: "a@example.com",
+        name: "Ada",
+        tokenHash: "h1",
+        rsvp: { guestName: "Ada" },
+      },
+    ]);
+    dbMock.emailOutbox.createMany.mockResolvedValueOnce({ count: 1 });
+
+    await enqueueGalleryPublishedEmails({
+      eventId: "evt_1",
+      galleryId: "gal_1",
+      eventSlug: "summer-2026",
+      eventTitle: "Summer Wedding",
+      hostName: "Kay",
+    });
+
+    const subject =
+      dbMock.emailOutbox.createMany.mock.calls[0][0].data[0].subject;
+    expect(subject).toBe("Photos from Summer Wedding are ready to view");
   });
 
   it("omits coverUrl + photoCount from payload when not provided", async () => {
@@ -335,6 +409,47 @@ describe("POST /publish — notifyGuests opt-in", () => {
     expect(enqueued.payload.coverUrl).toBe(
       "https://supabase.example/cover.webp",
     );
+  });
+
+  it("flags isRepublish in the email payload when the gallery was already PUBLISHED", async () => {
+    // Override the default findFirst (DRAFT) with a PUBLISHED gallery so
+    // the route's `gallery.status === "PUBLISHED"` check fires.
+    dbMock.eventGallery.findFirst.mockResolvedValueOnce({
+      id: "gal_1",
+      status: "PUBLISHED",
+      sourceType: "EXTERNAL_LINK",
+    });
+    dbMock.eventGallery.update.mockResolvedValueOnce({
+      id: "gal_1",
+      status: "PUBLISHED",
+      publishedAt: new Date(),
+      event: {
+        slug: "summer-2026",
+        title: "Summer Wedding",
+        creator: { name: "Kay", email: "kay@example.com" },
+      },
+    });
+    getPublishedGalleryMock.mockResolvedValueOnce({
+      sourceType: "EXTERNAL_LINK",
+      coverUrl: null,
+    });
+    dbMock.invite.findMany.mockResolvedValueOnce([
+      {
+        id: "inv_1",
+        email: "a@example.com",
+        name: "Ada",
+        tokenHash: "h1",
+        rsvp: { guestName: "Ada" },
+      },
+    ]);
+    dbMock.emailOutbox.createMany.mockResolvedValueOnce({ count: 1 });
+
+    await postPublish(makeRequest({ notifyGuests: true }), ctx);
+
+    // Subject reflects republish path
+    const subject =
+      dbMock.emailOutbox.createMany.mock.calls[0][0].data[0].subject;
+    expect(subject).toContain("(updated)");
   });
 
   it("publishes even if the email enqueue fails (best-effort broadcast)", async () => {

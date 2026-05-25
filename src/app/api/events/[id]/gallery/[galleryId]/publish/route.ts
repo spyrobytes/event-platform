@@ -118,6 +118,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
             "Your host",
           coverUrl: publicGallery?.coverUrl ?? null,
           photoCount,
+          // Was the gallery PUBLISHED at the time of this call? Then the
+          // subject line gets the "(updated)" suffix so guests' inbox
+          // threading treats it as a fresh message.
+          isRepublish: gallery.status === "PUBLISHED",
         });
       } catch (err) {
         // Log but don't fail the publish. Organizer can re-trigger the

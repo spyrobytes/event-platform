@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { buildUnsubscribeUrl } from "@/lib/email";
 import type { Prisma } from "@prisma/client";
 
 // Read at call-time, not import-time, so tests + Vercel preview deploys
@@ -51,25 +50,57 @@ type EnqueueInput = {
   coverUrl?: string | null;
   /** Optional ready-photo count — appears in the body copy. */
   photoCount?: number;
+  /** When the gallery was already PUBLISHED at the time of this call, the
+   *  subject line is suffixed with "(updated)" so guests' inbox-threading
+   *  heuristics treat it as a new message rather than a duplicate. */
+  isRepublish?: boolean;
 };
 
 export type EnqueueResult = {
   enqueued: number;
   skipped: number;
+  /** Set when the broadcast was suppressed by the dedupe window — distinct
+   *  from "no eligible recipients." Lets callers log the difference. */
+  deduped?: boolean;
 };
+
+/**
+ * Concurrent-publish dedupe window. Two organizers (or one organizer in
+ * two tabs) clicking Publish within this window will only fire ONE
+ * broadcast. Intentional re-broadcasts via "Re-notify guests" >60s later
+ * still go through.
+ */
+const DEDUPE_WINDOW_MS = 60_000;
 
 /**
  * Queue one GALLERY_PUBLISHED email per eligible RSVPed-yes invite for
  * this event. Runs as a single createMany insert; the email worker's
  * cron tick consumes the rows like any other.
  *
- * Each row references its own invite via inviteId so the unsubscribe
- * link (and any future per-invite gating) keeps working through the
- * standard /unsubscribe/[token] flow.
+ * Concurrent-publish guard: if any GALLERY_PUBLISHED row was queued for
+ * an invite belonging to this event in the last DEDUPE_WINDOW_MS, we
+ * skip the entire broadcast and return `deduped: true`. Protects against
+ * double-clicks and same-organizer-in-two-tabs without blocking legitimate
+ * re-broadcasts later.
  */
 export async function enqueueGalleryPublishedEmails(
   input: EnqueueInput,
 ): Promise<EnqueueResult> {
+  // Concurrent-publish dedupe — single findFirst on the email_outbox.
+  // Cheap when there's no recent broadcast (single indexed lookup);
+  // immediate short-circuit when there is.
+  const recentBroadcast = await db.emailOutbox.findFirst({
+    where: {
+      template: "GALLERY_PUBLISHED",
+      invite: { eventId: input.eventId },
+      createdAt: { gt: new Date(Date.now() - DEDUPE_WINDOW_MS) },
+    },
+    select: { id: true },
+  });
+  if (recentBroadcast) {
+    return { enqueued: 0, skipped: 0, deduped: true };
+  }
+
   const invites = await db.invite.findMany({
     where: recipientWhere(input.eventId),
     select: {
@@ -93,7 +124,9 @@ export async function enqueueGalleryPublishedEmails(
   // (Future: pass an event-level opt-out endpoint via {eventId, inviteId}
   // signed query; for MVP we accept the limitation.)
   const galleryUrl = `${getBaseUrl()}/e/${input.eventSlug}/gallery`;
-  const subject = `Photos from ${input.eventTitle} are ready to view`;
+  const subject = input.isRepublish
+    ? `Photos from ${input.eventTitle} are ready to view (updated)`
+    : `Photos from ${input.eventTitle} are ready to view`;
 
   const rows = invites
     .filter((i): i is typeof i & { email: string } => typeof i.email === "string")
@@ -130,7 +163,3 @@ export async function enqueueGalleryPublishedEmails(
     skipped: invites.length - rows.length,
   };
 }
-
-// Re-export so the publish route doesn't need to import from
-// "@/lib/email" just for the unsubscribe helper.
-export { buildUnsubscribeUrl };
