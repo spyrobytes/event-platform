@@ -48,6 +48,7 @@ export {
   ThingsToDoEditor,
   RegistryEditor,
   WishesEditor,
+  LivestreamEditor,
   SocialLinksEditor,
   PageEditorNav,
   type PageEditorNavItem,

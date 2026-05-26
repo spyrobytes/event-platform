@@ -288,6 +288,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         registryMode="preview"
         approvedWishes={approvedWishes}
         wishesMode="preview"
+        livestreamMode="preview"
         inviteToken={tk}
         canShare={event.visibility === "PUBLIC"}
         postEventGalleryCta={

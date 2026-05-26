@@ -20,6 +20,7 @@ export { AttireEditor } from "./AttireEditor";
 export { ThingsToDoEditor } from "./ThingsToDoEditor";
 export { RegistryEditor } from "./RegistryEditor";
 export { WishesEditor } from "./WishesEditor";
+export { LivestreamEditor } from "./LivestreamEditor";
 export { SocialLinksEditor } from "./SocialLinksEditor";
 export {
   PageEditorNav,

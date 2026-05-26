@@ -646,6 +646,71 @@ export const wishesSectionSchema = z.object({
   data: wishesSectionDataSchema,
 });
 
+// Event Day Livestream Section — BYO-stream embed. The organizer pastes a
+// provider URL; the URL parser (src/lib/livestream/parse-stream-url.ts)
+// extracts provider + videoId + optional Vimeo hash at save time and stores
+// the canonical sourceUrl alongside. The embed URL is computed at render
+// time from these fields (we don't persist it, to avoid drift when a
+// provider changes its embed URL format). The main event page renders a
+// compact CTA card; the full player lives at /e/[slug]/live.
+export const livestreamProviderSchema = z.enum(["youtube", "vimeo", "facebook"]);
+export type LivestreamProvider = z.infer<typeof livestreamProviderSchema>;
+
+// Identifies a stream destination. Used for both the primary stream and
+// the optional replay. `videoId` semantics depend on provider:
+//   - youtube: the 11-char video ID
+//   - vimeo:   the numeric video ID (Vimeo's `event` URLs are not supported
+//              in MVP — organizers should use the regular `vimeo.com/<id>`
+//              link or `player.vimeo.com/video/<id>`)
+//   - facebook: an opaque marker extracted from the URL. The embed builder
+//              uses `sourceUrl` (encoded into the plugin `href`), not
+//              videoId, to resolve the actual video.
+const streamReferenceSchema = z.object({
+  provider: livestreamProviderSchema,
+  sourceUrl: z.string().url("Must be a valid URL").max(500),
+  videoId: z.string().min(1).max(100),
+  vimeoHash: z.string().max(50).optional(),
+});
+
+export const livestreamSectionDataSchema = z.object({
+  heading: z.string().max(60, "Heading must be 60 characters or less").default("Live Stream"),
+  description: z.string().max(300, "Description must be 300 characters or less").optional(),
+
+  // Primary stream destination — parsed from organizer-pasted URL.
+  // Optional so an organizer can add the section in advance and fill in
+  // the URL later. Renderer + CTA both short-circuit when this is missing.
+  primary: streamReferenceSchema.optional(),
+
+  // Optional replay destination — surfaced after `endAt` has passed.
+  // Often the same URL as `primary` (YouTube auto-archives), but organizers
+  // can override (e.g. paste a different Vimeo upload).
+  replay: streamReferenceSchema.optional(),
+
+  // Timing. ISO strings (UTC). All optional: a draft without timing renders
+  // as "always-on once enabled." Display formatting uses event timezone.
+  startAt: z.string().datetime("Start time must be a valid ISO date").optional(),
+  endAt: z.string().datetime("End time must be a valid ISO date").optional(),
+
+  // Shown beneath the player when the embed fails or the source is private.
+  // The "Open stream directly" fallback link is always present regardless.
+  fallbackMessage: z.string().max(300, "Fallback message must be 300 characters or less").optional(),
+
+  // CTA label on the main event page card (full player lives on /live).
+  ctaLabel: z.string().max(40, "CTA label must be 40 characters or less").default("Watch live"),
+
+  showCountdown: z.boolean().default(true),
+  // YouTube only — when true (default) the renderer uses youtube-nocookie.com.
+  useNocookie: z.boolean().default(true),
+});
+
+export const livestreamSectionSchema = z.object({
+  type: z.literal("livestream"),
+  enabled: z.boolean(),
+  visibility: sectionVisibilitySchema.optional(),
+  nav: sectionNavOverrideSchema,
+  data: livestreamSectionDataSchema,
+});
+
 // Union of all sections
 export const sectionSchema = z.discriminatedUnion("type", [
   detailsSectionSchema,
@@ -664,6 +729,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   thingsToDoSectionSchema,
   registrySectionSchema,
   wishesSectionSchema,
+  livestreamSectionSchema,
 ]);
 
 export type Section = z.infer<typeof sectionSchema>;
@@ -702,6 +768,9 @@ export type ActivityCategory = z.infer<typeof activityCategorySchema>;
 export type RegistrySection = z.infer<typeof registrySectionSchema>;
 export type RegistryItem = z.infer<typeof registryItemSchema>;
 export type WishesSection = z.infer<typeof wishesSectionSchema>;
+export type LivestreamSection = z.infer<typeof livestreamSectionSchema>;
+export type LivestreamSectionData = z.infer<typeof livestreamSectionDataSchema>;
+export type StreamReference = z.infer<typeof streamReferenceSchema>;
 export type Milestone = z.infer<typeof milestoneSchema>;
 export type Airport = z.infer<typeof airportSchema>;
 export type PartySide = z.infer<typeof partySideSchema>;

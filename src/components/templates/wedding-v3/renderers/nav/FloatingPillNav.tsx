@@ -19,6 +19,7 @@ export function FloatingPillNav({
   coupleNames,
   sections,
   overflow = [],
+  homeHref = "#top",
 }: NavRendererProps) {
   const [visible, setVisible] = useState(false);
 
@@ -68,7 +69,7 @@ export function FloatingPillNav({
     >
       {/* Monogram in metallic-bordered square */}
       <a
-        href="#top"
+        href={homeHref}
         className="gl-nav-monogram"
         style={{
           display: "flex",

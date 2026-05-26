@@ -19,6 +19,7 @@ export function PillDotNav({
   coupleNames,
   sections,
   overflow = [],
+  homeHref = "#top",
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -64,7 +65,7 @@ export function PillDotNav({
       >
         {/* Monogram logo */}
         <a
-          href="#top"
+          href={homeHref}
           className="gh-nav-logo"
           style={{
             display: "flex",

@@ -40,6 +40,7 @@ import {
   AttireSection,
   ThingsToDoSection,
 } from "./sections";
+import { LivestreamSection } from "@/components/features/Livestream";
 
 type WeddingTemplateProps = {
   config: EventPageConfigV1;
@@ -48,6 +49,10 @@ type WeddingTemplateProps = {
   eventSlug?: string;
   /** Temporal data for time-aware rendering */
   temporal?: TemporalData;
+  /** Livestream rendering mode (see TemplateProps). */
+  livestreamMode?: "preview" | "full";
+  /** Guest invite token forwarded into deep links (e.g. /e/[slug]/live). */
+  inviteToken?: string;
   /** Slots populated by the page when a post-event gallery is published.
    *  See TemplateProps in src/components/templates/index.ts. */
   postEventGalleryCta?: ReactNode;
@@ -75,6 +80,8 @@ export function WeddingTemplate({
   eventId,
   eventSlug,
   temporal,
+  livestreamMode = "full",
+  inviteToken,
   postEventGalleryCta,
   postEventGalleryTeaser,
 }: WeddingTemplateProps) {
@@ -279,6 +286,17 @@ export function WeddingTemplate({
             primaryColor={primaryColor}
           />
         ));
+
+      case "livestream":
+        return eventSlug ? wrapWithChapter(wrapWithAnimation(
+          <LivestreamSection
+            data={section.data}
+            eventSlug={eventSlug}
+            inviteToken={inviteToken}
+            mode={livestreamMode}
+            timezone={temporal?.timezone}
+          />
+        )) : null;
 
       default:
         return null;

@@ -20,6 +20,7 @@ export function UtilityForwardNav({
   sections,
   overflow = [],
   hasHeroImage,
+  homeHref = "#top",
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -80,7 +81,7 @@ export function UtilityForwardNav({
     >
       <div className={styles.inner}>
         {/* Brand — monogram circle links to hero */}
-        <a className={styles.brand} href="#top" aria-label="Back to top">
+        <a className={styles.brand} href={homeHref} aria-label="Back to top">
           {monogram ? (
             <div className={styles.monogramCircle} aria-hidden="true">
               <span className={styles.monogramLetter}>{monogram}</span>
