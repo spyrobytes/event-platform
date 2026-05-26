@@ -82,7 +82,15 @@ export const serverEnvSchema = z.object({
   // sets GEOCODER_PROVIDER=locationiq + LOCATIONIQ_API_KEY; preview deploys
   // stay on "none" so they don't eat prod's daily quota (LocationIQ free
   // tier permits one access token shared across all envs).
-  GEOCODER_PROVIDER: z.enum(["locationiq", "none"]).default("none"),
+  //
+  // Empty-string handling: a blank `GEOCODER_PROVIDER=` line in .env.local
+  // (the .env.example default) reads as "" — which Zod's .default() does
+  // NOT treat as missing. `preprocess` collapses "" → undefined BEFORE the
+  // enum runs, so both absent and blank fall through to "none".
+  GEOCODER_PROVIDER: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["locationiq", "none"]).default("none"),
+  ),
   LOCATIONIQ_API_KEY: z.string().optional(),
 
   // Post-event gallery feature flag. Server-side gate for API routes and
