@@ -742,7 +742,25 @@ export const livestreamSectionDataSchema = z.object({
   showCountdown: z.boolean().default(true),
   // YouTube only — when true (default) the renderer uses youtube-nocookie.com.
   useNocookie: z.boolean().default(true),
-});
+})
+  // Reject end-time-before-start. Without this, an editor typo can save a
+  // future-scheduled stream whose `endAt` is already in the past — the
+  // phase computation then prefers `ended` and the section renders the
+  // empty replay/fallback branch instead of the countdown. The defensive
+  // precedence in getLivestreamPhase still applies for legacy/seeded rows
+  // that bypass this validator.
+  .superRefine((val, ctx) => {
+    if (!val.startAt || !val.endAt) return;
+    const start = Date.parse(val.startAt);
+    const end = Date.parse(val.endAt);
+    if (Number.isFinite(start) && Number.isFinite(end) && end <= start) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "End time must be after start time",
+        path: ["endAt"],
+      });
+    }
+  });
 
 export const livestreamSectionSchema = z.object({
   type: z.literal("livestream"),

@@ -136,6 +136,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     approvedWishes,
     wishesMode = "full",
     livestreamMode = "full",
+    initialNowMs,
     inviteToken,
     navLinkBase,
     subPageSection,
@@ -324,6 +325,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
               inviteToken={inviteToken}
               mode={livestreamMode}
               timezone={temporal?.timezone}
+              initialNowMs={initialNowMs}
             />
           )) : null;
         default:

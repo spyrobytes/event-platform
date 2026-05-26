@@ -58,14 +58,36 @@ export function LivestreamCountdown({ startAtIso, startAtLabel, nowMs }: Props) 
 
   const { days, hours, minutes, seconds } = breakDown(remaining);
 
+  // Build a coarse, minute-level announcement for screen readers. The
+  // visual ticker re-renders every second and is hidden from AT (aria-hidden)
+  // because announcing each second is overwhelming. The polite live region
+  // below only changes content when the total-minute count rolls over, so
+  // AT users hear "5 minutes until stream starts" once, not 60 times.
+  const totalMinutes = days * 1440 + hours * 60 + minutes;
+  const announcement = buildCountdownAnnouncement(days, hours, minutes);
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-center gap-3" aria-live="polite">
+      <div
+        className="flex items-center justify-center gap-3"
+        aria-hidden="true"
+      >
         {days > 0 && <Unit value={days} label={days === 1 ? "day" : "days"} />}
         <Unit value={hours} label="hr" />
         <Unit value={minutes} label="min" />
         <Unit value={seconds} label="sec" />
       </div>
+      <p
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+        // `key` forces the live region to re-emit only on minute boundaries
+        // (and only if the announcement text actually changes), avoiding the
+        // per-second flood that aria-live + ticker would otherwise produce.
+        key={totalMinutes}
+      >
+        {announcement}
+      </p>
       <p
         className="text-center text-xs"
         style={{ color: "var(--text-2, #6b7280)" }}
@@ -74,6 +96,25 @@ export function LivestreamCountdown({ startAtIso, startAtLabel, nowMs }: Props) 
       </p>
     </div>
   );
+}
+
+function buildCountdownAnnouncement(
+  days: number,
+  hours: number,
+  minutes: number
+): string {
+  if (days > 0) {
+    return `Stream starts in ${days} ${days === 1 ? "day" : "days"}` +
+      (hours > 0 ? ` ${hours} ${hours === 1 ? "hour" : "hours"}` : "");
+  }
+  if (hours > 0) {
+    return `Stream starts in ${hours} ${hours === 1 ? "hour" : "hours"}` +
+      (minutes > 0 ? ` ${minutes} ${minutes === 1 ? "minute" : "minutes"}` : "");
+  }
+  if (minutes > 0) {
+    return `Stream starts in ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  }
+  return "Stream starts in under a minute";
 }
 
 function Unit({ value, label }: { value: number; label: string }) {

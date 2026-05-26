@@ -26,10 +26,12 @@ import { LivestreamPlayer } from "./LivestreamPlayer";
  * before → ready → ended without requiring a page reload, and what feeds
  * the prop-driven `LivestreamCountdown`.
  *
- * Hydration safety: initial `nowMs` is 0 on both server and client so the
- * SSR'd DOM matches the first client paint. The interval populates the
- * real value on its first tick (≤1 sec after mount), at which point the
- * tree re-renders into the correct phase.
+ * Hydration safety: initial `nowMs` is seeded from the `initialNowMs` prop,
+ * which the route handler captures at request time via Date.now(). Because
+ * it's a prop (not Date.now() at render), the SSR'd DOM and first client
+ * paint agree, avoiding hydration mismatch. The interval then refreshes to
+ * the live clock on its first tick (≤1 sec after mount). When the prop is
+ * omitted, we fall back to 0 (the legacy 1970 placeholder behavior).
  *
  * Colors use template CSS variables (--text, --text-2, --accent, --surface,
  * --border) with fallbacks. Tailwind's text-foreground/bg-background
@@ -42,15 +44,18 @@ export function LivestreamSection({
   inviteToken,
   mode,
   timezone,
+  initialNowMs,
 }: LivestreamRendererProps) {
-  const [nowMs, setNowMs] = useState(0);
+  const [nowMs, setNowMs] = useState(initialNowMs ?? 0);
   const phase = getLivestreamPhase(data, nowMs);
 
   // Keep ticking only while there's a boundary still to cross. Once the
   // stream is `ready` with no `endAt`, or `ended` entirely, recomputing
   // every second is pure waste (battery, CPU). The first tick is always
-  // required because `nowMs === 0` is the SSR/hydration placeholder —
-  // without it the renderer would never advance past the initial paint.
+  // required when seeded with 0 (legacy fallback) because that's the SSR
+  // placeholder — without it the renderer would never advance past the
+  // initial paint. With a real `initialNowMs`, we can skip the post-`ended`
+  // tick entirely.
   const shouldTick =
     nowMs === 0 ||
     phase === "before" ||
@@ -223,10 +228,13 @@ function CtaCard({ data, phase, nowMs, eventSlug, inviteToken, startLabel }: Cta
               </p>
             )}
             {remainingMs !== null && remainingMs > 0 && (
+              // No aria-live here: this line re-renders every second from the
+              // parent's tick. The full-page countdown (LivestreamCountdown)
+              // owns the polite, minute-coarse announcement; the preview card
+              // is purely visual to avoid double-announcing the same event.
               <p
                 className="text-sm font-medium tabular-nums"
                 style={{ color: "var(--text, #1e1b17)" }}
-                aria-live="polite"
               >
                 Starts in {formatCompactCountdown(remainingMs)}
               </p>

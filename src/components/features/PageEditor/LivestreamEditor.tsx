@@ -60,6 +60,16 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
   const commitPrimary = useCallback(
     (raw: string) => {
       setPrimaryUrl(raw);
+      const trimmed = raw.trim();
+      if (!trimmed) {
+        // Clearing the field removes the primary reference entirely —
+        // mirrors the replay behavior below. Without this, organizers
+        // cannot retract a previously-saved URL once the input is empty.
+        const { primary: _primary, ...rest } = data;
+        void _primary;
+        onChange(rest as LivestreamSection["data"]);
+        return;
+      }
       const result = parseStreamUrl(raw);
       if (result.ok) {
         const ref: StreamReference = {
@@ -70,7 +80,7 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
         };
         onChange({ ...data, primary: ref });
       }
-      // On failure we leave the previously-saved `data.primary` intact —
+      // On parse failure we leave the previously-saved `data.primary` intact —
       // the user is mid-edit; we only overwrite when we have a valid value.
     },
     [data, onChange]
@@ -130,6 +140,14 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
   );
 
   const primaryProvider = primaryResult?.ok ? primaryResult.stream.provider : null;
+
+  // Pre-save validation echo for endAt <= startAt. The schema also enforces
+  // this on submit, but inline feedback avoids a save-then-error round trip.
+  const endBeforeStart = Boolean(
+    data.startAt &&
+      data.endAt &&
+      Date.parse(data.endAt) <= Date.parse(data.startAt)
+  );
 
   return (
     <div className="space-y-5">
@@ -192,10 +210,17 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
             type="datetime-local"
             value={toDatetimeLocalInTz(data.endAt ?? null, tz)}
             onChange={(e) => setEndAt(e.target.value)}
+            aria-invalid={endBeforeStart || undefined}
           />
-          <p className="text-xs text-muted-foreground">
-            When set, viewers see &quot;ended&quot; (or the replay) afterwards.
-          </p>
+          {endBeforeStart ? (
+            <p className="text-xs text-destructive">
+              End time must be after the start time.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              When set, viewers see &quot;ended&quot; (or the replay) afterwards.
+            </p>
+          )}
         </div>
       </div>
 

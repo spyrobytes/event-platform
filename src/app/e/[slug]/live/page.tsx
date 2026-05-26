@@ -128,6 +128,16 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
     ? ({ "--banner-offset": "40px" } as React.CSSProperties)
     : undefined;
 
+  // Captured once at request time so the SSR livestream phase agrees with
+  // the real clock — without it, an already-started or already-ended stream
+  // renders the "hasn't started" placeholder until the client tick fires.
+  // The React Compiler's purity rule targets client-component memoization;
+  // server components legitimately need request-time clock reads, so the
+  // disable is correct here (the value is consumed as a hydration-stable
+  // prop, not as derived state).
+  // eslint-disable-next-line react-hooks/purity
+  const initialNowMs = Date.now();
+
   return (
     <div style={bannerOffset}>
       <PageViewTracker eventId={event.id} source="event_page" />
@@ -143,6 +153,7 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
         temporal={temporal}
         inviteToken={tk}
         livestreamMode="full"
+        initialNowMs={initialNowMs}
         navLinkBase={navLinkBase}
         subPageSection="livestream"
         canShare={event.visibility === "PUBLIC"}
