@@ -49,6 +49,14 @@ function makeSection(
       return { ...base, type: "attire", data: { heading: "Dress Code", dressCode: "Formal" } } as Section;
     case "thingsToDo":
       return { ...base, type: "thingsToDo", data: { heading: "Things To Do", items: [] } } as Section;
+    case "registry":
+      return { ...base, type: "registry", data: { heading: "Gift Registry", items: [] } } as Section;
+    case "wishes":
+      return { ...base, type: "wishes", data: { heading: "Wedding Wishes", previewCount: 3, enableSubmissions: true } } as Section;
+    case "livestream":
+      // Primary is omitted — the empty / "section added, URL not yet pasted"
+      // state. Visibility filtering doesn't depend on data shape.
+      return { ...base, type: "livestream", data: { heading: "Live Stream", ctaLabel: "Watch live", showCountdown: true, useNocookie: true } } as Section;
     default:
       throw new Error(`Unknown test section type: ${type}`);
   }
@@ -76,6 +84,9 @@ describe("getDefaultVisibility", () => {
     expect(getDefaultVisibility("attire")).toBe("guests");
     expect(getDefaultVisibility("travelStay")).toBe("guests");
     expect(getDefaultVisibility("thingsToDo")).toBe("guests");
+    expect(getDefaultVisibility("registry")).toBe("guests");
+    expect(getDefaultVisibility("wishes")).toBe("guests");
+    expect(getDefaultVisibility("livestream")).toBe("guests");
   });
 
   it("returns 'public' for unknown section types (safe fallback)", () => {
@@ -208,6 +219,63 @@ describe("filterSectionsByVisibility", () => {
 });
 
 // =============================================================================
+// Livestream-specific visibility coverage
+// =============================================================================
+
+describe("filterSectionsByVisibility — livestream", () => {
+  it("drops a guests-default livestream section from a public viewer", () => {
+    // Default visibility = "guests" (wedding-safe). Public viewers (no
+    // ?tk= token) must not see the section at all on the main event page —
+    // otherwise we'd render a CTA that links to a 404 sub-page (because
+    // /e/[slug]/live also filters by visibility).
+    const sections = [makeSection("livestream")];
+    expect(filterSectionsByVisibility(sections, "public")).toHaveLength(0);
+  });
+
+  it("shows guests-default livestream to a guest viewer", () => {
+    const sections = [makeSection("livestream")];
+    const result = filterSectionsByVisibility(sections, "guest");
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe("livestream");
+  });
+
+  it("respects explicit public override for livestream (conference use case)", () => {
+    // Conference/community streams that want broad reach flip visibility
+    // to public. Should be visible to public viewers.
+    const sections = [
+      makeSection("livestream", { visibility: "public" }),
+    ];
+    expect(filterSectionsByVisibility(sections, "public")).toHaveLength(1);
+  });
+
+  it("respects explicit hidden override for livestream", () => {
+    const sections = [
+      makeSection("livestream", { visibility: "hidden" }),
+    ];
+    expect(filterSectionsByVisibility(sections, "public")).toHaveLength(0);
+    expect(filterSectionsByVisibility(sections, "guest")).toHaveLength(0);
+  });
+
+  it("disabled livestream is filtered out regardless of access level", () => {
+    const sections = [
+      makeSection("livestream", { enabled: false, visibility: "public" }),
+    ];
+    expect(filterSectionsByVisibility(sections, "public")).toHaveLength(0);
+    expect(filterSectionsByVisibility(sections, "guest")).toHaveLength(0);
+  });
+
+  it("legacy livestream section without visibility falls back to guests default", () => {
+    const legacy = {
+      type: "livestream" as const,
+      enabled: true,
+      data: { heading: "Live Stream", ctaLabel: "Watch live", showCountdown: true, useNocookie: true },
+    } as Section;
+    expect(filterSectionsByVisibility([legacy], "public")).toHaveLength(0);
+    expect(filterSectionsByVisibility([legacy], "guest")).toHaveLength(1);
+  });
+});
+
+// =============================================================================
 // hasGuestOnlySections
 // =============================================================================
 
@@ -268,6 +336,9 @@ describe("getSectionLabel", () => {
     expect(getSectionLabel("weddingParty")).toBe("Wedding Party");
     expect(getSectionLabel("attire")).toBe("Attire");
     expect(getSectionLabel("thingsToDo")).toBe("Things to Do");
+    expect(getSectionLabel("registry")).toBe("Gift Registry");
+    expect(getSectionLabel("wishes")).toBe("Wedding Wishes");
+    expect(getSectionLabel("livestream")).toBe("Live Stream");
   });
 
   it("falls back to raw type for unknown sections", () => {

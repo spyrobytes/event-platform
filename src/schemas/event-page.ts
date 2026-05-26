@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseStreamUrl } from "@/lib/livestream/parse-stream-url";
 
 // =============================================================================
 // THEME CONFIGURATION
@@ -665,12 +666,52 @@ export type LivestreamProvider = z.infer<typeof livestreamProviderSchema>;
 //   - facebook: an opaque marker extracted from the URL. The embed builder
 //              uses `sourceUrl` (encoded into the plugin `href`), not
 //              videoId, to resolve the actual video.
-const streamReferenceSchema = z.object({
-  provider: livestreamProviderSchema,
-  sourceUrl: z.string().url("Must be a valid URL").max(500),
-  videoId: z.string().min(1).max(100),
-  vimeoHash: z.string().max(50).optional(),
-});
+// Defense in depth at the save boundary: re-run the same parser the editor
+// uses, and reject a submission where `provider`, `videoId`, or `vimeoHash`
+// don't match what `sourceUrl` parses to. Prevents a hand-crafted PATCH
+// from storing (say) `provider: "youtube"` with a non-YouTube `sourceUrl`,
+// or a stale `vimeoHash` after the source link is edited.
+const streamReferenceSchema = z
+  .object({
+    provider: livestreamProviderSchema,
+    sourceUrl: z.string().url("Must be a valid URL").max(500),
+    videoId: z.string().min(1).max(100),
+    vimeoHash: z.string().max(50).optional(),
+  })
+  .superRefine((ref, ctx) => {
+    const parsed = parseStreamUrl(ref.sourceUrl);
+    if (!parsed.ok) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Could not parse sourceUrl: ${parsed.error.message}`,
+        path: ["sourceUrl"],
+      });
+      return;
+    }
+    if (parsed.stream.provider !== ref.provider) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Provider does not match sourceUrl (URL is ${parsed.stream.provider}, declared as ${ref.provider})`,
+        path: ["provider"],
+      });
+    }
+    if (parsed.stream.videoId !== ref.videoId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "videoId does not match the parsed sourceUrl",
+        path: ["videoId"],
+      });
+    }
+    if (parsed.stream.vimeoHash !== ref.vimeoHash) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: parsed.stream.vimeoHash
+          ? "vimeoHash is missing or does not match the URL's hash"
+          : "vimeoHash is set but sourceUrl has no hash",
+        path: ["vimeoHash"],
+      });
+    }
+  });
 
 export const livestreamSectionDataSchema = z.object({
   heading: z.string().max(60, "Heading must be 60 characters or less").default("Live Stream"),

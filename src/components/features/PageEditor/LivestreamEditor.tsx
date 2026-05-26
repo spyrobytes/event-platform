@@ -246,13 +246,6 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
           checked={data.showCountdown !== false}
           onChange={(checked) => onChange({ ...data, showCountdown: checked })}
         />
-        <ToggleRow
-          id="livestream-nocookie"
-          label="Use privacy-friendly YouTube embed (youtube-nocookie.com)"
-          checked={data.useNocookie !== false}
-          onChange={(checked) => onChange({ ...data, useNocookie: checked })}
-          hint="Recommended. Only applies to YouTube; ignored for Vimeo and Facebook."
-        />
       </div>
     </div>
   );

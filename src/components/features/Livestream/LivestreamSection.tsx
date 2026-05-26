@@ -44,13 +44,24 @@ export function LivestreamSection({
   timezone,
 }: LivestreamRendererProps) {
   const [nowMs, setNowMs] = useState(0);
+  const phase = getLivestreamPhase(data, nowMs);
+
+  // Keep ticking only while there's a boundary still to cross. Once the
+  // stream is `ready` with no `endAt`, or `ended` entirely, recomputing
+  // every second is pure waste (battery, CPU). The first tick is always
+  // required because `nowMs === 0` is the SSR/hydration placeholder —
+  // without it the renderer would never advance past the initial paint.
+  const shouldTick =
+    nowMs === 0 ||
+    phase === "before" ||
+    (phase === "ready" && Boolean(data.endAt));
 
   useEffect(() => {
+    if (!shouldTick) return;
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [shouldTick]);
 
-  const phase = getLivestreamPhase(data, nowMs);
   const startLabel = formatStartLabel(data.startAt, timezone);
 
   if (mode === "preview") {
