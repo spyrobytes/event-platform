@@ -82,6 +82,23 @@ export function shouldShowInNav(section: Section, family: TemplateFamily): boole
 }
 
 /**
+ * Whether the section has anything the renderer will actually paint. A
+ * section can be `enabled: true` and toggled on in nav, yet still render
+ * nothing — e.g. a livestream with no primary URL bails to `null` in
+ * preview mode. Without this gate, clearing the URL leaves a phantom nav
+ * link pointing at a `#live` anchor that doesn't exist in the DOM.
+ *
+ * Only special-cases section types that truly render nothing when
+ * unconfigured. Sections that always paint *something* (a header, an
+ * empty-state card, etc.) should NOT be added here — their nav link is
+ * still useful.
+ */
+function hasRenderableContent(section: Section): boolean {
+  if (section.type === "livestream") return Boolean(section.data.primary);
+  return true;
+}
+
+/**
  * Returns the sections that should appear in nav, ordered by template
  * priority first (per DEFAULT_NAV_SHOW), then any extras the organizer
  * toggled on via the editor, in section array order.
@@ -94,7 +111,9 @@ export function orderSectionsForNav<T extends Section>(
 
   const eligibleIdx: number[] = [];
   sections.forEach((s, i) => {
-    if (s.enabled && shouldShowInNav(s, family)) eligibleIdx.push(i);
+    if (s.enabled && shouldShowInNav(s, family) && hasRenderableContent(s)) {
+      eligibleIdx.push(i);
+    }
   });
 
   const ordered: T[] = [];

@@ -88,10 +88,15 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
   });
 
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
-  const hasLivestream = filteredSections.some(
-    (s) => s.type === "livestream" && s.enabled
+  // 404 when there's no primary URL too — not just on `enabled: false` —
+  // because the player branch has nothing to render and the only fallback
+  // is "stream link hasn't been added yet," which is a dead end for a
+  // viewer who clicked a "Watch live" CTA. Mirrors the nav eligibility
+  // check in `hasRenderableContent` so phantom links can't slip through.
+  const hasRenderableLivestream = filteredSections.some(
+    (s) => s.type === "livestream" && s.enabled && Boolean(s.data.primary)
   );
-  if (!hasLivestream) notFound();
+  if (!hasRenderableLivestream) notFound();
 
   const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
   const navLinkBase = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
