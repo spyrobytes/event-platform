@@ -89,6 +89,10 @@ export type TemplateProps = {
    * - "preview" (main event page): first previewCount + "View all" CTA.
    * - "full" (/e/[slug]/wishes): all approved wishes. */
   wishesMode?: "preview" | "full";
+  /** Livestream rendering mode — mirrors registryMode/wishesMode:
+   * - "preview" (main event page): compact CTA card linking to /e/[slug]/live.
+   * - "full" (/e/[slug]/live): the actual iframe player + countdown/replay UX. */
+  livestreamMode?: "preview" | "full";
   /** Guest invite token from the `tk` query param. Forwarded to the wishes
    * "View all" CTA so the full page preserves authenticated guest context. */
   inviteToken?: string;

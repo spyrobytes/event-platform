@@ -49,6 +49,9 @@ import {
 import { ScrollProgress } from "../wedding-v2/chrome/ScrollProgress";
 import { FooterSkyline } from "../wedding-v2/chrome/FooterSkyline";
 
+// Livestream renderer — lives under features/ (cross-template, not V3-specific)
+import { LivestreamSection } from "@/components/features/Livestream";
+
 // Shared utilities
 import {
   MAX_VISIBLE_NAV_ITEMS,
@@ -79,6 +82,7 @@ function getSectionId(type: string): string {
     speakers: "speakers",
     sponsors: "sponsors",
     map: "map",
+    livestream: "live",
   };
   return ids[type] || type;
 }
@@ -131,6 +135,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     registryMode = "full",
     approvedWishes,
     wishesMode = "full",
+    livestreamMode = "full",
     inviteToken,
     navLinkBase,
     subPageSection,
@@ -311,6 +316,16 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
           return wrapWithChrome(wrapWithAnimation(
             <ThingsToDoRenderer data={section.data} assets={assets} />
           ));
+        case "livestream":
+          return eventSlug ? wrapWithChrome(wrapWithAnimation(
+            <LivestreamSection
+              data={section.data}
+              eventSlug={eventSlug}
+              inviteToken={inviteToken}
+              mode={livestreamMode}
+              timezone={temporal?.timezone}
+            />
+          )) : null;
         default:
           return null;
       }

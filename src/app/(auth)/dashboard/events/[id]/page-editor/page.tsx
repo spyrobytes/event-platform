@@ -36,6 +36,7 @@ import {
   ThingsToDoEditor,
   RegistryEditor,
   WishesEditor,
+  LivestreamEditor,
   SocialLinksEditor,
   PageEditorNav,
   type PageEditorNavBadge,
@@ -64,7 +65,7 @@ import type {
 } from "@/schemas/event-page";
 
 const GENERIC_SECTIONS: Section["type"][] = [
-  "details", "schedule", "faq", "gallery", "rsvp", "speakers", "sponsors", "map",
+  "details", "schedule", "faq", "gallery", "rsvp", "speakers", "sponsors", "map", "livestream",
 ];
 const WEDDING_SECTIONS: Section["type"][] = [
   ...GENERIC_SECTIONS, "story", "travelStay", "weddingParty", "attire", "thingsToDo",
@@ -107,6 +108,7 @@ type EventPrefill = {
   address: string | null;
   city: string | null;
   country: string | null;
+  timezone: string;
 };
 
 // Builds the default map section, prefilling venueName + formattedAddress
@@ -511,6 +513,19 @@ export default function PageEditorPage() {
                 heading: "Wedding Wishes",
                 previewCount: 3,
                 enableSubmissions: true,
+              },
+            };
+            break;
+          case "livestream":
+            newSection = {
+              type: "livestream",
+              enabled: true,
+              visibility: "guests",
+              data: {
+                heading: "Live Stream",
+                ctaLabel: "Watch live",
+                showCountdown: true,
+                useNocookie: true,
               },
             };
             break;
@@ -1850,6 +1865,13 @@ export default function PageEditorPage() {
                 onChange={(data) => updateSectionData(index, data)}
               />
             )}
+            {section.type === "livestream" && (
+              <LivestreamEditor
+                data={section.data}
+                onChange={(data) => updateSectionData(index, data)}
+                timezone={pageData?.event?.timezone || "UTC"}
+              />
+            )}
             </div>
           </CardContent>
         </Card>
@@ -2015,6 +2037,16 @@ export default function PageEditorPage() {
                 onClick={() => addSection("wishes")}
               >
                 + Wedding Wishes
+              </Button>
+            )}
+            {supported.has("livestream") && !config.sections.some((s) => s.type === "livestream") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addSection("livestream")}
+              >
+                + Live Stream
               </Button>
             )}
             {config.sections.length >= 12 && (

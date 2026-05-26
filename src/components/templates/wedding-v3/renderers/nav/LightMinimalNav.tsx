@@ -18,6 +18,7 @@ export function LightMinimalNav({
   coupleNames,
   sections,
   overflow = [],
+  homeHref = "#top",
 }: NavRendererProps) {
   const hasRsvp = sections.some((s) => s.id === "rsvp");
 
@@ -28,7 +29,7 @@ export function LightMinimalNav({
     <nav className={styles.nav} aria-label="Main navigation">
       <div className={styles.inner}>
         {/* Left: monogram logo in concentric circles */}
-        <a href="#top" className={styles.monogramLink} aria-label="Back to top">
+        <a href={homeHref} className={styles.monogramLink} aria-label="Back to top">
           <span className={styles.monogram}>
             {monogram || (coupleNames ? coupleNames.charAt(0) : "W")}
           </span>

@@ -44,6 +44,7 @@ import { ScrapbookWeddingParty } from "../wedding-v3/renderers/wedding-party/Scr
 // Reused here so v2 events that enable a wishes section actually render it.
 import { WishesRenderer } from "../wedding-v3/renderers/wishes/WishesRenderer";
 import { PaperFilters } from "../wedding-v3/renderers/wishes/PaperFilters";
+import { LivestreamSection } from "@/components/features/Livestream";
 import type { ApprovedWishDTO } from "../index";
 
 // V2 tokens + variants + footer + global styles
@@ -75,6 +76,7 @@ type WeddingTemplateV2Props = {
   registryMode?: "preview" | "full";
   approvedWishes?: ApprovedWishDTO[];
   wishesMode?: "preview" | "full";
+  livestreamMode?: "preview" | "full";
   inviteToken?: string;
   navLinkBase?: string;
   /** When set with `navLinkBase`, only this section type renders inline;
@@ -108,6 +110,7 @@ function getSectionId(type: string): string {
     sponsors: "sponsors",
     map: "map",
     wishes: "wishes",
+    livestream: "live",
   };
   return ids[type] || type;
 }
@@ -137,6 +140,7 @@ export function WeddingTemplateV2({
   registryMode = "full",
   approvedWishes,
   wishesMode = "full",
+  livestreamMode = "full",
   inviteToken,
   navLinkBase,
   subPageSection,
@@ -398,6 +402,17 @@ export function WeddingTemplateV2({
             inviteToken={inviteToken}
           />
         ));
+
+      case "livestream":
+        return eventSlug ? wrapWithChrome(wrapWithAnimation(
+          <LivestreamSection
+            data={section.data}
+            eventSlug={eventSlug}
+            inviteToken={inviteToken}
+            mode={livestreamMode}
+            timezone={temporal?.timezone}
+          />
+        )) : null;
 
       default:
         return null;

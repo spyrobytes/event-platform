@@ -72,6 +72,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       select: {
         title: true,
         startAt: true,
+        timezone: true,
         venueName: true,
         address: true,
         city: true,
@@ -131,6 +132,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         address: fullEvent.address,
         city: fullEvent.city,
         country: fullEvent.country,
+        timezone: fullEvent.timezone,
       },
     });
   } catch (error) {

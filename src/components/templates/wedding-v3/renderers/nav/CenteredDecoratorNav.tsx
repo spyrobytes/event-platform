@@ -17,6 +17,7 @@ export function CenteredDecoratorNav({
   coupleNames,
   sections,
   overflow = [],
+  homeHref = "#top",
 }: NavRendererProps) {
   const navSections = sections;
   const linkBaseStyle: React.CSSProperties = {
@@ -61,7 +62,7 @@ export function CenteredDecoratorNav({
       >
         {/* Left: Monogram in concentric circles */}
         <a
-          href="#top"
+          href={homeHref}
           className="fine-art-monogram"
           style={{
             position: "absolute",
