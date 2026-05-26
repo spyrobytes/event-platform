@@ -149,6 +149,13 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
       Date.parse(data.endAt) <= Date.parse(data.startAt)
   );
 
+  // Warn (not error) when endAt is set without startAt. The renderer treats
+  // this as "live now, end at endAt" — consistent with the ad-hoc "no
+  // timing at all = always-on" model — but the configuration is often an
+  // organizer mistake (forgot to fill startAt), so we surface the
+  // implication inline without blocking the save.
+  const endWithoutStart = Boolean(data.endAt && !data.startAt);
+
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -215,6 +222,12 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
           {endBeforeStart ? (
             <p className="text-xs text-destructive">
               End time must be after the start time.
+            </p>
+          ) : endWithoutStart ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              No start time set — the stream will appear live immediately and
+              switch to &quot;ended&quot; (or the replay) once this end time
+              passes. Set a start time if you want a countdown instead.
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
