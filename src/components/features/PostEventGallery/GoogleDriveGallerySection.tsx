@@ -26,6 +26,11 @@ type Status =
  * status fetch + the in-flight job ID. Pure dashboard UI — no public
  * surface depends on it.
  */
+type SkippedSummary = {
+  total: number;
+  preview: string[];
+};
+
 export function GoogleDriveGallerySection({
   eventId,
   returnPath,
@@ -34,6 +39,10 @@ export function GoogleDriveGallerySection({
 }: Props) {
   const [status, setStatus] = useState<Status>({ state: "loading" });
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  // Skipped files from the most recent Picker submission. Surfaced inline
+  // instead of console-only so organizers actually see HEIC/PDF/oversized
+  // rejections — otherwise the import quietly drops them.
+  const [skipped, setSkipped] = useState<SkippedSummary | null>(null);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -108,15 +117,12 @@ export function GoogleDriveGallerySection({
             setActiveJobId(result.jobId);
             onGalleryChanged();
             if (result.skipped.length > 0) {
-              const names = result.skipped
-                .slice(0, 3)
-                .map((s) => s.name)
-                .join(", ");
-              const more =
-                result.skipped.length > 3 ? ` and ${result.skipped.length - 3} more` : "";
-              console.warn(
-                `[gallery] ${result.skipped.length} file(s) skipped: ${names}${more}`,
-              );
+              setSkipped({
+                total: result.skipped.length,
+                preview: result.skipped.slice(0, 3).map((s) => s.name),
+              });
+            } else {
+              setSkipped(null);
             }
           }}
           onReconnectRequired={() => {
@@ -127,6 +133,38 @@ export function GoogleDriveGallerySection({
           }}
         />
       )}
+      {skipped && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p>
+              <span className="font-medium">
+                {skipped.total} {skipped.total === 1 ? "file" : "files"} skipped:
+              </span>{" "}
+              {skipped.preview.join(", ")}
+              {skipped.total > skipped.preview.length
+                ? ` and ${skipped.total - skipped.preview.length} more`
+                : ""}
+              .{" "}
+              <span className="text-xs opacity-80">
+                Only JPEG/PNG/WEBP under the per-file size limit are imported —
+                HEIC, PDF, and oversized files are skipped.
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setSkipped(null)}
+              className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
+              aria-label="Dismiss skipped-files notice"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       {activeJobId && (
         <GalleryImportProgress
           eventId={eventId}
@@ -134,6 +172,11 @@ export function GoogleDriveGallerySection({
           getIdToken={getIdToken}
           onSettled={() => {
             onGalleryChanged();
+          }}
+          onDismiss={() => {
+            // Polling failure or settled-state dismissal — clear so the
+            // picker isn't stuck behind busy={activeJobId !== null}.
+            setActiveJobId(null);
           }}
         />
       )}

@@ -48,12 +48,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
       : GALLERY_PAGE_SIZE;
 
     // Existence + visibility check. Resolves the gallery in one round-trip.
+    // Mirror getEventBySlug's filters so the API can't serve photos for an
+    // event whose page would 404 (unpublished or cancelled).
     const event = await db.event.findUnique({
       where: { id: eventId },
       select: {
         id: true,
         visibility: true,
         status: true,
+        publishedAt: true,
         galleries: {
           where: { status: "PUBLISHED" },
           select: { id: true, sourceType: true },
@@ -64,11 +67,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (!event || !event.galleries.length) {
       return errorResponse("Not found", 404, "NOT_FOUND");
     }
+    if (!event.publishedAt || event.status === "CANCELLED") {
+      return errorResponse("Not found", 404, "NOT_FOUND");
+    }
 
-    // UNLISTED + PRIVATE events require a valid guest token. PUBLIC events
-    // are addressable without one. Mirrors the resolveGuestAccess contract
-    // used by /e/[slug]/gallery.
-    if (event.visibility !== "PUBLIC") {
+    // Access contract mirrors /e/[slug]/gallery (SSR):
+    //   PUBLIC   — anyone
+    //   UNLISTED — anyone with the direct link (no token required)
+    //   PRIVATE  — only a valid guest token
+    // Previously the API stripped UNLISTED of access too, so its infinite
+    // scroll fell off a cliff after 24 items even though the page rendered.
+    if (event.visibility === "PRIVATE") {
       const access = await resolveGuestAccess(tk, eventId);
       if (access.accessLevel !== "guest") {
         return errorResponse("Not found", 404, "NOT_FOUND");

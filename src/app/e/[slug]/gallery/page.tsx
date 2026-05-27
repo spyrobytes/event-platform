@@ -86,9 +86,13 @@ export default async function PostEventGalleryPage({
   }
 
   // resolveGuestAccess handles the same token/visibility rules used by
-  // /e/[slug]. We only need to access-gate, not personalize — the gallery
-  // payload doesn't depend on guest identity in Phase 1.
-  await resolveGuestAccess(tk, event.id);
+  // /e/[slug]. Unlike sibling sub-routes (/registry, /wishes, /live), the
+  // post-event gallery isn't a page-config section, so filterSectionsByVisibility
+  // can't gate it. PRIVATE events require a valid guest token here — without
+  // this check, any non-empty ?tk= would pass getEventBySlug and expose the
+  // gallery (the result of resolveGuestAccess was previously discarded).
+  const { accessLevel } = await resolveGuestAccess(tk, event.id);
+  if (event.visibility === "PRIVATE" && accessLevel !== "guest") notFound();
 
   const gallery = await getPublishedGalleryForEvent(event.id);
   if (!gallery) notFound();

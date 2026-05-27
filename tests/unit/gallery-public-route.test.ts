@@ -28,6 +28,7 @@ const publicEvent = {
   id: "evt_1",
   visibility: "PUBLIC" as const,
   status: "PUBLISHED" as const,
+  publishedAt: new Date("2026-01-01T00:00:00Z"),
   galleries: [galleryRow],
 };
 
@@ -114,26 +115,55 @@ describe("GET /api/events/[id]/gallery/public", () => {
     ]);
   });
 
-  it("404s on UNLISTED event without a guest token", async () => {
+  it("serves UNLISTED event without a guest token (direct-link semantics)", async () => {
+    // Was previously asserted to 404 — that was a drift bug. The SSR route
+    // /e/[slug]/gallery allows UNLISTED without a token, and the page would
+    // render the first 24 items, then infinite scroll would die at the API.
     dbMock.event.findUnique.mockResolvedValueOnce({
       ...publicEvent,
       visibility: "UNLISTED",
     });
-    resolveGuestAccessMock.mockResolvedValueOnce({
-      accessLevel: "public",
-      guestName: null,
-      rsvpToken: null,
-      tokenInvalid: false,
-      inviteId: null,
-    });
+    dbMock.eventGalleryItem.findMany.mockResolvedValueOnce(itemRows(2));
     const res = await GET(makeRequest(), ctx);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.items).toHaveLength(2);
+    // UNLISTED no longer requires a token — resolveGuestAccess shouldn't fire.
+    expect(resolveGuestAccessMock).not.toHaveBeenCalled();
   });
 
   it("returns items for UNLISTED event with a valid guest token", async () => {
     dbMock.event.findUnique.mockResolvedValueOnce({
       ...publicEvent,
       visibility: "UNLISTED",
+    });
+    dbMock.eventGalleryItem.findMany.mockResolvedValueOnce(itemRows(2));
+    const res = await GET(makeRequest("?tk=tk_1"), ctx);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.items).toHaveLength(2);
+  });
+
+  it("404s on PRIVATE event without a valid guest token", async () => {
+    dbMock.event.findUnique.mockResolvedValueOnce({
+      ...publicEvent,
+      visibility: "PRIVATE",
+    });
+    resolveGuestAccessMock.mockResolvedValueOnce({
+      accessLevel: "public",
+      guestName: null,
+      rsvpToken: null,
+      tokenInvalid: true,
+      inviteId: null,
+    });
+    const res = await GET(makeRequest("?tk=garbage"), ctx);
+    expect(res.status).toBe(404);
+  });
+
+  it("returns items for PRIVATE event with a valid guest token", async () => {
+    dbMock.event.findUnique.mockResolvedValueOnce({
+      ...publicEvent,
+      visibility: "PRIVATE",
     });
     resolveGuestAccessMock.mockResolvedValueOnce({
       accessLevel: "guest",
@@ -145,8 +175,27 @@ describe("GET /api/events/[id]/gallery/public", () => {
     dbMock.eventGalleryItem.findMany.mockResolvedValueOnce(itemRows(2));
     const res = await GET(makeRequest("?tk=tk_1"), ctx);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.data.items).toHaveLength(2);
+  });
+
+  it("404s when the event is unpublished (publishedAt is null)", async () => {
+    // Page route filters unpublished events via getEventBySlug; the API
+    // must agree so a leaked event ID + published gallery can't serve
+    // photos behind the page route's back.
+    dbMock.event.findUnique.mockResolvedValueOnce({
+      ...publicEvent,
+      publishedAt: null,
+    });
+    const res = await GET(makeRequest(), ctx);
+    expect(res.status).toBe(404);
+  });
+
+  it("404s when the event is CANCELLED", async () => {
+    dbMock.event.findUnique.mockResolvedValueOnce({
+      ...publicEvent,
+      status: "CANCELLED",
+    });
+    const res = await GET(makeRequest(), ctx);
+    expect(res.status).toBe(404);
   });
 
   it("returns an empty page for EXTERNAL_LINK galleries", async () => {

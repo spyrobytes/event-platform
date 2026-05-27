@@ -10,6 +10,10 @@ type Props = {
    *  FAILED / CANCELLED). The dashboard refetches the gallery row in
    *  response so it can show the new item count. */
   onSettled?: () => void;
+  /** Fires when the user dismisses the progress panel (after a polling
+   *  error or on a settled state). The parent should clear its activeJobId
+   *  so the picker isn't stuck behind a `busy` flag. */
+  onDismiss?: () => void;
 };
 
 type JobSnapshot = {
@@ -51,13 +55,24 @@ const STATUS_COPY: Record<JobSnapshot["status"], { label: string; tone: string }
  * this component shows "Queued — N files waiting." That's the desired
  * Phase 2 state — the dashboard is honest about what just happened.
  */
-export function GalleryImportProgress({ eventId, jobId, getIdToken, onSettled }: Props) {
+export function GalleryImportProgress({
+  eventId,
+  jobId,
+  getIdToken,
+  onSettled,
+  onDismiss,
+}: Props) {
   const [snapshot, setSnapshot] = useState<JobSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumping this triggers the polling effect to re-run (Retry button).
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+
+    // Clear stale error state when (re)starting a poll cycle.
+    setError(null);
 
     const tick = async () => {
       try {
@@ -80,6 +95,9 @@ export function GalleryImportProgress({ eventId, jobId, getIdToken, onSettled }:
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "Polling failed");
+        // Don't keep polling on the same error — wait for explicit retry.
+        // Without an exit path here, the parent's `busy={activeJobId !==
+        // null}` would strand the picker after a transient network blip.
       }
     };
 
@@ -89,12 +107,33 @@ export function GalleryImportProgress({ eventId, jobId, getIdToken, onSettled }:
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [eventId, jobId, getIdToken, onSettled]);
+  }, [eventId, jobId, getIdToken, onSettled, retryAttempt]);
 
   if (error) {
     return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-        {error}
+      <div
+        role="alert"
+        className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span>{error}</span>
+          <div className="flex shrink-0 gap-3">
+            <button
+              type="button"
+              onClick={() => setRetryAttempt((n) => n + 1)}
+              className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={() => onDismiss?.()}
+              className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
