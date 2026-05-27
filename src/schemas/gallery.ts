@@ -55,6 +55,65 @@ export type GallerySourceRef = z.infer<typeof gallerySourceRefSchema>;
 export type ExternalLinkSourceRef = z.infer<typeof externalLinkSourceRefSchema>;
 
 /**
+ * Organizer-chosen presentation for the dedicated post-event gallery page.
+ *
+ * Stored as JSON on `event_galleries.presentation` (no DB-level enforcement —
+ * same pattern as `sourceRef`). Every read goes through `galleryPresentationSchema`
+ * with `.parse()` so a null/missing column yields the default `classic-grid`
+ * shape via `parseGalleryPresentation()` below.
+ *
+ * Phase 1 ships three variants; Editorial Luxe and Story Chapters land in
+ * Phase 5 once curation primitives (per-item `isFeatured`, chapter mapping)
+ * are validated in production.
+ */
+export const galleryVariantSchema = z.enum([
+  "classic-grid",
+  "romantic-masonry",
+  "scrapbook-memories",
+]);
+
+export type GalleryVariant = z.infer<typeof galleryVariantSchema>;
+
+export const galleryPresentationSchema = z.object({
+  variant: galleryVariantSchema.default("classic-grid"),
+  /** Optional thank-you block heading. Empty = no thank-you section rendered. */
+  thankYouHeading: z.string().trim().max(80).optional(),
+  thankYouMessage: z.string().trim().max(500).optional(),
+  showFeaturedStrip: z.boolean().default(false),
+  /** Echo a sample of approved RSVP messages above the share CTA. */
+  showWishesEcho: z.boolean().default(false),
+});
+
+export type GalleryPresentation = z.infer<typeof galleryPresentationSchema>;
+
+/**
+ * Default presentation applied when the DB column is null or fails parsing.
+ * Matches the previous (pre-presentation) public behavior: classic grid,
+ * no thank-you, no featured strip, no wishes echo.
+ */
+export const DEFAULT_GALLERY_PRESENTATION: GalleryPresentation = {
+  variant: "classic-grid",
+  showFeaturedStrip: false,
+  showWishesEcho: false,
+};
+
+/**
+ * Parses a JSON value from `event_galleries.presentation` into a typed
+ * `GalleryPresentation`, falling back to the default when the column is
+ * null or the stored shape is no longer valid (e.g. a removed variant).
+ *
+ * The fallback is intentional — a stale row should never break the public
+ * page; the dashboard will re-save a valid presentation on next edit.
+ */
+export function parseGalleryPresentation(
+  value: unknown,
+): GalleryPresentation {
+  if (value == null) return DEFAULT_GALLERY_PRESENTATION;
+  const parsed = galleryPresentationSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_GALLERY_PRESENTATION;
+}
+
+/**
  * String-literal mirror of the Prisma `GalleryStatus` enum, kept here so
  * client components can type the value without pulling in `@prisma/client`
  * (which can drag Node-specific runtime into the browser bundle — see how
@@ -128,6 +187,32 @@ export const googleDriveSelectionInputSchema = z.object({
 export type GoogleDrivePickedFile = z.infer<typeof googleDrivePickedFileSchema>;
 export type GoogleDriveSelectionInput = z.infer<typeof googleDriveSelectionInputSchema>;
 
+/**
+ * PATCH /api/events/[id]/gallery/[galleryId]
+ *
+ * Gallery-level field updates: title, description, and presentation.
+ * Only fields explicitly present in the body are touched — `undefined`
+ * leaves the column alone, `null` on title/description clears it.
+ *
+ * Presentation is replaced wholesale when present (matches how `sourceRef`
+ * is rewritten on each external-link upsert — no partial-merge surface).
+ */
+export const updateGalleryInputSchema = z
+  .object({
+    title: z.string().trim().max(120).nullable().optional(),
+    description: z.string().trim().max(1000).nullable().optional(),
+    presentation: galleryPresentationSchema.optional(),
+  })
+  .refine(
+    (v) =>
+      v.title !== undefined ||
+      v.description !== undefined ||
+      v.presentation !== undefined,
+    { message: "At least one field must be provided" },
+  );
+
+export type UpdateGalleryInput = z.infer<typeof updateGalleryInputSchema>;
+
 // =============================================================================
 // Public response shapes
 // =============================================================================
@@ -159,6 +244,13 @@ export type PublicGallery =
       /** Populated in PR #4+ once imported items exist. Empty for now. */
       items: PublicGalleryItem[];
       pageInfo: { nextCursor: string | null };
+      /** Organizer-curated presentation. Always non-null — falls back to
+       *  DEFAULT_GALLERY_PRESENTATION when the DB column is missing/stale. */
+      presentation: GalleryPresentation;
+      /** Items the organizer flagged as featured (status=READY, isHidden=false).
+       *  Server-resolved so the client doesn't need to know about isFeatured.
+       *  Empty array when no items are featured. */
+      featuredItems: PublicGalleryItem[];
     };
 
 export type PublicGalleryItem = {
@@ -201,6 +293,7 @@ export type OrganizerGalleryItem = {
   caption: string | null;
   sortOrder: number;
   isHidden: boolean;
+  isFeatured: boolean;
   attempts: number;
   errorCode: string | null;
   errorMessage: string | null;

@@ -19,6 +19,7 @@ type RouteContext = {
 
 const patchItemSchema = z.object({
   isHidden: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
   caption: z.string().trim().max(500).nullable().optional(),
   alt: z.string().trim().max(500).optional(),
 });
@@ -69,10 +70,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const data: {
       isHidden?: boolean;
+      isFeatured?: boolean;
       caption?: string | null;
       alt?: string;
     } = {};
     if (input.isHidden !== undefined) data.isHidden = input.isHidden;
+    if (input.isFeatured !== undefined) data.isFeatured = input.isFeatured;
     if (input.caption !== undefined) {
       data.caption = input.caption === null ? null : input.caption;
     }
