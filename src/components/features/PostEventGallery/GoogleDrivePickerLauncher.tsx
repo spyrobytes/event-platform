@@ -44,7 +44,8 @@ type LauncherState = "idle" | "loading" | "ready" | "error";
  *     clicked (we don't include it in the page bundle).
  *   - The Picker's iframe inherits the user's existing Google session.
  *     We pass the access token via setOAuthToken so its file-listing
- *     stays scoped to the drive.file files this app has touched.
+ *     and thumbnail fetches authenticate against the user's Drive under
+ *     the drive.readonly scope we requested at connect time.
  *   - On `cancel` we do NOT submit; the user just closes the dialog.
  */
 export function GoogleDrivePickerLauncher({
@@ -139,6 +140,17 @@ export function GoogleDrivePickerLauncher({
           "Picker API key is not configured. Ask the operator to set NEXT_PUBLIC_GOOGLE_PICKER_API_KEY.",
         );
       }
+      const appId = process.env.NEXT_PUBLIC_GOOGLE_PICKER_APP_ID;
+      if (!appId) {
+        // Without setAppId the Picker silently fails in three observable
+        // ways: thumbnails never load, the PICKED-action grant doesn't
+        // complete (so the onSelected callback never fires), and the
+        // Picker chrome can't be dismissed — the user has to close the
+        // browser tab. Fail fast with a clear message instead.
+        throw new Error(
+          "Picker app ID is not configured. Ask the operator to set NEXT_PUBLIC_GOOGLE_PICKER_APP_ID to the Google Cloud project number.",
+        );
+      }
 
       const token = await getIdToken();
       if (!token) throw new Error("Not authenticated");
@@ -164,11 +176,24 @@ export function GoogleDrivePickerLauncher({
       const picker = window.google?.picker;
       if (!picker) throw new Error("Picker library failed to initialize");
 
-      const view = new picker.DocsView(picker.ViewId.DOCS)
+      // ViewId.DOCS_IMAGES is the Drive *image-files* view — it renders as
+      // a thumbnail grid by default and is filtered to image MIME types.
+      // The previous ViewId.DOCS choice defaulted to a list of filename
+      // rows with generic icons (organizers saw "blank thumb" placeholders
+      // and couldn't tell their photos apart). setMode(GRID) belts the
+      // suspenders in case a future Picker default flips back to LIST.
+      //
+      // No ownership filter — .setOwnedByMe(true) restricts to files
+      // owned by the viewer, .setOwnedByMe(false) restricts to
+      // shared-with-me. Omitting the call lets the Picker show everything
+      // the user can navigate to in Drive (My Drive, Shared with me,
+      // Recent, Starred), which is what organizers expect when picking
+      // photos from their own account.
+      const view = new picker.DocsView(picker.ViewId.DOCS_IMAGES)
+        .setMode(picker.DocsViewMode.GRID)
         .setMimeTypes("image/jpeg,image/png,image/webp")
         .setIncludeFolders(true)
-        .setSelectFolderEnabled(false)
-        .setOwnedByMe(false);
+        .setSelectFolderEnabled(false);
 
       const callback: GooglePickerCallback = (data) => {
         if (data.action === picker.Action.PICKED && data.docs?.length) {
@@ -180,6 +205,11 @@ export function GoogleDrivePickerLauncher({
         .addView(view)
         .setOAuthToken(tokenData.accessToken)
         .setDeveloperKey(apiKey)
+        // App ID couples the Picker session to our Google Cloud project so
+        // thumbnail fetches + the PICKED-action grant authenticate against
+        // the OAuth client correctly. See the env.ts comment for the
+        // failure modes if this is missing.
+        .setAppId(appId)
         .enableFeature(picker.Feature.MULTISELECT_ENABLED)
         .setTitle("Select photos to import")
         .setCallback(callback)

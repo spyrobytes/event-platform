@@ -49,10 +49,21 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const input = patchItemSchema.parse(body);
 
     // Verify item belongs to the gallery + event before mutating. One
-    // round-trip via the chained where (item → gallery → event).
+    // round-trip via the chained where (item → gallery → event). We also
+    // pull coverGalleryItemId so the hide path can null the dangling cover
+    // reference in the same write.
     const item = await db.eventGalleryItem.findFirst({
       where: { id: itemId, galleryId, gallery: { eventId } },
-      select: { id: true, gallery: { select: { event: { select: { slug: true } } } } },
+      select: {
+        id: true,
+        gallery: {
+          select: {
+            id: true,
+            coverGalleryItemId: true,
+            event: { select: { slug: true } },
+          },
+        },
+      },
     });
     if (!item) throw new NotFoundError("Gallery item not found");
 
@@ -71,14 +82,29 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return successResponse({ id: itemId, unchanged: true });
     }
 
-    await db.eventGalleryItem.update({
-      where: { id: itemId },
-      data,
-    });
+    // Hiding the current cover leaves the dashboard showing a "Cover" badge
+    // on an item the public payload won't surface (public cover resolution
+    // drops hidden items). Clear the soft FK in the same transaction so the
+    // dashboard state matches what visitors see — matches the item-DELETE
+    // contract in this file.
+    const hidingCover =
+      data.isHidden === true && item.gallery.coverGalleryItemId === itemId;
+
+    if (hidingCover) {
+      await db.$transaction([
+        db.eventGalleryItem.update({ where: { id: itemId }, data }),
+        db.eventGallery.update({
+          where: { id: item.gallery.id },
+          data: { coverGalleryItemId: null },
+        }),
+      ]);
+    } else {
+      await db.eventGalleryItem.update({ where: { id: itemId }, data });
+    }
 
     await revalidateEventAndGallery(item.gallery.event.slug);
 
-    return successResponse({ id: itemId });
+    return successResponse({ id: itemId, ...(hidingCover ? { clearedCover: true } : {}) });
   } catch (error) {
     return handleApiError(error);
   }

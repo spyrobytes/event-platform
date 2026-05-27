@@ -107,12 +107,34 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-# Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
-# objects_path = "./images"
+# Buckets must match the names declared in src/lib/supabase-storage.ts → BUCKETS.
+# Production buckets were created out-of-band (Supabase Studio UI). These
+# blocks ensure `supabase start` / `supabase db reset` reproduces a bucket
+# under the same name so the worker doesn't fail with "Bucket not found";
+# they are NOT a guarantee that the local settings mirror production's.
+# Per-bucket limits are chosen against what the consumer code expects, not
+# verified against the prod bucket — if you ever need parity, query the
+# prod project's /storage/v1/bucket endpoint and align both sides.
+
+# Generic asset bucket (hero images, media-library uploads). No MIME or
+# size restrictions here — the existing local bucket created in earlier
+# project setup had `allowed_mime_types: null` and `file_size_limit: null`,
+# and tightening those would risk silently rejecting uploads that work
+# against prod. Consumers (`src/lib/supabase-storage.ts`, media-library
+# routes) gate at the application layer.
+[storage.buckets.event-assets]
+public = true
+
+# Gallery worker output bucket. Restrictions here are tight on purpose:
+# the worker only ever uploads optimized JPEG/PNG/WEBP under 50 MiB
+# (see `src/lib/gallery-worker.ts` optimizeImage step), so anything else
+# hitting this bucket is a bug worth catching at the storage boundary.
+# If prod allows more, that's fine — the worker still produces the same
+# output shape regardless.
+[storage.buckets.gallery]
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]

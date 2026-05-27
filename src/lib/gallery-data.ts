@@ -175,8 +175,17 @@ export async function getPublishedGalleryForEvent(
 
   // The cover resolver uses richer item data than the public type carries
   // (status/isHidden/sortOrder). Re-fetch the cover candidate separately
-  // when explicitly referenced, so we don't widen PublicGalleryItem.
-  const coverCandidateItems = items.map((i) => ({
+  // when it's explicitly referenced but isn't in the first page — without
+  // this, a cover set to photo 25+ silently fell back to the first visible
+  // item.
+  const coverCandidateItems: Array<{
+    id: string;
+    status: "READY";
+    isHidden: boolean;
+    sortOrder: number;
+    thumbnailUrl: string | null;
+    publicUrl: string | null;
+  }> = items.map((i) => ({
     id: i.id,
     status: "READY" as const,
     isHidden: false,
@@ -185,12 +194,41 @@ export async function getPublishedGalleryForEvent(
     publicUrl: i.src,
   }));
 
+  if (
+    gallery.coverGalleryItemId &&
+    !coverCandidateItems.some((i) => i.id === gallery.coverGalleryItemId)
+  ) {
+    const coverRow = await db.eventGalleryItem.findFirst({
+      where: {
+        id: gallery.coverGalleryItemId,
+        galleryId: gallery.id,
+        status: "READY",
+        isHidden: false,
+      },
+      select: {
+        id: true,
+        thumbnailUrl: true,
+        publicUrl: true,
+      },
+    });
+    if (coverRow) {
+      coverCandidateItems.push({
+        id: coverRow.id,
+        status: "READY" as const,
+        isHidden: false,
+        sortOrder: 0,
+        thumbnailUrl: coverRow.thumbnailUrl,
+        publicUrl: coverRow.publicUrl,
+      });
+    }
+  }
+
   const explicitCoverResolves =
     (gallery.coverMediaAssetId !== null &&
       gallery.coverAsset?.publicUrl != null) ||
     (gallery.coverGalleryItemId !== null &&
       coverCandidateItems.some((i) => i.id === gallery.coverGalleryItemId));
-  const itemFallbackResolves = coverCandidateItems.length > 0;
+  const itemFallbackResolves = items.length > 0;
 
   const heroAsset =
     explicitCoverResolves || itemFallbackResolves

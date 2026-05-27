@@ -9,6 +9,7 @@ import {
 } from "@/lib/api-response";
 import { revalidateEventAndGallery } from "@/lib/revalidation";
 import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
+import { deleteGalleryItemBlobs } from "@/lib/gallery-storage";
 import {
   upsertExternalLinkInputSchema,
   externalLinkSourceRefSchema,
@@ -52,7 +53,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const existing = await db.eventGallery.findFirst({
       where: { eventId },
-      select: { id: true, status: true },
+      select: {
+        id: true,
+        status: true,
+        sourceType: true,
+        items: {
+          select: {
+            id: true,
+            storageBucket: true,
+            storageKey: true,
+            thumbnailKey: true,
+          },
+        },
+      },
     });
 
     // Re-validate through the discriminated union before writing to the JSON
@@ -70,25 +83,69 @@ export async function POST(request: NextRequest, context: RouteContext) {
         ? "PUBLISHED"
         : "DRAFT";
 
+    // Source-type switch (NATIVE → EXTERNAL_LINK) leaves orphan rows + blobs
+    // behind otherwise: items become unreachable in the dashboard, still
+    // consume storage, and still count against future Drive-import caps via
+    // existingItemCount in selection/route.ts. Clean them up before flipping
+    // the source. Best-effort on storage (same pattern as gallery DELETE).
+    const switchingFromNative =
+      !!existing &&
+      existing.sourceType !== "EXTERNAL_LINK" &&
+      existing.items.length > 0;
+    if (switchingFromNative && existing) {
+      const storage = await deleteGalleryItemBlobs(
+        existing.items.map((i) => ({
+          bucket: i.storageBucket,
+          storageKey: i.storageKey,
+          thumbnailKey: i.thumbnailKey,
+        })),
+      );
+      if (storage.failed > 0) {
+        console.error(
+          "[gallery external-link upsert] storage cleanup partial failure",
+          { galleryId: existing.id, ...storage },
+        );
+        return errorResponse(
+          "Could not remove existing photos. Please try again.",
+          500,
+          "STORAGE_DELETE_FAILED",
+          storage.errors,
+        );
+      }
+    }
+
     const gallery = existing
-      ? await db.eventGallery.update({
-          where: { id: existing.id },
-          data: {
-            title: input.title ?? null,
-            description: input.description ?? null,
-            sourceType: "EXTERNAL_LINK",
-            sourceRef,
-            status: targetStatus,
-            // Only touch the cover when the caller passes the key explicitly
-            // (undefined = leave, null = clear, string = set).
-            ...(input.coverMediaAssetId !== undefined
-              ? { coverMediaAssetId: input.coverMediaAssetId }
-              : {}),
-            publishedAt:
-              targetStatus === "PUBLISHED" && existing.status !== "PUBLISHED"
-                ? new Date()
-                : undefined,
-          },
+      ? await db.$transaction(async (tx) => {
+          // Drop the now-orphan native items first (FK cascade isn't enough —
+          // we want them gone before the source flips so a concurrent read
+          // doesn't observe an EXTERNAL_LINK gallery with leftover rows).
+          if (switchingFromNative) {
+            await tx.eventGalleryItem.deleteMany({
+              where: { galleryId: existing.id },
+            });
+          }
+          return tx.eventGallery.update({
+            where: { id: existing.id },
+            data: {
+              title: input.title ?? null,
+              description: input.description ?? null,
+              sourceType: "EXTERNAL_LINK",
+              sourceRef,
+              status: targetStatus,
+              // Only touch the cover when the caller passes the key
+              // explicitly (undefined = leave, null = clear, string = set).
+              ...(input.coverMediaAssetId !== undefined
+                ? { coverMediaAssetId: input.coverMediaAssetId }
+                : {}),
+              // External-link galleries have no items, so an existing gallery
+              // item cover reference is stale once the source flips.
+              ...(switchingFromNative ? { coverGalleryItemId: null } : {}),
+              publishedAt:
+                targetStatus === "PUBLISHED" && existing.status !== "PUBLISHED"
+                  ? new Date()
+                  : undefined,
+            },
+          });
         })
       : await db.eventGallery.create({
           data: {

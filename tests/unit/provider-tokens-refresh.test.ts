@@ -52,7 +52,7 @@ function buildExpiredTokenRow() {
     refreshTokenEnvelope: encryptToken("the-refresh-token"),
     expiresAt: new Date(Date.now() - 60_000),
     revokedAt: null,
-    scope: "https://www.googleapis.com/auth/drive.file",
+    scope: "https://www.googleapis.com/auth/drive.readonly",
   };
 }
 
@@ -123,7 +123,7 @@ describe("getValidAccessToken — refresh failure handling", () => {
       accessToken: "fresh-access-token",
       refreshToken: null,
       expiresInSec: 3600,
-      scope: "https://www.googleapis.com/auth/drive.file",
+      scope: "https://www.googleapis.com/auth/drive.readonly",
     });
 
     const token = await getValidAccessToken("user_1", "GOOGLE_DRIVE");
@@ -143,7 +143,7 @@ describe("getValidAccessToken — refresh failure handling", () => {
       accessToken: "fresh-access-token",
       refreshToken: "rotated-refresh-token",
       expiresInSec: 3600,
-      scope: "https://www.googleapis.com/auth/drive.file",
+      scope: "https://www.googleapis.com/auth/drive.readonly",
     });
 
     await getValidAccessToken("user_1", "GOOGLE_DRIVE");

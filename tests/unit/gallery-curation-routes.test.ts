@@ -105,7 +105,11 @@ describe("PATCH /items/[itemId]", () => {
 
   const validItem = {
     id: "item_1",
-    gallery: { event: { slug: "summer-2026" } },
+    gallery: {
+      id: "gal_1",
+      coverGalleryItemId: null as string | null,
+      event: { slug: "summer-2026" },
+    },
   };
 
   it("updates isHidden and revalidates", async () => {
@@ -116,6 +120,8 @@ describe("PATCH /items/[itemId]", () => {
     const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
     expect(update.data.isHidden).toBe(true);
     expect(revalidateEventAndGalleryMock).toHaveBeenCalledWith("summer-2026");
+    // Non-cover item: no cover-clear transaction.
+    expect(dbMock.eventGallery.update).not.toHaveBeenCalled();
   });
 
   it("clears caption when passed null", async () => {
@@ -138,6 +144,51 @@ describe("PATCH /items/[itemId]", () => {
     dbMock.eventGalleryItem.findFirst.mockResolvedValueOnce(null);
     const res = await PATCH(makeRequest({ isHidden: true }), ctx);
     expect(res.status).toBe(404);
+  });
+
+  it("nulls coverGalleryItemId when hiding the cover item", async () => {
+    // Hiding the current cover would otherwise leave the dashboard showing
+    // a "Cover" badge on an item the public payload won't render.
+    dbMock.eventGalleryItem.findFirst.mockResolvedValueOnce({
+      ...validItem,
+      gallery: { ...validItem.gallery, coverGalleryItemId: "item_1" },
+    });
+    dbMock.eventGalleryItem.update.mockResolvedValueOnce({ id: "item_1" });
+    const res = await PATCH(makeRequest({ isHidden: true }), ctx);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.clearedCover).toBe(true);
+
+    // Cover-clear ran in the same transaction as the item update.
+    expect(dbMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(dbMock.eventGallery.update).toHaveBeenCalledWith({
+      where: { id: "gal_1" },
+      data: { coverGalleryItemId: null },
+    });
+  });
+
+  it("does NOT clear cover when hiding a different item", async () => {
+    dbMock.eventGalleryItem.findFirst.mockResolvedValueOnce({
+      ...validItem,
+      gallery: { ...validItem.gallery, coverGalleryItemId: "some_other_item" },
+    });
+    dbMock.eventGalleryItem.update.mockResolvedValueOnce({ id: "item_1" });
+    await PATCH(makeRequest({ isHidden: true }), ctx);
+    expect(dbMock.$transaction).not.toHaveBeenCalled();
+    expect(dbMock.eventGallery.update).not.toHaveBeenCalled();
+  });
+
+  it("does NOT clear cover when un-hiding (isHidden: false) the cover item", async () => {
+    // Un-hiding the cover is a no-op for the cover relationship — only the
+    // hide direction creates the stale state.
+    dbMock.eventGalleryItem.findFirst.mockResolvedValueOnce({
+      ...validItem,
+      gallery: { ...validItem.gallery, coverGalleryItemId: "item_1" },
+    });
+    dbMock.eventGalleryItem.update.mockResolvedValueOnce({ id: "item_1" });
+    await PATCH(makeRequest({ isHidden: false }), ctx);
+    expect(dbMock.$transaction).not.toHaveBeenCalled();
+    expect(dbMock.eventGallery.update).not.toHaveBeenCalled();
   });
 });
 

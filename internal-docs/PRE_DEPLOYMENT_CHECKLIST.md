@@ -89,6 +89,21 @@ Already in place — no action unless versions drift.
 |---|---|---|
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Rate limiting | Disabled (no limits) |
 | `SENTRY_DSN` | Error tracking | Disabled |
+| `POST_EVENT_GALLERY_ENABLED` | Post-event gallery feature flag (server). Server routes 404 when unset. | Disabled |
+| `NEXT_PUBLIC_POST_EVENT_GALLERY_ENABLED` | Dashboard UI affordances for the gallery (client-side mirror of the flag above) | Disabled |
+
+### CONDITIONALLY REQUIRED — post-event gallery (when `POST_EVENT_GALLERY_ENABLED=true`)
+
+If the gallery feature is on, all four must be set or organizers will hit clear-but-blocking errors:
+
+| Var | Used by | How to obtain |
+|---|---|---|
+| `GOOGLE_OAUTH_CLIENT_ID` | OAuth dance for "Connect Drive" | Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application). Add `${NEXT_PUBLIC_BASE_URL}/api/auth/google-drive/callback` to authorized redirect URIs. |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | OAuth dance | Same OAuth client as above. |
+| `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` | Browser-side Picker init | Google Cloud Console → APIs & Services → Credentials → **API key** (separate from the OAuth client). Enable the Picker API on the project; restrict the key to your domain(s) under "Application restrictions → HTTP referrers." |
+| `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` | Browser-side `PickerBuilder.setAppId()` | Google Cloud Console → project dashboard → **"Project number"** (numeric, e.g. `123456789012`) — *not* the alphanumeric "Project ID." Without this the Picker opens but thumbnails won't load and the file-selection grant hangs. |
+
+The OAuth consent screen needs `https://www.googleapis.com/auth/drive.readonly` (a Google "restricted scope") added to the scope list. Until the project clears CASA security review, the consent screen must stay in **Testing** mode with operator emails on the allowlist; external users will see an "App not verified" warning otherwise. See `internal-docs/` memory note `project_google_drive_scope.md` for the GA gate.
 
 ### DO NOT SET in production
 
@@ -132,7 +147,10 @@ These are development-only; leaving them set in prod will silently break auth/em
 - [ ] No schema drift — `npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code` exits `0` (exit `2` = drift; re-run with `--script` added to see the SQL)
 - [ ] `prisma/migrations/migration_lock.toml` committed (it is)
 - [ ] Prod credentials cleaned from shell + `history`, and `.env.local` restored to local-dev values
-- [ ] Supabase storage buckets created: any bucket referenced by `src/lib/supabase-storage.ts` — check media upload paths
+- [ ] Supabase storage buckets created on the production project. Required buckets (must match `src/lib/supabase-storage.ts` → `BUCKETS`):
+  - `event-assets` (hero images, media-library uploads) — public, 50 MiB limit, image/* MIME types
+  - `gallery` (post-event gallery worker uploads) — public, 50 MiB limit, `image/jpeg, image/png, image/webp` only
+  Local dev creates both declaratively via `supabase/config.toml` `[storage.buckets.*]`. Production was bootstrapped manually via Supabase Studio — if you ever rebuild the prod project, mirror the same names + settings or the gallery worker fails every item with `STORAGE_UPLOAD_FAILED: Bucket not found` (caught by smoke test §10).
 
 **For the full executable procedure** (including the Supavisor username gotcha, bash-quoting pitfalls, and a draft CI workflow for future automation), follow [`DATABASE_MIGRATION_RUNBOOK.md`](./DATABASE_MIGRATION_RUNBOOK.md).
 
@@ -244,6 +262,7 @@ Run these in order on the production URL. Stop and investigate at the first fail
 - [ ] Cron logs in Vercel show no 401s or 500s for any of the three jobs
 - [ ] Image uploads: upload one media asset; verify it renders via the Supabase transform URL (not a 404)
 - [ ] Visit `/e/:slug` for a public event → no referrer header on outbound links (check Network tab; `Referrer-Policy: no-referrer` in response)
+- [ ] Post-event gallery import: connect Drive on the test event → pick 2-3 photos → wait ≤5 min for cron → confirm items flip from `PENDING` to `READY` with thumbnails. Catches the `gallery` bucket missing-from-prod regression that we hit on local dev.
 
 ---
 
