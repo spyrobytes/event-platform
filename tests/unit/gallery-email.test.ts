@@ -414,9 +414,19 @@ describe("POST /publish — notifyGuests opt-in", () => {
   it("enqueues emails when notifyGuests is true", async () => {
     publishMockSetup();
     getPublishedGalleryMock.mockResolvedValueOnce({
+      id: "gal_1",
       sourceType: "NATIVE",
+      title: null,
+      description: null,
       coverUrl: "https://supabase.example/cover.webp",
       items: Array.from({ length: 6 }, (_, i) => ({ id: `i${i}` })),
+      pageInfo: { nextCursor: null },
+      presentation: {
+        variant: "classic-grid",
+        showFeaturedStrip: false,
+        showWishesEcho: false,
+      },
+      featuredItems: [],
     });
     dbMock.invite.findMany.mockResolvedValueOnce([
       {

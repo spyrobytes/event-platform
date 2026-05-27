@@ -8,7 +8,7 @@ import {
   errorResponse,
   handleApiError,
 } from "@/lib/api-response";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
 import { deleteGalleryItemBlobs } from "@/lib/gallery-storage";
 import { revalidateEventAndGallery } from "@/lib/revalidation";
@@ -52,11 +52,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Verify item belongs to the gallery + event before mutating. One
     // round-trip via the chained where (item → gallery → event). We also
     // pull coverGalleryItemId so the hide path can null the dangling cover
-    // reference in the same write.
+    // reference in the same write, plus status/isHidden/isFeatured so we
+    // can validate the effective post-update state for the featured flag
+    // (the cover-route enforces READY+visible — same guard belongs here
+    // to keep the dashboard from showing "featured + hidden" combos that
+    // the public strip silently drops).
     const item = await db.eventGalleryItem.findFirst({
       where: { id: itemId, galleryId, gallery: { eventId } },
       select: {
         id: true,
+        status: true,
+        isHidden: true,
+        isFeatured: true,
         gallery: {
           select: {
             id: true,
@@ -83,6 +90,34 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (Object.keys(data).length === 0) {
       return successResponse({ id: itemId, unchanged: true });
+    }
+
+    // Validate isFeatured=true against the EFFECTIVE post-update state so
+    // a single PATCH unhiding and featuring at once (`{ isHidden: false,
+    // isFeatured: true }`) is accepted, while featuring a still-hidden or
+    // non-READY item is rejected. status isn't user-editable, so we just
+    // check the loaded item's status.
+    if (data.isFeatured === true) {
+      const effectiveIsHidden = data.isHidden ?? item.isHidden;
+      if (effectiveIsHidden) {
+        throw new ValidationError("Cannot feature a hidden item");
+      }
+      if (item.status !== "READY") {
+        throw new ValidationError(
+          "Cannot feature an item that is not yet processed",
+        );
+      }
+    }
+
+    // Hide-cascade for isFeatured: a hidden item is silently filtered out
+    // of the public featured strip, so leaving isFeatured=true on a hidden
+    // row produces a dashboard "Featured + Hidden" badge that doesn't match
+    // what visitors see (and on re-unhide silently re-promotes the photo).
+    // When the PATCH ends with isHidden=true, force isFeatured=false too —
+    // mirrors the hidingCover cascade below.
+    const willBeHidden = data.isHidden === true;
+    if (willBeHidden && item.isFeatured && data.isFeatured !== false) {
+      data.isFeatured = false;
     }
 
     // Hiding the current cover leaves the dashboard showing a "Cover" badge

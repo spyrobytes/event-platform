@@ -71,6 +71,12 @@ const baseGallery = {
   coverUrl: null,
   items: [],
   pageInfo: { nextCursor: null },
+  presentation: {
+    variant: "classic-grid" as const,
+    showFeaturedStrip: false,
+    showWishesEcho: false,
+  },
+  featuredItems: [],
 };
 
 function call(params: { slug: string }, search: { tk?: string }) {
