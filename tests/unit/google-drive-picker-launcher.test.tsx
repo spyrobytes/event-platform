@@ -46,6 +46,7 @@ function installPickerStubs() {
       load: (_api: string, opts: { callback: () => void }) => opts.callback(),
     },
   });
+  const docsViewCtorCalls: unknown[] = [];
   Object.defineProperty(window, "google", {
     configurable: true,
     value: {
@@ -53,17 +54,20 @@ function installPickerStubs() {
         PickerBuilder: function PickerBuilder() {
           return builder;
         },
-        DocsView: function DocsView() {
+        DocsView: function DocsView(viewId?: unknown) {
+          docsViewCtorCalls.push(viewId);
           return view;
         },
-        ViewId: { DOCS: 1, PHOTOS: 2 },
+        ViewId: { DOCS: 1, DOCS_IMAGES: 3, PHOTOS: 2 },
+        DocsViewMode: { LIST: "LIST", GRID: "GRID" },
         Feature: { MULTISELECT_ENABLED: "MULTISELECT_ENABLED", NAV_HIDDEN: "NAV_HIDDEN" },
         Action: { PICKED: "picked", CANCEL: "cancel", LOADED: "loaded" },
       },
     },
   });
 
-  return { viewCalls, builderCalls, setVisible };
+  return { viewCalls, builderCalls, setVisible, docsViewCtorCalls };
+
 }
 
 beforeEach(() => {
@@ -168,6 +172,34 @@ describe("GoogleDrivePickerLauncher — Picker view configuration", () => {
     const appIdCall = builderCalls.find((c) => c.method === "setAppId");
     expect(appIdCall).toBeDefined();
     expect(appIdCall?.args[0]).toBe("123456789012");
+  });
+
+  it("opens the Drive image view in grid mode so thumbnails render", async () => {
+    const { viewCalls, docsViewCtorCalls, setVisible } = installPickerStubs();
+
+    render(
+      <GoogleDrivePickerLauncher
+        eventId="evt_1"
+        connected
+        busy={false}
+        getIdToken={getIdToken}
+        onSelected={() => {}}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /select photos from drive/i }),
+    );
+
+    await waitFor(() => expect(setVisible).toHaveBeenCalledWith(true));
+
+    // Regression: the launcher previously used ViewId.DOCS which renders
+    // as a generic filename-list with placeholder icons. ViewId.DOCS_IMAGES
+    // is the image-specific view and defaults to a thumbnail grid; we
+    // also force GRID mode in case a future Picker default flips.
+    expect(docsViewCtorCalls).toContain(3); // ViewId.DOCS_IMAGES in our stub
+    const modeCall = viewCalls.find((c) => c.method === "setMode");
+    expect(modeCall?.args[0]).toBe("GRID");
   });
 
   it("fails fast with a clear message when NEXT_PUBLIC_GOOGLE_PICKER_APP_ID is missing", async () => {

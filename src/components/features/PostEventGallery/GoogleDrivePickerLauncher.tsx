@@ -175,15 +175,22 @@ export function GoogleDrivePickerLauncher({
       const picker = window.google?.picker;
       if (!picker) throw new Error("Picker library failed to initialize");
 
-      // No ownership filter — Picker .setOwnedByMe(true) restricts to files
-      // owned by the viewer, .setOwnedByMe(false) restricts to shared-with-me
-      // (which is what we shipped by mistake — organizers saw an empty
-      // "No one has shared photos with you yet" view). Omitting the call
-      // lets the Picker show everything the user can navigate to in Drive
-      // (My Drive, Shared with me, Recent, Starred), which is the only
-      // behaviour that makes sense with the drive.file scope where the
-      // Picker is the source of authorization for each picked file.
-      const view = new picker.DocsView(picker.ViewId.DOCS)
+      // ViewId.DOCS_IMAGES is the Drive *image-files* view — it renders as
+      // a thumbnail grid by default and is filtered to image MIME types.
+      // The previous ViewId.DOCS choice defaulted to a list of filename
+      // rows with generic icons (organizers saw "blank thumb" placeholders
+      // and couldn't tell their photos apart). setMode(GRID) belts the
+      // suspenders in case a future Picker default flips back to LIST.
+      //
+      // No ownership filter — .setOwnedByMe(true) restricts to files
+      // owned by the viewer, .setOwnedByMe(false) restricts to
+      // shared-with-me. Omitting the call lets the Picker show everything
+      // the user can navigate to in Drive (My Drive, Shared with me,
+      // Recent, Starred), which is the only behaviour that makes sense
+      // with the drive.file scope where the Picker is the source of
+      // authorization for each picked file.
+      const view = new picker.DocsView(picker.ViewId.DOCS_IMAGES)
+        .setMode(picker.DocsViewMode.GRID)
         .setMimeTypes("image/jpeg,image/png,image/webp")
         .setIncludeFolders(true)
         .setSelectFolderEnabled(false);
