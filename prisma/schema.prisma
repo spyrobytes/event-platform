@@ -576,6 +576,15 @@ model EventGallery {
   //   GOOGLE_DRIVE:  { folderId?, pickedAt }
   sourceRef  Json?             @map("source_ref")
 
+  // Organizer-chosen presentation for the public gallery page. Validated
+  // at the app layer by `galleryPresentationSchema` (src/schemas/gallery.ts).
+  // Shape:
+  //   { variant: "classic-grid" | "romantic-masonry" | "scrapbook-memories",
+  //     thankYouHeading?, thankYouMessage?,
+  //     showFeaturedStrip, showWishesEcho }
+  // Null = default classic-grid; no opinionated chrome.
+  presentation Json? @map("presentation")
+
   status GalleryStatus @default(DRAFT)
 
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -619,8 +628,13 @@ model EventGalleryItem {
   thumbnailUrl  String? @map("thumbnail_url")
   blurDataUrl   String? @map("blur_data_url")
 
-  sortOrder Int     @default(0) @map("sort_order")
-  isHidden  Boolean @default(false) @map("is_hidden")
+  sortOrder  Int     @default(0) @map("sort_order")
+  isHidden   Boolean @default(false) @map("is_hidden")
+  // Curated highlight flag. Powers the optional featured strip on the
+  // post-event page and (Phase 5) the Editorial Luxe anchor rhythm.
+  // Public-payload filter still applies — hidden featured items don't
+  // surface; cascade-delete cleans up automatically.
+  isFeatured Boolean @default(false) @map("is_featured")
   // Always-present alt for a11y; matches MediaAsset.alt. Empty string is
   // valid for decorative images. Workers fill from EXIF/filename when blank.
   alt       String  @default("")

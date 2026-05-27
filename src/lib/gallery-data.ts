@@ -3,6 +3,7 @@ import { resolveGalleryCoverUrl } from "@/lib/gallery-cover";
 import { getTrustedHostName } from "@/lib/gallery-trusted-hosts";
 import {
   externalLinkSourceRefSchema,
+  parseGalleryPresentation,
   type PublicGallery,
   type PublicGalleryItem,
 } from "@/schemas/gallery";
@@ -123,6 +124,7 @@ export async function getPublishedGalleryForEvent(
       description: true,
       sourceType: true,
       sourceRef: true,
+      presentation: true,
       coverGalleryItemId: true,
       coverMediaAssetId: true,
       coverAsset: { select: { publicUrl: true } },
@@ -172,6 +174,15 @@ export async function getPublishedGalleryForEvent(
   // NATIVE branch: fetch the first page of items, then resolve the cover
   // off what's loaded. Hero query only runs when nothing earlier resolves.
   const { items, nextCursor } = await getPublicGalleryItems(gallery.id);
+
+  // Server-resolve the curated featured strip up front so the public payload
+  // is self-contained. Capped at FEATURED_STRIP_LIMIT (matches the guide's
+  // 5–8 cinematic-preview band; 12 is a generous upper bound). Query is
+  // gated on the toggle to avoid the extra round-trip when the strip is off.
+  const presentation = parseGalleryPresentation(gallery.presentation);
+  const featuredItems = presentation.showFeaturedStrip
+    ? await getFeaturedGalleryItems(gallery.id)
+    : [];
 
   // The cover resolver uses richer item data than the public type carries
   // (status/isHidden/sortOrder). Re-fetch the cover candidate separately
@@ -255,7 +266,55 @@ export async function getPublishedGalleryForEvent(
     coverUrl,
     items,
     pageInfo: { nextCursor },
+    presentation,
+    featuredItems,
   };
+}
+
+/**
+ * Soft cap on the featured strip. The guide proposes 5–8 as the cinematic
+ * preview rhythm; 12 gives organizers headroom without becoming a second grid.
+ * Anything beyond this is dropped server-side rather than truncated by CSS.
+ */
+const FEATURED_STRIP_LIMIT = 12;
+
+/**
+ * Returns the curated featured items for a gallery (status=READY,
+ * isHidden=false, isFeatured=true), ordered by the same (sortOrder, id)
+ * tuple the main grid uses so the strip stays in lockstep with the
+ * organizer's chosen order.
+ *
+ * Capped at FEATURED_STRIP_LIMIT. Not paginated — the strip is intentionally
+ * bounded.
+ */
+async function getFeaturedGalleryItems(
+  galleryId: string,
+): Promise<PublicGalleryItem[]> {
+  const rows = await db.eventGalleryItem.findMany({
+    where: {
+      galleryId,
+      status: "READY",
+      isHidden: false,
+      isFeatured: true,
+    },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    take: FEATURED_STRIP_LIMIT,
+    select: {
+      id: true,
+      publicUrl: true,
+      thumbnailUrl: true,
+      width: true,
+      height: true,
+      blurDataUrl: true,
+      alt: true,
+      caption: true,
+      sortOrder: true,
+    },
+  });
+
+  return rows
+    .map(toPublicItem)
+    .filter((item): item is PublicGalleryItem => item !== null);
 }
 
 /**
@@ -279,6 +338,7 @@ export async function getGalleryForOrganizer(eventId: string) {
       description: true,
       sourceType: true,
       sourceRef: true,
+      presentation: true,
       status: true,
       coverMediaAssetId: true,
       coverGalleryItemId: true,
@@ -299,6 +359,7 @@ export async function getGalleryForOrganizer(eventId: string) {
           caption: true,
           sortOrder: true,
           isHidden: true,
+          isFeatured: true,
           attempts: true,
           errorCode: true,
           errorMessage: true,

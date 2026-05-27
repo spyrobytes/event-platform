@@ -55,6 +55,105 @@ export type GallerySourceRef = z.infer<typeof gallerySourceRefSchema>;
 export type ExternalLinkSourceRef = z.infer<typeof externalLinkSourceRefSchema>;
 
 /**
+ * Organizer-chosen presentation for the dedicated post-event gallery page.
+ *
+ * Stored as JSON on `event_galleries.presentation` (no DB-level enforcement —
+ * same pattern as `sourceRef`). Every read goes through `galleryPresentationSchema`
+ * with `.parse()` so a null/missing column yields the default `classic-grid`
+ * shape via `parseGalleryPresentation()` below.
+ *
+ * Phase 1 ships three variants; Editorial Luxe and Story Chapters land in
+ * Phase 5 once curation primitives (per-item `isFeatured`, chapter mapping)
+ * are validated in production.
+ */
+export const galleryVariantSchema = z.enum([
+  "classic-grid",
+  "romantic-masonry",
+  "scrapbook-memories",
+]);
+
+export type GalleryVariant = z.infer<typeof galleryVariantSchema>;
+
+/**
+ * `.trim()` then coerce empty-string to `undefined` so the "absent vs empty"
+ * gap that bit us in review can't recur: a renderer that checks
+ * `heading !== undefined` and one that checks `if (heading)` will agree —
+ * empty input is the same as not setting the field at all.
+ */
+const optionalTrimmedString = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => (v.length > 0 ? v : undefined))
+    .optional();
+
+export const galleryPresentationSchema = z.object({
+  variant: galleryVariantSchema.default("classic-grid"),
+  /** Optional thank-you block heading. Empty/whitespace input coerces to
+   *  undefined via the transform — `heading !== undefined` is the canonical
+   *  "section is configured" check for renderers. */
+  thankYouHeading: optionalTrimmedString(80),
+  thankYouMessage: optionalTrimmedString(500),
+  showFeaturedStrip: z.boolean().default(false),
+  /** Echo a sample of approved RSVP messages above the share CTA. */
+  showWishesEcho: z.boolean().default(false),
+});
+
+export type GalleryPresentation = z.infer<typeof galleryPresentationSchema>;
+
+/**
+ * Partial counterpart of `galleryPresentationSchema` for PATCH bodies.
+ *
+ * Every field is `.optional()` with NO `.default()` — the route does a
+ * server-side merge with the existing presentation so a client sending
+ * `{ variant: "scrapbook-memories" }` doesn't silently reset
+ * `showFeaturedStrip`/`showWishesEcho` to defaults (the wholesale-replace
+ * footgun the original PR shipped).
+ *
+ * Strings still trim + empty-to-undefined via `optionalTrimmedString` so
+ * the same "clear by sending empty string" path works.
+ */
+export const galleryPresentationPatchSchema = z.object({
+  variant: galleryVariantSchema.optional(),
+  thankYouHeading: optionalTrimmedString(80),
+  thankYouMessage: optionalTrimmedString(500),
+  showFeaturedStrip: z.boolean().optional(),
+  showWishesEcho: z.boolean().optional(),
+});
+
+export type GalleryPresentationPatch = z.infer<
+  typeof galleryPresentationPatchSchema
+>;
+
+/**
+ * Default presentation applied when the DB column is null or fails parsing.
+ * Matches the previous (pre-presentation) public behavior: classic grid,
+ * no thank-you, no featured strip, no wishes echo.
+ */
+export const DEFAULT_GALLERY_PRESENTATION: GalleryPresentation = {
+  variant: "classic-grid",
+  showFeaturedStrip: false,
+  showWishesEcho: false,
+};
+
+/**
+ * Parses a JSON value from `event_galleries.presentation` into a typed
+ * `GalleryPresentation`, falling back to the default when the column is
+ * null or the stored shape is no longer valid (e.g. a removed variant).
+ *
+ * The fallback is intentional — a stale row should never break the public
+ * page; the dashboard will re-save a valid presentation on next edit.
+ */
+export function parseGalleryPresentation(
+  value: unknown,
+): GalleryPresentation {
+  if (value == null) return DEFAULT_GALLERY_PRESENTATION;
+  const parsed = galleryPresentationSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_GALLERY_PRESENTATION;
+}
+
+/**
  * String-literal mirror of the Prisma `GalleryStatus` enum, kept here so
  * client components can type the value without pulling in `@prisma/client`
  * (which can drag Node-specific runtime into the browser bundle — see how
@@ -128,6 +227,54 @@ export const googleDriveSelectionInputSchema = z.object({
 export type GoogleDrivePickedFile = z.infer<typeof googleDrivePickedFileSchema>;
 export type GoogleDriveSelectionInput = z.infer<typeof googleDriveSelectionInputSchema>;
 
+/**
+ * `null` clears, missing leaves alone, non-empty string sets. A
+ * whitespace-only string trims to empty and is coerced to `null` so the
+ * column never holds a non-null empty string (which previously caused
+ * `gallery.title ?? fallback` to keep `""` and render a blank `<h1>`).
+ */
+const nullableTrimmedString = (max: number) =>
+  z
+    .union([
+      z
+        .string()
+        .trim()
+        .max(max)
+        .transform((v) => (v.length > 0 ? v : null)),
+      z.null(),
+    ])
+    .optional();
+
+/**
+ * PATCH /api/events/[id]/gallery/[galleryId]
+ *
+ * Gallery-level field updates: title, description, presentation.
+ * Only fields explicitly present in the body are touched — `undefined`
+ * leaves the column alone, `null` (or empty/whitespace string) clears it.
+ *
+ * `presentation` accepts either:
+ *   - an object: PARTIAL update; the route merges it into the existing
+ *     presentation (so `{ variant: "scrapbook-memories" }` doesn't wipe
+ *     `showFeaturedStrip` etc.)
+ *   - `null`: clears the column back to its default-on-read shape
+ *   - omitted: leaves the column alone
+ */
+export const updateGalleryInputSchema = z
+  .object({
+    title: nullableTrimmedString(120),
+    description: nullableTrimmedString(1000),
+    presentation: galleryPresentationPatchSchema.nullable().optional(),
+  })
+  .refine(
+    (v) =>
+      v.title !== undefined ||
+      v.description !== undefined ||
+      v.presentation !== undefined,
+    { message: "At least one field must be provided" },
+  );
+
+export type UpdateGalleryInput = z.infer<typeof updateGalleryInputSchema>;
+
 // =============================================================================
 // Public response shapes
 // =============================================================================
@@ -159,6 +306,23 @@ export type PublicGallery =
       /** Populated in PR #4+ once imported items exist. Empty for now. */
       items: PublicGalleryItem[];
       pageInfo: { nextCursor: string | null };
+      /** Organizer-curated presentation. Always non-null — falls back to
+       *  DEFAULT_GALLERY_PRESENTATION when the DB column is missing/stale. */
+      presentation: GalleryPresentation;
+      /**
+       * Items the organizer flagged as featured (status=READY, isHidden=false,
+       * isFeatured=true), capped at FEATURED_STRIP_LIMIT (12), ordered by
+       * (sortOrder, id).
+       *
+       * Overlap contract: featuredItems IDs are a SUBSET of items IDs by the
+       * same filters — the server does NOT exclude featured rows from the
+       * main grid query. This is deliberate so Phase 5 layouts (Editorial
+       * Luxe rhythm, Story Chapters anchors) can render featured items
+       * inline AND in the strip. Renderers that want a flat "featured at
+       * top, rest below" presentation should dedupe by id client-side. The
+       * cover item may likewise appear in `featuredItems` and in `items`.
+       */
+      featuredItems: PublicGalleryItem[];
     };
 
 export type PublicGalleryItem = {
@@ -201,6 +365,7 @@ export type OrganizerGalleryItem = {
   caption: string | null;
   sortOrder: number;
   isHidden: boolean;
+  isFeatured: boolean;
   attempts: number;
   errorCode: string | null;
   errorMessage: string | null;

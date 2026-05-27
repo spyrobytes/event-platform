@@ -23,6 +23,10 @@ type GalleryRow = {
   description: string | null;
   sourceType: string;
   sourceRef: unknown;
+  // Raw JSON column straight from the API. Run through parseGalleryPresentation
+  // before reading variant/toggles — DB-stored value may be null (default)
+  // or a partial shape from an older schema version.
+  presentation: unknown;
   status: GalleryStatus;
   publishedAt: string | null;
   updatedAt: string;
