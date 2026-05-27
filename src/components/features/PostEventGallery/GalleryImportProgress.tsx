@@ -71,9 +71,6 @@ export function GalleryImportProgress({
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
-    // Clear stale error state when (re)starting a poll cycle.
-    setError(null);
-
     const tick = async () => {
       try {
         const token = await getIdToken();
@@ -120,7 +117,13 @@ export function GalleryImportProgress({
           <div className="flex shrink-0 gap-3">
             <button
               type="button"
-              onClick={() => setRetryAttempt((n) => n + 1)}
+              onClick={() => {
+                // Clear the prior error here (not in the effect body) so we
+                // don't trip react-hooks/set-state-in-effect when the effect
+                // re-runs.
+                setError(null);
+                setRetryAttempt((n) => n + 1);
+              }}
               className="rounded px-1.5 py-0.5 text-xs font-medium underline-offset-2 hover:underline"
             >
               Retry
