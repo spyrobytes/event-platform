@@ -3,17 +3,31 @@ import { createHash, randomBytes } from "node:crypto";
 /**
  * Google Drive OAuth 2.0 helpers.
  *
- * Scope mandate: `drive.file` (non-sensitive). The Google Picker selects
- * specific files client-side; the backend can then download only those
- * files via the Drive API. `drive.readonly` and `drive` require Google's
- * Restricted Scope security assessment — explicitly NOT used here.
+ * Scope: `drive.readonly` — a Google "restricted scope" that requires a
+ * CASA security assessment + OAuth consent screen verification before the
+ * app can request it from external users. While the OAuth app is in
+ * "Testing" mode (allowlisted operator emails only), this works without
+ * verification. Production launch is gated on completing Google's review.
+ *
+ * Why not `drive.file` (non-sensitive)? The Picker iframe needs read
+ * access to fetch thumbnails for files the user has NOT yet selected —
+ * `drive.file` only grants per-file access AFTER the Picker emits a
+ * PICKED action, which is too late. With third-party-cookie restrictions
+ * in modern browsers blocking the Picker's session-based thumbnail auth,
+ * `drive.readonly` is the only practical way to get previews to render.
+ *
+ * Migration note: when this constant changes, existing connected users'
+ * refresh tokens still carry the old scope (Google does not widen scope
+ * on refresh). They must reconnect via the dashboard to pick up the new
+ * scope set. Pre-GA: only the operator is affected.
  *
  * See:
  *   - https://developers.google.com/identity/protocols/oauth2/web-server
  *   - https://developers.google.com/drive/api/guides/api-specific-auth
+ *   - https://support.google.com/cloud/answer/13463073 (restricted-scope review)
  */
 
-export const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+export const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";

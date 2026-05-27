@@ -115,8 +115,7 @@ describe("GoogleDrivePickerLauncher — Picker view configuration", () => {
     const methods = viewCalls.map((c) => c.method);
     // Regression: setOwnedByMe(false) shipped in PR #120 and restricted the
     // Picker to shared-with-me only. The fix is to omit the call entirely;
-    // the Picker then shows everything the user can navigate in Drive
-    // (which is the correct UX for the drive.file scope).
+    // the Picker then shows everything the user can navigate in Drive.
     expect(methods).not.toContain("setOwnedByMe");
     // Sanity: we still configure the bits the launcher needs.
     expect(methods).toContain("setMimeTypes");
