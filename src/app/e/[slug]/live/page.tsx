@@ -88,10 +88,21 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
   });
 
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
-  const hasLivestream = filteredSections.some(
-    (s) => s.type === "livestream" && s.enabled
+  // 404 only when the section has neither a primary nor a replay URL —
+  // an enabled section with no playable source is a dead end. We allow
+  // replay-only configurations (replay set, primary unset) because the
+  // full-mode ended-branch falls back to data.replay and renders the
+  // recording. This is intentionally looser than the nav-eligibility
+  // gate in `hasRenderableContent` — the sub-page renders in full mode
+  // (header + replay branch), the main-page preview gates on `primary`
+  // alone and would otherwise null out.
+  const hasRenderableLivestream = filteredSections.some(
+    (s) =>
+      s.type === "livestream" &&
+      s.enabled &&
+      Boolean(s.data.primary || s.data.replay)
   );
-  if (!hasLivestream) notFound();
+  if (!hasRenderableLivestream) notFound();
 
   const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
   const navLinkBase = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
@@ -128,6 +139,16 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
     ? ({ "--banner-offset": "40px" } as React.CSSProperties)
     : undefined;
 
+  // Captured once at request time so the SSR livestream phase agrees with
+  // the real clock — without it, an already-started or already-ended stream
+  // renders the "hasn't started" placeholder until the client tick fires.
+  // The React Compiler's purity rule targets client-component memoization;
+  // server components legitimately need request-time clock reads, so the
+  // disable is correct here (the value is consumed as a hydration-stable
+  // prop, not as derived state).
+  // eslint-disable-next-line react-hooks/purity
+  const initialNowMs = Date.now();
+
   return (
     <div style={bannerOffset}>
       <PageViewTracker eventId={event.id} source="event_page" />
@@ -143,6 +164,7 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
         temporal={temporal}
         inviteToken={tk}
         livestreamMode="full"
+        initialNowMs={initialNowMs}
         navLinkBase={navLinkBase}
         subPageSection="livestream"
         canShare={event.visibility === "PUBLIC"}

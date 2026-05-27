@@ -260,6 +260,16 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
 
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
+  // Captured once at request time so the SSR livestream phase agrees with
+  // the real clock — without it, an already-started or already-ended stream
+  // renders the "hasn't started" placeholder until the client tick fires.
+  // The React Compiler's purity rule targets client-component memoization;
+  // server components legitimately need request-time clock reads, so the
+  // disable is correct here (the value is consumed as a hydration-stable
+  // prop, not as derived state).
+  // eslint-disable-next-line react-hooks/purity
+  const initialNowMs = Date.now();
+
   // Event JSON-LD only renders for indexable views. Token-bearing requests
   // and non-PUBLIC events are noindex (see generateMetadata above), so we
   // also skip emitting structured data for them — it would be wasted bytes
@@ -289,6 +299,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
         approvedWishes={approvedWishes}
         wishesMode="preview"
         livestreamMode="preview"
+        initialNowMs={initialNowMs}
         inviteToken={tk}
         canShare={event.visibility === "PUBLIC"}
         postEventGalleryCta={

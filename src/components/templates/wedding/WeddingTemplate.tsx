@@ -51,6 +51,8 @@ type WeddingTemplateProps = {
   temporal?: TemporalData;
   /** Livestream rendering mode (see TemplateProps). */
   livestreamMode?: "preview" | "full";
+  /** Server-captured Date.now() at request time (see TemplateProps). */
+  initialNowMs?: number;
   /** Guest invite token forwarded into deep links (e.g. /e/[slug]/live). */
   inviteToken?: string;
   /** Slots populated by the page when a post-event gallery is published.
@@ -81,6 +83,7 @@ export function WeddingTemplate({
   eventSlug,
   temporal,
   livestreamMode = "full",
+  initialNowMs,
   inviteToken,
   postEventGalleryCta,
   postEventGalleryTeaser,
@@ -295,6 +298,7 @@ export function WeddingTemplate({
             inviteToken={inviteToken}
             mode={livestreamMode}
             timezone={temporal?.timezone}
+            initialNowMs={initialNowMs}
           />
         )) : null;
 

@@ -93,6 +93,12 @@ export type TemplateProps = {
    * - "preview" (main event page): compact CTA card linking to /e/[slug]/live.
    * - "full" (/e/[slug]/live): the actual iframe player + countdown/replay UX. */
   livestreamMode?: "preview" | "full";
+  /** Server-captured `Date.now()` at request time, seeded into the livestream
+   * section's `nowMs` state so the SSR'd phase matches the real clock instead
+   * of the 1970 placeholder. Without this, a stream that's already started
+   * (or ended) renders "hasn't started" until the client tick fires. The
+   * value is hydration-stable because it's a prop, not Date.now() at render. */
+  initialNowMs?: number;
   /** Guest invite token from the `tk` query param. Forwarded to the wishes
    * "View all" CTA so the full page preserves authenticated guest context. */
   inviteToken?: string;

@@ -40,6 +40,13 @@ describe("getLivestreamPhase", () => {
       // a scheduled stream) and avoids briefly flashing the player.
       expect(getLivestreamPhase({ startAt: iso(ONE_HOUR_MS) }, 0)).toBe("before");
     });
+
+    it("returns 'ready' when startAt is in the past and nowMs is a real timestamp", () => {
+      // Server passes Date.now() as initialNowMs so the SSR phase agrees
+      // with the real clock. Without this, an already-started stream would
+      // render the "before" placeholder until the first client tick.
+      expect(getLivestreamPhase({ startAt: iso(-ONE_HOUR_MS) }, NOW)).toBe("ready");
+    });
   });
 
   describe("with endAt only", () => {

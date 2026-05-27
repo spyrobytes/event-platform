@@ -26,10 +26,12 @@ import { LivestreamPlayer } from "./LivestreamPlayer";
  * before → ready → ended without requiring a page reload, and what feeds
  * the prop-driven `LivestreamCountdown`.
  *
- * Hydration safety: initial `nowMs` is 0 on both server and client so the
- * SSR'd DOM matches the first client paint. The interval populates the
- * real value on its first tick (≤1 sec after mount), at which point the
- * tree re-renders into the correct phase.
+ * Hydration safety: initial `nowMs` is seeded from the `initialNowMs` prop,
+ * which the route handler captures at request time via Date.now(). Because
+ * it's a prop (not Date.now() at render), the SSR'd DOM and first client
+ * paint agree, avoiding hydration mismatch. The interval then refreshes to
+ * the live clock on its first tick (≤1 sec after mount). When the prop is
+ * omitted, we fall back to 0 (the legacy 1970 placeholder behavior).
  *
  * Colors use template CSS variables (--text, --text-2, --accent, --surface,
  * --border) with fallbacks. Tailwind's text-foreground/bg-background
@@ -42,15 +44,28 @@ export function LivestreamSection({
   inviteToken,
   mode,
   timezone,
+  initialNowMs,
 }: LivestreamRendererProps) {
-  const [nowMs, setNowMs] = useState(0);
+  const [nowMs, setNowMs] = useState(initialNowMs ?? 0);
+  // "Click to start replay" gate. Auto-loading the iframe the moment a
+  // viewer lands on the page makes it ambiguous whether the stream is
+  // still live or already a recording — the explicit button reinforces
+  // that the live broadcast has ended.
+  const [replayStarted, setReplayStarted] = useState(false);
   const phase = getLivestreamPhase(data, nowMs);
+  // Effective replay source. Organizers can paste a different replay URL,
+  // but the most common case (YouTube/Vimeo) is that the primary URL
+  // auto-archives, so an empty replay field falls back to primary. The
+  // saved data stays unchanged — the fallback is a render-time decision.
+  const hasReplay = Boolean(data.replay) || Boolean(data.primary);
 
   // Keep ticking only while there's a boundary still to cross. Once the
   // stream is `ready` with no `endAt`, or `ended` entirely, recomputing
   // every second is pure waste (battery, CPU). The first tick is always
-  // required because `nowMs === 0` is the SSR/hydration placeholder —
-  // without it the renderer would never advance past the initial paint.
+  // required when seeded with 0 (legacy fallback) because that's the SSR
+  // placeholder — without it the renderer would never advance past the
+  // initial paint. With a real `initialNowMs`, we can skip the post-`ended`
+  // tick entirely.
   const shouldTick =
     nowMs === 0 ||
     phase === "before" ||
@@ -129,7 +144,44 @@ export function LivestreamSection({
 
       {phase === "ready" && <LivestreamPlayer data={data} />}
 
-      {phase === "ended" && data.replay && (
+      {phase === "ended" && hasReplay && !replayStarted && (
+        <div
+          className="space-y-5 rounded-2xl px-6 py-10 text-center"
+          style={{
+            border: "1px solid var(--border, #e5e7eb)",
+            background: "var(--surface, rgba(0,0,0,0.02))",
+          }}
+        >
+          <p
+            className="text-sm font-medium uppercase tracking-wide"
+            style={{ color: "var(--text-2, #6b7280)" }}
+          >
+            The livestream has ended
+          </p>
+          <button
+            type="button"
+            onClick={() => setReplayStarted(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-medium shadow-sm transition hover:opacity-90"
+            style={{
+              background: "var(--accent, #1e1b17)",
+              color: "#ffffff",
+            }}
+          >
+            <span aria-hidden>▶</span>
+            <span>Watch the replay</span>
+          </button>
+          {data.fallbackMessage && (
+            <p
+              className="mx-auto max-w-md text-xs"
+              style={{ color: "var(--text-3, #9ca3af)" }}
+            >
+              {data.fallbackMessage}
+            </p>
+          )}
+        </div>
+      )}
+
+      {phase === "ended" && hasReplay && replayStarted && (
         <div className="space-y-4">
           <p
             className="text-center text-sm"
@@ -141,7 +193,7 @@ export function LivestreamSection({
         </div>
       )}
 
-      {phase === "ended" && !data.replay && (
+      {phase === "ended" && !hasReplay && (
         <div
           className="rounded-2xl px-6 py-12 text-center"
           style={{
@@ -176,11 +228,15 @@ function CtaCard({ data, phase, nowMs, eventSlug, inviteToken, startLabel }: Cta
   const heading = data.heading || "Live Stream";
   const ctaLabel = data.ctaLabel || "Watch live";
 
+  // Replay is effectively available whenever there's any stream source
+  // to fall back to. The renderer auto-falls-back from data.replay to
+  // data.primary, so the pill and button copy track the same union.
+  const effectiveReplay = Boolean(data.replay) || Boolean(data.primary);
   const status: { label: string; tone: "live" | "scheduled" | "ended" } =
     phase === "ready"
       ? { label: "Live now", tone: "live" }
       : phase === "ended"
-        ? data.replay
+        ? effectiveReplay
           ? { label: "Replay available", tone: "scheduled" }
           : { label: "Ended", tone: "ended" }
         : { label: data.startAt ? "Scheduled" : "Going live soon", tone: "scheduled" };
@@ -223,10 +279,13 @@ function CtaCard({ data, phase, nowMs, eventSlug, inviteToken, startLabel }: Cta
               </p>
             )}
             {remainingMs !== null && remainingMs > 0 && (
+              // No aria-live here: this line re-renders every second from the
+              // parent's tick. The full-page countdown (LivestreamCountdown)
+              // owns the polite, minute-coarse announcement; the preview card
+              // is purely visual to avoid double-announcing the same event.
               <p
                 className="text-sm font-medium tabular-nums"
                 style={{ color: "var(--text, #1e1b17)" }}
-                aria-live="polite"
               >
                 Starts in {formatCompactCountdown(remainingMs)}
               </p>
@@ -248,7 +307,7 @@ function CtaCard({ data, phase, nowMs, eventSlug, inviteToken, startLabel }: Cta
               color: "#ffffff",
             }}
           >
-            <span>{phase === "ended" && data.replay ? "Watch replay" : ctaLabel}</span>
+            <span>{phase === "ended" && effectiveReplay ? "Watch replay" : ctaLabel}</span>
             <span aria-hidden>→</span>
           </Link>
         </div>

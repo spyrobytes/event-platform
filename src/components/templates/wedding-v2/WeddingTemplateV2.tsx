@@ -77,6 +77,8 @@ type WeddingTemplateV2Props = {
   approvedWishes?: ApprovedWishDTO[];
   wishesMode?: "preview" | "full";
   livestreamMode?: "preview" | "full";
+  /** Server-captured Date.now() at request time (see TemplateProps). */
+  initialNowMs?: number;
   inviteToken?: string;
   navLinkBase?: string;
   /** When set with `navLinkBase`, only this section type renders inline;
@@ -141,6 +143,7 @@ export function WeddingTemplateV2({
   approvedWishes,
   wishesMode = "full",
   livestreamMode = "full",
+  initialNowMs,
   inviteToken,
   navLinkBase,
   subPageSection,
@@ -411,6 +414,7 @@ export function WeddingTemplateV2({
             inviteToken={inviteToken}
             mode={livestreamMode}
             timezone={temporal?.timezone}
+            initialNowMs={initialNowMs}
           />
         )) : null;
 

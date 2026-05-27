@@ -60,6 +60,16 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
   const commitPrimary = useCallback(
     (raw: string) => {
       setPrimaryUrl(raw);
+      const trimmed = raw.trim();
+      if (!trimmed) {
+        // Clearing the field removes the primary reference entirely —
+        // mirrors the replay behavior below. Without this, organizers
+        // cannot retract a previously-saved URL once the input is empty.
+        const { primary: _primary, ...rest } = data;
+        void _primary;
+        onChange(rest as LivestreamSection["data"]);
+        return;
+      }
       const result = parseStreamUrl(raw);
       if (result.ok) {
         const ref: StreamReference = {
@@ -70,7 +80,7 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
         };
         onChange({ ...data, primary: ref });
       }
-      // On failure we leave the previously-saved `data.primary` intact —
+      // On parse failure we leave the previously-saved `data.primary` intact —
       // the user is mid-edit; we only overwrite when we have a valid value.
     },
     [data, onChange]
@@ -130,6 +140,21 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
   );
 
   const primaryProvider = primaryResult?.ok ? primaryResult.stream.provider : null;
+
+  // Pre-save validation echo for endAt <= startAt. The schema also enforces
+  // this on submit, but inline feedback avoids a save-then-error round trip.
+  const endBeforeStart = Boolean(
+    data.startAt &&
+      data.endAt &&
+      Date.parse(data.endAt) <= Date.parse(data.startAt)
+  );
+
+  // Warn (not error) when endAt is set without startAt. The renderer treats
+  // this as "live now, end at endAt" — consistent with the ad-hoc "no
+  // timing at all = always-on" model — but the configuration is often an
+  // organizer mistake (forgot to fill startAt), so we surface the
+  // implication inline without blocking the save.
+  const endWithoutStart = Boolean(data.endAt && !data.startAt);
 
   return (
     <div className="space-y-5">
@@ -192,10 +217,23 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
             type="datetime-local"
             value={toDatetimeLocalInTz(data.endAt ?? null, tz)}
             onChange={(e) => setEndAt(e.target.value)}
+            aria-invalid={endBeforeStart || undefined}
           />
-          <p className="text-xs text-muted-foreground">
-            When set, viewers see &quot;ended&quot; (or the replay) afterwards.
-          </p>
+          {endBeforeStart ? (
+            <p className="text-xs text-destructive">
+              End time must be after the start time.
+            </p>
+          ) : endWithoutStart ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              No start time set — the stream will appear live immediately and
+              switch to &quot;ended&quot; (or the replay) once this end time
+              passes. Set a start time if you want a countdown instead.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              When set, viewers see &quot;ended&quot; (or the replay) afterwards.
+            </p>
+          )}
         </div>
       </div>
 
@@ -206,13 +244,15 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
           type="url"
           value={replayUrl}
           onChange={(e) => commitReplay(e.target.value)}
-          placeholder="Same as stream URL, or paste a different replay link"
+          placeholder="Leave blank to reuse your stream URL"
           aria-invalid={replayResult?.ok === false ? true : undefined}
         />
         <UrlFeedback result={replayResult} />
         <p className="text-xs text-muted-foreground">
-          Shown after the stream end time passes. Leave blank to show the
-          &quot;livestream ended&quot; message only.
+          Shown after the stream end time passes. If left blank, the
+          replay falls back to your stream URL above — YouTube and Vimeo
+          auto-archive a livestream at the same link. Paste a different
+          URL here only if your replay lives somewhere else.
         </p>
       </div>
 

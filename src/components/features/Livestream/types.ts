@@ -19,6 +19,12 @@ export type LivestreamRendererProps = {
   // Event timezone for human-readable date formatting in the CTA copy.
   // Optional — if absent we fall back to viewer local time.
   timezone?: string;
+  // Server-captured Date.now() at request time. When provided, the section
+  // seeds its `nowMs` state with this value so SSR phase is correct even
+  // when the stream's startAt is already in the past. Falls back to 0 (the
+  // legacy 1970 placeholder) when omitted, which keeps the section safe to
+  // use outside the main page/sub-page contexts (e.g. an editor preview).
+  initialNowMs?: number;
 };
 
 /**
