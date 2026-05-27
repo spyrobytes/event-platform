@@ -44,7 +44,8 @@ type LauncherState = "idle" | "loading" | "ready" | "error";
  *     clicked (we don't include it in the page bundle).
  *   - The Picker's iframe inherits the user's existing Google session.
  *     We pass the access token via setOAuthToken so its file-listing
- *     stays scoped to the drive.file files this app has touched.
+ *     and thumbnail fetches authenticate against the user's Drive under
+ *     the drive.readonly scope we requested at connect time.
  *   - On `cancel` we do NOT submit; the user just closes the dialog.
  */
 export function GoogleDrivePickerLauncher({
@@ -186,9 +187,8 @@ export function GoogleDrivePickerLauncher({
       // owned by the viewer, .setOwnedByMe(false) restricts to
       // shared-with-me. Omitting the call lets the Picker show everything
       // the user can navigate to in Drive (My Drive, Shared with me,
-      // Recent, Starred), which is the only behaviour that makes sense
-      // with the drive.file scope where the Picker is the source of
-      // authorization for each picked file.
+      // Recent, Starred), which is what organizers expect when picking
+      // photos from their own account.
       const view = new picker.DocsView(picker.ViewId.DOCS_IMAGES)
         .setMode(picker.DocsViewMode.GRID)
         .setMimeTypes("image/jpeg,image/png,image/webp")
@@ -206,8 +206,9 @@ export function GoogleDrivePickerLauncher({
         .setOAuthToken(tokenData.accessToken)
         .setDeveloperKey(apiKey)
         // App ID couples the Picker session to our Google Cloud project so
-        // the drive.file grant flows back to the OAuth client correctly.
-        // See the env.ts comment for the failure modes if this is missing.
+        // thumbnail fetches + the PICKED-action grant authenticate against
+        // the OAuth client correctly. See the env.ts comment for the
+        // failure modes if this is missing.
         .setAppId(appId)
         .enableFeature(picker.Feature.MULTISELECT_ENABLED)
         .setTitle("Select photos to import")

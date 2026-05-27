@@ -89,6 +89,21 @@ Already in place — no action unless versions drift.
 |---|---|---|
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | Rate limiting | Disabled (no limits) |
 | `SENTRY_DSN` | Error tracking | Disabled |
+| `POST_EVENT_GALLERY_ENABLED` | Post-event gallery feature flag (server). Server routes 404 when unset. | Disabled |
+| `NEXT_PUBLIC_POST_EVENT_GALLERY_ENABLED` | Dashboard UI affordances for the gallery (client-side mirror of the flag above) | Disabled |
+
+### CONDITIONALLY REQUIRED — post-event gallery (when `POST_EVENT_GALLERY_ENABLED=true`)
+
+If the gallery feature is on, all four must be set or organizers will hit clear-but-blocking errors:
+
+| Var | Used by | How to obtain |
+|---|---|---|
+| `GOOGLE_OAUTH_CLIENT_ID` | OAuth dance for "Connect Drive" | Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application). Add `${NEXT_PUBLIC_BASE_URL}/api/auth/google-drive/callback` to authorized redirect URIs. |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | OAuth dance | Same OAuth client as above. |
+| `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY` | Browser-side Picker init | Google Cloud Console → APIs & Services → Credentials → **API key** (separate from the OAuth client). Enable the Picker API on the project; restrict the key to your domain(s) under "Application restrictions → HTTP referrers." |
+| `NEXT_PUBLIC_GOOGLE_PICKER_APP_ID` | Browser-side `PickerBuilder.setAppId()` | Google Cloud Console → project dashboard → **"Project number"** (numeric, e.g. `123456789012`) — *not* the alphanumeric "Project ID." Without this the Picker opens but thumbnails won't load and the file-selection grant hangs. |
+
+The OAuth consent screen needs `https://www.googleapis.com/auth/drive.readonly` (a Google "restricted scope") added to the scope list. Until the project clears CASA security review, the consent screen must stay in **Testing** mode with operator emails on the allowlist; external users will see an "App not verified" warning otherwise. See `internal-docs/` memory note `project_google_drive_scope.md` for the GA gate.
 
 ### DO NOT SET in production
 

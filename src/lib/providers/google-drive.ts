@@ -247,11 +247,11 @@ const DOWNLOAD_TIMEOUT_MS = 30_000;
  * buffer's magic bytes in the worker, since the Picker's mimeType is
  * client-reported metadata and not authoritative.
  *
- * The drive.file scope grants access only to files the user explicitly
- * picked via the Picker, so a 403 here typically means the user revoked
- * the app's access at their Google Account (handled upstream by
- * getValidAccessToken's invalid_grant detection) — but if a single file
- * gets shared/unshared between selection and import, we still hit 403.
+ * Under the drive.readonly scope a 403 here typically means the user
+ * revoked the app's access at their Google Account (handled upstream by
+ * getValidAccessToken's invalid_grant detection) — but a file going
+ * private (un-shared) between selection and import can also surface as
+ * 403, since the scope still respects per-file ACLs.
  *
  * `maxBytes` is checked against the Content-Length response header
  * BEFORE the body is read into memory. This guards the function against

@@ -169,8 +169,8 @@ export const clientEnvSchema = z.object({
   // Google Cloud project number — the numeric "Project number" shown on
   // the Google Cloud Console project dashboard (NOT the alphanumeric
   // project ID). Required by the Picker whenever a Drive OAuth scope is
-  // used (drive.file in our case): without it, thumbnails fail to load,
-  // the PICKED-action grant doesn't complete, and the Picker chrome
+  // used (drive.readonly in our case): without it, thumbnails fail to
+  // load, the PICKED-action grant doesn't complete, and the Picker chrome
   // can't close. Exposed to the browser via NEXT_PUBLIC_ because the
   // Picker JS SDK consumes it directly via PickerBuilder.setAppId().
   NEXT_PUBLIC_GOOGLE_PICKER_APP_ID: z.string().optional(),
