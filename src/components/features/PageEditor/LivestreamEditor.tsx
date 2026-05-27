@@ -244,13 +244,15 @@ export function LivestreamEditor({ data, onChange, timezone }: LivestreamEditorP
           type="url"
           value={replayUrl}
           onChange={(e) => commitReplay(e.target.value)}
-          placeholder="Same as stream URL, or paste a different replay link"
+          placeholder="Leave blank to reuse your stream URL"
           aria-invalid={replayResult?.ok === false ? true : undefined}
         />
         <UrlFeedback result={replayResult} />
         <p className="text-xs text-muted-foreground">
-          Shown after the stream end time passes. Leave blank to show the
-          &quot;livestream ended&quot; message only.
+          Shown after the stream end time passes. If left blank, the
+          replay falls back to your stream URL above — YouTube and Vimeo
+          auto-archive a livestream at the same link. Paste a different
+          URL here only if your replay lives somewhere else.
         </p>
       </div>
 
