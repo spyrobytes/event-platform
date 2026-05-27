@@ -149,6 +149,7 @@ export default async function PostEventGalleryPage({
           initialItems={gallery.items}
           initialNextCursor={gallery.pageInfo.nextCursor}
           inviteToken={tk}
+          variant={gallery.presentation.variant}
         />
       </main>
     </div>

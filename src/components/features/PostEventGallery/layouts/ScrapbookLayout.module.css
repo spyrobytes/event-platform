@@ -1,0 +1,121 @@
+/* ===================================================================
+   Scrapbook Memories — polaroid-style cards on a relaxed grid.
+
+   Each card rotates by a deterministic angle (cycled from a fixed
+   array indexed by item position) so the layout is stable across
+   renders — random rotation would shift cards on every hydration.
+   On mobile the rotation is reduced to keep tiles readable without
+   neck-craning.
+   =================================================================== */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: clamp(20px, 3vw, 36px);
+  /* Extra padding so the rotated corners aren't clipped by the
+     surrounding container's overflow. */
+  padding: clamp(12px, 2vw, 24px) 0;
+}
+
+.card {
+  /* Rotation is set per-card via inline --rotation. The cascade scales
+     it down for mobile (see media query below). */
+  transform: rotate(var(--rotation, 0deg));
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.card:hover,
+.card:focus-visible {
+  transform: rotate(0deg) scale(1.03);
+  z-index: 1;
+}
+
+.card:focus-visible {
+  outline: none;
+}
+
+.cardInner {
+  background: var(--card, hsl(var(--card)));
+  padding: clamp(8px, 1.5vw, 14px);
+  padding-bottom: clamp(28px, 4vw, 40px);
+  border-radius: var(--radius-md, 12px);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.card:hover .cardInner,
+.card:focus-visible .cardInner {
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.14),
+    0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.card:focus-visible .cardInner {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 4px;
+}
+
+.imgWrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: calc(var(--radius-md, 12px) - 4px);
+}
+
+.img {
+  object-fit: cover;
+  object-position: center 25%;
+}
+
+.caption {
+  margin-top: clamp(8px, 1vw, 12px);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  line-height: 1.4;
+  /* Keep captions on a single visual line where possible — the polaroid
+     aesthetic relies on a tidy bottom edge. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+/* ===== MOBILE: reduce rotation amplitude ===== */
+
+@media (max-width: 768px) {
+  .card {
+    transform: rotate(calc(var(--rotation, 0deg) * 0.45));
+  }
+  .card:hover,
+  .card:focus-visible {
+    transform: rotate(0deg) scale(1.02);
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transform: none;
+    transition: none;
+  }
+  .card:hover,
+  .card:focus-visible {
+    transform: none;
+  }
+  .cardInner {
+    transition: none;
+  }
+}

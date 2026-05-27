@@ -1,0 +1,101 @@
+/* ===================================================================
+   Romantic Masonry — CSS-columns masonry for the post-event gallery.
+
+   Variable-height tiles flow across 3 columns (2 on tablet, 1 on
+   mobile). break-inside: avoid keeps each photo whole. Hover lifts
+   the frame with a soft shadow growth. Captions sit inside the
+   frame so the masonry rhythm isn't broken by floating text.
+   =================================================================== */
+
+.masonry {
+  column-count: 3;
+  column-gap: clamp(12px, 2vw, 20px);
+}
+
+.frame {
+  break-inside: avoid;
+  margin-bottom: clamp(12px, 2vw, 20px);
+  border-radius: var(--radius-lg, 16px);
+  overflow: hidden;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  background: var(--card, hsl(var(--card)));
+  border: 0;
+  padding: 0;
+  display: block;
+  width: 100%;
+  text-align: left;
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.frame:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 2px 16px rgba(0, 0, 0, 0.05),
+    0 12px 40px rgba(0, 0, 0, 0.1);
+}
+
+.frame:focus-visible {
+  outline: 2px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+
+.imgWrap {
+  position: relative;
+  width: 100%;
+  /* Aspect ratio is set inline via style={{ aspectRatio: ... }} from the
+     item's width/height; this fallback keeps the layout sane when an
+     item is missing dimensions. */
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+.img {
+  object-fit: cover;
+  object-position: center 25%;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.frame:hover .img {
+  transform: scale(1.03);
+}
+
+.caption {
+  font-size: 0.85rem;
+  color: hsl(var(--muted-foreground));
+  padding: 10px 14px;
+  line-height: 1.4;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+  .masonry {
+    column-count: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .masonry {
+    column-count: 1;
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .frame,
+  .img {
+    transition: none;
+  }
+
+  .frame:hover {
+    transform: none;
+  }
+
+  .frame:hover .img {
+    transform: none;
+  }
+}
