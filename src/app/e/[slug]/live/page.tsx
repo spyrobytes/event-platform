@@ -88,13 +88,19 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
   });
 
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
-  // 404 when there's no primary URL too — not just on `enabled: false` —
-  // because the player branch has nothing to render and the only fallback
-  // is "stream link hasn't been added yet," which is a dead end for a
-  // viewer who clicked a "Watch live" CTA. Mirrors the nav eligibility
-  // check in `hasRenderableContent` so phantom links can't slip through.
+  // 404 only when the section has neither a primary nor a replay URL —
+  // an enabled section with no playable source is a dead end. We allow
+  // replay-only configurations (replay set, primary unset) because the
+  // full-mode ended-branch falls back to data.replay and renders the
+  // recording. This is intentionally looser than the nav-eligibility
+  // gate in `hasRenderableContent` — the sub-page renders in full mode
+  // (header + replay branch), the main-page preview gates on `primary`
+  // alone and would otherwise null out.
   const hasRenderableLivestream = filteredSections.some(
-    (s) => s.type === "livestream" && s.enabled && Boolean(s.data.primary)
+    (s) =>
+      s.type === "livestream" &&
+      s.enabled &&
+      Boolean(s.data.primary || s.data.replay)
   );
   if (!hasRenderableLivestream) notFound();
 

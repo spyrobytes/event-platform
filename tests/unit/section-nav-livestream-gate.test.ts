@@ -43,4 +43,25 @@ describe("buildNavItems — livestream renderable-content gate", () => {
     const { visible } = buildNavItems(sections, "wedding_v1");
     expect(visible.find((n) => n.id === "livestream")).toBeUndefined();
   });
+
+  it("still hides livestream when only replay is set (no primary)", () => {
+    // Replay-only configurations are reachable on the /e/[slug]/live
+    // sub-page (which gates on primary || replay), but the main-page
+    // preview returns null without `primary`, so the nav anchor would
+    // not exist in the DOM. The asymmetry is intentional — see the
+    // comment in `hasRenderableContent`.
+    const sections: Section[] = [
+      livestream({
+        data: {
+          heading: "Live Stream",
+          ctaLabel: "Watch live",
+          showCountdown: true,
+          useNocookie: true,
+          replay: validPrimary,
+        },
+      }),
+    ];
+    const { visible } = buildNavItems(sections, "wedding_v1");
+    expect(visible.find((n) => n.id === "livestream")).toBeUndefined();
+  });
 });
