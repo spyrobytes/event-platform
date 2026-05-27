@@ -12,6 +12,7 @@ const getIdToken = vi.fn(async () => "fake-id-token");
  */
 function installPickerStubs() {
   const viewCalls: Array<{ method: string; args: unknown[] }> = [];
+  const builderCalls: Array<{ method: string; args: unknown[] }> = [];
 
   const view = new Proxy(
     {},
@@ -31,7 +32,10 @@ function installPickerStubs() {
     {
       get(_target, prop: string) {
         if (prop === "build") return () => ({ setVisible });
-        return () => builder;
+        return (...args: unknown[]) => {
+          builderCalls.push({ method: prop, args });
+          return builder;
+        };
       },
     },
   );
@@ -59,11 +63,12 @@ function installPickerStubs() {
     },
   });
 
-  return { viewCalls, setVisible };
+  return { viewCalls, builderCalls, setVisible };
 }
 
 beforeEach(() => {
   process.env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY = "test-api-key";
+  process.env.NEXT_PUBLIC_GOOGLE_PICKER_APP_ID = "123456789012";
   getIdToken.mockClear();
   vi.stubGlobal(
     "fetch",
@@ -79,6 +84,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   delete (window as { gapi?: unknown }).gapi;
   delete (window as { google?: unknown }).google;
+  delete process.env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY;
+  delete process.env.NEXT_PUBLIC_GOOGLE_PICKER_APP_ID;
 });
 
 describe("GoogleDrivePickerLauncher — Picker view configuration", () => {
@@ -134,5 +141,54 @@ describe("GoogleDrivePickerLauncher — Picker view configuration", () => {
 
     const mimeCall = viewCalls.find((c) => c.method === "setMimeTypes");
     expect(mimeCall?.args[0]).toBe("image/jpeg,image/png,image/webp");
+  });
+
+  it("wires the project number into setAppId so thumbnails + PICKED grant work", async () => {
+    const { builderCalls, setVisible } = installPickerStubs();
+
+    render(
+      <GoogleDrivePickerLauncher
+        eventId="evt_1"
+        connected
+        busy={false}
+        getIdToken={getIdToken}
+        onSelected={() => {}}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /select photos from drive/i }),
+    );
+
+    await waitFor(() => expect(setVisible).toHaveBeenCalledWith(true));
+
+    // Regression: setAppId is required by the Picker whenever Drive scopes
+    // are in use. Omitting it caused thumbnails to silently fail and the
+    // PICKED-action grant to hang (the Picker chrome couldn't close).
+    const appIdCall = builderCalls.find((c) => c.method === "setAppId");
+    expect(appIdCall).toBeDefined();
+    expect(appIdCall?.args[0]).toBe("123456789012");
+  });
+
+  it("fails fast with a clear message when NEXT_PUBLIC_GOOGLE_PICKER_APP_ID is missing", async () => {
+    delete process.env.NEXT_PUBLIC_GOOGLE_PICKER_APP_ID;
+    installPickerStubs();
+
+    render(
+      <GoogleDrivePickerLauncher
+        eventId="evt_1"
+        connected
+        busy={false}
+        getIdToken={getIdToken}
+        onSelected={() => {}}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /select photos from drive/i }),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/NEXT_PUBLIC_GOOGLE_PICKER_APP_ID/);
   });
 });

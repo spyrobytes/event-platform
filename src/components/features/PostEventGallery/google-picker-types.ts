@@ -28,6 +28,10 @@ type PickerBuilder = {
   addView(view: PickerDocsView): PickerBuilder;
   setOAuthToken(token: string): PickerBuilder;
   setDeveloperKey(key: string): PickerBuilder;
+  /** Google Cloud project number. Required whenever a Drive scope is in
+   *  use — without it, thumbnails fail and the PICKED-action grant
+   *  doesn't complete (the Picker hangs after Select). */
+  setAppId(appId: string): PickerBuilder;
   setCallback(cb: GooglePickerCallback): PickerBuilder;
   setTitle(title: string): PickerBuilder;
   enableFeature(feature: string): PickerBuilder;

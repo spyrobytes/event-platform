@@ -139,6 +139,17 @@ export function GoogleDrivePickerLauncher({
           "Picker API key is not configured. Ask the operator to set NEXT_PUBLIC_GOOGLE_PICKER_API_KEY.",
         );
       }
+      const appId = process.env.NEXT_PUBLIC_GOOGLE_PICKER_APP_ID;
+      if (!appId) {
+        // Without setAppId the Picker silently fails in three observable
+        // ways: thumbnails never load, the PICKED-action grant doesn't
+        // complete (so the onSelected callback never fires), and the
+        // Picker chrome can't be dismissed — the user has to close the
+        // browser tab. Fail fast with a clear message instead.
+        throw new Error(
+          "Picker app ID is not configured. Ask the operator to set NEXT_PUBLIC_GOOGLE_PICKER_APP_ID to the Google Cloud project number.",
+        );
+      }
 
       const token = await getIdToken();
       if (!token) throw new Error("Not authenticated");
@@ -187,6 +198,10 @@ export function GoogleDrivePickerLauncher({
         .addView(view)
         .setOAuthToken(tokenData.accessToken)
         .setDeveloperKey(apiKey)
+        // App ID couples the Picker session to our Google Cloud project so
+        // the drive.file grant flows back to the OAuth client correctly.
+        // See the env.ts comment for the failure modes if this is missing.
+        .setAppId(appId)
         .enableFeature(picker.Feature.MULTISELECT_ENABLED)
         .setTitle("Select photos to import")
         .setCallback(callback)
