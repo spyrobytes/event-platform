@@ -107,12 +107,21 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-# Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
-# objects_path = "./images"
+# Buckets must match the names declared in src/lib/supabase-storage.ts → BUCKETS.
+# Production buckets were created manually via the Supabase Studio UI; this
+# block keeps fresh local environments / `supabase db reset` in sync so the
+# gallery worker (and any future bucket consumer) doesn't fail with
+# "Bucket not found" on first import.
+
+[storage.buckets.event-assets]
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]
+
+[storage.buckets.gallery]
+public = true
+file_size_limit = "50MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]

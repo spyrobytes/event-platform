@@ -295,8 +295,8 @@ describe("persistOutcome", () => {
     expect(update.data.status).toBe("SKIPPED");
   });
 
-  it("RETRY under the attempt cap drops back to PENDING", async () => {
-    await persistOutcome(makeItem({ attempts: 1 }), {
+  it("RETRY under the attempt cap drops back to PENDING and returns 'RETRY'", async () => {
+    const ret = await persistOutcome(makeItem({ attempts: 1 }), {
       outcome: "RETRY",
       errorCode: "SOURCE_DOWNLOAD_FAILED",
       errorMessage: "transient",
@@ -304,16 +304,22 @@ describe("persistOutcome", () => {
     const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
     expect(update.data.status).toBe("PENDING");
     expect(update.data.errorCode).toBe("SOURCE_DOWNLOAD_FAILED");
+    // Regression: the function used to return "READY" here so the cron's
+    // summary would lie (ready: N when items had actually retried). The
+    // honest return value is "RETRY" so processGalleryImports counts it
+    // into the retried bucket instead of ready.
+    expect(ret).toBe("RETRY");
   });
 
-  it("RETRY at/over the attempt cap becomes terminal FAILED", async () => {
-    await persistOutcome(makeItem({ attempts: 3 }), {
+  it("RETRY at/over the attempt cap becomes terminal FAILED and returns 'FAILED'", async () => {
+    const ret = await persistOutcome(makeItem({ attempts: 3 }), {
       outcome: "RETRY",
       errorCode: "SOURCE_DOWNLOAD_FAILED",
       errorMessage: "transient",
     });
     const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
     expect(update.data.status).toBe("FAILED");
+    expect(ret).toBe("FAILED");
   });
 });
 
@@ -445,6 +451,7 @@ describe("processGalleryImports — empty queue", () => {
       ready: 0,
       failed: 0,
       skipped: 0,
+      retried: 0,
       jobsReconciled: 0,
     });
     expect(dbMock.eventGalleryItem.update).not.toHaveBeenCalled();

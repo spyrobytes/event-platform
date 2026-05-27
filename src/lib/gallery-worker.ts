@@ -72,9 +72,19 @@ type EventRow = {
 
 export type WorkerRunSummary = {
   claimed: number;
+  /** Items that reached READY terminal state this tick. */
   ready: number;
+  /** Items that ended terminally FAILED this tick (either an unrecoverable
+   *  error or a retryable error that hit the attempt cap). */
   failed: number;
+  /** Items that ended terminally SKIPPED this tick (unsupported MIME etc.). */
   skipped: number;
+  /** Items that hit a retryable error and were left in PENDING for a
+   *  future tick. NOT terminal — the same row will appear in a later
+   *  summary's `ready` / `failed` / `skipped` once it settles. Without
+   *  this bucket a tick that retried 10 items used to report `ready: 10`,
+   *  which was a lie. */
+  retried: number;
   jobsReconciled: number;
 };
 
@@ -353,7 +363,7 @@ async function loadContext(galleryIds: string[]): Promise<{
 async function persistOutcome(
   item: ClaimedItem,
   result: ProcessResult,
-): Promise<"READY" | "FAILED" | "SKIPPED"> {
+): Promise<"READY" | "FAILED" | "SKIPPED" | "RETRY"> {
   if (result.outcome === "READY") {
     await db.eventGalleryItem.update({
       where: { id: item.id },
@@ -404,6 +414,10 @@ async function persistOutcome(
   }
 
   // RETRY: drop back to PENDING if under the attempt cap; otherwise FAILED.
+  // Returning "RETRY" (not "READY") so the per-tick summary can report the
+  // item as still-in-flight rather than terminally succeeded. The previous
+  // "READY" return value was acknowledged as a lie in code and made the
+  // cron's `ready` count include items that had hit a transient failure.
   const terminal = item.attempts >= GALLERY_LIMITS.workerMaxAttempts;
   await db.eventGalleryItem.update({
     where: { id: item.id },
@@ -414,7 +428,7 @@ async function persistOutcome(
       lockedAt: null,
     },
   });
-  return terminal ? "FAILED" : "READY"; // "READY" is not literally true; signals "did not terminally fail this tick"
+  return terminal ? "FAILED" : "RETRY";
 }
 
 /**
@@ -500,7 +514,14 @@ async function reconcileJobs(jobIds: string[]): Promise<number> {
 export async function processGalleryImports(): Promise<WorkerRunSummary> {
   const items = await claimPendingItems(GALLERY_LIMITS.workerBatchSize);
   if (items.length === 0) {
-    return { claimed: 0, ready: 0, failed: 0, skipped: 0, jobsReconciled: 0 };
+    return {
+      claimed: 0,
+      ready: 0,
+      failed: 0,
+      skipped: 0,
+      retried: 0,
+      jobsReconciled: 0,
+    };
   }
 
   const galleryIds = [...new Set(items.map((i) => i.gallery_id))];
@@ -509,6 +530,7 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
   let ready = 0;
   let failed = 0;
   let skipped = 0;
+  let retried = 0;
   const touchedJobIds = new Set<string>();
 
   // Sequential processing keeps memory predictable (each Sharp transform
@@ -537,6 +559,7 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
     if (persisted === "READY") ready++;
     else if (persisted === "SKIPPED") skipped++;
     else if (persisted === "FAILED") failed++;
+    else if (persisted === "RETRY") retried++;
 
     // Find the most-recent QUEUED/PROCESSING job for this gallery to
     // mark for reconciliation. Items don't carry job_id directly (multiple
@@ -560,6 +583,7 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
     ready,
     failed,
     skipped,
+    retried,
     jobsReconciled,
   };
 }

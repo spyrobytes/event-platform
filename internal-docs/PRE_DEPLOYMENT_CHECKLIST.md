@@ -132,7 +132,10 @@ These are development-only; leaving them set in prod will silently break auth/em
 - [ ] No schema drift — `npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --exit-code` exits `0` (exit `2` = drift; re-run with `--script` added to see the SQL)
 - [ ] `prisma/migrations/migration_lock.toml` committed (it is)
 - [ ] Prod credentials cleaned from shell + `history`, and `.env.local` restored to local-dev values
-- [ ] Supabase storage buckets created: any bucket referenced by `src/lib/supabase-storage.ts` — check media upload paths
+- [ ] Supabase storage buckets created on the production project. Required buckets (must match `src/lib/supabase-storage.ts` → `BUCKETS`):
+  - `event-assets` (hero images, media-library uploads) — public, 50 MiB limit, image/* MIME types
+  - `gallery` (post-event gallery worker uploads) — public, 50 MiB limit, `image/jpeg, image/png, image/webp` only
+  Local dev creates both declaratively via `supabase/config.toml` `[storage.buckets.*]`. Production was bootstrapped manually via Supabase Studio — if you ever rebuild the prod project, mirror the same names + settings or the gallery worker fails every item with `STORAGE_UPLOAD_FAILED: Bucket not found` (caught by smoke test §10).
 
 **For the full executable procedure** (including the Supavisor username gotcha, bash-quoting pitfalls, and a draft CI workflow for future automation), follow [`DATABASE_MIGRATION_RUNBOOK.md`](./DATABASE_MIGRATION_RUNBOOK.md).
 
@@ -244,6 +247,7 @@ Run these in order on the production URL. Stop and investigate at the first fail
 - [ ] Cron logs in Vercel show no 401s or 500s for any of the three jobs
 - [ ] Image uploads: upload one media asset; verify it renders via the Supabase transform URL (not a 404)
 - [ ] Visit `/e/:slug` for a public event → no referrer header on outbound links (check Network tab; `Referrer-Policy: no-referrer` in response)
+- [ ] Post-event gallery import: connect Drive on the test event → pick 2-3 photos → wait ≤5 min for cron → confirm items flip from `PENDING` to `READY` with thumbnails. Catches the `gallery` bucket missing-from-prod regression that we hit on local dev.
 
 ---
 
