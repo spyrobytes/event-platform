@@ -164,11 +164,18 @@ export function GoogleDrivePickerLauncher({
       const picker = window.google?.picker;
       if (!picker) throw new Error("Picker library failed to initialize");
 
+      // No ownership filter — Picker .setOwnedByMe(true) restricts to files
+      // owned by the viewer, .setOwnedByMe(false) restricts to shared-with-me
+      // (which is what we shipped by mistake — organizers saw an empty
+      // "No one has shared photos with you yet" view). Omitting the call
+      // lets the Picker show everything the user can navigate to in Drive
+      // (My Drive, Shared with me, Recent, Starred), which is the only
+      // behaviour that makes sense with the drive.file scope where the
+      // Picker is the source of authorization for each picked file.
       const view = new picker.DocsView(picker.ViewId.DOCS)
         .setMimeTypes("image/jpeg,image/png,image/webp")
         .setIncludeFolders(true)
-        .setSelectFolderEnabled(false)
-        .setOwnedByMe(false);
+        .setSelectFolderEnabled(false);
 
       const callback: GooglePickerCallback = (data) => {
         if (data.action === picker.Action.PICKED && data.docs?.length) {
