@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * Small "View Photos" CTA that templates render just after their hero
+ * Small "View Album" CTA that templates render just after their hero
  * block when a published gallery exists. Intentionally neutral styling
  * (rounded pill, foreground/background tokens) so it harmonizes with
  * every template — individual templates can wrap it in their own
@@ -21,7 +21,7 @@ type Props = {
  * discoverability surfaces for a published post-event gallery on
  * /e/[slug]. The dedicated /e/[slug]/gallery route is where both lead.
  */
-export function HeroPostEventCta({ eventSlug, inviteToken, label = "View Photos" }: Props) {
+export function HeroPostEventCta({ eventSlug, inviteToken, label = "View Album" }: Props) {
   const href = buildPublicGalleryHref(eventSlug, inviteToken);
   return (
     <div className="flex justify-center py-6">

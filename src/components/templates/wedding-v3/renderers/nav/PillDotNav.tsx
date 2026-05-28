@@ -97,10 +97,10 @@ export function PillDotNav({
               key={s.id}
               href={s.href ?? `#${s.id}`}
               className={
-                s.id === "rsvp" ? "gh-nav-rsvp" : "gh-nav-pill"
+                s.isCta ? "gh-nav-rsvp" : "gh-nav-pill"
               }
               style={
-                s.id === "rsvp"
+                s.isCta
                   ? {
                       fontFamily: "var(--sans)",
                       fontSize: "0.68rem",
@@ -169,7 +169,7 @@ export function PillDotNav({
             id: s.id,
             label: s.label,
             href: s.href ?? `#${s.id}`,
-            isCta: s.id === "rsvp",
+            isCta: s.isCta ?? false,
           }))}
           buttonStyle={{
             width: 36,

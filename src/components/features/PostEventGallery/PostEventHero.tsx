@@ -56,7 +56,7 @@ export function PostEventHero({ title, description, coverUrl }: Props) {
               : "text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground"
           }
         >
-          Photo Gallery
+          Album
         </p>
         <h1
           id="post-event-hero-title"

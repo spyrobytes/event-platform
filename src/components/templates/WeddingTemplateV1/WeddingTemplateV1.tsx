@@ -43,6 +43,10 @@ type WeddingTemplateV1Props = {
 };
 
 import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
+import {
+  POST_EVENT_GALLERY_NAV_ID,
+  POST_EVENT_GALLERY_NAV_LABEL,
+} from "@/lib/gallery-urls";
 
 /**
  * Classic Wedding Template (v1) - Legacy
@@ -81,7 +85,11 @@ export function WeddingTemplateV1({
 
   // Mobile drawer items mirror the dot-rail registration rules so labels,
   // order, and inclusion match the desktop nav exactly. RSVP is pinned
-  // to the bottom as the CTA.
+  // to the bottom as the CTA. PR H policy: when Album is published,
+  // the in-page "gallery" section stays in the section list (V1 has
+  // no overflow concept — the drawer shows everything — so "demote to
+  // overflow" maps to "keep in the regular list, just not as a CTA").
+  // Album joins RSVP as a second CTA pill below the section list.
   const mobileNavItems = [
     ...sections
       .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
@@ -92,19 +100,16 @@ export function WeddingTemplateV1({
         href: `#${s.type}`,
         isCta: s.type === "rsvp",
       })),
-    // Append "Photos" when a post-event gallery is published. The
-    // drawer partitions items by `isCta` — non-CTA items render as a
-    // list FIRST, then CTA items as button-pills below — so Photos
-    // (isCta: false) lands at the bottom of the non-CTA list, ABOVE
-    // the RSVP CTA pill. That's the right placement: section list →
-    // gallery destination → primary CTA, top to bottom.
+    // Album joins as the second CTA pill — MobileNavMenu partitions by
+    // `isCta` and renders the CTA group as button-pills below the
+    // section list, so Album sits alongside RSVP at the bottom.
     ...(postEventGalleryHref
       ? [
           {
-            id: "photos",
-            label: "Photos",
+            id: POST_EVENT_GALLERY_NAV_ID,
+            label: POST_EVENT_GALLERY_NAV_LABEL,
             href: postEventGalleryHref,
-            isCta: false,
+            isCta: true,
           },
         ]
       : []),

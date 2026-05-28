@@ -70,7 +70,7 @@ export function GalleryExternalLinkLanding({
           <div className="space-y-6 p-6 text-center md:p-10">
             <div className="space-y-3">
               <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                Photo Gallery
+                Album
               </div>
               <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
                 {galleryTitle}

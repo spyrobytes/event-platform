@@ -103,9 +103,9 @@ export function FloatingPillNav({
         aria-hidden="true"
       />
 
-      {/* Section links (excluding RSVP — rendered separately as accent pill) */}
+      {/* Section links (CTA items rendered separately below as accent pills) */}
       {navSections
-        .filter((s) => s.id !== "rsvp")
+        .filter((s) => !s.isCta)
         .map((s) => (
           <a
             key={s.id}
@@ -129,29 +129,32 @@ export function FloatingPillNav({
           </a>
         ))}
 
-      {/* RSVP accent pill */}
-      {navSections.some((s) => s.id === "rsvp") && (
-        <a
-          href="#rsvp"
-          className="gl-nav-rsvp"
-          style={{
-            fontFamily: "var(--sans)",
-            fontSize: "0.65rem",
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase" as const,
-            color: "var(--night, #1e1b17)",
-            background: "var(--accent, #c5a55a)",
-            textDecoration: "none",
-            padding: "8px 18px",
-            borderRadius: 999,
-            whiteSpace: "nowrap",
-            transition: "filter 0.3s ease",
-          }}
-        >
-          RSVP
-        </a>
-      )}
+      {/* CTA accent pills (RSVP, Album) */}
+      {navSections
+        .filter((s) => s.isCta)
+        .map((s) => (
+          <a
+            key={s.id}
+            href={s.href ?? `#${s.id}`}
+            className="gl-nav-cta"
+            style={{
+              fontFamily: "var(--sans)",
+              fontSize: "0.65rem",
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase" as const,
+              color: "var(--night, #1e1b17)",
+              background: "var(--accent, #c5a55a)",
+              textDecoration: "none",
+              padding: "8px 18px",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+              transition: "filter 0.3s ease",
+            }}
+          >
+            {s.label}
+          </a>
+        ))}
 
       {/* Desktop overflow dropdown */}
       {overflow.length > 0 && (
@@ -187,7 +190,7 @@ export function FloatingPillNav({
         .gl-nav-link:hover {
           color: var(--accent, #c5a55a) !important;
         }
-        .gl-nav-rsvp:hover {
+        .gl-nav-cta:hover {
           filter: brightness(1.15) !important;
         }
         @media (max-width: 768px) {
@@ -208,7 +211,7 @@ export function FloatingPillNav({
         id: s.id,
         label: s.label,
         href: s.href ?? `#${s.id}`,
-        isCta: s.id === "rsvp",
+        isCta: s.isCta ?? false,
       }))}
       buttonStyle={{
         width: 40,

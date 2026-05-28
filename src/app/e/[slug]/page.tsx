@@ -312,7 +312,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
           postEventGallery ? (
             <PostEventGalleryTeaser
               eventSlug={slug}
-              title={postEventGallery.title ?? `${event.title} Photos`}
+              title={postEventGallery.title ?? `${event.title} Album`}
               description={postEventGallery.description}
               coverUrl={postEventGallery.coverUrl}
               inviteToken={tk}

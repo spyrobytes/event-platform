@@ -43,8 +43,8 @@ export function ShareCta({ eventTitle, eventSlug, canShare }: Props) {
           Send the gallery to friends and family who couldn&apos;t make it.
         </p>
         <ShareButton
-          title={`${eventTitle} — Photos`}
-          text={`Photos from ${eventTitle}`}
+          title={`${eventTitle} — Album`}
+          text={`Album from ${eventTitle}`}
           url={shareUrl}
           label="Share gallery"
           className="mt-2 h-11 rounded-full border border-foreground/15 bg-background px-5 text-sm font-medium text-foreground shadow-sm transition hover:shadow"

@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, Fragment, type ReactNode } from "react";
+import {
+  POST_EVENT_GALLERY_NAV_ID,
+  POST_EVENT_GALLERY_NAV_LABEL,
+} from "@/lib/gallery-urls";
 import type { EventPageConfigV1, ChromeConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import {
@@ -250,34 +254,47 @@ export function WeddingTemplateV2({
         : isOnPage
           ? `#${id}`
           : `${navLinkBase}#${id}`;
-      return { id, label, href, isCta: isRsvp };
+      return {
+        id,
+        label,
+        href,
+        isCta: isRsvp,
+        isInPageGallery: s.type === "gallery",
+      };
     });
 
-    // Append a synthetic "Photos" nav entry when a post-event gallery
-    // is published. Matches V3's pattern (createWeddingTemplate.tsx):
-    // placed at the end so it doesn't jostle the organizer's section
-    // order; the cap below treats it like any other section so a
-    // fully-saturated wedding pushes Photos into the overflow menu —
-    // documented limitation, addressed at a higher altitude in a
-    // follow-up PR.
-    if (postEventGalleryHref) {
-      candidates.push({
-        id: "photos",
-        label: "Photos",
-        href: postEventGalleryHref,
-        isCta: false,
-      });
-    }
+    // PR H policy when Album is present:
+    //   1. The in-page "gallery" section's nav entry is DEMOTED to
+    //      overflow (not removed). The Topbar's "More" dropdown shows
+    //      it; the page body still renders the section if enabled.
+    //   2. Album joins RSVP as a second CTA pill, pinned to visible.
+    //   3. Cap bumps by 1 so neither CTA pushes the last organizer-
+    //      configured section out of the visible row.
+    const inPageGallery = postEventGalleryHref
+      ? candidates.find((c) => c.isInPageGallery)
+      : undefined;
+    const albumItem = postEventGalleryHref
+      ? {
+          id: POST_EVENT_GALLERY_NAV_ID,
+          label: POST_EVENT_GALLERY_NAV_LABEL,
+          href: postEventGalleryHref,
+          isCta: true,
+          isInPageGallery: false,
+        }
+      : undefined;
+    if (albumItem) candidates.push(albumItem);
 
-    // RSVP is always pinned to the visible row as the accent CTA pill,
-    // even if the priority slice would push it past the cap.
-    const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
-    const rsvpItem = candidates.find((c) => c.isCta);
-    const nonRsvp = candidates.filter((c) => !c.isCta);
-    const headSlots = rsvpItem ? cap - 1 : cap;
-    const visible = nonRsvp.slice(0, headSlots);
-    const overflow = nonRsvp.slice(headSlots);
-    if (rsvpItem) visible.push(rsvpItem);
+    const ctas = candidates.filter((c) => c.isCta);
+    const otherNonCtas = candidates.filter(
+      (c) => !c.isCta && c !== inPageGallery,
+    );
+    const cap =
+      MAX_VISIBLE_NAV_ITEMS.wedding + (postEventGalleryHref ? 1 : 0);
+    const headSlots = cap - ctas.length;
+    const visible = otherNonCtas.slice(0, headSlots);
+    const overflow = otherNonCtas.slice(headSlots);
+    if (inPageGallery) overflow.push(inPageGallery);
+    visible.push(...ctas);
     return { visibleNav: visible, overflowNav: overflow };
   }, [sections, navLinkBase, subPageSection, eventSlug, postEventGalleryHref]);
 
