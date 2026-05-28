@@ -10,6 +10,7 @@ export { GalleryLightbox } from "./GalleryLightbox";
 export { GalleryItemsManager } from "./GalleryItemsManager";
 export { GalleryPublishDialog } from "./GalleryPublishDialog";
 export { HeroPostEventCta } from "./HeroPostEventCta";
+export { GalleryPresentationEditor } from "./GalleryPresentationEditor";
 export { PostEventHero } from "./PostEventHero";
 export { ThankYouSection } from "./ThankYouSection";
 // WishesEcho deliberately NOT re-exported — it imports `db` (Prisma + pg),

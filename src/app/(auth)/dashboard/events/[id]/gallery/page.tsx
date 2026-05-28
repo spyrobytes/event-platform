@@ -9,12 +9,14 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   GalleryExternalLinkForm,
   GalleryItemsManager,
+  GalleryPresentationEditor,
   GalleryPublishDialog,
   GoogleDriveGallerySection,
 } from "@/components/features/PostEventGallery";
-import type {
-  GalleryStatus,
-  OrganizerGalleryItem,
+import {
+  parseGalleryPresentation,
+  type GalleryStatus,
+  type OrganizerGalleryItem,
 } from "@/schemas/gallery";
 
 type GalleryRow = {
@@ -267,8 +269,8 @@ export default function PostEventGalleryDashboardPage() {
             <div className="rounded-lg border border-border bg-card p-6">
               <h3 className="text-base font-medium">Photos</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Reorder, hide, set a cover, or delete imported photos. Only
-                READY photos appear publicly.
+                Reorder, hide, set a cover, star as featured, or delete
+                imported photos. Only READY photos appear publicly.
               </p>
               <div className="mt-4">
                 <GalleryItemsManager
@@ -278,6 +280,29 @@ export default function PostEventGalleryDashboardPage() {
                   coverGalleryItemId={gallery.coverGalleryItemId}
                   getIdToken={getIdToken}
                   onChanged={() => void load()}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Native-only — external-link galleries don't have a public
+              composition (the variant + featured strip + wishes echo are
+              all native-grid features). Mounting this card on external
+              would let organizers save settings that the public page
+              ignores. */}
+          {gallery.sourceType !== "EXTERNAL_LINK" && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h3 className="text-base font-medium">Display</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Choose how the post-event gallery page is composed for guests.
+              </p>
+              <div className="mt-4">
+                <GalleryPresentationEditor
+                  eventId={event.id}
+                  galleryId={gallery.id}
+                  initial={parseGalleryPresentation(gallery.presentation)}
+                  getIdToken={getIdToken}
+                  onSaved={() => void load()}
                 />
               </div>
             </div>
