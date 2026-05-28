@@ -124,6 +124,27 @@ export function GalleryItemsManager({
     [callRoute, eventId, galleryId, onChanged],
   );
 
+  const toggleFeatured = useCallback(
+    async (item: OrganizerGalleryItem) => {
+      setPendingItemId(item.id);
+      setError(null);
+      // Server-side guard rejects isFeatured=true on hidden / non-READY
+      // items (see PR A review fix-tier #3). Disabling the button below
+      // for those states keeps the UI from ever issuing a doomed PATCH.
+      const result = await callRoute(
+        `/api/events/${eventId}/gallery/${galleryId}/items/${item.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ isFeatured: !item.isFeatured }),
+        },
+      );
+      setPendingItemId(null);
+      if (!result.ok) setError(result.error ?? null);
+      else onChanged();
+    },
+    [callRoute, eventId, galleryId, onChanged],
+  );
+
   const moveItem = useCallback(
     async (index: number, direction: -1 | 1) => {
       const a = sortedItems[index];
@@ -293,6 +314,20 @@ export function GalleryItemsManager({
                     Cover
                   </span>
                 )}
+                {item.isFeatured && !isCover && (
+                  <span className="absolute right-2 top-2 rounded-full bg-amber-500/90 px-2 py-0.5 text-xs font-medium text-white">
+                    ★ Featured
+                  </span>
+                )}
+                {item.isFeatured && isCover && (
+                  // Cover + Featured can coexist (they overlap in the
+                  // public payload by design — see PublicGallery NATIVE
+                  // contract). Stack the badges so both are visible
+                  // instead of letting Cover shadow Featured.
+                  <span className="absolute right-2 top-9 rounded-full bg-amber-500/90 px-2 py-0.5 text-xs font-medium text-white">
+                    ★ Featured
+                  </span>
+                )}
                 {item.isHidden && (
                   <span className="absolute bottom-2 left-2 rounded-full bg-foreground/80 px-2 py-0.5 text-xs font-medium text-background">
                     Hidden
@@ -396,6 +431,22 @@ export function GalleryItemsManager({
                       Set cover
                     </Button>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void toggleFeatured(item)}
+                    // Match server-side guard: isFeatured=true requires
+                    // READY + visible. Unfeaturing is always allowed.
+                    disabled={
+                      isPending ||
+                      (!item.isFeatured &&
+                        (item.status !== "READY" || item.isHidden))
+                    }
+                    aria-pressed={item.isFeatured}
+                    className="h-7 px-2 text-xs"
+                  >
+                    {item.isFeatured ? "★ Unfeature" : "☆ Feature"}
+                  </Button>
                   <Button
                     type="button"
                     variant="destructive"
