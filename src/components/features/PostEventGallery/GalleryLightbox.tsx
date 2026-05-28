@@ -303,6 +303,16 @@ function AdjacentPreloads({
           // it will need on navigation — not a 1px optimizer thumbnail.
           // Without this we'd be priming the cache with the wrong asset.
           sizes="95vw"
+          // CRITICAL: without `loading="eager"`, Next.js Image defaults
+          // to `loading="lazy"` for non-priority Images. Native
+          // lazy-loading then gates the fetch on viewport intersection
+          // — and a 1×1 element parked at top:-9999/left:-9999 never
+          // intersects, so the browser never fetches the resource and
+          // the entire preload helper becomes a no-op. `eager` forces
+          // the fetch immediately without injecting a
+          // `<link rel="preload">` (which `priority` would do — that's
+          // reserved for the visible image, which already has it).
+          loading="eager"
           unoptimized={!isAllowedImageHost(item.src)}
         />
       ))}
