@@ -11,6 +11,9 @@ import {
 } from "@/lib/event-page-loader";
 import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
+import { getPublishedGalleryForEvent } from "@/lib/gallery-data";
+import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
+import { resolvePostEventGalleryHref } from "@/lib/gallery-urls";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -148,6 +151,21 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
     authorName: r.guestName,
   }));
 
+  // Mirror the main page's gallery discovery — without this, guests
+  // navigating to /wishes lose the Photos nav link the V3 template
+  // surfaces when a published gallery exists. Feature flag gates the
+  // query exactly like /e/[slug] does.
+  const postEventGallery = isPostEventGalleryEnabled()
+    ? await getPublishedGalleryForEvent(event.id)
+    : null;
+  const postEventGalleryHref = resolvePostEventGalleryHref({
+    hasPublishedGallery: postEventGallery !== null,
+    eventSlug: slug,
+    eventVisibility: event.visibility,
+    inviteToken: tk,
+    tokenInvalid,
+  });
+
   const bannerOffset = tokenInvalid ? { "--banner-offset": "40px" } as React.CSSProperties : undefined;
 
   return (
@@ -168,6 +186,7 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
         navLinkBase={navLinkBase}
         subPageSection="wishes"
         canShare={event.visibility === "PUBLIC"}
+        postEventGalleryHref={postEventGalleryHref}
       />
     </div>
   );

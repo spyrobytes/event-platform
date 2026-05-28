@@ -198,7 +198,18 @@ export function parseGalleryPresentation(
 ): GalleryPresentation {
   if (value == null) return DEFAULT_GALLERY_PRESENTATION;
   const parsed = galleryPresentationSchema.safeParse(value);
-  return parsed.success ? parsed.data : DEFAULT_GALLERY_PRESENTATION;
+  if (parsed.success) return parsed.data;
+  // Non-null column that didn't parse — schema drift, a deprecated
+  // variant in the DB, or a hand-edited row. The fallback keeps the
+  // public page rendering instead of crashing, but staying silent
+  // hides the divergence from organizers + ops. Log so it surfaces
+  // in Vercel function logs / Sentry. We don't surface a user-facing
+  // error because the fallback IS the recovery path.
+  console.warn(
+    "[gallery] parseGalleryPresentation: falling back to default — stored shape didn't validate",
+    { issues: parsed.error.issues, storedValue: value },
+  );
+  return DEFAULT_GALLERY_PRESENTATION;
 }
 
 /**

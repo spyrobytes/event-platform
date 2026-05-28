@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildPublicGalleryHref } from "@/lib/gallery-urls";
 
 type Props = {
   eventSlug: string;
@@ -21,9 +22,7 @@ type Props = {
  * /e/[slug]. The dedicated /e/[slug]/gallery route is where both lead.
  */
 export function HeroPostEventCta({ eventSlug, inviteToken, label = "View Photos" }: Props) {
-  const href = inviteToken
-    ? `/e/${eventSlug}/gallery?tk=${encodeURIComponent(inviteToken)}`
-    : `/e/${eventSlug}/gallery`;
+  const href = buildPublicGalleryHref(eventSlug, inviteToken);
   return (
     <div className="flex justify-center py-6">
       <Link

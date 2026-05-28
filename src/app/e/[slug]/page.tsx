@@ -21,6 +21,7 @@ import { getEnabledMapSection } from "@/lib/maps/map-utils";
 import { getAbsoluteStaticMapImageUrl } from "@/lib/maps/static-map";
 import { getPublishedGalleryForEvent } from "@/lib/gallery-data";
 import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
+import { resolvePostEventGalleryHref } from "@/lib/gallery-urls";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -318,23 +319,13 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             />
           ) : undefined
         }
-        postEventGalleryHref={
-          // When the guest token is invalid (revoked/stale), embedding
-          // it in the Photos link would send the visitor to the gallery
-          // page's PRIVATE-event guard which returns a hard 404 — worse
-          // UX than the InvalidTokenBanner this main page already
-          // surfaces. Drop the bad tk; for PRIVATE events the gallery
-          // will still 404, but at least the link only shows when the
-          // event is actually viewable to the public path. For
-          // UNLISTED/PUBLIC events the link works tokenless.
-          postEventGallery
-            ? tk && !tokenInvalid
-              ? `/e/${slug}/gallery?tk=${encodeURIComponent(tk)}`
-              : event.visibility === "PRIVATE"
-                ? undefined
-                : `/e/${slug}/gallery`
-            : undefined
-        }
+        postEventGalleryHref={resolvePostEventGalleryHref({
+          hasPublishedGallery: postEventGallery !== null,
+          eventSlug: slug,
+          eventVisibility: event.visibility,
+          inviteToken: tk,
+          tokenInvalid,
+        })}
       />
     </div>
   );
