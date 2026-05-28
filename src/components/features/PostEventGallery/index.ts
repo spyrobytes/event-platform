@@ -10,3 +10,7 @@ export { GalleryLightbox } from "./GalleryLightbox";
 export { GalleryItemsManager } from "./GalleryItemsManager";
 export { GalleryPublishDialog } from "./GalleryPublishDialog";
 export { HeroPostEventCta } from "./HeroPostEventCta";
+export { PostEventHero } from "./PostEventHero";
+export { ThankYouSection } from "./ThankYouSection";
+export { WishesEcho } from "./WishesEcho";
+export { ShareCta } from "./ShareCta";

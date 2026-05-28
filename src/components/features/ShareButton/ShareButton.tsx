@@ -18,6 +18,11 @@ type ShareButtonProps = {
   className?: string;
   /** Accessible label. Falls back to "Share this page" when omitted. */
   ariaLabel?: string;
+  /** Optional visible label rendered alongside the icon. When provided
+   *  the button becomes a labeled pill (icon + text); omit for the
+   *  icon-only chrome used by template topbars. The clipboard-success
+   *  state replaces it with "Link copied". */
+  label?: string;
 };
 
 /**
@@ -37,6 +42,7 @@ export function ShareButton({
   url,
   className,
   ariaLabel = "Share this page",
+  label,
 }: ShareButtonProps) {
   // Use a click counter rather than a boolean so each successful copy
   // restarts the "Copied!" window cleanly. The effect cleanup clears the
@@ -73,15 +79,21 @@ export function ShareButton({
     }
   };
 
-  const label = copied ? "Link copied" : ariaLabel;
+  const accessibleLabel = copied ? "Link copied" : ariaLabel;
+  // Visible label tracks the same copied state so screen readers + sighted
+  // users see the same affirmation. When the consumer didn't pass a label,
+  // the button stays icon-only (Topbar pattern).
+  const visibleLabel = label !== undefined
+    ? copied ? "Link copied" : label
+    : null;
 
   return (
     <button
       type="button"
       onClick={handleClick}
       className={[styles.button, className].filter(Boolean).join(" ")}
-      title={label}
-      aria-label={label}
+      title={accessibleLabel}
+      aria-label={accessibleLabel}
       aria-live="polite"
     >
       {copied ? (
@@ -116,6 +128,7 @@ export function ShareButton({
           <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
         </svg>
       )}
+      {visibleLabel !== null && <span>{visibleLabel}</span>}
     </button>
   );
 }

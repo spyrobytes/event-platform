@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GalleryVariant, PublicGalleryItem } from "@/schemas/gallery";
+import { FeaturedGalleryStrip } from "./FeaturedGalleryStrip";
 import { GalleryLightbox } from "./GalleryLightbox";
 import { PostEventGalleryRenderer } from "./layouts/PostEventGalleryRenderer";
 
@@ -16,6 +17,14 @@ type Props = {
    *  classic-grid for any value it doesn't recognize, mirroring the
    *  safe-fallback contract of `parseGalleryPresentation`. */
   variant: GalleryVariant;
+  /** Optional curated subset — already server-filtered + capped at
+   *  FEATURED_STRIP_LIMIT. Pass `[]` (or omit) when the organizer
+   *  toggled the strip off; the orchestrator skips rendering it.
+   *  Items here overlap the main `initialItems` array by design (see
+   *  the PublicGallery NATIVE overlap contract); the strip resolves
+   *  each id to its main-grid index when clicked so the shared
+   *  lightbox opens at the right position. */
+  featuredItems?: PublicGalleryItem[];
 };
 
 /**
@@ -37,6 +46,7 @@ export function PostEventGalleryGrid({
   initialNextCursor,
   inviteToken,
   variant,
+  featuredItems = [],
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
@@ -123,6 +133,14 @@ export function PostEventGalleryGrid({
 
   return (
     <>
+      {featuredItems.length > 0 && (
+        <FeaturedGalleryStrip
+          featuredItems={featuredItems}
+          allItems={items}
+          onOpenLightbox={handleOpenLightbox}
+        />
+      )}
+
       <PostEventGalleryRenderer
         variant={variant}
         items={items}

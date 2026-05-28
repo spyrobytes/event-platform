@@ -34,6 +34,12 @@ vi.mock("@/lib/gallery-data", () => ({
 vi.mock("@/components/features/PostEventGallery", () => ({
   GalleryExternalLinkLanding: () => null,
   PostEventGalleryGrid: () => null,
+  PostEventHero: () => null,
+  ThankYouSection: () => null,
+  // WishesEcho is an async server component in real code; the test only
+  // cares that it's renderable, so a sync stub returning null is enough.
+  WishesEcho: () => null,
+  ShareCta: () => null,
 }));
 
 const PageModule = await import("@/app/e/[slug]/gallery/page");
