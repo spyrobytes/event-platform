@@ -37,11 +37,18 @@ export function buildPublicGalleryHref(
  *
  * Centralizing here means a future visibility model change is a
  * one-place edit.
+ *
+ * `eventVisibility` is the Prisma `EventVisibility` enum value — typed
+ * tightly so callers can't pass an arbitrary string. Adding a new
+ * visibility level forces this resolver to be revisited (TypeScript
+ * will fail on the call site that constructed the missing case).
  */
+import type { EventVisibility } from "@prisma/client";
+
 export function resolvePostEventGalleryHref(args: {
   hasPublishedGallery: boolean;
   eventSlug: string;
-  eventVisibility: "PUBLIC" | "UNLISTED" | "PRIVATE" | string;
+  eventVisibility: EventVisibility;
   inviteToken?: string;
   tokenInvalid?: boolean;
 }): string | undefined {

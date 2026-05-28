@@ -93,9 +93,11 @@ export function WeddingTemplateV1({
         isCta: s.type === "rsvp",
       })),
     // Append "Photos" when a post-event gallery is published. The
-    // drawer renders items in order, so it sits below the RSVP CTA —
-    // intentional: RSVP is the primary action; Photos is a
-    // secondary destination.
+    // drawer partitions items by `isCta` — non-CTA items render as a
+    // list FIRST, then CTA items as button-pills below — so Photos
+    // (isCta: false) lands at the bottom of the non-CTA list, ABOVE
+    // the RSVP CTA pill. That's the right placement: section list →
+    // gallery destination → primary CTA, top to bottom.
     ...(postEventGalleryHref
       ? [
           {
