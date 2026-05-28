@@ -285,7 +285,7 @@ export default function EventDetailPage() {
           </Link>
           {isPostEventGalleryEnabledClient() && (
             <Link href={`/dashboard/events/${event.id}/gallery`}>
-              <Button variant="outline">Gallery</Button>
+              <Button variant="outline">Album</Button>
             </Link>
           )}
           <Link href={`/dashboard/events/${event.id}/edit`}>
