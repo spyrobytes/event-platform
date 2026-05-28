@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GalleryVariant, PublicGalleryItem } from "@/schemas/gallery";
+import type { GalleryPresentation, PublicGalleryItem } from "@/schemas/gallery";
 import { FeaturedGalleryStrip } from "./FeaturedGalleryStrip";
 import { GalleryLightbox } from "./GalleryLightbox";
 import { PostEventGalleryRenderer } from "./layouts/PostEventGalleryRenderer";
@@ -13,10 +13,12 @@ type Props = {
   /** Forwarded onto pagination requests so guest-token-gated galleries
    *  still load subsequent pages. */
   inviteToken?: string;
-  /** Organizer-chosen display variant; the renderer falls back to
-   *  classic-grid for any value it doesn't recognize, mirroring the
-   *  safe-fallback contract of `parseGalleryPresentation`. */
-  variant: GalleryVariant;
+  /** Full parsed presentation. The renderer plucks `variant` for
+   *  dispatch and forwards the rest to layouts that need it
+   *  (Slideshow reads autoplay/interval/transition). Replaces the
+   *  prior `variant` prop so PR F's slideshow settings flow through
+   *  one channel rather than expanding the prop list per setting. */
+  presentation: GalleryPresentation;
   /** Optional curated subset — already server-filtered + capped at
    *  FEATURED_STRIP_LIMIT. Pass `[]` (or omit) when the organizer
    *  toggled the strip off; the orchestrator skips rendering it.
@@ -45,7 +47,7 @@ export function PostEventGalleryGrid({
   initialItems,
   initialNextCursor,
   inviteToken,
-  variant,
+  presentation,
   featuredItems = [],
 }: Props) {
   const [items, setItems] = useState(initialItems);
@@ -142,9 +144,16 @@ export function PostEventGalleryGrid({
       )}
 
       <PostEventGalleryRenderer
-        variant={variant}
+        presentation={presentation}
         items={items}
         onOpenLightbox={handleOpenLightbox}
+        // Non-scrolling layouts (currently just slideshow) need an
+        // explicit prefetch hook — the IntersectionObserver sentinel
+        // below only fires when the user scrolls. loadMore dedupes
+        // concurrent calls via its `loadingMore` guard, so layouts
+        // can call freely.
+        onRequestMore={loadMore}
+        hasMore={nextCursor !== null}
       />
 
       {/* Sentinel — used by the IntersectionObserver. Always rendered so

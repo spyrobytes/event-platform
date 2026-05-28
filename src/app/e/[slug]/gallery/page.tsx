@@ -163,7 +163,7 @@ export default async function PostEventGalleryPage({
             initialItems={gallery.items}
             initialNextCursor={gallery.pageInfo.nextCursor}
             inviteToken={tk}
-            variant={presentation.variant}
+            presentation={presentation}
             featuredItems={
               presentation.showFeaturedStrip ? gallery.featuredItems : []
             }
