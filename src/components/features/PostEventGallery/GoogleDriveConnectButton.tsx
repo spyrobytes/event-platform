@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 type Props = {
   connected: boolean;
@@ -22,6 +23,7 @@ export function GoogleDriveConnectButton({
 }: Props) {
   const [pending, setPending] = useState<"connect" | "disconnect" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const startConnect = async () => {
     setPending("connect");
@@ -60,6 +62,7 @@ export function GoogleDriveConnectButton({
   };
 
   const disconnect = async () => {
+    setConfirmOpen(false);
     setPending("disconnect");
     setError(null);
     try {
@@ -92,7 +95,7 @@ export function GoogleDriveConnectButton({
             type="button"
             variant="outline"
             disabled={pending !== null}
-            onClick={() => void disconnect()}
+            onClick={() => setConfirmOpen(true)}
           >
             {pending === "disconnect" ? "Disconnecting…" : "Disconnect"}
           </Button>
@@ -111,6 +114,19 @@ export function GoogleDriveConnectButton({
           {error}
         </p>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Disconnect Google Drive?"
+        description={
+          "Your imported photos will stay published — disconnecting only removes the link to Google Drive.\n\n" +
+          "You won't be able to import more photos until you reconnect."
+        }
+        confirmLabel="Disconnect"
+        cancelLabel="Keep connected"
+        variant="destructive"
+        onConfirm={() => void disconnect()}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   eventId: string;
@@ -67,6 +67,21 @@ export function GalleryImportProgress({
   // Bumping this triggers the polling effect to re-run (Retry button).
   const [retryAttempt, setRetryAttempt] = useState(0);
 
+  // Fire onSettled at most once per jobId. Without this, the parent's
+  // onGalleryChanged() refetch re-renders this component with a fresh
+  // inline `onSettled` callback reference, which restarts the polling
+  // effect, which polls the (already-settled) job, which calls
+  // onSettled again — an infinite refetch loop.
+  const settledFiredRef = useRef<string | null>(null);
+  // Always read the latest onSettled without putting it in the effect
+  // deps. Inline parent callbacks change identity on every render.
+  const onSettledRef = useRef(onSettled);
+  onSettledRef.current = onSettled;
+
+  useEffect(() => {
+    settledFiredRef.current = null;
+  }, [jobId]);
+
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -86,8 +101,9 @@ export function GalleryImportProgress({
         setSnapshot(next);
         if (ACTIVE_STATUSES.includes(next.status)) {
           timer = setTimeout(() => void tick(), POLL_MS);
-        } else {
-          onSettled?.();
+        } else if (settledFiredRef.current !== jobId) {
+          settledFiredRef.current = jobId;
+          onSettledRef.current?.();
         }
       } catch (err) {
         if (cancelled) return;
@@ -104,7 +120,7 @@ export function GalleryImportProgress({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [eventId, jobId, getIdToken, onSettled, retryAttempt]);
+  }, [eventId, jobId, getIdToken, retryAttempt]);
 
   if (error) {
     return (

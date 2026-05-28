@@ -171,11 +171,17 @@ export function GoogleDriveGallerySection({
           jobId={activeJobId}
           getIdToken={getIdToken}
           onSettled={() => {
+            // Refresh the gallery row AND clear activeJobId. Clearing
+            // unmounts the progress panel and flips busy back to false
+            // so the picker re-enables — the gallery refetch is what
+            // surfaces the imported photos, so the success signal is
+            // the new items appearing, not a lingering progress bar.
             onGalleryChanged();
+            setActiveJobId(null);
           }}
           onDismiss={() => {
-            // Polling failure or settled-state dismissal — clear so the
-            // picker isn't stuck behind busy={activeJobId !== null}.
+            // Polling failure dismissal — clear so the picker isn't
+            // stuck behind busy={activeJobId !== null}.
             setActiveJobId(null);
           }}
         />

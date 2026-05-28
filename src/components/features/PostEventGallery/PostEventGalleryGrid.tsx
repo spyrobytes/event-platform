@@ -22,10 +22,12 @@ type Props = {
   /** Optional curated subset — already server-filtered + capped at
    *  FEATURED_STRIP_LIMIT. Pass `[]` (or omit) when the organizer
    *  toggled the strip off; the orchestrator skips rendering it.
-   *  Items here overlap the main `initialItems` array by design (see
-   *  the PublicGallery NATIVE overlap contract); the strip resolves
-   *  each id to its main-grid index when clicked so the shared
-   *  lightbox opens at the right position. */
+   *  Items here generally overlap the main `initialItems` array (see
+   *  the PublicGallery NATIVE overlap contract), but the featured
+   *  query is independent from paginated items so a starred item can
+   *  fall outside the first loaded page. `handleOpenFeatured` looks
+   *  up by id and prepends-on-miss so the lightbox always opens the
+   *  actual clicked photo. */
   featuredItems?: PublicGalleryItem[];
 };
 
@@ -59,12 +61,20 @@ export function PostEventGalleryGrid({
   // Refs let us trigger pagination from an IntersectionObserver without
   // re-binding the observer every state update.
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const stateRef = useRef({ nextCursor, loadingMore });
-  stateRef.current = { nextCursor, loadingMore };
+  const cursorRef = useRef(nextCursor);
+  cursorRef.current = nextCursor;
+  // Dedicated in-flight guard. The `loadingMore` state alone isn't
+  // safe — setLoadingMore(true) doesn't take effect until React
+  // re-renders, so two callers (sentinel observer + slideshow
+  // prefetch effect) firing in the same tick can both pass the guard
+  // and double-fetch the same cursor, appending duplicate items. The
+  // ref flips synchronously before any await.
+  const inflightRef = useRef(false);
 
   const loadMore = useCallback(async () => {
-    const { nextCursor: cursor, loadingMore: busy } = stateRef.current;
-    if (!cursor || busy) return;
+    const cursor = cursorRef.current;
+    if (!cursor || inflightRef.current) return;
+    inflightRef.current = true;
     setLoadingMore(true);
     setError(null);
     try {
@@ -84,6 +94,7 @@ export function PostEventGalleryGrid({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't load more");
     } finally {
+      inflightRef.current = false;
       setLoadingMore(false);
     }
   }, [eventId, inviteToken]);
@@ -108,6 +119,30 @@ export function PostEventGalleryGrid({
   const handleOpenLightbox = useCallback(
     (idx: number) => setLightboxIndex(idx),
     [],
+  );
+  // Featured-strip clicks route through here because the featured
+  // payload is queried independently from the paginated main grid —
+  // an editor can star a photo whose page hasn't been loaded yet. If
+  // the item is already in `items`, open at its existing index; if
+  // not, prepend it so the lightbox has something to address (the
+  // lightbox addresses items by their index in this array, so the
+  // item must actually be in the array). Prepending shifts no
+  // existing indices into the lightbox because the lightbox is closed
+  // when this fires.
+  const handleOpenFeatured = useCallback(
+    (item: PublicGalleryItem) => {
+      const existingIdx = items.findIndex((i) => i.id === item.id);
+      if (existingIdx !== -1) {
+        setLightboxIndex(existingIdx);
+        return;
+      }
+      setItems((prev) => {
+        if (prev.some((i) => i.id === item.id)) return prev;
+        return [item, ...prev];
+      });
+      setLightboxIndex(0);
+    },
+    [items],
   );
   const handleClose = useCallback(() => setLightboxIndex(null), []);
   const handlePrev = useCallback(
@@ -138,8 +173,7 @@ export function PostEventGalleryGrid({
       {featuredItems.length > 0 && (
         <FeaturedGalleryStrip
           featuredItems={featuredItems}
-          allItems={items}
-          onOpenLightbox={handleOpenLightbox}
+          onOpen={handleOpenFeatured}
         />
       )}
 
@@ -150,8 +184,8 @@ export function PostEventGalleryGrid({
         // Non-scrolling layouts (currently just slideshow) need an
         // explicit prefetch hook — the IntersectionObserver sentinel
         // below only fires when the user scrolls. loadMore dedupes
-        // concurrent calls via its `loadingMore` guard, so layouts
-        // can call freely.
+        // concurrent calls via `inflightRef` (flipped synchronously
+        // before any await), so layouts can call freely.
         onRequestMore={loadMore}
         hasMore={nextCursor !== null}
       />
