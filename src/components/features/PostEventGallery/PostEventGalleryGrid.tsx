@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { isAllowedImageHost } from "@/lib/images/host";
-import type { PublicGalleryItem } from "@/schemas/gallery";
+import type { GalleryVariant, PublicGalleryItem } from "@/schemas/gallery";
 import { GalleryLightbox } from "./GalleryLightbox";
+import { PostEventGalleryRenderer } from "./layouts/PostEventGalleryRenderer";
 
 type Props = {
   eventId: string;
@@ -13,19 +12,31 @@ type Props = {
   /** Forwarded onto pagination requests so guest-token-gated galleries
    *  still load subsequent pages. */
   inviteToken?: string;
+  /** Organizer-chosen display variant; the renderer falls back to
+   *  classic-grid for any value it doesn't recognize, mirroring the
+   *  safe-fallback contract of `parseGalleryPresentation`. */
+  variant: GalleryVariant;
 };
 
 /**
- * Responsive grid of READY gallery items with a lightbox on click and
- * cursor-based pagination on scroll. SSR hydrates the first page via
- * `initialItems`; we fetch more from `/api/events/[id]/gallery/public`
- * when the user nears the bottom.
+ * Orchestrator for the post-event gallery. Owns:
+ *   - the items array + nextCursor (cursor-based pagination)
+ *   - the IntersectionObserver sentinel that triggers loadMore
+ *   - the loading/error UI between pages
+ *   - the lightbox state (which item is open) + the shared
+ *     `GalleryLightbox` portal
+ *
+ * Variant-specific rendering lives in `PostEventGalleryRenderer`. This
+ * separation keeps the shared concerns (keyboard nav, focus trap,
+ * BFCache safeguards, scroll pagination) in one place across all
+ * layouts — only the photo grid itself swaps per variant.
  */
 export function PostEventGalleryGrid({
   eventId,
   initialItems,
   initialNextCursor,
   inviteToken,
+  variant,
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
@@ -82,6 +93,10 @@ export function PostEventGalleryGrid({
     return () => observer.disconnect();
   }, [loadMore]);
 
+  const handleOpenLightbox = useCallback(
+    (idx: number) => setLightboxIndex(idx),
+    [],
+  );
   const handleClose = useCallback(() => setLightboxIndex(null), []);
   const handlePrev = useCallback(
     () =>
@@ -108,32 +123,11 @@ export function PostEventGalleryGrid({
 
   return (
     <>
-      <ul
-        className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4"
-        role="list"
-      >
-        {items.map((item, idx) => (
-          <li key={item.id} className="overflow-hidden rounded-md bg-muted">
-            <button
-              type="button"
-              onClick={() => setLightboxIndex(idx)}
-              className="relative block aspect-square w-full overflow-hidden transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground"
-              aria-label={item.alt || `Open photo ${idx + 1}`}
-            >
-              <Image
-                src={item.thumbnailSrc}
-                alt={item.alt}
-                fill
-                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className="object-cover"
-                placeholder={item.blurDataUrl ? "blur" : "empty"}
-                blurDataURL={item.blurDataUrl ?? undefined}
-                unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
-              />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <PostEventGalleryRenderer
+        variant={variant}
+        items={items}
+        onOpenLightbox={handleOpenLightbox}
+      />
 
       {/* Sentinel — used by the IntersectionObserver. Always rendered so
           the observer attaches cleanly; `nextCursor` gates the actual
