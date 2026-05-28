@@ -9,6 +9,10 @@
    =================================================================== */
 
 .grid {
+  /* When used on a <ul>, reset the default user-agent list styling so
+     grid math (gap, minmax) isn't fighting against ul's default padding. */
+  list-style: none;
+  margin: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: clamp(20px, 3vw, 36px);
@@ -44,7 +48,9 @@
 }
 
 .cardInner {
-  background: var(--card, hsl(var(--card)));
+  /* Theme tokens are stored as RGB triplets — see globals.css. CSS
+     Modules must wrap with rgb(...) to render correctly. */
+  background: rgb(var(--card));
   padding: clamp(8px, 1.5vw, 14px);
   padding-bottom: clamp(28px, 4vw, 40px);
   border-radius: var(--radius-md, 12px);
@@ -61,7 +67,7 @@
 }
 
 .card:focus-visible .cardInner {
-  outline: 2px solid hsl(var(--foreground));
+  outline: 2px solid rgb(var(--foreground));
   outline-offset: 4px;
 }
 
@@ -81,7 +87,7 @@
   margin-top: clamp(8px, 1vw, 12px);
   font-size: 0.85rem;
   font-style: italic;
-  color: hsl(var(--muted-foreground));
+  color: rgb(var(--muted-foreground));
   text-align: center;
   line-height: 1.4;
   /* Keep captions on a single visual line where possible — the polaroid

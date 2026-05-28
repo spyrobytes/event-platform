@@ -24,37 +24,38 @@ export function RomanticMasonryLayout({
   onOpenLightbox,
 }: GalleryLayoutProps) {
   return (
-    <div className={styles.masonry}>
+    <ul className={styles.masonry} role="list">
       {items.map((item, idx) => {
         const aspectRatio =
           item.width && item.height ? `${item.width} / ${item.height}` : undefined;
         return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onOpenLightbox(idx)}
-            className={styles.frame}
-            aria-label={item.alt || `Open photo ${idx + 1}`}
-          >
-            <div
-              className={styles.imgWrap}
-              style={aspectRatio ? { aspectRatio } : undefined}
+          <li key={item.id} className={styles.item}>
+            <button
+              type="button"
+              onClick={() => onOpenLightbox(idx)}
+              className={styles.frame}
+              aria-label={item.alt || `Open photo ${idx + 1}`}
             >
-              <Image
-                src={item.thumbnailSrc}
-                alt={item.alt}
-                fill
-                sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
-                className={styles.img}
-                placeholder={item.blurDataUrl ? "blur" : "empty"}
-                blurDataURL={item.blurDataUrl ?? undefined}
-                unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
-              />
-            </div>
-            {item.caption && <p className={styles.caption}>{item.caption}</p>}
-          </button>
+              <div
+                className={styles.imgWrap}
+                style={aspectRatio ? { aspectRatio } : undefined}
+              >
+                <Image
+                  src={item.thumbnailSrc}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 33vw"
+                  className={styles.img}
+                  placeholder={item.blurDataUrl ? "blur" : "empty"}
+                  blurDataURL={item.blurDataUrl ?? undefined}
+                  unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
+                />
+              </div>
+              {item.caption && <p className={styles.caption}>{item.caption}</p>}
+            </button>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

@@ -38,33 +38,38 @@ function rotationFor(index: number): string {
  */
 export function ScrapbookLayout({ items, onOpenLightbox }: GalleryLayoutProps) {
   return (
-    <div className={styles.grid}>
+    <ul className={styles.grid} role="list">
       {items.map((item, idx) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onOpenLightbox(idx)}
-          className={styles.card}
-          style={{ "--rotation": rotationFor(idx) } as React.CSSProperties}
-          aria-label={item.alt || `Open photo ${idx + 1}`}
-        >
-          <div className={styles.cardInner}>
-            <div className={styles.imgWrap}>
-              <Image
-                src={item.thumbnailSrc}
-                alt={item.alt}
-                fill
-                sizes="(max-width: 768px) 50vw, 25vw"
-                className={styles.img}
-                placeholder={item.blurDataUrl ? "blur" : "empty"}
-                blurDataURL={item.blurDataUrl ?? undefined}
-                unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
-              />
+        <li key={item.id}>
+          <button
+            type="button"
+            onClick={() => onOpenLightbox(idx)}
+            className={styles.card}
+            style={{ "--rotation": rotationFor(idx) } as React.CSSProperties}
+            aria-label={item.alt || `Open photo ${idx + 1}`}
+            // `.caption` clips with ellipsis to keep the polaroid bottom
+            // edge tidy. Expose the full text on hover so organizers who
+            // write a sentence aren't surprised that it visually truncates.
+            title={item.caption ?? undefined}
+          >
+            <div className={styles.cardInner}>
+              <div className={styles.imgWrap}>
+                <Image
+                  src={item.thumbnailSrc}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className={styles.img}
+                  placeholder={item.blurDataUrl ? "blur" : "empty"}
+                  blurDataURL={item.blurDataUrl ?? undefined}
+                  unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
+                />
+              </div>
+              {item.caption && <p className={styles.caption}>{item.caption}</p>}
             </div>
-            {item.caption && <p className={styles.caption}>{item.caption}</p>}
-          </div>
-        </button>
+          </button>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
