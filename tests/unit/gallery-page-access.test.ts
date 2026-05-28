@@ -36,10 +36,13 @@ vi.mock("@/components/features/PostEventGallery", () => ({
   PostEventGalleryGrid: () => null,
   PostEventHero: () => null,
   ThankYouSection: () => null,
-  // WishesEcho is an async server component in real code; the test only
-  // cares that it's renderable, so a sync stub returning null is enough.
-  WishesEcho: () => null,
   ShareCta: () => null,
+}));
+
+// WishesEcho lives outside the barrel because it imports `db` (server-only).
+// The page imports it by direct file path, so the mock targets that path too.
+vi.mock("@/components/features/PostEventGallery/WishesEcho", () => ({
+  WishesEcho: () => null,
 }));
 
 const PageModule = await import("@/app/e/[slug]/gallery/page");

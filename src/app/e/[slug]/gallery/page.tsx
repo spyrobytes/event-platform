@@ -13,8 +13,11 @@ import {
   PostEventHero,
   ShareCta,
   ThankYouSection,
-  WishesEcho,
 } from "@/components/features/PostEventGallery";
+// Imported by direct path (not the barrel): WishesEcho imports `db` and
+// the barrel is consumed by client components — see the WishesEcho file
+// header. Direct import keeps Prisma/pg out of any browser bundle.
+import { WishesEcho } from "@/components/features/PostEventGallery/WishesEcho";
 import Link from "next/link";
 
 /**

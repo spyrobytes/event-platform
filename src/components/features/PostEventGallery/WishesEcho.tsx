@@ -1,3 +1,10 @@
+// Server-only: imports Prisma's `db` (→ `pg` → Node `net`/`tls`).
+//
+// DO NOT add this to the PostEventGallery barrel (`index.ts`). The
+// barrel is consumed by client components (notably the dashboard
+// gallery page) and re-exporting WishesEcho from it dragged `pg` into
+// the browser bundle — the CI build failure on PR #133's first push.
+// Server pages must import this file by its direct path.
 import Link from "next/link";
 import { db } from "@/lib/db";
 
