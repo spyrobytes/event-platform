@@ -125,6 +125,11 @@ export type TemplateProps = {
    * insert it immediately before their footer when set. Same page-level
    * gating as `postEventGalleryCta`. */
   postEventGalleryTeaser?: ReactNode;
+  /** When a post-event gallery is published, templates inject a
+   * "Photos" item into their nav so guests can reach it from the top
+   * of the page instead of scrolling all the way down to the teaser.
+   * Unset = no nav entry. Same page-level gating as the CTA + teaser. */
+  postEventGalleryHref?: string;
 };
 
 /**

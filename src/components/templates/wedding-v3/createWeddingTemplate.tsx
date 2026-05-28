@@ -142,6 +142,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     subPageSection,
     postEventGalleryCta,
     postEventGalleryTeaser,
+    postEventGalleryHref,
   }: TemplateProps) {
     const { theme, hero, sections } = config;
     const primaryColor = theme.primaryColor;
@@ -199,12 +200,25 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
         const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
         return { id, label, href };
       });
+      // Append a synthetic "Photos" nav entry when a post-event gallery
+      // is published. The nav renderers iterate `sections` and use
+      // `href` if provided, so this flows through every V3 nav variant
+      // without per-renderer changes. Placed at the end so it doesn't
+      // jostle the organizer's section order; the cap below treats it
+      // like any other item.
+      if (postEventGalleryHref) {
+        candidates.push({
+          id: "photos",
+          label: "Photos",
+          href: postEventGalleryHref,
+        });
+      }
       const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
       return {
         visibleNav: candidates.slice(0, cap),
         overflowNav: candidates.slice(cap),
       };
-    }, [sections, navLinkBase, subPageSection]);
+    }, [sections, navLinkBase, subPageSection, postEventGalleryHref]);
 
     const dateText = hero.subtitle || "";
 

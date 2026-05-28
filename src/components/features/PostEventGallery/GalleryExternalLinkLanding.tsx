@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isAllowedImageHost } from "@/lib/images/host";
+import { PoweredByEventFXr } from "./PoweredByEventFXr";
 
 /**
  * Polished landing card for an external-link gallery, rendered on the
@@ -99,6 +100,8 @@ export function GalleryExternalLinkLanding({
           </div>
         </div>
       </main>
+
+      <PoweredByEventFXr />
     </div>
   );
 }

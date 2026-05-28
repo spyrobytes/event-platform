@@ -12,6 +12,7 @@ export { GalleryPublishDialog } from "./GalleryPublishDialog";
 export { HeroPostEventCta } from "./HeroPostEventCta";
 export { GalleryPresentationEditor } from "./GalleryPresentationEditor";
 export { PostEventHero } from "./PostEventHero";
+export { PoweredByEventFXr } from "./PoweredByEventFXr";
 export { ThankYouSection } from "./ThankYouSection";
 // WishesEcho deliberately NOT re-exported — it imports `db` (Prisma + pg),
 // and this barrel is imported by client components (the dashboard gallery
