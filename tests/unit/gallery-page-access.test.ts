@@ -35,6 +35,7 @@ vi.mock("@/components/features/PostEventGallery", () => ({
   GalleryExternalLinkLanding: () => null,
   PostEventGalleryGrid: () => null,
   PostEventHero: () => null,
+  PoweredByEventFXr: () => null,
   ThankYouSection: () => null,
   ShareCta: () => null,
 }));

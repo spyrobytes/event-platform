@@ -11,6 +11,7 @@ import {
   GalleryExternalLinkLanding,
   PostEventGalleryGrid,
   PostEventHero,
+  PoweredByEventFXr,
   ShareCta,
   ThankYouSection,
 } from "@/components/features/PostEventGallery";
@@ -186,6 +187,8 @@ export default async function PostEventGalleryPage({
           canShare={event.visibility === "PUBLIC"}
         />
       </main>
+
+      <PoweredByEventFXr />
     </div>
   );
 }

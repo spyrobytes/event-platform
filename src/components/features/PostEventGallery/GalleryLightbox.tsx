@@ -196,18 +196,29 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
         )}
         <div className="relative h-full max-h-[85vh] w-full max-w-[95vw]">
           <Image
-            key={current.id}
+            // Intentionally NO `key` here. With a per-item key, every
+            // prev/next click unmounts the Image and a fresh one mounts
+            // with `placeholder=blur` — re-showing the blur backdrop
+            // before the new image streams in. That's the flash the
+            // organizer reported during smoke-test. Without the key,
+            // React reuses the same Image and just swaps `src`; the
+            // browser holds the previous frame visible until the next
+            // bytes arrive — no blur reset, no flash.
             src={current.src}
             alt={current.alt}
             fill
             sizes="95vw"
             className="object-contain"
+            // Blur placeholder still fires on the FIRST mount (lightbox
+            // open). Subsequent navigations skip it because the Image
+            // component persists.
             placeholder={current.blurDataUrl ? "blur" : "empty"}
             blurDataURL={current.blurDataUrl ?? undefined}
             priority
             unoptimized={!isAllowedImageHost(current.src)}
           />
         </div>
+        <AdjacentPreloads items={items} index={index} />
         {items.length > 1 && (
           <button
             type="button"
@@ -231,4 +242,70 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
   );
 
   return createPortal(node, document.body);
+}
+
+/**
+ * Off-screen Image stubs for the items adjacent to `index`. Next.js
+ * Image fetches them at full resolution as soon as they mount, so by
+ * the time the user clicks Next (or Prev) the bytes are already in the
+ * HTTP cache and the visible <Image>'s src swap is effectively instant.
+ *
+ * Rendered as `width=1 height=1` `aria-hidden` images positioned far
+ * off-screen — invisible to sighted users and assistive tech, but the
+ * browser still issues the fetch.
+ *
+ * We don't preload the rest of the gallery — only ±1 — to keep the
+ * priming cheap on slow connections. Adjacent-only matches the natural
+ * navigation pattern (left/right keystrokes).
+ */
+function AdjacentPreloads({
+  items,
+  index,
+}: {
+  items: PublicGalleryItem[];
+  index: number;
+}) {
+  if (items.length < 2) return null;
+  const prev = items[(index - 1 + items.length) % items.length];
+  const next = items[(index + 1) % items.length];
+  // Same id at +1 and -1 only happens with a 2-item gallery; dedupe so
+  // we don't issue the same fetch twice in that edge case.
+  const ids = new Set<string>();
+  const adjacent: PublicGalleryItem[] = [];
+  for (const item of [prev, next]) {
+    if (item && item.id !== items[index].id && !ids.has(item.id)) {
+      ids.add(item.id);
+      adjacent.push(item);
+    }
+  }
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        top: -9999,
+        left: -9999,
+        width: 1,
+        height: 1,
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}
+    >
+      {adjacent.map((item) => (
+        <Image
+          key={item.id}
+          src={item.src}
+          alt=""
+          width={1}
+          height={1}
+          // `sizes="95vw"` matches the visible lightbox Image so the
+          // browser's srcset picker fetches the same high-res variant
+          // it will need on navigation — not a 1px optimizer thumbnail.
+          // Without this we'd be priming the cache with the wrong asset.
+          sizes="95vw"
+          unoptimized={!isAllowedImageHost(item.src)}
+        />
+      ))}
+    </div>
+  );
 }

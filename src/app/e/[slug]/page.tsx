@@ -318,6 +318,13 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
             />
           ) : undefined
         }
+        postEventGalleryHref={
+          postEventGallery
+            ? tk
+              ? `/e/${slug}/gallery?tk=${encodeURIComponent(tk)}`
+              : `/e/${slug}/gallery`
+            : undefined
+        }
       />
     </div>
   );
