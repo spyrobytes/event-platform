@@ -70,9 +70,34 @@ export const galleryVariantSchema = z.enum([
   "classic-grid",
   "romantic-masonry",
   "scrapbook-memories",
+  "slideshow",
 ]);
 
 export type GalleryVariant = z.infer<typeof galleryVariantSchema>;
+
+/**
+ * Slideshow transition vocabulary. Mirrors the wedding-v2 MasonryGallery
+ * slideshow's animation set so organizers already familiar with the
+ * in-page gallery picker see consistent options on the post-event page.
+ */
+export const slideshowTransitionSchema = z.enum([
+  "fade",
+  "slide",
+  "zoom",
+  "flip",
+]);
+
+export type SlideshowTransition = z.infer<typeof slideshowTransitionSchema>;
+
+/**
+ * Bounds on the autoplay interval. Lower bound 2s avoids unreadable
+ * stutter; upper bound 15s avoids the slideshow feeling stuck. Match
+ * the wedding-v2 in-page gallery's bounds so organizers don't
+ * relearn the limits across surfaces.
+ */
+const SLIDESHOW_INTERVAL_MIN_SECONDS = 2;
+const SLIDESHOW_INTERVAL_MAX_SECONDS = 15;
+const SLIDESHOW_INTERVAL_DEFAULT_SECONDS = 5;
 
 /**
  * `.trim()` then coerce empty-string to `undefined` so the "absent vs empty"
@@ -98,6 +123,18 @@ export const galleryPresentationSchema = z.object({
   showFeaturedStrip: z.boolean().default(false),
   /** Echo a sample of approved RSVP messages above the share CTA. */
   showWishesEcho: z.boolean().default(false),
+  /** Slideshow-only settings. Read by `SlideshowLayout`; ignored by other
+   *  variants. Defaults are chosen so a fresh-variant-pick never
+   *  surprises the organizer with an auto-advancing carousel — they have
+   *  to flip `slideshowAutoplay` on intentionally. */
+  slideshowAutoplay: z.boolean().default(false),
+  slideshowAutoplayInterval: z
+    .number()
+    .int()
+    .min(SLIDESHOW_INTERVAL_MIN_SECONDS)
+    .max(SLIDESHOW_INTERVAL_MAX_SECONDS)
+    .default(SLIDESHOW_INTERVAL_DEFAULT_SECONDS),
+  slideshowTransition: slideshowTransitionSchema.default("fade"),
 });
 
 export type GalleryPresentation = z.infer<typeof galleryPresentationSchema>;
@@ -120,6 +157,14 @@ export const galleryPresentationPatchSchema = z.object({
   thankYouMessage: optionalTrimmedString(500),
   showFeaturedStrip: z.boolean().optional(),
   showWishesEcho: z.boolean().optional(),
+  slideshowAutoplay: z.boolean().optional(),
+  slideshowAutoplayInterval: z
+    .number()
+    .int()
+    .min(SLIDESHOW_INTERVAL_MIN_SECONDS)
+    .max(SLIDESHOW_INTERVAL_MAX_SECONDS)
+    .optional(),
+  slideshowTransition: slideshowTransitionSchema.optional(),
 });
 
 export type GalleryPresentationPatch = z.infer<
@@ -135,6 +180,9 @@ export const DEFAULT_GALLERY_PRESENTATION: GalleryPresentation = {
   variant: "classic-grid",
   showFeaturedStrip: false,
   showWishesEcho: false,
+  slideshowAutoplay: false,
+  slideshowAutoplayInterval: SLIDESHOW_INTERVAL_DEFAULT_SECONDS,
+  slideshowTransition: "fade",
 };
 
 /**

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type {
   GalleryPresentation,
   GalleryVariant,
+  SlideshowTransition,
 } from "@/schemas/gallery";
 
 type Props = {
@@ -53,10 +54,32 @@ const VARIANT_TILES: ReadonlyArray<{
     label: "Scrapbook Memories",
     description: "Polaroid-style cards with playful tilt. Warm, personal.",
   },
+  {
+    id: "slideshow",
+    label: "Slideshow",
+    description:
+      "One photo at a time on a cinematic stage. Optional autoplay.",
+  },
+];
+
+/**
+ * Transition options for the slideshow variant. Mirrors the schema enum;
+ * keep in sync when slideshowTransitionSchema gains entries.
+ */
+const TRANSITION_OPTIONS: ReadonlyArray<{
+  id: SlideshowTransition;
+  label: string;
+}> = [
+  { id: "fade", label: "Fade" },
+  { id: "slide", label: "Slide" },
+  { id: "zoom", label: "Zoom" },
+  { id: "flip", label: "Flip" },
 ];
 
 const HEADING_MAX = 80;
 const MESSAGE_MAX = 500;
+const SLIDESHOW_INTERVAL_MIN = 2;
+const SLIDESHOW_INTERVAL_MAX = 15;
 
 /**
  * Editor for the per-gallery presentation: variant picker + thank-you
@@ -82,6 +105,14 @@ export function GalleryPresentationEditor({
     initial.showFeaturedStrip,
   );
   const [showWishesEcho, setShowWishesEcho] = useState(initial.showWishesEcho);
+  const [slideshowAutoplay, setSlideshowAutoplay] = useState(
+    initial.slideshowAutoplay,
+  );
+  const [slideshowAutoplayInterval, setSlideshowAutoplayInterval] = useState(
+    initial.slideshowAutoplayInterval,
+  );
+  const [slideshowTransition, setSlideshowTransition] =
+    useState<SlideshowTransition>(initial.slideshowTransition);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedTick, setSavedTick] = useState(0);
@@ -90,6 +121,9 @@ export function GalleryPresentationEditor({
   // the at-least-one-field refine + still revalidate). Cheap and direct
   // string/boolean compares — the empty-string transform on the server
   // side means `""` and `undefined` round-trip the same observable state.
+  // Slideshow fields are always included in the dirty check; they're
+  // persistent across variants so an organizer who tunes them then
+  // switches variants and back doesn't lose the settings.
   const initialHeading = initial.thankYouHeading ?? "";
   const initialMessage = initial.thankYouMessage ?? "";
   const dirty =
@@ -97,7 +131,10 @@ export function GalleryPresentationEditor({
     heading.trim() !== initialHeading ||
     message.trim() !== initialMessage ||
     showFeaturedStrip !== initial.showFeaturedStrip ||
-    showWishesEcho !== initial.showWishesEcho;
+    showWishesEcho !== initial.showWishesEcho ||
+    slideshowAutoplay !== initial.slideshowAutoplay ||
+    slideshowAutoplayInterval !== initial.slideshowAutoplayInterval ||
+    slideshowTransition !== initial.slideshowTransition;
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -127,6 +164,14 @@ export function GalleryPresentationEditor({
               thankYouMessage: message,
               showFeaturedStrip,
               showWishesEcho,
+              // Slideshow settings — sent regardless of current variant
+              // so they survive variant switching. The PATCH route's
+              // server-side merge means unsent fields aren't wiped
+              // either, but sending them explicitly avoids depending on
+              // merge semantics for round-trip stability.
+              slideshowAutoplay,
+              slideshowAutoplayInterval,
+              slideshowTransition,
             },
           }),
         },
@@ -151,6 +196,9 @@ export function GalleryPresentationEditor({
     onSaved,
     showFeaturedStrip,
     showWishesEcho,
+    slideshowAutoplay,
+    slideshowAutoplayInterval,
+    slideshowTransition,
     variant,
   ]);
 
@@ -251,6 +299,102 @@ export function GalleryPresentationEditor({
           onChange={setShowWishesEcho}
         />
       </div>
+
+      {/* Slideshow-specific settings — only relevant when the slideshow
+          variant is picked. We KEEP the state across variants so an
+          organizer who tunes these, switches to another variant, then
+          switches back doesn't lose their settings (state persists; only
+          the UI surface is conditional). */}
+      {variant === "slideshow" && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-foreground">
+            Slideshow settings
+          </h3>
+          <Toggle
+            label="Autoplay"
+            description="Advance to the next photo automatically. Manual navigation pauses the timer; the play/pause button resumes it."
+            checked={slideshowAutoplay}
+            onChange={setSlideshowAutoplay}
+          />
+
+          <div
+            className={cn(
+              "space-y-2 rounded-md border border-border bg-card p-3 transition",
+              !slideshowAutoplay && "opacity-60",
+            )}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <Label
+                htmlFor="slideshow-interval"
+                className="text-xs font-medium text-foreground"
+              >
+                Autoplay interval
+              </Label>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {slideshowAutoplayInterval}s
+              </span>
+            </div>
+            <input
+              id="slideshow-interval"
+              type="range"
+              min={SLIDESHOW_INTERVAL_MIN}
+              max={SLIDESHOW_INTERVAL_MAX}
+              step={1}
+              value={slideshowAutoplayInterval}
+              disabled={!slideshowAutoplay}
+              onChange={(e) =>
+                setSlideshowAutoplayInterval(
+                  Math.max(
+                    SLIDESHOW_INTERVAL_MIN,
+                    Math.min(
+                      SLIDESHOW_INTERVAL_MAX,
+                      parseInt(e.target.value, 10) ||
+                        SLIDESHOW_INTERVAL_MIN,
+                    ),
+                  ),
+                )
+              }
+              className="w-full accent-foreground disabled:cursor-not-allowed"
+            />
+            <p className="text-xs text-muted-foreground">
+              How long each photo stays visible before advancing.{" "}
+              {SLIDESHOW_INTERVAL_MIN}–{SLIDESHOW_INTERVAL_MAX} seconds.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-foreground">
+              Transition
+            </Label>
+            <div
+              role="radiogroup"
+              aria-label="Slideshow transition"
+              className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+            >
+              {TRANSITION_OPTIONS.map((opt) => {
+                const selected = slideshowTransition === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setSlideshowTransition(opt.id)}
+                    className={cn(
+                      "rounded-md border bg-card px-3 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                      selected
+                        ? "border-foreground bg-muted/50 ring-1 ring-foreground text-foreground"
+                        : "border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div

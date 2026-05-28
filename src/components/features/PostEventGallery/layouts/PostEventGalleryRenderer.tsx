@@ -1,13 +1,18 @@
 "use client";
 
-import type { GalleryVariant } from "@/schemas/gallery";
+import type { GalleryPresentation } from "@/schemas/gallery";
 import type { GalleryLayoutProps } from "./types";
 import { ClassicGridLayout } from "./ClassicGridLayout";
 import { RomanticMasonryLayout } from "./RomanticMasonryLayout";
 import { ScrapbookLayout } from "./ScrapbookLayout";
+import { SlideshowLayout } from "./SlideshowLayout";
 
 type Props = GalleryLayoutProps & {
-  variant: GalleryVariant;
+  /** Full parsed presentation so layouts can read their own settings
+   *  (Slideshow reads autoplay/interval/transition; others currently
+   *  read nothing extra). Renderer plucks the variant for dispatch
+   *  and forwards the rest only to the layouts that need it. */
+  presentation: GalleryPresentation;
 };
 
 /**
@@ -18,20 +23,34 @@ type Props = GalleryLayoutProps & {
  * variant) renders the same default the public payload would resolve to.
  *
  * Layouts are pure rendering: pagination, lightbox state, and error UI
- * stay in the orchestrator (`PostEventGalleryGrid`).
+ * stay in the orchestrator (`PostEventGalleryGrid`). Variant-specific
+ * settings (e.g. slideshow autoplay/interval/transition) flow through
+ * `presentation` rather than expanding `GalleryLayoutProps` — keeps the
+ * shared prop surface lean while still threading the per-variant
+ * configuration cleanly.
  */
 export function PostEventGalleryRenderer({
-  variant,
+  presentation,
   items,
   onOpenLightbox,
 }: Props) {
-  switch (variant) {
+  switch (presentation.variant) {
     case "romantic-masonry":
       return (
         <RomanticMasonryLayout items={items} onOpenLightbox={onOpenLightbox} />
       );
     case "scrapbook-memories":
       return <ScrapbookLayout items={items} onOpenLightbox={onOpenLightbox} />;
+    case "slideshow":
+      return (
+        <SlideshowLayout
+          items={items}
+          onOpenLightbox={onOpenLightbox}
+          autoplay={presentation.slideshowAutoplay}
+          autoplayInterval={presentation.slideshowAutoplayInterval}
+          transition={presentation.slideshowTransition}
+        />
+      );
     case "classic-grid":
     default:
       return (

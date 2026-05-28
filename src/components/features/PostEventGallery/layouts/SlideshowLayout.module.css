@@ -1,0 +1,248 @@
+/* ===================================================================
+   Slideshow Layout — one-photo-at-a-time cinematic stage.
+
+   Single visible slide with prev/next controls + optional autoplay.
+   Four transition modes (fade/slide/zoom/flip) — the inactive slides
+   stack absolutely under the active one with opacity 0 + transform
+   start states, and ease to opacity 1 + transform end state when
+   `.active` lands. CSS-only animation, no JS measurement.
+   =================================================================== */
+
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg, 16px);
+  background: rgb(var(--muted));
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .stage {
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-md, 12px);
+  }
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ===== TRANSITIONS — patterns mined from wedding-v2 MasonryGallery ===== */
+
+.fade {
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.slideIn {
+  transform: translateX(40px);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slideIn.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.zoom {
+  transform: scale(1.08);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.zoom.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.flip {
+  transform: perspective(800px) rotateY(8deg);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.flip.active {
+  opacity: 1;
+  transform: perspective(800px) rotateY(0);
+  pointer-events: auto;
+}
+
+/* ===== CAPTION OVERLAY ===== */
+
+.caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 48px 24px 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+  pointer-events: none;
+}
+
+/* ===== COUNTER ===== */
+
+.counter {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  tab-size: 2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== NAV ARROWS ===== */
+
+.nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.9);
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.nav:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.nav:focus-visible {
+  outline: 2px solid rgb(255 255 255);
+  outline-offset: 2px;
+}
+.navPrev {
+  left: 14px;
+}
+.navNext {
+  right: 14px;
+}
+
+/* ===== DOT INDICATORS + AUTOPLAY TOGGLE ===== */
+
+.dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: rgb(var(--muted-foreground) / 0.4);
+  cursor: pointer;
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.dot:hover {
+  background: rgb(var(--muted-foreground) / 0.7);
+}
+.dot:focus-visible {
+  outline: 2px solid rgb(var(--foreground));
+  outline-offset: 2px;
+}
+.dotActive {
+  background: rgb(var(--foreground));
+  transform: scale(1.2);
+}
+
+.playPause {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: rgb(var(--muted-foreground) / 0.25);
+  color: rgb(var(--foreground));
+  cursor: pointer;
+  margin-right: 4px;
+  transition: background 0.25s ease;
+}
+.playPause:hover {
+  background: rgb(var(--muted-foreground) / 0.45);
+}
+.playPause:focus-visible {
+  outline: 2px solid rgb(var(--foreground));
+  outline-offset: 2px;
+}
+
+/* ===== AUTOPLAY PROGRESS BAR ===== */
+
+.progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .fade,
+  .slideIn,
+  .zoom,
+  .flip {
+    transition: none;
+  }
+  .fade,
+  .slideIn,
+  .zoom,
+  .flip {
+    transform: none;
+  }
+  .nav,
+  .dot,
+  .playPause {
+    transition: none;
+  }
+  .progressFill {
+    transition: none;
+  }
+}
