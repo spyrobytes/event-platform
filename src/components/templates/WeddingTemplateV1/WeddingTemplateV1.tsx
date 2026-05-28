@@ -85,15 +85,15 @@ export function WeddingTemplateV1({
 
   // Mobile drawer items mirror the dot-rail registration rules so labels,
   // order, and inclusion match the desktop nav exactly. RSVP is pinned
-  // to the bottom as the CTA. PR H policy: when Album (post-event
-  // gallery) is published, the in-page "gallery" section is suppressed
-  // from the drawer (only the Album link surfaces), and Album joins
-  // RSVP as a second CTA pill at the bottom.
+  // to the bottom as the CTA. PR H policy: when Album is published,
+  // the in-page "gallery" section stays in the section list (V1 has
+  // no overflow concept — the drawer shows everything — so "demote to
+  // overflow" maps to "keep in the regular list, just not as a CTA").
+  // Album joins RSVP as a second CTA pill below the section list.
   const mobileNavItems = [
     ...sections
       .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
       .filter((s) => s.type !== "rsvp" || Boolean(eventSlug))
-      .filter((s) => !(postEventGalleryHref && s.type === "gallery"))
       .map((s) => ({
         id: s.type,
         label: resolveNavLabel(s, "wedding"),

@@ -167,8 +167,8 @@ const WEDDING_MESSAGES: Record<EventPhase, Record<MessageCategory, string[]>> = 
       "Captured Moments",
     ],
     cta: [
-      "View Photos",
-      "See the Gallery",
+      "View Album",
+      "See the Album",
       "Relive the Day",
     ],
     countdown: [
@@ -406,7 +406,7 @@ export function getTemporalCTA(
   if (ctaType === "gallery") {
     switch (phase) {
       case "ended":
-        return "View Photos";
+        return "View Album";
       default:
         return "See Gallery";
     }

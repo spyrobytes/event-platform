@@ -17,7 +17,7 @@ import {
  * payloads" contract stays in one place.
  */
 
-const DEFAULT_EXTERNAL_CTA_LABEL = "View Photos";
+const DEFAULT_EXTERNAL_CTA_LABEL = "View Album";
 
 /**
  * First-page size for the native gallery render. Tuned for a 4×6 / 3×8

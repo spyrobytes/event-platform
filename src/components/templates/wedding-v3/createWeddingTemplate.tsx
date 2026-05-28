@@ -91,6 +91,16 @@ function getSectionId(type: string): string {
   return ids[type] || type;
 }
 
+/**
+ * Drops the `isInPageGallery` discriminator we add for the
+ * Album-demotion logic — V3 nav renderers expect plain {id, label, href}.
+ */
+function stripFlag<T extends { id: string; label: string; href: string }>(
+  c: T,
+): { id: string; label: string; href: string } {
+  return { id: c.id, label: c.label, href: c.href };
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -197,42 +207,46 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     }, [sections]);
 
     const { visibleNav, overflowNav } = useMemo(() => {
-      const candidates = orderSectionsForNav(sections, "wedding")
-        // PR H policy: when the post-event Album is published, the
-        // in-page "gallery" section's nav entry is suppressed —
-        // disambiguates "Gallery" (pre-event teaser) from "Album"
-        // (post-event destination). The in-page section still renders
-        // in the page body; only its nav slot moves to the Album.
-        .filter((s) => !(postEventGalleryHref && s.type === "gallery"))
-        .map((s) => {
-          const id = getSectionId(s.type);
-          const label = resolveNavLabel(s, "wedding");
-          const isOnPage = !navLinkBase || s.type === subPageSection;
-          const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
-          return { id, label, href };
-        });
-      // Append the synthetic Album entry when a post-event gallery is
-      // published. V3 nav renderers iterate `sections` uniformly (no
-      // CTA distinction — RSVP isn't styled as a pill in V3 either),
-      // so Album appears as a regular nav item. Future polish could
-      // add per-renderer CTA styling; out of scope for PR H.
-      if (postEventGalleryHref) {
-        candidates.push({
-          id: POST_EVENT_GALLERY_NAV_ID,
-          label: POST_EVENT_GALLERY_NAV_LABEL,
-          href: postEventGalleryHref,
-        });
-      }
-      // Bump the cap by 1 when Album is present so it doesn't push the
-      // last organizer-configured section into overflow (PR F review
-      // raised this; the policy decision is "Album earns its own slot,
-      // not at the cost of an existing section").
+      const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
+        const id = getSectionId(s.type);
+        const label = resolveNavLabel(s, "wedding");
+        const isOnPage = !navLinkBase || s.type === subPageSection;
+        const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
+        return { id, label, href, isInPageGallery: s.type === "gallery" };
+      });
+
+      // PR H policy when Album is present:
+      //   1. The in-page "gallery" section's nav entry is DEMOTED to
+      //      overflow (not removed) — disambiguates "Gallery"
+      //      (pre-event teaser) from "Album" (post-event destination).
+      //      The section still renders in the page body if enabled.
+      //   2. Album pins to the visible row (slot reserved upfront so
+      //      it isn't sliced into overflow when many sections exist —
+      //      V3 nav renderers iterate sections uniformly with no CTA
+      //      concept, so Album appears as a regular nav item next to
+      //      the others. Per-renderer CTA pill styling for V3 is a
+      //      separate design pass).
+      //   3. Cap bumps by 1 so Album's slot doesn't push the last
+      //      organizer-configured section into overflow.
+      const inPageGallery = postEventGalleryHref
+        ? candidates.find((c) => c.isInPageGallery)
+        : undefined;
+      const remaining = candidates.filter((c) => c !== inPageGallery);
+      const albumItem = postEventGalleryHref
+        ? {
+            id: POST_EVENT_GALLERY_NAV_ID,
+            label: POST_EVENT_GALLERY_NAV_LABEL,
+            href: postEventGalleryHref,
+          }
+        : undefined;
       const cap =
         MAX_VISIBLE_NAV_ITEMS.wedding + (postEventGalleryHref ? 1 : 0);
-      return {
-        visibleNav: candidates.slice(0, cap),
-        overflowNav: candidates.slice(cap),
-      };
+      const headSlots = albumItem ? cap - 1 : cap;
+      const visible = remaining.slice(0, headSlots).map(stripFlag);
+      const overflow = remaining.slice(headSlots).map(stripFlag);
+      if (inPageGallery) overflow.push(stripFlag(inPageGallery));
+      if (albumItem) visible.push(albumItem);
+      return { visibleNav: visible, overflowNav: overflow };
     }, [sections, navLinkBase, subPageSection, postEventGalleryHref]);
 
     const dateText = hero.subtitle || "";

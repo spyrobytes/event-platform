@@ -51,7 +51,7 @@ export function PostEventGalleryTeaser({
           )}
           <div className="flex flex-1 flex-col justify-center gap-3 p-6 md:p-8">
             <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Photo Gallery
+              Album
             </div>
             <h2 className="text-2xl font-semibold leading-tight text-foreground md:text-3xl">
               {title}

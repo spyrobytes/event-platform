@@ -245,7 +245,7 @@ export function SlideshowLayout({
   return (
     <div
       role="region"
-      aria-label="Photo slideshow"
+      aria-label="Album slideshow"
       aria-roledescription="carousel"
     >
       <div
@@ -376,7 +376,7 @@ export function SlideshowLayout({
       </div>
 
       {items.length > 1 && (
-        <div className={styles.dots} role="tablist" aria-label="Photos">
+        <div className={styles.dots} role="tablist" aria-label="Album photos">
           {autoplay && (
             <button
               type="button"

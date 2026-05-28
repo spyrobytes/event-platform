@@ -244,49 +244,56 @@ export function WeddingTemplateV2({
   // pill button. When eventSlug is unavailable (preview without slug context),
   // we fall back to the standard anchor scroll.
   const { visibleNav, overflowNav } = useMemo(() => {
-    const candidates = orderSectionsForNav(sections, "wedding")
-      // PR H policy: when Album is published, the in-page "gallery"
-      // section's nav entry is suppressed — disambiguates "Gallery"
-      // (pre-event teaser) from "Album" (post-event destination). The
-      // in-page section still renders in the page body; only its nav
-      // slot moves to Album.
-      .filter((s) => !(postEventGalleryHref && s.type === "gallery"))
-      .map((s) => {
-        const id = getSectionId(s.type);
-        const label = resolveNavLabel(s, "wedding");
-        const isOnPage = !navLinkBase || s.type === subPageSection;
-        const isRsvp = s.type === "rsvp";
-        const href = isRsvp && eventSlug
-          ? `/e/${eventSlug}/rsvp`
-          : isOnPage
-            ? `#${id}`
-            : `${navLinkBase}#${id}`;
-        return { id, label, href, isCta: isRsvp };
-      });
+    const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
+      const id = getSectionId(s.type);
+      const label = resolveNavLabel(s, "wedding");
+      const isOnPage = !navLinkBase || s.type === subPageSection;
+      const isRsvp = s.type === "rsvp";
+      const href = isRsvp && eventSlug
+        ? `/e/${eventSlug}/rsvp`
+        : isOnPage
+          ? `#${id}`
+          : `${navLinkBase}#${id}`;
+      return {
+        id,
+        label,
+        href,
+        isCta: isRsvp,
+        isInPageGallery: s.type === "gallery",
+      };
+    });
 
-    // Append the synthetic Album entry as a SECOND CTA pill (PR H
-    // policy). The Topbar renders CTAs distinct from regular sections;
-    // pinning Album alongside RSVP keeps both visible and visually
-    // signals "this is the primary destination after the event."
-    if (postEventGalleryHref) {
-      candidates.push({
-        id: POST_EVENT_GALLERY_NAV_ID,
-        label: POST_EVENT_GALLERY_NAV_LABEL,
-        href: postEventGalleryHref,
-        isCta: true,
-      });
-    }
+    // PR H policy when Album is present:
+    //   1. The in-page "gallery" section's nav entry is DEMOTED to
+    //      overflow (not removed). The Topbar's "More" dropdown shows
+    //      it; the page body still renders the section if enabled.
+    //   2. Album joins RSVP as a second CTA pill, pinned to visible.
+    //   3. Cap bumps by 1 so neither CTA pushes the last organizer-
+    //      configured section out of the visible row.
+    const inPageGallery = postEventGalleryHref
+      ? candidates.find((c) => c.isInPageGallery)
+      : undefined;
+    const albumItem = postEventGalleryHref
+      ? {
+          id: POST_EVENT_GALLERY_NAV_ID,
+          label: POST_EVENT_GALLERY_NAV_LABEL,
+          href: postEventGalleryHref,
+          isCta: true,
+          isInPageGallery: false,
+        }
+      : undefined;
+    if (albumItem) candidates.push(albumItem);
 
-    // Both RSVP and Album are pinned to the visible row. Cap bumps by 1
-    // when Album is present so its slot doesn't push the last
-    // organizer-configured section into overflow.
+    const ctas = candidates.filter((c) => c.isCta);
+    const otherNonCtas = candidates.filter(
+      (c) => !c.isCta && c !== inPageGallery,
+    );
     const cap =
       MAX_VISIBLE_NAV_ITEMS.wedding + (postEventGalleryHref ? 1 : 0);
-    const ctas = candidates.filter((c) => c.isCta);
-    const nonCtas = candidates.filter((c) => !c.isCta);
     const headSlots = cap - ctas.length;
-    const visible = nonCtas.slice(0, headSlots);
-    const overflow = nonCtas.slice(headSlots);
+    const visible = otherNonCtas.slice(0, headSlots);
+    const overflow = otherNonCtas.slice(headSlots);
+    if (inPageGallery) overflow.push(inPageGallery);
     visible.push(...ctas);
     return { visibleNav: visible, overflowNav: overflow };
   }, [sections, navLinkBase, subPageSection, eventSlug, postEventGalleryHref]);

@@ -111,11 +111,11 @@ export function GalleryExternalLinkForm({
           id="gallery-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Photos from our wedding"
+          placeholder="Album from our wedding"
           maxLength={120}
         />
         <p className="text-xs text-muted-foreground">
-          Optional. Defaults to &ldquo;{`{Event}`} Photos&rdquo; on the public page.
+          Optional. Defaults to &ldquo;{`{Event}`} Album&rdquo; on the public page.
         </p>
       </div>
 
@@ -157,11 +157,11 @@ export function GalleryExternalLinkForm({
           id="gallery-cta"
           value={ctaLabel}
           onChange={(e) => setCtaLabel(e.target.value)}
-          placeholder="View Photos"
+          placeholder="View Album"
           maxLength={60}
         />
         <p className="text-xs text-muted-foreground">
-          Optional. Defaults to &ldquo;View Photos&rdquo;.
+          Optional. Defaults to &ldquo;View Album&rdquo;.
         </p>
       </div>
 

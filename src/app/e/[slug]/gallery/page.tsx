@@ -52,15 +52,15 @@ export async function generateMetadata({
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const title = gallery.title
     ? `${gallery.title} — ${event.title}`
-    : `${event.title} — Photos`;
+    : `${event.title} — Album`;
 
   return {
     title,
-    description: gallery.description ?? `Photos from ${event.title}`,
+    description: gallery.description ?? `Album from ${event.title}`,
     alternates: { canonical: `${baseUrl}/e/${slug}/gallery` },
     openGraph: {
       title,
-      description: gallery.description ?? `Photos from ${event.title}`,
+      description: gallery.description ?? `Album from ${event.title}`,
       type: "website",
       url: `${baseUrl}/e/${slug}/gallery`,
       ...(gallery.coverUrl && {
@@ -110,7 +110,7 @@ export default async function PostEventGalleryPage({
       <GalleryExternalLinkLanding
         eventTitle={event.title}
         eventSlug={slug}
-        galleryTitle={gallery.title ?? `${event.title} Photos`}
+        galleryTitle={gallery.title ?? `${event.title} Album`}
         description={gallery.description}
         coverUrl={gallery.coverUrl}
         externalUrl={gallery.externalLink.url}
@@ -125,7 +125,7 @@ export default async function PostEventGalleryPage({
   // thank-you → gallery (with featured strip prepended when toggled) →
   // optional wishes echo → share CTA (only for PUBLIC events).
   const backHref = tk ? `/e/${slug}?tk=${encodeURIComponent(tk)}` : `/e/${slug}`;
-  const title = gallery.title ?? `${event.title} Photos`;
+  const title = gallery.title ?? `${event.title} Album`;
   const { presentation } = gallery;
 
   return (
