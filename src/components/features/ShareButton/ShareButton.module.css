@@ -3,8 +3,13 @@
    chrome leaking through; everything else (border, size, hover) is
    delegated to the consumer's class. */
 .button {
-  display: inline-grid;
-  place-items: center;
+  /* inline-flex so the icon + optional label flow horizontally with a
+     consistent gap. Icon-only callers (Topbar) get the same centered
+     layout as before — flex with a single child collapses cleanly. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   background: none;
   border: 0;
   cursor: pointer;

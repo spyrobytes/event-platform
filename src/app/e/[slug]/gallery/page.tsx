@@ -10,7 +10,14 @@ import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
 import {
   GalleryExternalLinkLanding,
   PostEventGalleryGrid,
+  PostEventHero,
+  ShareCta,
+  ThankYouSection,
 } from "@/components/features/PostEventGallery";
+// Imported by direct path (not the barrel): WishesEcho imports `db` and
+// the barrel is consumed by client components — see the WishesEcho file
+// header. Direct import keeps Prisma/pg out of any browser bundle.
+import { WishesEcho } from "@/components/features/PostEventGallery/WishesEcho";
 import Link from "next/link";
 
 /**
@@ -113,10 +120,13 @@ export default async function PostEventGalleryPage({
     );
   }
 
-  // Native variant — render the grid + lightbox within event theme chrome
-  // (simple back link header; full template integration is PR #2.5).
+  // Native variant — full post-event page composition: hero → optional
+  // thank-you → gallery (with featured strip prepended when toggled) →
+  // optional wishes echo → share CTA (only for PUBLIC events).
   const backHref = tk ? `/e/${slug}?tk=${encodeURIComponent(tk)}` : `/e/${slug}`;
   const title = gallery.title ?? `${event.title} Photos`;
+  const { presentation } = gallery;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
@@ -130,26 +140,50 @@ export default async function PostEventGalleryPage({
           </Link>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8 md:py-12">
-        <div className="mb-8 space-y-3 text-center">
-          <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Photo Gallery
-          </div>
-          <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
-            {title}
-          </h1>
-          {gallery.description && (
-            <p className="mx-auto max-w-prose text-base leading-relaxed text-muted-foreground">
-              {gallery.description}
-            </p>
-          )}
-        </div>
-        <PostEventGalleryGrid
-          eventId={event.id}
-          initialItems={gallery.items}
-          initialNextCursor={gallery.pageInfo.nextCursor}
-          inviteToken={tk}
-          variant={gallery.presentation.variant}
+
+      <main>
+        <PostEventHero
+          title={title}
+          description={gallery.description}
+          coverUrl={gallery.coverUrl}
+        />
+
+        <ThankYouSection
+          heading={presentation.thankYouHeading}
+          message={presentation.thankYouMessage}
+        />
+
+        <section
+          id="gallery-main"
+          className="mx-auto max-w-6xl px-4 py-12 md:py-16"
+        >
+          <PostEventGalleryGrid
+            eventId={event.id}
+            initialItems={gallery.items}
+            initialNextCursor={gallery.pageInfo.nextCursor}
+            inviteToken={tk}
+            variant={presentation.variant}
+            featuredItems={
+              presentation.showFeaturedStrip ? gallery.featuredItems : []
+            }
+          />
+        </section>
+
+        {/* WishesEcho self-renders nothing when no approved wishes exist;
+            we also gate on the organizer's toggle so an "off" config
+            never even hits the DB. */}
+        {presentation.showWishesEcho && (
+          <WishesEcho
+            eventId={event.id}
+            eventSlug={slug}
+            inviteToken={tk}
+          />
+        )}
+
+        <ShareCta
+          eventTitle={event.title}
+          eventSlug={slug}
+          canShare={event.visibility === "PUBLIC"}
         />
       </main>
     </div>

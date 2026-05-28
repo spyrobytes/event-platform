@@ -34,6 +34,15 @@ vi.mock("@/lib/gallery-data", () => ({
 vi.mock("@/components/features/PostEventGallery", () => ({
   GalleryExternalLinkLanding: () => null,
   PostEventGalleryGrid: () => null,
+  PostEventHero: () => null,
+  ThankYouSection: () => null,
+  ShareCta: () => null,
+}));
+
+// WishesEcho lives outside the barrel because it imports `db` (server-only).
+// The page imports it by direct file path, so the mock targets that path too.
+vi.mock("@/components/features/PostEventGallery/WishesEcho", () => ({
+  WishesEcho: () => null,
 }));
 
 const PageModule = await import("@/app/e/[slug]/gallery/page");
