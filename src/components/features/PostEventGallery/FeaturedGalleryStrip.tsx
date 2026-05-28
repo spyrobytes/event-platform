@@ -6,11 +6,15 @@ import type { PublicGalleryItem } from "@/schemas/gallery";
 
 type Props = {
   featuredItems: PublicGalleryItem[];
-  /** The orchestrator's full items array — used to translate a featured
-   *  item id into its index in the main grid so clicking a featured
-   *  thumbnail opens the SAME lightbox at the SAME position. */
-  allItems: PublicGalleryItem[];
-  onOpenLightbox: (index: number) => void;
+  /** Click handler — receives the clicked featured item. The
+   *  orchestrator resolves the item to an index in the main grid
+   *  (prepending it if it hasn't been paginated in yet) before opening
+   *  the shared lightbox. Passing the item rather than an index keeps
+   *  the strip ignorant of the main array's shape and makes the
+   *  "featured item not in first page" case correct — the strip used
+   *  to fall back to `onOpenLightbox(featuredIdx)`, which silently
+   *  opened an unrelated photo from the main grid. */
+  onOpen: (item: PublicGalleryItem) => void;
 };
 
 /**
@@ -18,40 +22,13 @@ type Props = {
  * the main gallery grid. Acts as an editorial preview — guide §2.3.
  *
  * Featured items overlap the main grid by design (the PublicGallery
- * type's overlap contract). Clicking a featured tile resolves it to its
- * index in `allItems` and opens the orchestrator's shared lightbox at
- * that position — so the strip and grid feel like one experience, not
- * two separate viewers.
- *
- * If a featured item somehow doesn't appear in the first page of items
- * (organizer flagged item 25+ while the strip is on), we fall back to
- * opening at the first featured index — the lightbox can still navigate
- * to neighbours via its arrow controls.
+ * type's overlap contract). Clicking a featured tile hands the item
+ * up to the orchestrator, which opens the shared lightbox at its
+ * position — so the strip and grid feel like one experience, not two
+ * separate viewers.
  */
-export function FeaturedGalleryStrip({
-  featuredItems,
-  allItems,
-  onOpenLightbox,
-}: Props) {
+export function FeaturedGalleryStrip({ featuredItems, onOpen }: Props) {
   if (featuredItems.length === 0) return null;
-
-  // Pre-compute id → index map once; O(featured) lookups instead of
-  // O(featured × allItems) per click.
-  const indexById = new Map<string, number>();
-  allItems.forEach((item, idx) => indexById.set(item.id, idx));
-
-  const handleClick = (item: PublicGalleryItem, featuredIdx: number) => {
-    const idx = indexById.get(item.id);
-    if (idx !== undefined) {
-      onOpenLightbox(idx);
-      return;
-    }
-    // Featured item isn't in the loaded items page yet (could happen if
-    // the cap is later raised past the first page). Open at the first
-    // featured index — at minimum the lightbox surfaces a featured
-    // photo; the user can navigate from there.
-    onOpenLightbox(featuredIdx);
-  };
 
   return (
     <section
@@ -69,7 +46,7 @@ export function FeaturedGalleryStrip({
           >
             <button
               type="button"
-              onClick={() => handleClick(item, idx)}
+              onClick={() => onOpen(item)}
               aria-label={item.alt || `Open featured photo ${idx + 1}`}
               className="relative block aspect-[4/5] w-44 overflow-hidden rounded-lg bg-muted shadow-sm transition hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 md:w-56"
             >
