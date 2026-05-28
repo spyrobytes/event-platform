@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, Fragment } from "react";
+import {
+  POST_EVENT_GALLERY_NAV_ID,
+  POST_EVENT_GALLERY_NAV_LABEL,
+} from "@/lib/gallery-urls";
 import type { TemplateProps } from "../index";
 import type { TemplateDefinition } from "./types";
 import type { MotionPresetConfig } from "../shared";
@@ -193,27 +197,38 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     }, [sections]);
 
     const { visibleNav, overflowNav } = useMemo(() => {
-      const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
-        const id = getSectionId(s.type);
-        const label = resolveNavLabel(s, "wedding");
-        const isOnPage = !navLinkBase || s.type === subPageSection;
-        const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
-        return { id, label, href };
-      });
-      // Append a synthetic "Photos" nav entry when a post-event gallery
-      // is published. The nav renderers iterate `sections` and use
-      // `href` if provided, so this flows through every V3 nav variant
-      // without per-renderer changes. Placed at the end so it doesn't
-      // jostle the organizer's section order; the cap below treats it
-      // like any other item.
+      const candidates = orderSectionsForNav(sections, "wedding")
+        // PR H policy: when the post-event Album is published, the
+        // in-page "gallery" section's nav entry is suppressed —
+        // disambiguates "Gallery" (pre-event teaser) from "Album"
+        // (post-event destination). The in-page section still renders
+        // in the page body; only its nav slot moves to the Album.
+        .filter((s) => !(postEventGalleryHref && s.type === "gallery"))
+        .map((s) => {
+          const id = getSectionId(s.type);
+          const label = resolveNavLabel(s, "wedding");
+          const isOnPage = !navLinkBase || s.type === subPageSection;
+          const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
+          return { id, label, href };
+        });
+      // Append the synthetic Album entry when a post-event gallery is
+      // published. V3 nav renderers iterate `sections` uniformly (no
+      // CTA distinction — RSVP isn't styled as a pill in V3 either),
+      // so Album appears as a regular nav item. Future polish could
+      // add per-renderer CTA styling; out of scope for PR H.
       if (postEventGalleryHref) {
         candidates.push({
-          id: "photos",
-          label: "Photos",
+          id: POST_EVENT_GALLERY_NAV_ID,
+          label: POST_EVENT_GALLERY_NAV_LABEL,
           href: postEventGalleryHref,
         });
       }
-      const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
+      // Bump the cap by 1 when Album is present so it doesn't push the
+      // last organizer-configured section into overflow (PR F review
+      // raised this; the policy decision is "Album earns its own slot,
+      // not at the cost of an existing section").
+      const cap =
+        MAX_VISIBLE_NAV_ITEMS.wedding + (postEventGalleryHref ? 1 : 0);
       return {
         visibleNav: candidates.slice(0, cap),
         overflowNav: candidates.slice(cap),

@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, Fragment, type ReactNode } from "react";
+import {
+  POST_EVENT_GALLERY_NAV_ID,
+  POST_EVENT_GALLERY_NAV_LABEL,
+} from "@/lib/gallery-urls";
 import type { EventPageConfigV1, ChromeConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import {
@@ -240,44 +244,50 @@ export function WeddingTemplateV2({
   // pill button. When eventSlug is unavailable (preview without slug context),
   // we fall back to the standard anchor scroll.
   const { visibleNav, overflowNav } = useMemo(() => {
-    const candidates = orderSectionsForNav(sections, "wedding").map((s) => {
-      const id = getSectionId(s.type);
-      const label = resolveNavLabel(s, "wedding");
-      const isOnPage = !navLinkBase || s.type === subPageSection;
-      const isRsvp = s.type === "rsvp";
-      const href = isRsvp && eventSlug
-        ? `/e/${eventSlug}/rsvp`
-        : isOnPage
-          ? `#${id}`
-          : `${navLinkBase}#${id}`;
-      return { id, label, href, isCta: isRsvp };
-    });
+    const candidates = orderSectionsForNav(sections, "wedding")
+      // PR H policy: when Album is published, the in-page "gallery"
+      // section's nav entry is suppressed — disambiguates "Gallery"
+      // (pre-event teaser) from "Album" (post-event destination). The
+      // in-page section still renders in the page body; only its nav
+      // slot moves to Album.
+      .filter((s) => !(postEventGalleryHref && s.type === "gallery"))
+      .map((s) => {
+        const id = getSectionId(s.type);
+        const label = resolveNavLabel(s, "wedding");
+        const isOnPage = !navLinkBase || s.type === subPageSection;
+        const isRsvp = s.type === "rsvp";
+        const href = isRsvp && eventSlug
+          ? `/e/${eventSlug}/rsvp`
+          : isOnPage
+            ? `#${id}`
+            : `${navLinkBase}#${id}`;
+        return { id, label, href, isCta: isRsvp };
+      });
 
-    // Append a synthetic "Photos" nav entry when a post-event gallery
-    // is published. Matches V3's pattern (createWeddingTemplate.tsx):
-    // placed at the end so it doesn't jostle the organizer's section
-    // order; the cap below treats it like any other section so a
-    // fully-saturated wedding pushes Photos into the overflow menu —
-    // documented limitation, addressed at a higher altitude in a
-    // follow-up PR.
+    // Append the synthetic Album entry as a SECOND CTA pill (PR H
+    // policy). The Topbar renders CTAs distinct from regular sections;
+    // pinning Album alongside RSVP keeps both visible and visually
+    // signals "this is the primary destination after the event."
     if (postEventGalleryHref) {
       candidates.push({
-        id: "photos",
-        label: "Photos",
+        id: POST_EVENT_GALLERY_NAV_ID,
+        label: POST_EVENT_GALLERY_NAV_LABEL,
         href: postEventGalleryHref,
-        isCta: false,
+        isCta: true,
       });
     }
 
-    // RSVP is always pinned to the visible row as the accent CTA pill,
-    // even if the priority slice would push it past the cap.
-    const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
-    const rsvpItem = candidates.find((c) => c.isCta);
-    const nonRsvp = candidates.filter((c) => !c.isCta);
-    const headSlots = rsvpItem ? cap - 1 : cap;
-    const visible = nonRsvp.slice(0, headSlots);
-    const overflow = nonRsvp.slice(headSlots);
-    if (rsvpItem) visible.push(rsvpItem);
+    // Both RSVP and Album are pinned to the visible row. Cap bumps by 1
+    // when Album is present so its slot doesn't push the last
+    // organizer-configured section into overflow.
+    const cap =
+      MAX_VISIBLE_NAV_ITEMS.wedding + (postEventGalleryHref ? 1 : 0);
+    const ctas = candidates.filter((c) => c.isCta);
+    const nonCtas = candidates.filter((c) => !c.isCta);
+    const headSlots = cap - ctas.length;
+    const visible = nonCtas.slice(0, headSlots);
+    const overflow = nonCtas.slice(headSlots);
+    visible.push(...ctas);
     return { visibleNav: visible, overflowNav: overflow };
   }, [sections, navLinkBase, subPageSection, eventSlug, postEventGalleryHref]);
 

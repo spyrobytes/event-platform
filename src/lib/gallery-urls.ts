@@ -1,4 +1,22 @@
 /**
+ * Visible label for the post-event gallery's nav entry across V1
+ * (mobile drawer), V2 (Topbar), and V3 (NavComponent). Distinct from
+ * the in-page "gallery" section's label ("Gallery") so guests can
+ * tell pre-event teaser from post-event destination at a glance.
+ *
+ * Keep here so the three template integrations stay in lockstep —
+ * relabeling becomes a one-place edit.
+ */
+export const POST_EVENT_GALLERY_NAV_LABEL = "Album";
+
+/**
+ * Synthetic nav-item id used by the three template nav builders for
+ * the post-event gallery entry. Lowercase + stable so any future
+ * client-side active-state highlighting can target it.
+ */
+export const POST_EVENT_GALLERY_NAV_ID = "album";
+
+/**
  * Shared URL builders for post-event gallery surfaces.
  *
  * Previously duplicated as a tk-aware ternary across `HeroPostEventCta`,
