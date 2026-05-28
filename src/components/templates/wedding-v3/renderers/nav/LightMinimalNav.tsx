@@ -20,10 +20,10 @@ export function LightMinimalNav({
   overflow = [],
   homeHref = "#top",
 }: NavRendererProps) {
-  const hasRsvp = sections.some((s) => s.id === "rsvp");
-
-  // Show all sections except RSVP (shown separately on right)
-  const navSections = sections.filter((s) => s.id !== "rsvp");
+  // CTA items (RSVP, Album) render as accent links on the right;
+  // remaining sections render in the center cluster.
+  const ctaSections = sections.filter((s) => s.isCta);
+  const navSections = sections.filter((s) => !s.isCta);
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">
@@ -56,21 +56,25 @@ export function LightMinimalNav({
           </ul>
         )}
 
-        {/* Right cluster: RSVP (always) + mobile-only hamburger */}
+        {/* Right cluster: CTA pills (RSVP, Album) + mobile-only hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {hasRsvp && (
-            <a href="#rsvp" className={styles.rsvpLink}>
-              RSVP
+          {ctaSections.map((s) => (
+            <a
+              key={s.id}
+              href={s.href ?? `#${s.id}`}
+              className={styles.rsvpLink}
+            >
+              {s.label}
             </a>
-          )}
+          ))}
           <MobileNavMenu
             className="im-nav-mobile-menu"
             brand={monogram || (coupleNames ? coupleNames.charAt(0) : "W")}
-            items={[...navSections, ...overflow, ...(hasRsvp ? [{ id: "rsvp", label: "RSVP", href: "#rsvp" }] : [])].map((s) => ({
+            items={[...navSections, ...overflow, ...ctaSections].map((s) => ({
               id: s.id,
               label: s.label,
               href: s.href ?? `#${s.id}`,
-              isCta: s.id === "rsvp",
+              isCta: s.isCta ?? false,
             }))}
             buttonStyle={{
               width: 34,

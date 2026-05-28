@@ -19,8 +19,9 @@ export function TransparentStickyNav({
   sections,
   overflow = [],
 }: NavRendererProps) {
-  // Show all enabled sections — factory already filters to enabled-only
-  const hasRsvp = sections.some((s) => s.id === "rsvp");
+  // CTA items (RSVP, Album) render as accent links on the right;
+  // remaining sections render in the center cluster.
+  const ctaSections = sections.filter((s) => s.isCta);
 
   return (
     <nav className={styles.nav} aria-label="Main navigation">
@@ -41,7 +42,7 @@ export function TransparentStickyNav({
         {/* Center: section links */}
         <ul className={styles.links}>
           {sections
-            .filter((s) => s.id !== "rsvp")
+            .filter((s) => !s.isCta)
             .map((s) => (
               <li key={s.id}>
                 <a href={s.href ?? `#${s.id}`} className={styles.link}>
@@ -59,13 +60,17 @@ export function TransparentStickyNav({
           )}
         </ul>
 
-        {/* Right cluster: RSVP (always) + mobile-only hamburger */}
+        {/* Right cluster: CTA pills (RSVP, Album) + mobile-only hamburger */}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          {hasRsvp && (
-            <a href="#rsvp" className={styles.rsvpLink}>
-              RSVP
+          {ctaSections.map((s) => (
+            <a
+              key={s.id}
+              href={s.href ?? `#${s.id}`}
+              className={styles.rsvpLink}
+            >
+              {s.label}
             </a>
-          )}
+          ))}
           <MobileNavMenu
             className="ed-nav-mobile-menu"
             brand={coupleNames || "Our Wedding"}
@@ -73,7 +78,7 @@ export function TransparentStickyNav({
               id: s.id,
               label: s.label,
               href: s.href ?? `#${s.id}`,
-              isCta: s.id === "rsvp",
+              isCta: s.isCta ?? false,
             }))}
             buttonStyle={{
               width: 34,

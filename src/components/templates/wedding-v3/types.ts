@@ -252,11 +252,11 @@ export type NavRendererProps = {
   monogram?: string;
   coupleNames?: string;
   dateText: string;
-  sections: { id: string; label: string; href?: string }[];
+  sections: { id: string; label: string; href?: string; isCta?: boolean }[];
   /** Items that did not fit the curated visible-cap. Renderers should
    *  surface these behind a "More ▾" affordance (desktop) and inline
    *  them into any mobile drawer so every nav target stays reachable. */
-  overflow?: { id: string; label: string; href?: string }[];
+  overflow?: { id: string; label: string; href?: string; isCta?: boolean }[];
   accentColor?: string;
   /** Whether the hero section has a background image (affects nav contrast) */
   hasHeroImage?: boolean;

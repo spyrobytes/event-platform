@@ -69,10 +69,11 @@ export function UtilityForwardNav({
     return () => observer.disconnect();
   }, [sections, overflow]);
 
-  // RSVP keeps its accent-pill styling when present in the curated visible
-  // list; everything else (and overflow) renders as a standard nav link.
-  const rsvpSection = sections.find((s) => s.id === "rsvp");
-  const otherSections = sections.filter((s) => s.id !== "rsvp");
+  // CTA items (RSVP, Album) keep accent-pill styling when present in the
+  // curated visible list; everything else (and overflow) renders as a
+  // standard nav link.
+  const ctaSections = sections.filter((s) => s.isCta);
+  const otherSections = sections.filter((s) => !s.isCta);
 
   return (
     <header
@@ -102,15 +103,15 @@ export function UtilityForwardNav({
               {s.label}
             </a>
           ))}
-          {rsvpSection && (
+          {ctaSections.map((s) => (
             <a
-              key={rsvpSection.id}
-              href={rsvpSection.href ?? `#${rsvpSection.id}`}
+              key={s.id}
+              href={s.href ?? `#${s.id}`}
               className={`${styles.priorityLink} ${styles.priorityRsvp}`}
             >
-              {rsvpSection.label}
+              {s.label}
             </a>
-          )}
+          ))}
           {overflow.length > 0 && (
             <NavMoreDropdown
               items={overflow.map(({ id, label, href }) => ({ id, label, href: href ?? `#${id}` }))}
@@ -129,7 +130,7 @@ export function UtilityForwardNav({
                 id: s.id,
                 label: s.label,
                 href: s.href ?? `#${s.id}`,
-                isCta: s.id === "rsvp",
+                isCta: s.isCta ?? false,
               }))}
               buttonStyle={{
                 width: 40,

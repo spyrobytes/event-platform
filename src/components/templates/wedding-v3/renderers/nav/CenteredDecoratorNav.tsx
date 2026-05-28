@@ -115,8 +115,19 @@ export function CenteredDecoratorNav({
               )}
               <a
                 href={s.href ?? `#${s.id}`}
-                className="fine-art-nav-link"
-                style={linkBaseStyle}
+                className={s.isCta ? "fine-art-nav-cta" : "fine-art-nav-link"}
+                style={
+                  s.isCta
+                    ? {
+                        ...linkBaseStyle,
+                        color: "var(--night, #1e1b17)",
+                        background: "var(--accent, #c5a55a)",
+                        padding: "6px 14px",
+                        borderRadius: 999,
+                        fontWeight: 600,
+                      }
+                    : linkBaseStyle
+                }
               >
                 {s.label}
               </a>
@@ -161,7 +172,7 @@ export function CenteredDecoratorNav({
             id: s.id,
             label: s.label,
             href: s.href ?? `#${s.id}`,
-            isCta: s.id === "rsvp",
+            isCta: s.isCta ?? false,
           }))}
           buttonStyle={{
             width: 36,
@@ -177,6 +188,7 @@ export function CenteredDecoratorNav({
       {/* Hover + mobile styles */}
       <style>{`
         .fine-art-nav-link:hover { color: rgba(255, 255, 255, 0.95) !important; }
+        .fine-art-nav-cta:hover { filter: brightness(1.1) !important; }
         .fine-art-monogram:hover {
           border-color: rgba(255, 255, 255, 0.6) !important;
           box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15) !important;

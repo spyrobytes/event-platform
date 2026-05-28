@@ -93,12 +93,13 @@ function getSectionId(type: string): string {
 
 /**
  * Drops the `isInPageGallery` discriminator we add for the
- * Album-demotion logic — V3 nav renderers expect plain {id, label, href}.
+ * Album-demotion logic. `isCta` is preserved so nav renderers can
+ * style RSVP / Album as pills alongside regular items.
  */
-function stripFlag<T extends { id: string; label: string; href: string }>(
-  c: T,
-): { id: string; label: string; href: string } {
-  return { id: c.id, label: c.label, href: c.href };
+function stripFlag<
+  T extends { id: string; label: string; href: string; isCta?: boolean },
+>(c: T): { id: string; label: string; href: string; isCta?: boolean } {
+  return { id: c.id, label: c.label, href: c.href, isCta: c.isCta };
 }
 
 // ---------------------------------------------------------------------------
@@ -212,40 +213,48 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
         const label = resolveNavLabel(s, "wedding");
         const isOnPage = !navLinkBase || s.type === subPageSection;
         const href = isOnPage ? `#${id}` : `${navLinkBase}#${id}`;
-        return { id, label, href, isInPageGallery: s.type === "gallery" };
+        return {
+          id,
+          label,
+          href,
+          isCta: s.type === "rsvp",
+          isInPageGallery: s.type === "gallery",
+        };
       });
 
-      // PR H policy when Album is present:
+      // PR H policy when Album is present (mirrors V2):
       //   1. The in-page "gallery" section's nav entry is DEMOTED to
       //      overflow (not removed) — disambiguates "Gallery"
       //      (pre-event teaser) from "Album" (post-event destination).
       //      The section still renders in the page body if enabled.
-      //   2. Album pins to the visible row (slot reserved upfront so
-      //      it isn't sliced into overflow when many sections exist —
-      //      V3 nav renderers iterate sections uniformly with no CTA
-      //      concept, so Album appears as a regular nav item next to
-      //      the others. Per-renderer CTA pill styling for V3 is a
-      //      separate design pass).
-      //   3. Cap bumps by 1 so Album's slot doesn't push the last
-      //      organizer-configured section into overflow.
+      //   2. Album joins RSVP as a second CTA pill, pinned to visible.
+      //   3. Cap bumps by 1 so neither CTA pushes the last organizer-
+      //      configured section out of the visible row.
       const inPageGallery = postEventGalleryHref
         ? candidates.find((c) => c.isInPageGallery)
         : undefined;
-      const remaining = candidates.filter((c) => c !== inPageGallery);
       const albumItem = postEventGalleryHref
         ? {
             id: POST_EVENT_GALLERY_NAV_ID,
             label: POST_EVENT_GALLERY_NAV_LABEL,
             href: postEventGalleryHref,
+            isCta: true,
+            isInPageGallery: false,
           }
         : undefined;
+      if (albumItem) candidates.push(albumItem);
+
+      const ctas = candidates.filter((c) => c.isCta);
+      const otherNonCtas = candidates.filter(
+        (c) => !c.isCta && c !== inPageGallery,
+      );
       const cap =
         MAX_VISIBLE_NAV_ITEMS.wedding + (postEventGalleryHref ? 1 : 0);
-      const headSlots = albumItem ? cap - 1 : cap;
-      const visible = remaining.slice(0, headSlots).map(stripFlag);
-      const overflow = remaining.slice(headSlots).map(stripFlag);
+      const headSlots = cap - ctas.length;
+      const visible = otherNonCtas.slice(0, headSlots).map(stripFlag);
+      const overflow = otherNonCtas.slice(headSlots).map(stripFlag);
       if (inPageGallery) overflow.push(stripFlag(inPageGallery));
-      if (albumItem) visible.push(albumItem);
+      visible.push(...ctas.map(stripFlag));
       return { visibleNav: visible, overflowNav: overflow };
     }, [sections, navLinkBase, subPageSection, postEventGalleryHref]);
 
