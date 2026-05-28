@@ -147,6 +147,13 @@ export function PostEventGalleryGrid({
         presentation={presentation}
         items={items}
         onOpenLightbox={handleOpenLightbox}
+        // Non-scrolling layouts (currently just slideshow) need an
+        // explicit prefetch hook — the IntersectionObserver sentinel
+        // below only fires when the user scrolls. loadMore dedupes
+        // concurrent calls via its `loadingMore` guard, so layouts
+        // can call freely.
+        onRequestMore={loadMore}
+        hasMore={nextCursor !== null}
       />
 
       {/* Sentinel — used by the IntersectionObserver. Always rendered so

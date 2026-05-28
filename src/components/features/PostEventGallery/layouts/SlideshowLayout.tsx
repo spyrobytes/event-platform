@@ -16,6 +16,30 @@ type Props = GalleryLayoutProps & {
 };
 
 /**
+ * How many slides ahead of the current we render with an actual <Image>.
+ * Slides farther than this from `current` render the slide div but skip
+ * the <Image> entirely — no network fetch for items the viewer can't
+ * see and won't reach in the next nav. Calibrated for the most-common
+ * keyboard cadence (one Next per few hundred ms) so adjacent slides
+ * are always primed.
+ *
+ * Stacking-at-inset-0 means `loading="lazy"` is a no-op (browsers
+ * consider geometric layout, not opacity, for viewport intersection),
+ * so the only effective way to avoid mass eager fetches is to control
+ * when the <Image> element exists in the DOM.
+ */
+const IMAGE_WINDOW = 2;
+
+/**
+ * How close to the end of the loaded items the slideshow should be
+ * before nudging the orchestrator to fetch the next page. 3 leaves
+ * room for the network round-trip to finish before the viewer hits
+ * the last loaded slide — otherwise the slideshow would briefly wrap
+ * back to slide 0.
+ */
+const PAGINATION_LOOKAHEAD = 3;
+
+/**
  * Transition durations in milliseconds — kept in sync with the
  * cubic-bezier transitions in SlideshowLayout.module.css. Used to
  * debounce rapid prev/next clicks so we don't kick off a new
@@ -56,19 +80,31 @@ const TRANSITION_CLASS: Record<SlideshowTransition, string> = {
 export function SlideshowLayout({
   items,
   onOpenLightbox,
+  onRequestMore,
+  hasMore = false,
   autoplay,
   autoplayInterval,
   transition,
 }: Props) {
   const [current, setCurrent] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  // Track whether the page tab is currently visible. We pause
+  // autoplay when hidden so a viewer who tabs away for a minute
+  // doesn't return to slide 12. Initial value is set lazily so SSR
+  // sees a deterministic `true` and the first client render flips it
+  // only if the tab actually started hidden.
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof document === "undefined") return true;
+    return !document.hidden;
+  });
   // Debounce: ignore navigation calls while a transition is still
   // rendering. Stored in a ref so the lock survives across closures.
   const isTransitioningRef = useRef(false);
   const progressRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const isAutoPlaying = autoplay && !isPaused && items.length > 1;
+  const isAutoPlaying =
+    autoplay && !isPaused && isVisible && items.length > 1;
   const transitionDuration = TRANSITION_DURATIONS[transition];
 
   const goTo = useCallback(
@@ -150,6 +186,33 @@ export function SlideshowLayout({
     el.style.width = "100%";
   }, [current, isAutoPlaying, autoplayInterval]);
 
+  // Pause autoplay when the tab is hidden so the slideshow doesn't
+  // silently advance in the background. Browser throttles setTimeout
+  // in background tabs but doesn't stop it; without this, a viewer
+  // who tabs away for a minute comes back to a slide deep into the
+  // gallery instead of where they left off.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(!document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  // Pagination prefetch — when the viewer nears the end of the loaded
+  // items array and the orchestrator has reported `hasMore`, nudge it
+  // to load the next page. Without this, the slideshow wraps back to
+  // index 0 at items.length silently (the viewer never sees photos
+  // beyond the first page since they don't scroll). The orchestrator
+  // dedupes concurrent calls via its own `loadingMore` flag.
+  useEffect(() => {
+    if (!onRequestMore || !hasMore) return;
+    if (current >= items.length - PAGINATION_LOOKAHEAD) {
+      onRequestMore();
+    }
+  }, [current, hasMore, items.length, onRequestMore]);
+
   // Keyboard navigation while the stage has focus (or just at the page
   // level, since this is the only stage). ArrowLeft/Right behave like
   // the manual arrows; Space toggles play/pause when autoplay is on.
@@ -198,35 +261,50 @@ export function SlideshowLayout({
           }
         }}
       >
-        {items.map((item, i) => (
-          <div
-            key={item.id}
-            className={cn(
-              styles.slide,
-              transitionClass,
-              i === current && styles.active,
-            )}
-            aria-hidden={i !== current}
-          >
-            <Image
-              src={item.thumbnailSrc}
-              alt={item.alt}
-              fill
-              sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
-              // Mark only the active slide as priority so we don't
-              // generate N preload links in <head> — the orchestrator's
-              // existing AdjacentPreloads pattern (in GalleryLightbox)
-              // primes the visible-stage path, and the inactive slides
-              // are already mounted so the browser will fetch them as
-              // their <img> tags render. priority=i===0 ensures the
-              // very first paint is fast; the rest stream in.
-              priority={i === 0}
-              placeholder={item.blurDataUrl ? "blur" : "empty"}
-              blurDataURL={item.blurDataUrl ?? undefined}
-              unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
-            />
-          </div>
-        ))}
+        {items.map((item, i) => {
+          // Circular distance from `current` — wraps around the gallery
+          // so the slide adjacent across the boundary (e.g. last when
+          // current=0) is still considered "near".
+          const direct = Math.abs(i - current);
+          const distance = Math.min(direct, items.length - direct);
+          const inWindow = distance <= IMAGE_WINDOW;
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                styles.slide,
+                transitionClass,
+                i === current && styles.active,
+              )}
+              aria-hidden={i !== current}
+            >
+              {/* Stacking at inset:0 means `loading="lazy"` is a no-op
+                  (every slide is geometrically in the viewport even at
+                  opacity:0), so the only way to defer the eager fetch
+                  for distant items is to NOT render the <Image> at all
+                  until they enter the IMAGE_WINDOW around current.
+                  Adjacent slides (±IMAGE_WINDOW) stay mounted so
+                  prev/next transitions still cross-fade smoothly; jumps
+                  via dot to a far slide will load on demand. */}
+              {inWindow && (
+                <Image
+                  src={item.thumbnailSrc}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
+                  // Only the very first slide gets priority (preload
+                  // link in head). The window keeps the rest fast
+                  // without polluting <head> with N preload tags as
+                  // the viewer navigates.
+                  priority={i === 0}
+                  placeholder={item.blurDataUrl ? "blur" : "empty"}
+                  blurDataURL={item.blurDataUrl ?? undefined}
+                  unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
+                />
+              )}
+            </div>
+          );
+        })}
 
         {captionText && (
           <div className={styles.caption}>{captionText}</div>

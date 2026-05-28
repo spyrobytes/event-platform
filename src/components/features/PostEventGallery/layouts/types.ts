@@ -15,4 +15,21 @@ import type { PublicGalleryItem } from "@/schemas/gallery";
 export type GalleryLayoutProps = {
   items: PublicGalleryItem[];
   onOpenLightbox: (index: number) => void;
+  /** Optional callback layouts can fire when they're approaching the
+   *  end of the loaded items array and would benefit from a fresh
+   *  page. Returns the new total length once the load resolves so the
+   *  caller can reason about whether more pages might follow. The
+   *  orchestrator dedupes concurrent calls (its own `loadingMore`
+   *  flag) so layouts can call this freely without coordinating.
+   *
+   *  Scroll-driven layouts (ClassicGrid, RomanticMasonry, Scrapbook)
+   *  don't need this — the orchestrator's IntersectionObserver
+   *  sentinel triggers pagination as the user scrolls. Slideshow
+   *  needs it because the viewer never scrolls; navigation past the
+   *  last loaded item would otherwise wrap silently. */
+  onRequestMore?: () => void;
+  /** True when more items exist beyond what's loaded. Layouts can use
+   *  this to gate prefetch nudges (e.g. "load more when current >=
+   *  length - 3 AND hasMore"). False after the last page lands. */
+  hasMore?: boolean;
 };
