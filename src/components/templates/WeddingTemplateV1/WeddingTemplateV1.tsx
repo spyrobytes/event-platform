@@ -35,6 +35,11 @@ type WeddingTemplateV1Props = {
    *  See TemplateProps in src/components/templates/index.ts. */
   postEventGalleryCta?: ReactNode;
   postEventGalleryTeaser?: ReactNode;
+  /** Appended as a "Photos" item in the mobile drawer when set —
+   *  matches V2/V3's nav-injection pattern. Desktop on V1 uses the
+   *  floating SectionNav dot rail (anchor-only), which doesn't fit a
+   *  cross-page link; mobile drawers do. */
+  postEventGalleryHref?: string;
 };
 
 import { resolveNavLabel, shouldShowInNav } from "@/lib/section-nav-defaults";
@@ -64,6 +69,7 @@ export function WeddingTemplateV1({
   inviteToken,
   postEventGalleryCta,
   postEventGalleryTeaser,
+  postEventGalleryHref,
 }: WeddingTemplateV1Props) {
   const { theme, hero, sections } = config;
   const heroAsset = hero.heroImageAssetId
@@ -76,15 +82,31 @@ export function WeddingTemplateV1({
   // Mobile drawer items mirror the dot-rail registration rules so labels,
   // order, and inclusion match the desktop nav exactly. RSVP is pinned
   // to the bottom as the CTA.
-  const mobileNavItems = sections
-    .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
-    .filter((s) => s.type !== "rsvp" || Boolean(eventSlug))
-    .map((s) => ({
-      id: s.type,
-      label: resolveNavLabel(s, "wedding"),
-      href: `#${s.type}`,
-      isCta: s.type === "rsvp",
-    }));
+  const mobileNavItems = [
+    ...sections
+      .filter((s) => s.enabled && shouldShowInNav(s, "wedding"))
+      .filter((s) => s.type !== "rsvp" || Boolean(eventSlug))
+      .map((s) => ({
+        id: s.type,
+        label: resolveNavLabel(s, "wedding"),
+        href: `#${s.type}`,
+        isCta: s.type === "rsvp",
+      })),
+    // Append "Photos" when a post-event gallery is published. The
+    // drawer renders items in order, so it sits below the RSVP CTA —
+    // intentional: RSVP is the primary action; Photos is a
+    // secondary destination.
+    ...(postEventGalleryHref
+      ? [
+          {
+            id: "photos",
+            label: "Photos",
+            href: postEventGalleryHref,
+            isCta: false,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <SectionNavProvider>

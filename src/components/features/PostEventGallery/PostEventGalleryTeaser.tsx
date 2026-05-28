@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { isAllowedImageHost } from "@/lib/images/host";
+import { buildPublicGalleryHref } from "@/lib/gallery-urls";
 
 /**
  * Discovery block rendered at the bottom of the public event page when a
@@ -27,9 +28,7 @@ export function PostEventGalleryTeaser({
   coverUrl,
   inviteToken,
 }: Props) {
-  const href = inviteToken
-    ? `/e/${eventSlug}/gallery?tk=${encodeURIComponent(inviteToken)}`
-    : `/e/${eventSlug}/gallery`;
+  const href = buildPublicGalleryHref(eventSlug, inviteToken);
 
   return (
     <section className="border-t border-border bg-background py-12 px-4 md:py-16">

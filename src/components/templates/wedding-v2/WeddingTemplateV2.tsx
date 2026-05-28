@@ -92,6 +92,11 @@ type WeddingTemplateV2Props = {
    *  See TemplateProps in src/components/templates/index.ts. */
   postEventGalleryCta?: ReactNode;
   postEventGalleryTeaser?: ReactNode;
+  /** When set, V2's Topbar appends a synthetic "Photos" nav entry —
+   *  the same pattern V3 uses (PR E shipped it; this PR brings V2
+   *  in line). The cap below treats it like any other section so a
+   *  fully-saturated wedding pushes Photos into the overflow menu. */
+  postEventGalleryHref?: string;
 };
 
 /** Map section type to anchor ID */
@@ -150,6 +155,7 @@ export function WeddingTemplateV2({
   canShare,
   postEventGalleryCta,
   postEventGalleryTeaser,
+  postEventGalleryHref,
 }: WeddingTemplateV2Props) {
   const { theme, hero, sections, chrome: chromeConfig, variantId } = config;
 
@@ -247,6 +253,22 @@ export function WeddingTemplateV2({
       return { id, label, href, isCta: isRsvp };
     });
 
+    // Append a synthetic "Photos" nav entry when a post-event gallery
+    // is published. Matches V3's pattern (createWeddingTemplate.tsx):
+    // placed at the end so it doesn't jostle the organizer's section
+    // order; the cap below treats it like any other section so a
+    // fully-saturated wedding pushes Photos into the overflow menu —
+    // documented limitation, addressed at a higher altitude in a
+    // follow-up PR.
+    if (postEventGalleryHref) {
+      candidates.push({
+        id: "photos",
+        label: "Photos",
+        href: postEventGalleryHref,
+        isCta: false,
+      });
+    }
+
     // RSVP is always pinned to the visible row as the accent CTA pill,
     // even if the priority slice would push it past the cap.
     const cap = MAX_VISIBLE_NAV_ITEMS.wedding;
@@ -257,7 +279,7 @@ export function WeddingTemplateV2({
     const overflow = nonRsvp.slice(headSlots);
     if (rsvpItem) visible.push(rsvpItem);
     return { visibleNav: visible, overflowNav: overflow };
-  }, [sections, navLinkBase, subPageSection, eventSlug]);
+  }, [sections, navLinkBase, subPageSection, eventSlug, postEventGalleryHref]);
 
   // Date text for topbar/footer
   const dateText = hero.subtitle || "";

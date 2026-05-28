@@ -10,6 +10,9 @@ import {
 } from "@/lib/event-page-loader";
 import { PageViewTracker } from "@/components/features/Analytics";
 import { GuestBar } from "@/components/features/GuestBar";
+import { getPublishedGalleryForEvent } from "@/lib/gallery-data";
+import { isPostEventGalleryEnabled } from "@/lib/gallery-feature-flag";
+import { resolvePostEventGalleryHref } from "@/lib/gallery-urls";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -135,6 +138,19 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
 
   const Template = TEMPLATES[resolvedTemplateId];
 
+  // Mirror /e/[slug]: surface the Photos nav link when a gallery is
+  // published so navigation across sub-pages stays consistent.
+  const postEventGallery = isPostEventGalleryEnabled()
+    ? await getPublishedGalleryForEvent(event.id)
+    : null;
+  const postEventGalleryHref = resolvePostEventGalleryHref({
+    hasPublishedGallery: postEventGallery !== null,
+    eventSlug: slug,
+    eventVisibility: event.visibility,
+    inviteToken: tk,
+    tokenInvalid,
+  });
+
   const bannerOffset = tokenInvalid
     ? ({ "--banner-offset": "40px" } as React.CSSProperties)
     : undefined;
@@ -168,6 +184,7 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
         navLinkBase={navLinkBase}
         subPageSection="livestream"
         canShare={event.visibility === "PUBLIC"}
+        postEventGalleryHref={postEventGalleryHref}
       />
     </div>
   );
