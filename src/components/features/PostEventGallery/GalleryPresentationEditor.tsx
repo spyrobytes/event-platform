@@ -6,8 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  greatVibes,
+  dancingScript,
+} from "@/components/templates/shared/Prelude/fonts";
 import type {
   GalleryPresentation,
+  GalleryThankYouFont,
   GalleryVariant,
   SlideshowTransition,
 } from "@/schemas/gallery";
@@ -76,6 +81,41 @@ const TRANSITION_OPTIONS: ReadonlyArray<{
   { id: "flip", label: "Flip" },
 ];
 
+/**
+ * Font tiles for the thank-you note. Preview text uses the same family
+ * the choice will apply on the public page, so the organizer sees the
+ * actual treatment in the picker (the wrapper at the bottom of this
+ * editor mounts both font CSS variables so the previews render even
+ * though the public page lazily applies them per-section).
+ */
+const THANK_YOU_FONT_TILES: ReadonlyArray<{
+  id: GalleryThankYouFont;
+  label: string;
+  description: string;
+  previewClass: string;
+}> = [
+  {
+    id: "serif",
+    label: "Serif",
+    description: "Default. Quiet, classic.",
+    previewClass: "font-serif text-xl",
+  },
+  {
+    id: "romantic-script",
+    label: "Romantic Script",
+    description: "Flourished calligraphy. Formal, weddings.",
+    // Family is applied via inline `style={{ fontFamily: ... }}` on the
+    // preview <span> below — `previewClass` only carries the sizing.
+    previewClass: "text-2xl",
+  },
+  {
+    id: "modern-script",
+    label: "Modern Script",
+    description: "Playful informal cursive. Personal notes.",
+    previewClass: "text-2xl",
+  },
+];
+
 const HEADING_MAX = 80;
 const MESSAGE_MAX = 500;
 const SLIDESHOW_INTERVAL_MIN = 2;
@@ -101,6 +141,9 @@ export function GalleryPresentationEditor({
   const [variant, setVariant] = useState<GalleryVariant>(initial.variant);
   const [heading, setHeading] = useState<string>(initial.thankYouHeading ?? "");
   const [message, setMessage] = useState<string>(initial.thankYouMessage ?? "");
+  const [thankYouFont, setThankYouFont] = useState<GalleryThankYouFont>(
+    initial.thankYouFont,
+  );
   const [showFeaturedStrip, setShowFeaturedStrip] = useState(
     initial.showFeaturedStrip,
   );
@@ -130,6 +173,7 @@ export function GalleryPresentationEditor({
     variant !== initial.variant ||
     heading.trim() !== initialHeading ||
     message.trim() !== initialMessage ||
+    thankYouFont !== initial.thankYouFont ||
     showFeaturedStrip !== initial.showFeaturedStrip ||
     showWishesEcho !== initial.showWishesEcho ||
     slideshowAutoplay !== initial.slideshowAutoplay ||
@@ -162,6 +206,7 @@ export function GalleryPresentationEditor({
               // "clear by sending empty" contract.
               thankYouHeading: heading,
               thankYouMessage: message,
+              thankYouFont,
               showFeaturedStrip,
               showWishesEcho,
               // Slideshow settings — sent regardless of current variant
@@ -199,11 +244,20 @@ export function GalleryPresentationEditor({
     slideshowAutoplay,
     slideshowAutoplayInterval,
     slideshowTransition,
+    thankYouFont,
     variant,
   ]);
 
+  // Mount both prelude font variables on the editor root so the font
+  // tile previews render with the actual cursive — without this they'd
+  // fall back to the system "cursive" generic and the preview wouldn't
+  // match what the public page shows. The public page only needs the
+  // variable on the ThankYouSection wrapper (per-section gating); the
+  // editor needs both at once so all three tiles preview correctly.
+  const fontPreviewVariables = cn(greatVibes.variable, dancingScript.variable);
+
   return (
-    <div className="space-y-6">
+    <div className={cn("space-y-6", fontPreviewVariables)}>
       {/* Variant picker */}
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">Display style</h3>
@@ -280,6 +334,65 @@ export function GalleryPresentationEditor({
           <p className="text-right text-xs text-muted-foreground">
             {message.length}/{MESSAGE_MAX}
           </p>
+        </div>
+
+        {/* Font picker — three tiles, live preview in the actual family.
+            Cursive options reuse the wedding Prelude block's font loaders
+            so the thank-you note feels related to the main page's
+            welcome note when an organizer picks the matching family on
+            both surfaces. */}
+        <div className="space-y-2">
+          <Label className="text-xs">Font</Label>
+          <div
+            role="radiogroup"
+            aria-label="Thank-you note font"
+            className="grid gap-2 sm:grid-cols-3"
+          >
+            {THANK_YOU_FONT_TILES.map((tile) => {
+              const selected = thankYouFont === tile.id;
+              return (
+                <button
+                  key={tile.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setThankYouFont(tile.id)}
+                  className={cn(
+                    "flex flex-col items-start gap-2 rounded-md border bg-card p-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground",
+                    selected
+                      ? "border-foreground bg-muted/50 ring-1 ring-foreground"
+                      : "border-border hover:border-foreground/40",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn("leading-none text-foreground", tile.previewClass)}
+                    style={
+                      tile.id === "romantic-script"
+                        ? {
+                            fontFamily:
+                              "var(--font-prelude-romantic), 'Great Vibes', cursive",
+                          }
+                        : tile.id === "modern-script"
+                          ? {
+                              fontFamily:
+                                "var(--font-prelude-modern), 'Dancing Script', cursive",
+                            }
+                          : undefined
+                    }
+                  >
+                    Thank you
+                  </span>
+                  <span className="text-xs font-medium text-foreground">
+                    {tile.label}
+                  </span>
+                  <span className="text-[11px] leading-snug text-muted-foreground">
+                    {tile.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

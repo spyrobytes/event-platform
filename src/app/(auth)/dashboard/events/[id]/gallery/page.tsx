@@ -12,6 +12,7 @@ import {
   GalleryPresentationEditor,
   GalleryPublishDialog,
   GoogleDriveGallerySection,
+  HeroAssetPicker,
 } from "@/components/features/PostEventGallery";
 import {
   parseGalleryPresentation,
@@ -264,6 +265,32 @@ export default function PostEventGalleryDashboardPage() {
               />
             )}
           </div>
+
+          {gallery.sourceType !== "EXTERNAL_LINK" && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h3 className="text-base font-medium">Hero image</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pick a polished photo from your media library to use as the
+                album&apos;s hero. Imported photos work as a default but the
+                derivatives are tuned for grid tiles, not full-bleed display
+                — uploading a landscape shot tagged{" "}
+                <span className="font-medium">Hero</span> in the page editor
+                gives a sharper result.{" "}
+                <span className="font-medium text-foreground">
+                  Changes save as you pick — no Save button needed.
+                </span>
+              </p>
+              <div className="mt-4">
+                <HeroAssetPicker
+                  eventId={event.id}
+                  galleryId={gallery.id}
+                  coverMediaAssetId={gallery.coverMediaAssetId}
+                  getIdToken={getIdToken}
+                  onChanged={() => void load()}
+                />
+              </div>
+            </div>
+          )}
 
           {gallery.sourceType !== "EXTERNAL_LINK" && gallery.items.length > 0 && (
             <div className="rounded-lg border border-border bg-card p-6">
