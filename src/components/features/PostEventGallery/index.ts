@@ -8,6 +8,7 @@ export { GoogleDriveGallerySection } from "./GoogleDriveGallerySection";
 export { PostEventGalleryGrid } from "./PostEventGalleryGrid";
 export { GalleryLightbox } from "./GalleryLightbox";
 export { GalleryItemsManager } from "./GalleryItemsManager";
+export { HeroAssetPicker } from "./HeroAssetPicker";
 export { GalleryPublishDialog } from "./GalleryPublishDialog";
 export { HeroPostEventCta } from "./HeroPostEventCta";
 export { GalleryPresentationEditor } from "./GalleryPresentationEditor";
