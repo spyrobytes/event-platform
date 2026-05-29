@@ -288,7 +288,16 @@ export function SlideshowLayout({
                   via dot to a far slide will load on demand. */}
               {inWindow && (
                 <Image
-                  src={item.thumbnailSrc}
+                  // Use the large derivative (`item.src`) rather than the
+                  // 400×400 thumbnail. The slideshow stage renders one
+                  // photo at up to ~1140px wide (2280px on retina) — the
+                  // thumb gets upscaled ~2.85× and visibly pixelates.
+                  // The other layouts (classic/masonry/scrapbook) still
+                  // use thumbnailSrc because they show many small tiles
+                  // where the thumb resolution is sufficient. The
+                  // lightbox already uses `item.src` for the same reason
+                  // as here (single full-display image).
+                  src={item.src}
                   alt={item.alt}
                   fill
                   sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
@@ -299,7 +308,7 @@ export function SlideshowLayout({
                   priority={i === 0}
                   placeholder={item.blurDataUrl ? "blur" : "empty"}
                   blurDataURL={item.blurDataUrl ?? undefined}
-                  unoptimized={!isAllowedImageHost(item.thumbnailSrc)}
+                  unoptimized={!isAllowedImageHost(item.src)}
                 />
               )}
             </div>
