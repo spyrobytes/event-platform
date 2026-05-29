@@ -104,7 +104,8 @@ const THANK_YOU_FONT_TILES: ReadonlyArray<{
     id: "romantic-script",
     label: "Romantic Script",
     description: "Flourished calligraphy. Formal, weddings.",
-    // Inline style: applied via FONT_VARIABLES wrapper at the editor root.
+    // Family is applied via inline `style={{ fontFamily: ... }}` on the
+    // preview <span> below — `previewClass` only carries the sizing.
     previewClass: "text-2xl",
   },
   {

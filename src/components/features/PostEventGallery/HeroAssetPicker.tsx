@@ -172,7 +172,8 @@ export function HeroAssetPicker({
           Open page editor →
         </Link>
         <p className="mt-4 text-xs text-muted-foreground">
-          Until then, the album hero falls back to the first imported photo.
+          Until then, the album hero falls back to whatever the resolver
+          picks (starred photo, first imported photo, or your event hero).
         </p>
       </div>
     );
