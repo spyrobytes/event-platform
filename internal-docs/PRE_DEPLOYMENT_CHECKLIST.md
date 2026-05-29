@@ -152,6 +152,10 @@ These are development-only; leaving them set in prod will silently break auth/em
   - `gallery` (post-event gallery worker uploads) — public, 50 MiB limit, `image/jpeg, image/png, image/webp` only
   Local dev creates both declaratively via `supabase/config.toml` `[storage.buckets.*]`. Production was bootstrapped manually via Supabase Studio — if you ever rebuild the prod project, mirror the same names + settings or the gallery worker fails every item with `STORAGE_UPLOAD_FAILED: Bucket not found` (caught by smoke test §10).
 
+  **Parity rule:** the `supabase/config.toml` `[storage.buckets.*]` blocks and the prod Studio buckets do not auto-sync. When you add a new bucket, update **all three**: `BUCKETS` in `src/lib/supabase-storage.ts`, a `[storage.buckets.<name>]` block in `config.toml` (local), and the prod bucket in Studio (and call it out in the PR). Verify a target project's buckets with `GET /storage/v1/bucket` using the service-role key.
+
+  **Self-heal backstop (gallery only):** as of PR #144 the worker calls `ensureBucket(BUCKETS.gallery, …)` at the start of each non-empty tick and creates the `gallery` bucket with the `config.toml` spec (public, 50 MiB, `image/jpeg|png|webp`) if it's missing. This is insurance against a rebuilt prod project — it does **not** remove this checklist item, because (a) it only covers `gallery`, not `event-assets`, and (b) it requires the prod `SUPABASE_SERVICE_ROLE_KEY` to have bucket-create permission. Create the buckets up front; treat the backstop as a safety net, not the plan.
+
 **For the full executable procedure** (including the Supavisor username gotcha, bash-quoting pitfalls, and a draft CI workflow for future automation), follow [`DATABASE_MIGRATION_RUNBOOK.md`](./DATABASE_MIGRATION_RUNBOOK.md).
 
 **Critical:** `npm run build` regenerates the Prisma client from `DATABASE_URL`. If that env var isn't set in the Vercel build environment, the build fails at the `prisma generate` step.
