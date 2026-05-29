@@ -59,6 +59,11 @@ export function HeroAssetPicker({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [savePending, setSavePending] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Bumped on every successful save so the "Saved" affordance can render
+  // (and announce via aria-live). Mirrors GalleryPresentationEditor's
+  // pattern — keeps the inline "edit worked" signal consistent across
+  // the dashboard's auto-save and button-save surfaces.
+  const [savedTick, setSavedTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +127,7 @@ export function HeroAssetPicker({
           const data = await res.json().catch(() => null);
           throw new Error(data?.error ?? "Failed to save hero image");
         }
+        setSavedTick((n) => n + 1);
         onChanged();
       } catch (err) {
         setSaveError(
@@ -259,16 +265,41 @@ export function HeroAssetPicker({
             ? "Hero image set. Click another to swap."
             : "No explicit hero set — the album falls back to the first imported photo."}
         </p>
-        {coverMediaAssetId && (
-          <button
-            type="button"
-            disabled={savePending !== null}
-            onClick={() => void save(null)}
-            className="text-xs font-medium text-foreground underline-offset-2 hover:underline disabled:opacity-50"
-          >
-            {savePending === "__clear__" ? "Clearing…" : "Clear selection"}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {savedTick > 0 && savePending === null && !saveError && (
+            <span
+              aria-live="polite"
+              className="inline-flex items-center gap-1 text-xs font-medium text-success"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={3}
+                width={12}
+                height={12}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Saved
+            </span>
+          )}
+          {coverMediaAssetId && (
+            <button
+              type="button"
+              disabled={savePending !== null}
+              onClick={() => void save(null)}
+              className="text-xs font-medium text-foreground underline-offset-2 hover:underline disabled:opacity-50"
+            >
+              {savePending === "__clear__" ? "Clearing…" : "Clear selection"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -275,7 +275,10 @@ export default function PostEventGalleryDashboardPage() {
                 derivatives are tuned for grid tiles, not full-bleed display
                 — uploading a landscape shot tagged{" "}
                 <span className="font-medium">Hero</span> in the page editor
-                gives a sharper result.
+                gives a sharper result.{" "}
+                <span className="font-medium text-foreground">
+                  Changes save as you pick — no Save button needed.
+                </span>
               </p>
               <div className="mt-4">
                 <HeroAssetPicker
