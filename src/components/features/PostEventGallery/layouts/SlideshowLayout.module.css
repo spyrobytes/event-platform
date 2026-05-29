@@ -37,6 +37,11 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Anchor crops below the top so heads in portrait uploads aren't
+     clipped. No-op for landscape and square photos; trims from the
+     bottom on portraits with the subject in the upper third. Matches
+     the wedding-v2 MasonryGallery pattern established in PR #57. */
+  object-position: center 25%;
 }
 
 /* ===== TRANSITIONS — patterns mined from wedding-v2 MasonryGallery ===== */
