@@ -118,4 +118,16 @@ describe("ensureBucket", () => {
 
     expect(createBucketMock).toHaveBeenCalledWith("event-assets", { public: true });
   });
+
+  it("never throws: a raw transport error (storage-js rethrows TypeErrors) becomes { success: false }", async () => {
+    // getBucket/createBucket return { error } for StorageErrors, but storage-js
+    // rethrows raw fetch failures (DNS, reset, timeout). ensureBucket must
+    // convert that into a return value so callers branch on .success alone.
+    getBucketMock.mockRejectedValue(new TypeError("fetch failed"));
+
+    const res = await ensureBucket("gallery");
+
+    expect(res.success).toBe(false);
+    expect(res.error).toContain("fetch failed");
+  });
 });

@@ -148,6 +148,13 @@ export function getEventAssetPath(
  * otherwise abort a whole tick over a bucket that's actually fine). A genuine
  * outage where the bucket truly can't be created still returns failure, which
  * is correct — uploads to it would fail anyway.
+ *
+ * Never throws: getBucket/createBucket return `{ error }` for Storage-level
+ * failures (404, permission), but storage-js rethrows raw transport errors
+ * (DNS, connection reset, timeout — TypeErrors, not StorageErrors). We catch
+ * those and report `{ success: false }` so every caller can branch on the
+ * return value alone and a transport blip can't take down a worker tick as an
+ * unhandled rejection.
  */
 export async function ensureBucket(
   bucket: string,
@@ -157,41 +164,48 @@ export async function ensureBucket(
     allowedMimeTypes?: string[];
   } = {}
 ): Promise<{ success: boolean; error?: string }> {
-  const client = getStorageClient();
+  try {
+    const client = getStorageClient();
 
-  // Fast path: the bucket already exists (getBucket returns data on success).
-  const existing = await client.storage.getBucket(bucket);
-  if (!existing.error && existing.data) {
-    return { success: true };
-  }
+    // Fast path: the bucket already exists (getBucket returns data on success).
+    const existing = await client.storage.getBucket(bucket);
+    if (!existing.error && existing.data) {
+      return { success: true };
+    }
 
-  // Bucket may be missing — or getBucket hit a transient error. Try to create
-  // it with the expected spec.
-  const { error: createError } = await client.storage.createBucket(bucket, {
-    public: options.public ?? true,
-    ...(options.fileSizeLimit !== undefined
-      ? { fileSizeLimit: options.fileSizeLimit }
-      : {}),
-    ...(options.allowedMimeTypes !== undefined
-      ? { allowedMimeTypes: options.allowedMimeTypes }
-      : {}),
-  });
-  if (!createError) {
-    return { success: true };
-  }
+    // Bucket may be missing — or getBucket hit a transient error. Try to create
+    // it with the expected spec.
+    const { error: createError } = await client.storage.createBucket(bucket, {
+      public: options.public ?? true,
+      ...(options.fileSizeLimit !== undefined
+        ? { fileSizeLimit: options.fileSizeLimit }
+        : {}),
+      ...(options.allowedMimeTypes !== undefined
+        ? { allowedMimeTypes: options.allowedMimeTypes }
+        : {}),
+    });
+    if (!createError) {
+      return { success: true };
+    }
 
-  // Create failed. Two benign cases must NOT count as failure: (1) a
-  // concurrent caller already created it, or (2) the bucket existed all along
-  // and the initial getBucket returned a transient error. Rather than
-  // pattern-match every provider error string, re-check existence — only a
-  // bucket that is STILL absent is a real failure.
-  if (createError.message.includes("already exists")) {
-    return { success: true };
-  }
-  const recheck = await client.storage.getBucket(bucket);
-  if (!recheck.error && recheck.data) {
-    return { success: true };
-  }
+    // Create failed. Two benign cases must NOT count as failure: (1) a
+    // concurrent caller already created it, or (2) the bucket existed all along
+    // and the initial getBucket returned a transient error. Rather than
+    // pattern-match every provider error string, re-check existence — only a
+    // bucket that is STILL absent is a real failure.
+    if (createError.message.includes("already exists")) {
+      return { success: true };
+    }
+    const recheck = await client.storage.getBucket(bucket);
+    if (!recheck.error && recheck.data) {
+      return { success: true };
+    }
 
-  return { success: false, error: createError.message };
+    return { success: false, error: createError.message };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown storage error",
+    };
+  }
 }
