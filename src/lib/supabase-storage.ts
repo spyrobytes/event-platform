@@ -140,6 +140,14 @@ export function getEventAssetPath(
  * for callers that pass no options (e.g. event-assets). `fileSizeLimit`
  * accepts bytes (number) or a units string ("50MiB"); `allowedMimeTypes`
  * restricts uploads at the storage boundary.
+ *
+ * Transient-error safety: a failed `getBucket` is NOT assumed to mean
+ * "missing" — we attempt create, and if create then errors we re-check
+ * existence authoritatively before reporting failure. That way a transient
+ * Storage blip on an existing bucket never false-fails (the worker would
+ * otherwise abort a whole tick over a bucket that's actually fine). A genuine
+ * outage where the bucket truly can't be created still returns failure, which
+ * is correct — uploads to it would fail anyway.
  */
 export async function ensureBucket(
   bucket: string,
@@ -151,25 +159,39 @@ export async function ensureBucket(
 ): Promise<{ success: boolean; error?: string }> {
   const client = getStorageClient();
 
-  // Try to get bucket info
-  const { error: getError } = await client.storage.getBucket(bucket);
-
-  if (getError) {
-    // Bucket doesn't exist, create it with the expected spec.
-    const { error: createError } = await client.storage.createBucket(bucket, {
-      public: options.public ?? true,
-      ...(options.fileSizeLimit !== undefined
-        ? { fileSizeLimit: options.fileSizeLimit }
-        : {}),
-      ...(options.allowedMimeTypes !== undefined
-        ? { allowedMimeTypes: options.allowedMimeTypes }
-        : {}),
-    });
-
-    if (createError && !createError.message.includes("already exists")) {
-      return { success: false, error: createError.message };
-    }
+  // Fast path: the bucket already exists (getBucket returns data on success).
+  const existing = await client.storage.getBucket(bucket);
+  if (!existing.error && existing.data) {
+    return { success: true };
   }
 
-  return { success: true };
+  // Bucket may be missing — or getBucket hit a transient error. Try to create
+  // it with the expected spec.
+  const { error: createError } = await client.storage.createBucket(bucket, {
+    public: options.public ?? true,
+    ...(options.fileSizeLimit !== undefined
+      ? { fileSizeLimit: options.fileSizeLimit }
+      : {}),
+    ...(options.allowedMimeTypes !== undefined
+      ? { allowedMimeTypes: options.allowedMimeTypes }
+      : {}),
+  });
+  if (!createError) {
+    return { success: true };
+  }
+
+  // Create failed. Two benign cases must NOT count as failure: (1) a
+  // concurrent caller already created it, or (2) the bucket existed all along
+  // and the initial getBucket returned a transient error. Rather than
+  // pattern-match every provider error string, re-check existence — only a
+  // bucket that is STILL absent is a real failure.
+  if (createError.message.includes("already exists")) {
+    return { success: true };
+  }
+  const recheck = await client.storage.getBucket(bucket);
+  if (!recheck.error && recheck.data) {
+    return { success: true };
+  }
+
+  return { success: false, error: createError.message };
 }

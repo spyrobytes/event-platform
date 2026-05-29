@@ -18,8 +18,9 @@ type Props = {
   coverGalleryItemId: string | null;
   getIdToken: () => Promise<string | null>;
   /** Fires after any mutation completes so the parent refetches the
-   *  gallery and the manager re-renders with fresh state. */
-  onChanged: () => void;
+   *  gallery and the manager re-renders with fresh state. May return the
+   *  parent's refetch promise so the Refresh control can await it. */
+  onChanged: () => void | Promise<void>;
 };
 
 const STATUS_BADGE: Record<
@@ -56,6 +57,7 @@ export function GalleryItemsManager({
   const [captionDraft, setCaptionDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [retryPending, setRetryPending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const failedCount = useMemo(
     () => items.filter((i) => i.status === "FAILED").length,
@@ -247,6 +249,20 @@ export function GalleryItemsManager({
     else onChanged();
   }, [callRoute, eventId, galleryId, onChanged]);
 
+  // Manual refresh for the still-importing banner. Awaits the parent's
+  // refetch and disables the control while in flight, so a double-click can't
+  // start overlapping loads whose out-of-order responses would render stale
+  // items. The early return is belt-and-suspenders with the disabled button.
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await onChanged();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onChanged, refreshing]);
+
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -299,10 +315,11 @@ export function GalleryItemsManager({
           <Button
             type="button"
             variant="outline"
-            onClick={() => onChanged()}
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
             className="h-7 shrink-0 px-2 text-xs"
           >
-            Refresh
+            {refreshing ? "Refreshing…" : "Refresh"}
           </Button>
         </div>
       )}

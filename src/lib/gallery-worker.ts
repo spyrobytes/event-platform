@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { db } from "@/lib/db";
-import { GALLERY_LIMITS } from "@/lib/gallery-config";
+import { GALLERY_BUCKET_SPEC, GALLERY_LIMITS } from "@/lib/gallery-config";
 import {
   GALLERY_ERROR_CODES,
   GALLERY_ERROR_MESSAGES,
@@ -53,11 +53,6 @@ const LARGE_IMAGE_PATH_SUFFIX = "large.webp";
 const THUMBNAIL_PATH_SUFFIX = "thumb.webp";
 const THUMBNAIL_DIMENSION = 400;
 
-// Mirrors supabase/config.toml [storage.buckets.gallery].file_size_limit
-// (50 MiB, expressed in bytes). Passed to ensureBucket so a self-healed prod
-// bucket matches the local spec rather than a bare public-only default.
-const GALLERY_BUCKET_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-
 type ClaimedItem = {
   id: string;
   gallery_id: string;
@@ -92,25 +87,6 @@ export type WorkerRunSummary = {
   retried: number;
   jobsReconciled: number;
 };
-
-/**
- * Returns a snapshot of pending work for observability without running
- * any of it. Used by /api/cron/process-gallery-imports to short-circuit
- * when the queue is empty.
- */
-export async function getPendingItemCount(): Promise<number> {
-  const staleCutoff = new Date(
-    Date.now() - GALLERY_LIMITS.staleImportingThresholdMs,
-  );
-  return db.eventGalleryItem.count({
-    where: {
-      OR: [
-        { status: "PENDING" },
-        { status: "IMPORTING", lockedAt: { lt: staleCutoff } },
-      ],
-    },
-  });
-}
 
 /**
  * Claims up to N items in a single SQL statement. Marks them IMPORTING
@@ -532,9 +508,9 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
   // so every upload failed with STORAGE_UPLOAD_FAILED). Throw on a genuine
   // create failure so the cron surfaces it loudly.
   const bucketResult = await ensureBucket(BUCKETS.gallery, {
-    public: true,
-    fileSizeLimit: GALLERY_BUCKET_FILE_SIZE_BYTES,
-    allowedMimeTypes: [...GALLERY_LIMITS.allowedMimeTypes],
+    public: GALLERY_BUCKET_SPEC.public,
+    fileSizeLimit: GALLERY_BUCKET_SPEC.fileSizeBytes,
+    allowedMimeTypes: [...GALLERY_BUCKET_SPEC.allowedMimeTypes],
   });
   if (!bucketResult.success) {
     throw new Error(
@@ -619,7 +595,7 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
 }
 
 // Re-export internals for tests. The cron route only needs
-// processGalleryImports + getPendingItemCount.
+// processGalleryImports.
 export const __testing = {
   claimPendingItems,
   processItem,

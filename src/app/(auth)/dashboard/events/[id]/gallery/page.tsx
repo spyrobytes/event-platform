@@ -306,7 +306,7 @@ export default function PostEventGalleryDashboardPage() {
                   items={gallery.items}
                   coverGalleryItemId={gallery.coverGalleryItemId}
                   getIdToken={getIdToken}
-                  onChanged={() => void load()}
+                  onChanged={load}
                 />
               </div>
             </div>
