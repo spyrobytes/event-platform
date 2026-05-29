@@ -110,11 +110,18 @@ export function GalleryItemsManager({
     async (item: OrganizerGalleryItem) => {
       setPendingItemId(item.id);
       setError(null);
+      // Mutual-exclusion: starring a gallery photo as cover ALSO clears
+      // any MediaAsset hero set via the HeroAssetPicker. Without this,
+      // the two channels can both be populated — the resolver's
+      // priority order (gallery item wins today) hides it, but clearing
+      // this cover later would silently re-activate the stale MediaAsset
+      // pick. Keeping the two channels mutually exclusive matches the
+      // resolver's "fallback chain" intent.
       const result = await callRoute(
         `/api/events/${eventId}/gallery/${galleryId}/cover`,
         {
           method: "PATCH",
-          body: JSON.stringify({ galleryItemId: item.id }),
+          body: JSON.stringify({ galleryItemId: item.id, mediaAssetId: null }),
         },
       );
       setPendingItemId(null);

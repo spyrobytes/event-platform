@@ -96,6 +96,17 @@ export function HeroAssetPicker({
       try {
         const token = await getIdToken();
         if (!token) throw new Error("Not authenticated");
+        // Mutual-exclusion: setting a MediaAsset hero ALSO clears any
+        // gallery-item cover, otherwise gallery-cover.ts's resolver
+        // walks coverGalleryItemId BEFORE coverMediaAssetId — the new
+        // pick silently loses to the previously-starred photo and the
+        // album page shows the old hero. On a clear action (nextAssetId
+        // null) we don't touch galleryItemId; the user might still want
+        // a starred-photo cover to take over.
+        const body =
+          nextAssetId !== null
+            ? { mediaAssetId: nextAssetId, galleryItemId: null }
+            : { mediaAssetId: null };
         const res = await fetch(
           `/api/events/${eventId}/gallery/${galleryId}/cover`,
           {
@@ -104,7 +115,7 @@ export function HeroAssetPicker({
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ mediaAssetId: nextAssetId }),
+            body: JSON.stringify(body),
           },
         );
         if (!res.ok) {
