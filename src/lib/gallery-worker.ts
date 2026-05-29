@@ -16,7 +16,7 @@ import {
   downloadDriveFile,
   GoogleDriveDownloadError,
 } from "@/lib/providers/google-drive";
-import { BUCKETS, uploadFile } from "@/lib/supabase-storage";
+import { BUCKETS, ensureBucket, uploadFile } from "@/lib/supabase-storage";
 import {
   generateBlurDataUrl,
   optimizeImage,
@@ -52,6 +52,11 @@ import type { Prisma } from "@prisma/client";
 const LARGE_IMAGE_PATH_SUFFIX = "large.webp";
 const THUMBNAIL_PATH_SUFFIX = "thumb.webp";
 const THUMBNAIL_DIMENSION = 400;
+
+// Mirrors supabase/config.toml [storage.buckets.gallery].file_size_limit
+// (50 MiB, expressed in bytes). Passed to ensureBucket so a self-healed prod
+// bucket matches the local spec rather than a bare public-only default.
+const GALLERY_BUCKET_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 type ClaimedItem = {
   id: string;
@@ -522,6 +527,25 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
       retried: 0,
       jobsReconciled: 0,
     };
+  }
+
+  // Self-heal the output bucket: if the prod `gallery` bucket is missing or
+  // was rebuilt, create it (with the config.toml spec) before we upload, so a
+  // missing bucket doesn't fail every item with STORAGE_UPLOAD_FAILED — the
+  // failure mode from the 2026-05-29 prod incident. Idempotent and cheap when
+  // the bucket exists (one getBucket call); only runs on ticks that have work,
+  // keeping empty ticks free of the Storage round-trip. Throw on a genuine
+  // create failure so the cron surfaces it loudly rather than burning each
+  // item's attempt budget on doomed uploads.
+  const bucketResult = await ensureBucket(BUCKETS.gallery, {
+    public: true,
+    fileSizeLimit: GALLERY_BUCKET_FILE_SIZE_BYTES,
+    allowedMimeTypes: [...GALLERY_LIMITS.allowedMimeTypes],
+  });
+  if (!bucketResult.success) {
+    throw new Error(
+      `Gallery output bucket "${BUCKETS.gallery}" is unavailable and could not be created: ${bucketResult.error}`,
+    );
   }
 
   const galleryIds = [...new Set(items.map((i) => i.gallery_id))];

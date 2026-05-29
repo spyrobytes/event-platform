@@ -62,6 +62,18 @@ export function GalleryItemsManager({
     [items],
   );
 
+  // Items still working through the import worker. The dashboard does not
+  // live-poll the items grid (only an active picker job polls), so after a
+  // retry — or a page reload mid-import — these can sit at PENDING/IMPORTING
+  // in the UI while the 5-minute cron quietly finishes them. Surface that
+  // explicitly with a manual refresh rather than letting it look stuck.
+  const pendingCount = useMemo(
+    () =>
+      items.filter((i) => i.status === "PENDING" || i.status === "IMPORTING")
+        .length,
+    [items],
+  );
+
   // Items are sorted by sortOrder server-side; index in the array is the
   // canonical position for up/down moves. We submit only the pair being
   // swapped to the reorder endpoint.
@@ -266,6 +278,31 @@ export function GalleryItemsManager({
           </Button>
         )}
       </div>
+
+      {pendingCount > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm"
+        >
+          <p className="text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {pendingCount} {pendingCount === 1 ? "photo is" : "photos are"}{" "}
+              still importing.
+            </span>{" "}
+            Imports run on a ~5-minute schedule and won&apos;t appear here until
+            you refresh.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onChanged()}
+            className="h-7 shrink-0 px-2 text-xs"
+          >
+            Refresh
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div

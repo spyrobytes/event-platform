@@ -127,10 +127,27 @@ export function getEventAssetPath(
 }
 
 /**
- * Ensure a bucket exists (for local development)
+ * Ensure a bucket exists, creating it with the given spec when missing.
+ *
+ * Idempotent and safe to call on every request / worker tick. When the
+ * bucket already exists this is a no-op — we deliberately do NOT reconcile
+ * settings on an existing bucket (an operator may have tuned it by hand in
+ * Studio; Supabase's updateBucket could clobber that). The spec below only
+ * applies at create time, so a self-healed bucket matches the consumer's
+ * expectations instead of a bare public-only default.
+ *
+ * `public` defaults to true to preserve the original single-arg behavior
+ * for callers that pass no options (e.g. event-assets). `fileSizeLimit`
+ * accepts bytes (number) or a units string ("50MiB"); `allowedMimeTypes`
+ * restricts uploads at the storage boundary.
  */
 export async function ensureBucket(
-  bucket: string
+  bucket: string,
+  options: {
+    public?: boolean;
+    fileSizeLimit?: number | string;
+    allowedMimeTypes?: string[];
+  } = {}
 ): Promise<{ success: boolean; error?: string }> {
   const client = getStorageClient();
 
@@ -138,9 +155,15 @@ export async function ensureBucket(
   const { error: getError } = await client.storage.getBucket(bucket);
 
   if (getError) {
-    // Bucket doesn't exist, create it
+    // Bucket doesn't exist, create it with the expected spec.
     const { error: createError } = await client.storage.createBucket(bucket, {
-      public: true,
+      public: options.public ?? true,
+      ...(options.fileSizeLimit !== undefined
+        ? { fileSizeLimit: options.fileSizeLimit }
+        : {}),
+      ...(options.allowedMimeTypes !== undefined
+        ? { allowedMimeTypes: options.allowedMimeTypes }
+        : {}),
     });
 
     if (createError && !createError.message.includes("already exists")) {
