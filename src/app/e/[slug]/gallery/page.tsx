@@ -152,6 +152,7 @@ export default async function PostEventGalleryPage({
         <ThankYouSection
           heading={presentation.thankYouHeading}
           message={presentation.thankYouMessage}
+          font={presentation.thankYouFont}
         />
 
         <section

@@ -100,6 +100,22 @@ const SLIDESHOW_INTERVAL_MAX_SECONDS = 15;
 const SLIDESHOW_INTERVAL_DEFAULT_SECONDS = 5;
 
 /**
+ * Font choice for the thank-you note. Default `serif` preserves the
+ * pre-existing rendering (font-serif heading + sans body). The two
+ * script variants reuse the same Great Vibes (`romantic-script`) and
+ * Dancing Script (`modern-script`) families loaded for the wedding
+ * Prelude block — same `next/font/google` instances, so we don't pay
+ * the font fetch twice. Mirrors `preludeFontSchema` in event-page.ts
+ * intentionally so the dashboard editor reads as a consistent choice.
+ */
+export const galleryThankYouFontSchema = z.enum([
+  "serif",
+  "romantic-script",
+  "modern-script",
+]);
+export type GalleryThankYouFont = z.infer<typeof galleryThankYouFontSchema>;
+
+/**
  * `.trim()` then coerce empty-string to `undefined` so the "absent vs empty"
  * gap that bit us in review can't recur: a renderer that checks
  * `heading !== undefined` and one that checks `if (heading)` will agree —
@@ -120,6 +136,7 @@ export const galleryPresentationSchema = z.object({
    *  "section is configured" check for renderers. */
   thankYouHeading: optionalTrimmedString(80),
   thankYouMessage: optionalTrimmedString(500),
+  thankYouFont: galleryThankYouFontSchema.default("serif"),
   showFeaturedStrip: z.boolean().default(false),
   /** Echo a sample of approved RSVP messages above the share CTA. */
   showWishesEcho: z.boolean().default(false),
@@ -155,6 +172,7 @@ export const galleryPresentationPatchSchema = z.object({
   variant: galleryVariantSchema.optional(),
   thankYouHeading: optionalTrimmedString(80),
   thankYouMessage: optionalTrimmedString(500),
+  thankYouFont: galleryThankYouFontSchema.optional(),
   showFeaturedStrip: z.boolean().optional(),
   showWishesEcho: z.boolean().optional(),
   slideshowAutoplay: z.boolean().optional(),
@@ -178,6 +196,7 @@ export type GalleryPresentationPatch = z.infer<
  */
 export const DEFAULT_GALLERY_PRESENTATION: GalleryPresentation = {
   variant: "classic-grid",
+  thankYouFont: "serif",
   showFeaturedStrip: false,
   showWishesEcho: false,
   slideshowAutoplay: false,

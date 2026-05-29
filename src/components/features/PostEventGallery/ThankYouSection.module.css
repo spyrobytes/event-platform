@@ -1,0 +1,44 @@
+/* Script-font treatments for the thank-you note. Sizes calibrated for
+ * Great Vibes (romantic) and Dancing Script (modern) — cursive glyphs
+ * read smaller per-em than upright sans/serif, so we bump the cap to
+ * keep the message legible at body distances. Mirrors the sizing
+ * pattern used in shared/Prelude/PreludeBlock.module.css so the
+ * thank-you note feels visually related to the main page's Prelude. */
+
+.romanticScript {
+  font-family: var(--font-prelude-romantic), "Great Vibes", cursive;
+}
+
+.modernScript {
+  font-family: var(--font-prelude-modern), "Dancing Script", cursive;
+}
+
+.headingScript {
+  /* Heading carries the personal voice ("Thank you for celebrating
+   * with us"), so it gets the largest cap. Slightly larger than the
+   * body to anchor the section. */
+  font-weight: 400;
+  font-size: 2.5rem;
+  line-height: 1.25;
+  letter-spacing: 0.005em;
+}
+
+@media (min-width: 768px) {
+  .headingScript {
+    font-size: 3.25rem;
+    line-height: 1.2;
+  }
+}
+
+.messageScript {
+  font-weight: 400;
+  font-size: 1.875rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  .messageScript {
+    font-size: 2.25rem;
+    line-height: 1.45;
+  }
+}
