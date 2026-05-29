@@ -62,15 +62,18 @@ export function GalleryItemsManager({
     [items],
   );
 
-  // Items still working through the import worker. The dashboard does not
-  // live-poll the items grid (only an active picker job polls), so after a
-  // retry — or a page reload mid-import — these can sit at PENDING/IMPORTING
-  // in the UI while the 5-minute cron quietly finishes them. Surface that
-  // explicitly with a manual refresh rather than letting it look stuck.
+  // Items waiting for the import worker's next tick. The dashboard does not
+  // live-poll the items grid (only an active picker job polls via
+  // GalleryImportProgress), so after a retry — or a page reload mid-import —
+  // PENDING items can sit in the UI while the 5-minute cron quietly works
+  // through them. Surface that with a manual refresh rather than letting it
+  // look stuck. Scoped to PENDING (not IMPORTING) on purpose: an item is only
+  // IMPORTING for the brief window a worker tick is actively processing it,
+  // and when a picker job is in flight the live GalleryImportProgress panel
+  // already covers that state — counting IMPORTING here would double up a
+  // "manually refresh" nudge against a panel that's auto-refreshing.
   const pendingCount = useMemo(
-    () =>
-      items.filter((i) => i.status === "PENDING" || i.status === "IMPORTING")
-        .length,
+    () => items.filter((i) => i.status === "PENDING").length,
     [items],
   );
 

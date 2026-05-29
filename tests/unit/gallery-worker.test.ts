@@ -469,15 +469,15 @@ describe("processGalleryImports — empty queue", () => {
 // ---------------------------------------------------------------------------
 
 describe("processGalleryImports — bucket guard", () => {
-  it("ensures the bucket with the config.toml spec, then throws without processing items when it can't be created", async () => {
-    // One claimable item so we get past the empty-queue short-circuit and
-    // reach the ensureBucket guard (which runs before loadContext / any
-    // per-item work).
-    (dbMock as unknown as { $queryRaw: ReturnType<typeof vi.fn> }).$queryRaw = vi
-      .fn()
-      .mockResolvedValueOnce([
-        { id: "item_1", gallery_id: "gal_1", source_file_id: "drive_1", attempts: 1 },
-      ]);
+  it("ensures the bucket with the config.toml spec, then throws BEFORE claiming any items when it can't be created", async () => {
+    // claimPendingItems runs via $queryRaw. We stub it so that IF it were
+    // ever reached it would return a claimable item — but the assertion
+    // below proves it is never called, because the bucket guard runs first.
+    const queryRawMock = vi.fn().mockResolvedValue([
+      { id: "item_1", gallery_id: "gal_1", source_file_id: "drive_1", attempts: 1 },
+    ]);
+    (dbMock as unknown as { $queryRaw: ReturnType<typeof vi.fn> }).$queryRaw =
+      queryRawMock;
     ensureBucketMock.mockResolvedValueOnce({
       success: false,
       error: "Bucket not found",
@@ -492,8 +492,10 @@ describe("processGalleryImports — bucket guard", () => {
       fileSizeLimit: 50 * 1024 * 1024,
       allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
     });
-    // It fails loudly BEFORE any per-item work — no downloads, no item writes,
-    // so a missing bucket never burns items' retry budgets.
+    // Ordering is the fix: the guard runs BEFORE claimPendingItems, so a
+    // missing bucket never locks rows / burns their attempt budget and never
+    // leaves a job stranded mid-reconcile. No claim, no downloads, no writes.
+    expect(queryRawMock).not.toHaveBeenCalled();
     expect(downloadDriveFileMock).not.toHaveBeenCalled();
     expect(uploadFileMock).not.toHaveBeenCalled();
     expect(dbMock.eventGalleryItem.update).not.toHaveBeenCalled();

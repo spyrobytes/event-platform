@@ -517,6 +517,31 @@ async function reconcileJobs(jobIds: string[]): Promise<number> {
  * Top-level entry point. Returns a tally for the cron route to log.
  */
 export async function processGalleryImports(): Promise<WorkerRunSummary> {
+  // Self-heal the output bucket BEFORE claiming any items. Ordering is
+  // load-bearing: claimPendingItems flips rows to IMPORTING and increments
+  // their attempt counter, so if the bucket check ran *after* the claim and
+  // then threw, those rows would be left locked with a burned attempt. Across
+  // a sustained bucket outage, repeated reclaims would exhaust
+  // workerMaxAttempts on the infra problem and strand items in FAILED without
+  // ever getting a real import try — and the parent job would never reconcile
+  // out of QUEUED/PROCESSING. Checking first means a missing/unhealthy bucket
+  // throws while every item is still cleanly PENDING and every job untouched,
+  // so the next good tick resumes with full retry budget. Idempotent; one
+  // getBucket call per tick. Creates the bucket with the config.toml spec
+  // (the 2026-05-29 prod incident: the `gallery` bucket didn't exist in prod,
+  // so every upload failed with STORAGE_UPLOAD_FAILED). Throw on a genuine
+  // create failure so the cron surfaces it loudly.
+  const bucketResult = await ensureBucket(BUCKETS.gallery, {
+    public: true,
+    fileSizeLimit: GALLERY_BUCKET_FILE_SIZE_BYTES,
+    allowedMimeTypes: [...GALLERY_LIMITS.allowedMimeTypes],
+  });
+  if (!bucketResult.success) {
+    throw new Error(
+      `Gallery output bucket "${BUCKETS.gallery}" is unavailable and could not be created: ${bucketResult.error}`,
+    );
+  }
+
   const items = await claimPendingItems(GALLERY_LIMITS.workerBatchSize);
   if (items.length === 0) {
     return {
@@ -527,25 +552,6 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
       retried: 0,
       jobsReconciled: 0,
     };
-  }
-
-  // Self-heal the output bucket: if the prod `gallery` bucket is missing or
-  // was rebuilt, create it (with the config.toml spec) before we upload, so a
-  // missing bucket doesn't fail every item with STORAGE_UPLOAD_FAILED — the
-  // failure mode from the 2026-05-29 prod incident. Idempotent and cheap when
-  // the bucket exists (one getBucket call); only runs on ticks that have work,
-  // keeping empty ticks free of the Storage round-trip. Throw on a genuine
-  // create failure so the cron surfaces it loudly rather than burning each
-  // item's attempt budget on doomed uploads.
-  const bucketResult = await ensureBucket(BUCKETS.gallery, {
-    public: true,
-    fileSizeLimit: GALLERY_BUCKET_FILE_SIZE_BYTES,
-    allowedMimeTypes: [...GALLERY_LIMITS.allowedMimeTypes],
-  });
-  if (!bucketResult.success) {
-    throw new Error(
-      `Gallery output bucket "${BUCKETS.gallery}" is unavailable and could not be created: ${bucketResult.error}`,
-    );
   }
 
   const galleryIds = [...new Set(items.map((i) => i.gallery_id))];
