@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { db } from "@/lib/db";
-import { GALLERY_LIMITS } from "@/lib/gallery-config";
+import { GALLERY_BUCKET_SPEC, GALLERY_LIMITS } from "@/lib/gallery-config";
 import {
   GALLERY_ERROR_CODES,
   GALLERY_ERROR_MESSAGES,
@@ -16,7 +16,7 @@ import {
   downloadDriveFile,
   GoogleDriveDownloadError,
 } from "@/lib/providers/google-drive";
-import { BUCKETS, uploadFile } from "@/lib/supabase-storage";
+import { BUCKETS, ensureBucket, uploadFile } from "@/lib/supabase-storage";
 import {
   generateBlurDataUrl,
   optimizeImage,
@@ -87,25 +87,6 @@ export type WorkerRunSummary = {
   retried: number;
   jobsReconciled: number;
 };
-
-/**
- * Returns a snapshot of pending work for observability without running
- * any of it. Used by /api/cron/process-gallery-imports to short-circuit
- * when the queue is empty.
- */
-export async function getPendingItemCount(): Promise<number> {
-  const staleCutoff = new Date(
-    Date.now() - GALLERY_LIMITS.staleImportingThresholdMs,
-  );
-  return db.eventGalleryItem.count({
-    where: {
-      OR: [
-        { status: "PENDING" },
-        { status: "IMPORTING", lockedAt: { lt: staleCutoff } },
-      ],
-    },
-  });
-}
 
 /**
  * Claims up to N items in a single SQL statement. Marks them IMPORTING
@@ -512,6 +493,31 @@ async function reconcileJobs(jobIds: string[]): Promise<number> {
  * Top-level entry point. Returns a tally for the cron route to log.
  */
 export async function processGalleryImports(): Promise<WorkerRunSummary> {
+  // Self-heal the output bucket BEFORE claiming any items. Ordering is
+  // load-bearing: claimPendingItems flips rows to IMPORTING and increments
+  // their attempt counter, so if the bucket check ran *after* the claim and
+  // then threw, those rows would be left locked with a burned attempt. Across
+  // a sustained bucket outage, repeated reclaims would exhaust
+  // workerMaxAttempts on the infra problem and strand items in FAILED without
+  // ever getting a real import try — and the parent job would never reconcile
+  // out of QUEUED/PROCESSING. Checking first means a missing/unhealthy bucket
+  // throws while every item is still cleanly PENDING and every job untouched,
+  // so the next good tick resumes with full retry budget. Idempotent; one
+  // getBucket call per tick. Creates the bucket with the config.toml spec
+  // (the 2026-05-29 prod incident: the `gallery` bucket didn't exist in prod,
+  // so every upload failed with STORAGE_UPLOAD_FAILED). Throw on a genuine
+  // create failure so the cron surfaces it loudly.
+  const bucketResult = await ensureBucket(BUCKETS.gallery, {
+    public: GALLERY_BUCKET_SPEC.public,
+    fileSizeLimit: GALLERY_BUCKET_SPEC.fileSizeBytes,
+    allowedMimeTypes: [...GALLERY_BUCKET_SPEC.allowedMimeTypes],
+  });
+  if (!bucketResult.success) {
+    throw new Error(
+      `Gallery output bucket "${BUCKETS.gallery}" is unavailable and could not be created: ${bucketResult.error}`,
+    );
+  }
+
   const items = await claimPendingItems(GALLERY_LIMITS.workerBatchSize);
   if (items.length === 0) {
     return {
@@ -589,7 +595,7 @@ export async function processGalleryImports(): Promise<WorkerRunSummary> {
 }
 
 // Re-export internals for tests. The cron route only needs
-// processGalleryImports + getPendingItemCount.
+// processGalleryImports.
 export const __testing = {
   claimPendingItems,
   processItem,

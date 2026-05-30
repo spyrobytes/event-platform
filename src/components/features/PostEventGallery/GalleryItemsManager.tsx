@@ -18,8 +18,9 @@ type Props = {
   coverGalleryItemId: string | null;
   getIdToken: () => Promise<string | null>;
   /** Fires after any mutation completes so the parent refetches the
-   *  gallery and the manager re-renders with fresh state. */
-  onChanged: () => void;
+   *  gallery and the manager re-renders with fresh state. May return the
+   *  parent's refetch promise so the Refresh control can await it. */
+  onChanged: () => void | Promise<void>;
 };
 
 const STATUS_BADGE: Record<
@@ -56,9 +57,25 @@ export function GalleryItemsManager({
   const [captionDraft, setCaptionDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [retryPending, setRetryPending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const failedCount = useMemo(
     () => items.filter((i) => i.status === "FAILED").length,
+    [items],
+  );
+
+  // Items waiting for the import worker's next tick. The dashboard does not
+  // live-poll the items grid (only an active picker job polls via
+  // GalleryImportProgress), so after a retry — or a page reload mid-import —
+  // PENDING items can sit in the UI while the 5-minute cron quietly works
+  // through them. Surface that with a manual refresh rather than letting it
+  // look stuck. Scoped to PENDING (not IMPORTING) on purpose: an item is only
+  // IMPORTING for the brief window a worker tick is actively processing it,
+  // and when a picker job is in flight the live GalleryImportProgress panel
+  // already covers that state — counting IMPORTING here would double up a
+  // "manually refresh" nudge against a panel that's auto-refreshing.
+  const pendingCount = useMemo(
+    () => items.filter((i) => i.status === "PENDING").length,
     [items],
   );
 
@@ -232,6 +249,20 @@ export function GalleryItemsManager({
     else onChanged();
   }, [callRoute, eventId, galleryId, onChanged]);
 
+  // Manual refresh for the still-importing banner. Awaits the parent's
+  // refetch and disables the control while in flight, so a double-click can't
+  // start overlapping loads whose out-of-order responses would render stale
+  // items. The early return is belt-and-suspenders with the disabled button.
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await onChanged();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [onChanged, refreshing]);
+
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -266,6 +297,32 @@ export function GalleryItemsManager({
           </Button>
         )}
       </div>
+
+      {pendingCount > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm"
+        >
+          <p className="text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {pendingCount} {pendingCount === 1 ? "photo is" : "photos are"}{" "}
+              still importing.
+            </span>{" "}
+            Imports run on a ~5-minute schedule and won&apos;t appear here until
+            you refresh.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
+            className="h-7 shrink-0 px-2 text-xs"
+          >
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div

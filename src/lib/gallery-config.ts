@@ -27,5 +27,23 @@ export const GALLERY_LIMITS = {
   staleImportingThresholdMs: 10 * 60_000,
 } as const;
 
+/**
+ * Storage spec for the post-event `gallery` bucket — the single source of
+ * truth shared by two consumers that must agree:
+ *   1. the worker's self-heal create call (`ensureBucket` in gallery-worker.ts), and
+ *   2. the local declarative bucket in `supabase/config.toml`
+ *      `[storage.buckets.gallery]`.
+ * Nothing syncs those at runtime, so `tests/unit/gallery-bucket-spec.test.ts`
+ * asserts parity and fails the build if this and the config.toml block drift.
+ * `allowedMimeTypes` is intentionally the same set the worker accepts — keep
+ * them unified rather than declaring a second list.
+ */
+export const GALLERY_BUCKET_SPEC = {
+  public: true,
+  /** Matches config.toml `file_size_limit = "50MiB"` (50 × 1024 × 1024 bytes). */
+  fileSizeBytes: 50 * 1024 * 1024,
+  allowedMimeTypes: GALLERY_LIMITS.allowedMimeTypes,
+} as const;
+
 export type GalleryLimits = typeof GALLERY_LIMITS;
 export type AllowedGalleryMimeType = (typeof GALLERY_LIMITS.allowedMimeTypes)[number];

@@ -61,8 +61,14 @@ vi.mock("@/lib/providers/google-drive", () => ({
 }));
 
 const uploadFileMock = vi.fn();
+// Typed to ensureBucket's real return shape so tests can resolve the
+// failure arm ({ success: false, error }) without a TS object-literal error.
+const ensureBucketMock = vi.fn<
+  () => Promise<{ success: boolean; error?: string }>
+>(async () => ({ success: true }));
 vi.mock("@/lib/supabase-storage", () => ({
   uploadFile: uploadFileMock,
+  ensureBucket: ensureBucketMock,
   BUCKETS: { gallery: "gallery", eventAssets: "event-assets" },
 }));
 
@@ -454,6 +460,44 @@ describe("processGalleryImports — empty queue", () => {
       retried: 0,
       jobsReconciled: 0,
     });
+    expect(dbMock.eventGalleryItem.update).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// processGalleryImports — self-heal bucket guard
+// ---------------------------------------------------------------------------
+
+describe("processGalleryImports — bucket guard", () => {
+  it("ensures the bucket with the config.toml spec, then throws BEFORE claiming any items when it can't be created", async () => {
+    // claimPendingItems runs via $queryRaw. We stub it so that IF it were
+    // ever reached it would return a claimable item — but the assertion
+    // below proves it is never called, because the bucket guard runs first.
+    const queryRawMock = vi.fn().mockResolvedValue([
+      { id: "item_1", gallery_id: "gal_1", source_file_id: "drive_1", attempts: 1 },
+    ]);
+    (dbMock as unknown as { $queryRaw: ReturnType<typeof vi.fn> }).$queryRaw =
+      queryRawMock;
+    ensureBucketMock.mockResolvedValueOnce({
+      success: false,
+      error: "Bucket not found",
+    });
+
+    await expect(processGalleryImports()).rejects.toThrow(/bucket/i);
+
+    // The guard requests the bucket with the exact spec mirrored from
+    // supabase/config.toml [storage.buckets.gallery].
+    expect(ensureBucketMock).toHaveBeenCalledWith("gallery", {
+      public: true,
+      fileSizeLimit: 50 * 1024 * 1024,
+      allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+    });
+    // Ordering is the fix: the guard runs BEFORE claimPendingItems, so a
+    // missing bucket never locks rows / burns their attempt budget and never
+    // leaves a job stranded mid-reconcile. No claim, no downloads, no writes.
+    expect(queryRawMock).not.toHaveBeenCalled();
+    expect(downloadDriveFileMock).not.toHaveBeenCalled();
+    expect(uploadFileMock).not.toHaveBeenCalled();
     expect(dbMock.eventGalleryItem.update).not.toHaveBeenCalled();
   });
 });
