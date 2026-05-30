@@ -77,6 +77,9 @@ type Invite = {
 type InviteManagerProps = {
   eventId: string;
   eventSlug?: string;
+  /** Event title — woven into the prefilled WhatsApp/SMS message for
+   *  phone-only invites. */
+  eventTitle?: string;
 };
 
 const PAGE_SIZE = 50;
@@ -97,7 +100,7 @@ type InviteStats = {
   attending: number;
 };
 
-export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
+export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerProps) {
   const { getIdToken } = useAuthContext();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -319,6 +322,17 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
     }
     return `${baseUrl}/rsvp/${token}`;
   }, [eventSlug]);
+
+  // Resolve the shareable RSVP link for a row, or null when no raw token is
+  // available client-side (e.g. after a reload — tokens are never returned by
+  // the list API). Powers the phone-only WhatsApp/SMS deep links.
+  const getShareLink = useCallback(
+    (invite: Invite): string | null => {
+      const token = invite.token || tokenCache.get(invite.id);
+      return token ? buildGuestLink(token, invite) : null;
+    },
+    [tokenCache, buildGuestLink]
+  );
 
   const handleCopyLink = async (invite: Invite) => {
     const token = invite.token || tokenCache.get(invite.id);
@@ -705,6 +719,8 @@ export function InviteManager({ eventId, eventSlug }: InviteManagerProps) {
                 onResend={handleResend}
                 copiedInviteId={copiedInviteId}
                 tokenCache={tokenCache}
+                getShareLink={getShareLink}
+                eventTitle={eventTitle}
                 resendingInviteIds={resendingInviteIds}
               />
               {pagination && pagination.total > PAGE_SIZE && (

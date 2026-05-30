@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { SharePhoneInvite } from "./SharePhoneInvite";
 
 type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
@@ -53,6 +54,12 @@ type InviteTableProps = {
   onRowClick?: (invite: Invite) => void;
   copiedInviteId?: string | null;
   tokenCache?: Map<string, string>;
+  /** Builds the shareable RSVP link for an invite (returns null when no raw
+   *  token is available client-side, e.g. after a reload). Used by the
+   *  phone-only WhatsApp/SMS deep links. */
+  getShareLink?: (invite: Invite) => string | null;
+  /** Event title, woven into the prefilled WhatsApp/SMS message. */
+  eventTitle?: string;
   /** Invite IDs whose Resend POST is currently in flight. Used to disable
    *  the Resend button so a fast double-click can't create two outbox rows. */
   resendingInviteIds?: Set<string>;
@@ -74,7 +81,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache, resendingInviteIds }: InviteTableProps) {
+export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache, getShareLink, eventTitle, resendingInviteIds }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -200,6 +207,25 @@ export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onR
                       const hasToken = !!(invite.token || tokenCache?.get(invite.id));
                       if (!hasToken || !onCopyLink) return null;
                       const isPhoneOnly = !invite.email;
+
+                      // Phone-only: hand the organizer pre-addressed WhatsApp /
+                      // SMS drafts (plus a copy fallback) instead of just the
+                      // link. Needs the number + a resolvable share link.
+                      const shareLink =
+                        isPhoneOnly && getShareLink ? getShareLink(invite) : null;
+                      if (isPhoneOnly && invite.phone && shareLink) {
+                        return (
+                          <SharePhoneInvite
+                            phone={invite.phone}
+                            link={shareLink}
+                            guestName={invite.name ?? invite.rsvp?.guestName ?? null}
+                            eventTitle={eventTitle}
+                            onCopy={() => onCopyLink(invite)}
+                          />
+                        );
+                      }
+
+                      // Email invite (or phone-only fallback) → single copy button
                       return (
                         <button
                           onClick={(e) => {
