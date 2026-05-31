@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { hashToken } from "@/lib/tokens";
+import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { NotFoundError } from "@/lib/errors";
 
 /**
@@ -96,21 +97,9 @@ export async function GET(request: NextRequest) {
       return errorResponse("This event has been cancelled", 400, "EVENT_CANCELLED");
     }
 
-    // Mark invite as opened if not already responded (incl. DRAFTED, the
-    // phone-only share state — a link click is the first real engagement).
-    if (
-      invite.status === "SENT" ||
-      invite.status === "PENDING" ||
-      invite.status === "DRAFTED"
-    ) {
-      await db.invite.update({
-        where: { id: invite.id },
-        data: {
-          status: "OPENED",
-          openedAt: new Date(),
-        },
-      });
-    }
+    // A link click is the first real engagement — advance any pre-open state
+    // (incl. DRAFTED, the phone-only share state) to OPENED.
+    await markInviteOpenedIfUnopened(invite.id, invite.status);
 
     return successResponse({
       invite: {

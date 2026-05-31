@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { buildPortalUrl } from "@/lib/guest-access";
 import {
   InvitationShell,
@@ -162,21 +163,8 @@ export default async function InvitationPage({ params }: PageProps) {
     );
   }
 
-  // Update invite status to OPENED if SENT, PENDING, or DRAFTED (phone-only
-  // share). The guest clicking the link is the first real engagement signal.
-  if (
-    invite.status === "SENT" ||
-    invite.status === "PENDING" ||
-    invite.status === "DRAFTED"
-  ) {
-    await db.invite.update({
-      where: { id: invite.id },
-      data: {
-        status: "OPENED",
-        openedAt: new Date(),
-      },
-    });
-  }
+  // A link click is the first real engagement — advance any pre-open state to OPENED.
+  await markInviteOpenedIfUnopened(invite.id, invite.status);
 
   // Get theme and typography configuration
   const themeId: ThemeId = (invitationConfig?.themeId as ThemeId) || "ivory";

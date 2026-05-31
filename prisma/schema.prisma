@@ -279,13 +279,15 @@ model Invite {
 
 enum InviteStatus {
   PENDING // Created, not sent
-  DRAFTED // Phone-only: organizer composed/shared the link (WhatsApp/SMS) — intent, delivery NOT confirmed. Phone-channel peer of SENT.
   SENT // Email delivered
   OPENED // Link clicked
   RESPONDED // RSVP submitted
   BOUNCED // Delivery failed
   EXPIRED // Past expiry date
   REVOKED // Manually revoked by organizer
+  // Listed last to match the DB enum order: `ALTER TYPE ... ADD VALUE` appends,
+  // and keeping the schema in the same order avoids spurious migrate-diff noise.
+  DRAFTED // Phone-only: organizer composed/shared the link (WhatsApp/SMS) — intent, delivery NOT confirmed. Phone-channel peer of SENT.
 }
 
 model RSVP {

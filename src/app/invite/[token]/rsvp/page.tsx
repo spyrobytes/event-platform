@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { buildPortalUrl } from "@/lib/guest-access";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
@@ -101,17 +102,8 @@ export default async function InviteRSVPPage({ params }: PageProps) {
   const { invite, invitationConfig } = result;
   const event = invite.event;
 
-  // Mark invite as opened if still pending/drafted/sent (guest accessed RSVP page)
-  if (
-    invite.status === "PENDING" ||
-    invite.status === "DRAFTED" ||
-    invite.status === "SENT"
-  ) {
-    await db.invite.update({
-      where: { id: invite.id },
-      data: { status: "OPENED", openedAt: new Date() },
-    });
-  }
+  // A link click is the first real engagement — advance any pre-open state to OPENED.
+  await markInviteOpenedIfUnopened(invite.id, invite.status);
 
   // Check if event is cancelled
   if (event.status === "CANCELLED") {
