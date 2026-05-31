@@ -173,6 +173,21 @@ export default async function RSVPPage({ params }: PageProps) {
     );
   }
 
+  // Mark the invite OPENED on the first real engagement — the guest clicked the
+  // share link and loaded this page. Idempotent: only advances from the
+  // pre-open states (DRAFTED phone-share / PENDING / SENT). Mirrors the
+  // /invite/[token] pages so events without an invitation card track Opened too.
+  if (
+    invite.status === "DRAFTED" ||
+    invite.status === "PENDING" ||
+    invite.status === "SENT"
+  ) {
+    await db.invite.update({
+      where: { id: invite.id },
+      data: { status: "OPENED", openedAt: new Date() },
+    });
+  }
+
   // Check if RSVP deadline has passed
   if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
     return (
