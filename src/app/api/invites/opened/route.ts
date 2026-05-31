@@ -31,7 +31,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (invite) {
-      await markInviteOpenedIfUnopened(invite.id, invite.status);
+      try {
+        await markInviteOpenedIfUnopened(invite.id, invite.status);
+      } catch {
+        // Best-effort: a write race (e.g. concurrent revoke/delete) must not
+        // break the always-204, no-leak contract. The beacon ignores the body.
+      }
     }
 
     return new NextResponse(null, { status: 204 });

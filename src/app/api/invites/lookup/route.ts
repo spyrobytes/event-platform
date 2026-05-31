@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { hashToken } from "@/lib/tokens";
-import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { NotFoundError } from "@/lib/errors";
 
 /**
@@ -76,14 +75,10 @@ export async function GET(request: NextRequest) {
       throw new NotFoundError("Invite not found or has expired");
     }
 
-    // Check if invite has expired
+    // Read-only — never mutate on a GET (a crawler/prefetch could otherwise
+    // drive status transitions; see #148). Treat past-expiry as not found
+    // without flipping status to EXPIRED.
     if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
-      // Update status to expired
-      await db.invite.update({
-        where: { id: invite.id },
-        data: { status: "EXPIRED" },
-      });
-
       throw new NotFoundError("This invite has expired");
     }
 
@@ -97,10 +92,9 @@ export async function GET(request: NextRequest) {
       return errorResponse("This event has been cancelled", 400, "EVENT_CANCELLED");
     }
 
-    // A link click is the first real engagement — advance any pre-open state
-    // (incl. DRAFTED, the phone-only share state) to OPENED.
-    await markInviteOpenedIfUnopened(invite.id, invite.status);
-
+    // No status mutation here: OPENED is recorded by the client beacon
+    // (MarkOpenedBeacon → POST /api/invites/opened) on a real page view, so
+    // HTML-only crawlers can't trigger it (#148). This route is read-only.
     return successResponse({
       invite: {
         id: invite.id,

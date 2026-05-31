@@ -177,6 +177,9 @@ export default async function RSVPPage({ params }: PageProps) {
   if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-16">
+        {/* The window's closed, but a genuine open still counts — parity with
+            /invite/[token] and the prior server-render behavior. */}
+        <MarkOpenedBeacon token={token} />
         <div className="text-center space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface-3">
             <svg
