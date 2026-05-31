@@ -99,7 +99,7 @@ export default function InvitesPage() {
         </div>
       </div>
 
-      <InviteManager eventId={event.id} eventSlug={event.slug} />
+      <InviteManager eventId={event.id} eventSlug={event.slug} eventTitle={event.title} />
     </div>
   );
 }
