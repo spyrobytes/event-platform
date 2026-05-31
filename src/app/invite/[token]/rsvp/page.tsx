@@ -3,12 +3,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
-import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { buildPortalUrl } from "@/lib/guest-access";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { InvitationShell, InvitationRSVPForm } from "@/components/features/Invitation";
-import { PageViewTracker } from "@/components/features/Analytics";
+import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 
 export const dynamic = "force-dynamic";
@@ -102,9 +101,6 @@ export default async function InviteRSVPPage({ params }: PageProps) {
   const { invite, invitationConfig } = result;
   const event = invite.event;
 
-  // A link click is the first real engagement — advance any pre-open state to OPENED.
-  await markInviteOpenedIfUnopened(invite.id, invite.status);
-
   // Check if event is cancelled
   if (event.status === "CANCELLED") {
     redirect(`/invite/${token}`);
@@ -159,6 +155,8 @@ export default async function InviteRSVPPage({ params }: PageProps) {
       textDirection={textDirection}
     >
       <PageViewTracker eventId={event.id} source="rsvp_page" inviteRef={inviteRef} />
+      {/* Client-side OPENED beacon (post-hydration) — bots can't trigger it. #148 */}
+      <MarkOpenedBeacon token={token} />
 
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         {/* Back to invitation link */}

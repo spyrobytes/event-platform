@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
-import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { buildPortalUrl } from "@/lib/guest-access";
 import {
   InvitationShell,
@@ -21,7 +20,7 @@ import {
   templateMetadata,
   type TemplateId,
 } from "@/components/features/Invitation";
-import { PageViewTracker } from "@/components/features/Analytics";
+import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
 
@@ -162,9 +161,6 @@ export default async function InvitationPage({ params }: PageProps) {
       />
     );
   }
-
-  // A link click is the first real engagement — advance any pre-open state to OPENED.
-  await markInviteOpenedIfUnopened(invite.id, invite.status);
 
   // Get theme and typography configuration
   const themeId: ThemeId = (invitationConfig?.themeId as ThemeId) || "ivory";
@@ -399,6 +395,9 @@ export default async function InvitationPage({ params }: PageProps) {
       textDirection={textDirection}
     >
       <PageViewTracker eventId={event.id} source="invitation_page" inviteRef={inviteRef} />
+      {/* Client-side OPENED beacon (post-hydration) — bots that don't run JS
+          can't mark this invite OPENED. See issue #148. */}
+      <MarkOpenedBeacon token={token} />
 
       {renderTemplate()}
 

@@ -30,7 +30,11 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/api/analytics/track")) {
     rateLimitConfig = RATE_LIMITS.analytics;
     rateLimitKey = "analytics";
-  } else if (pathname.startsWith("/api/invites/lookup")) {
+  } else if (
+    pathname.startsWith("/api/invites/lookup") ||
+    pathname.startsWith("/api/invites/opened")
+  ) {
+    // Public, token-gated guest endpoints — same lenient bucket.
     rateLimitConfig = RATE_LIMITS.inviteLookup;
     rateLimitKey = "inviteLookup";
   } else if (pathname.includes("/invites")) {
