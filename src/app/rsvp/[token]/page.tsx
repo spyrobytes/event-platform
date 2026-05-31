@@ -2,10 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { RSVPForm } from "@/components/features";
-import { PageViewTracker } from "@/components/features/Analytics";
+import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
-import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
@@ -174,15 +173,13 @@ export default async function RSVPPage({ params }: PageProps) {
     );
   }
 
-  // A link click is the first real engagement — advance any pre-open state to
-  // OPENED. Mirrors the /invite/[token] pages so events without an invitation
-  // card track Opened too.
-  await markInviteOpenedIfUnopened(invite.id, invite.status);
-
   // Check if RSVP deadline has passed
   if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-16">
+        {/* The window's closed, but a genuine open still counts — parity with
+            /invite/[token] and the prior server-render behavior. */}
+        <MarkOpenedBeacon token={token} />
         <div className="text-center space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-surface-3">
             <svg
@@ -256,6 +253,10 @@ export default async function RSVPPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-background">
       <PageViewTracker eventId={event.id} source="rsvp_page" inviteRef={inviteRef} />
+      {/* OPENED is marked client-side (post-hydration) so link-preview bots
+          can't trigger it — see MarkOpenedBeacon / issue #148. Rendered only
+          here, on the valid-invite path, so cancelled/expired opens don't count. */}
+      <MarkOpenedBeacon token={token} />
       {/* Event Header */}
       {event.coverImageUrl && (
         <div className="relative h-64 w-full">
