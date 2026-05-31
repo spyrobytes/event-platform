@@ -20,6 +20,17 @@ import { aesGcmEncrypt, aesGcmDecrypt, loadAes256Key } from "@/lib/crypto-envelo
 
 const ENV_VAR = "INVITE_TOKEN_ENC_KEY";
 
+let warnedBadKey = false;
+function warnBadKeyOnce(err: unknown): void {
+  if (warnedBadKey) return;
+  warnedBadKey = true;
+  console.warn(
+    `${ENV_VAR} is set but invalid — durable invite links disabled, falling back to session-ephemeral. ${
+      err instanceof Error ? err.message : ""
+    }`,
+  );
+}
+
 /** True when the durable-link key is configured. */
 export function inviteTokenEncryptionEnabled(): boolean {
   return !!process.env[ENV_VAR];
@@ -29,12 +40,22 @@ export function inviteTokenEncryptionEnabled(): boolean {
  * Encrypts a raw invite token for storage in `Invite.tokenEnc`. Returns null
  * when no key is configured — the caller stores null and the invite simply
  * falls back to the session-ephemeral share behavior.
+ *
+ * Never throws: a *malformed* key (set but wrong length / not base64) also
+ * degrades to null (+ a one-time warn) rather than failing invite creation —
+ * durability is a nice-to-have, and a misconfigured key must not block the
+ * core flow.
  */
 export function encryptInviteToken(
   rawToken: string,
 ): Uint8Array<ArrayBuffer> | null {
   if (!process.env[ENV_VAR]) return null;
-  return aesGcmEncrypt(rawToken, loadAes256Key(ENV_VAR));
+  try {
+    return aesGcmEncrypt(rawToken, loadAes256Key(ENV_VAR));
+  } catch (err) {
+    warnBadKeyOnce(err);
+    return null;
+  }
 }
 
 /**

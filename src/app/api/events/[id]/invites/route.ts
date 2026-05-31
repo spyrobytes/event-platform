@@ -259,12 +259,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
       + (statsMap["RESPONDED"] || 0);
 
     // Decrypt the durable-link envelope back to a usable raw token (owner-only
-    // route). When INVITE_TOKEN_ENC_KEY is unset or the row predates the
-    // feature, `token` is omitted and the client falls back to the
-    // session-ephemeral behavior. Never ship the raw envelope to the client.
+    // route). Scoped to ACTIVE PHONE-ONLY invites — the durable share link only
+    // exists for the phone-only flow, and a revoked/expired invite must not
+    // resurface a working link. Otherwise `token` is omitted and the client
+    // falls back to session-ephemeral. The raw envelope is never shipped.
     const invitesWithTokens = invites.map((inv) => {
       const { tokenEnc, ...rest } = inv;
-      const token = decryptInviteToken(tokenEnc);
+      const durable =
+        !rest.email && rest.status !== "REVOKED" && rest.status !== "EXPIRED";
+      const token = durable ? decryptInviteToken(tokenEnc) : null;
       return token ? { ...rest, token } : rest;
     });
 
@@ -367,7 +370,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone: invite.phone ?? null,
           name: invite.name,
           tokenHash: hash,
-          tokenEnc: encryptInviteToken(token),
+          // Durable link is a phone-only affordance — don't store an envelope
+          // for email invites (delivered + recoverable via the email pipeline).
+          tokenEnc: invite.email ? null : encryptInviteToken(token),
           rsvpCodeHash: hashRsvpCode(rsvpCode),
           rsvpCodeIssuedAt: issuedAt,
           plusOnesAllowed: invite.plusOnesAllowed ?? 0,
@@ -486,7 +491,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone,
           name: data.name,
           tokenHash: hash,
-          tokenEnc: encryptInviteToken(token),
+          // Durable link is phone-only — see the bulk path above.
+          tokenEnc: email ? null : encryptInviteToken(token),
           rsvpCodeHash: hashRsvpCode(rsvpCode),
           rsvpCodeIssuedAt: new Date(),
           plusOnesAllowed: data.plusOnesAllowed ?? 0,

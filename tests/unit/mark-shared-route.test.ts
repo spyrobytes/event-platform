@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { AccountSuspendedError, ForbiddenError } from "@/lib/errors";
 
 const dbMock = {
   invite: { findUnique: vi.fn(), update: vi.fn() },
@@ -117,6 +118,31 @@ describe("POST /api/events/[id]/invites/[inviteId]/mark-shared", () => {
     });
     const res = await POST(makeRequest(), ctx);
     expect(res.status).toBe(404);
+    expect(dbMock.invite.update).not.toHaveBeenCalled();
+  });
+
+  it("invokes the mutate-permission guard", async () => {
+    await POST(makeRequest(), ctx);
+    expect(assertCanMutateMock).toHaveBeenCalled();
+  });
+
+  it("returns 403 and does not write when the account cannot mutate (suspended)", async () => {
+    assertCanMutateMock.mockImplementationOnce(() => {
+      throw new AccountSuspendedError();
+    });
+    const res = await POST(makeRequest(), ctx);
+    expect(res.status).toBe(403);
+    expect(dbMock.invite.findUnique).not.toHaveBeenCalled();
+    expect(dbMock.invite.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 and does not write when the user is not the event owner", async () => {
+    requireEventOwnerMock.mockRejectedValueOnce(
+      new ForbiddenError("You don't have permission to access this event")
+    );
+    const res = await POST(makeRequest(), ctx);
+    expect(res.status).toBe(403);
+    expect(dbMock.invite.findUnique).not.toHaveBeenCalled();
     expect(dbMock.invite.update).not.toHaveBeenCalled();
   });
 });

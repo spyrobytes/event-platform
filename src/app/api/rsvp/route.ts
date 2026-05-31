@@ -225,7 +225,9 @@ export async function POST(request: NextRequest) {
       try {
         await db.invite.update({
           where: { id: invite.id },
-          data: { email: data.guestEmail },
+          // Lowercase to match invite creation (which stores email lowercased);
+          // the (event_id, email) partial unique index is case-sensitive.
+          data: { email: data.guestEmail.toLowerCase() },
         });
       } catch (err) {
         // P2002 (email already on another active invite) or any other write

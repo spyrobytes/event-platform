@@ -71,7 +71,10 @@ export function aesGcmEncrypt(
  * auth tag doesn't verify, or the key is missing / wrong shape.
  */
 export function aesGcmDecrypt(envelope: Uint8Array, key: Buffer): string {
-  if (envelope.length < IV_BYTES + AUTH_TAG_BYTES + 1) {
+  // iv + tag is the minimum valid envelope; the ciphertext may be empty
+  // (GCM permits a zero-length plaintext). Using `+ 1` here would wrongly
+  // reject a legitimately-encrypted empty string.
+  if (envelope.length < IV_BYTES + AUTH_TAG_BYTES) {
     throw new Error("Encrypted envelope is truncated");
   }
   const iv = envelope.subarray(0, IV_BYTES);

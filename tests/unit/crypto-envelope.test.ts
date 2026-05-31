@@ -38,6 +38,12 @@ describe("crypto-envelope — AES-256-GCM round-trip", () => {
     const plain = "x".repeat(4096);
     expect(aesGcmDecrypt(aesGcmEncrypt(plain, KEY), KEY)).toBe(plain);
   });
+
+  it("round-trips an empty plaintext (zero-length ciphertext)", () => {
+    // The envelope is iv(12)+tag(16)+0 = 28 bytes; the truncation guard must
+    // accept it rather than reject a legitimately-encrypted empty string.
+    expect(aesGcmDecrypt(aesGcmEncrypt("", KEY), KEY)).toBe("");
+  });
 });
 
 describe("crypto-envelope — loadAes256Key", () => {

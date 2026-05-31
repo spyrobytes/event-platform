@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { randomBytes } from "node:crypto";
 
 import {
@@ -52,6 +52,30 @@ describe("invite-token-crypto — no key (graceful degradation)", () => {
 
   it("decrypt returns null", () => {
     expect(decryptInviteToken(new Uint8Array([1, 2, 3, 4]))).toBeNull();
+  });
+});
+
+describe("invite-token-crypto — malformed key (graceful, never blocks)", () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    // Key is SET but only 16 bytes (not 32) — loadAes256Key would throw.
+    process.env.INVITE_TOKEN_ENC_KEY = randomBytes(16).toString("base64");
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it("encrypt returns null instead of throwing (degrades, doesn't break creation)", () => {
+    expect(() => encryptInviteToken("tok")).not.toThrow();
+    expect(encryptInviteToken("tok")).toBeNull();
+    expect(warnSpy).toHaveBeenCalled();
+  });
+
+  it("decrypt returns null for a malformed key", () => {
+    expect(decryptInviteToken(new Uint8Array(40))).toBeNull();
   });
 });
 

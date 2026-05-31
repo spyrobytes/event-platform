@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const invite = await db.invite.findUnique({
       where: { id: inviteId },
-      select: { id: true, eventId: true, status: true, tokenRegenerateCount: true },
+      select: { id: true, eventId: true, email: true, status: true, tokenRegenerateCount: true },
     });
 
     if (!invite || invite.eventId !== eventId) {
@@ -59,7 +59,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       where: { id: inviteId },
       data: {
         tokenHash: hash,
-        tokenEnc: encryptInviteToken(token),
+        // Durable link is phone-only; clear/skip the envelope for email invites.
+        tokenEnc: invite.email ? null : encryptInviteToken(token),
         tokenRegenerateCount: { increment: 1 },
       },
       select: {

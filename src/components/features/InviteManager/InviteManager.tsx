@@ -326,9 +326,10 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     return `${baseUrl}/rsvp/${token}`;
   }, [eventSlug]);
 
-  // Resolve the shareable RSVP link for a row, or null when no raw token is
-  // available client-side (e.g. after a reload — tokens are never returned by
-  // the list API). Powers the phone-only WhatsApp/SMS deep links.
+  // Resolve the shareable RSVP link for a row. For active phone-only invites
+  // the list API returns a durable `token` (decrypted from token_enc) so the
+  // link survives a reload; otherwise we fall back to a token cached in this
+  // session (just created / regenerated). Null when neither is available.
   const getShareLink = useCallback(
     (invite: Invite): string | null => {
       const token = invite.token || tokenCache.get(invite.id);
@@ -424,7 +425,15 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
       setInvites((prev) =>
         prev.map((i) =>
           i.id === invite.id
-            ? { ...i, tokenRegenerateCount: result.data.tokenRegenerateCount }
+            ? {
+                // Refresh invite.token too: the list API now returns a durable
+                // token, and getShareLink prefers it over tokenCache — without
+                // this the share buttons would keep serving the old (now dead)
+                // link after a regenerate.
+                ...i,
+                token: newToken,
+                tokenRegenerateCount: result.data.tokenRegenerateCount,
+              }
             : i
         )
       );
