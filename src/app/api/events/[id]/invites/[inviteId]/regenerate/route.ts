@@ -4,6 +4,7 @@ import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { generateTokenPair } from "@/lib/tokens";
+import { encryptInviteToken } from "@/lib/invite-token-crypto";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 
 type RouteContext = {
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       where: { id: inviteId },
       data: {
         tokenHash: hash,
+        tokenEnc: encryptInviteToken(token),
         tokenRegenerateCount: { increment: 1 },
       },
       select: {

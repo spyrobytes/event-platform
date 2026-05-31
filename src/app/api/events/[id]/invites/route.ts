@@ -6,6 +6,7 @@ import { requireEventOwner, assertCanPublish, assertProfileComplete } from "@/li
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
+import { encryptInviteToken, decryptInviteToken } from "@/lib/invite-token-crypto";
 import { generateGuestRsvpCode, hashRsvpCode } from "@/lib/rsvp-code";
 import {
   queueInviteEmail,
@@ -200,6 +201,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           expiresAt: true,
           createdAt: true,
           tokenRegenerateCount: true,
+          tokenEnc: true,
           rsvpCodeIssuedAt: true,
           rsvpCodeRegenerateCount: true,
           passId: true,
@@ -256,8 +258,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const opened = (statsMap["OPENED"] || 0)
       + (statsMap["RESPONDED"] || 0);
 
+    // Decrypt the durable-link envelope back to a usable raw token (owner-only
+    // route). When INVITE_TOKEN_ENC_KEY is unset or the row predates the
+    // feature, `token` is omitted and the client falls back to the
+    // session-ephemeral behavior. Never ship the raw envelope to the client.
+    const invitesWithTokens = invites.map((inv) => {
+      const { tokenEnc, ...rest } = inv;
+      const token = decryptInviteToken(tokenEnc);
+      return token ? { ...rest, token } : rest;
+    });
+
     return successResponse({
-      invites,
+      invites: invitesWithTokens,
       pagination: {
         total,
         limit: query.limit,
@@ -355,6 +367,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone: invite.phone ?? null,
           name: invite.name,
           tokenHash: hash,
+          tokenEnc: encryptInviteToken(token),
           rsvpCodeHash: hashRsvpCode(rsvpCode),
           rsvpCodeIssuedAt: issuedAt,
           plusOnesAllowed: invite.plusOnesAllowed ?? 0,
@@ -473,6 +486,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone,
           name: data.name,
           tokenHash: hash,
+          tokenEnc: encryptInviteToken(token),
           rsvpCodeHash: hashRsvpCode(rsvpCode),
           rsvpCodeIssuedAt: new Date(),
           plusOnesAllowed: data.plusOnesAllowed ?? 0,

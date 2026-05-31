@@ -120,6 +120,9 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     () => new Set()
   );
   const resendingInviteIdsRef = useRef<Set<string>>(new Set());
+  // Invite IDs already marked shared this session — dedupes rapid multi-channel
+  // taps so the optimistic funnel adjustment runs at most once per invite.
+  const markedSharedRef = useRef<Set<string>>(new Set());
 
   const fetchInvites = useCallback(async (pageNum: number = 0) => {
     try {
@@ -354,6 +357,46 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     setCopiedInviteId(invite.id);
     setTimeout(() => setCopiedInviteId(null), 3000);
   };
+
+  // Optimistically record that the organizer shared a phone-only invite's
+  // link (WhatsApp/SMS/Copy). Only PENDING advances to SENT — keeps the funnel
+  // monotonic. The ref dedupes rapid multi-channel taps on the same row so the
+  // stats can't double-count before a re-render. The POST is best-effort; a
+  // reload reflects server truth.
+  const handleMarkShared = useCallback(
+    (invite: Invite) => {
+      if (invite.status !== "PENDING") return;
+      if (markedSharedRef.current.has(invite.id)) return;
+      markedSharedRef.current.add(invite.id);
+
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === invite.id && i.status === "PENDING"
+            ? { ...i, status: "SENT" }
+            : i
+        )
+      );
+      setServerStats((prev) =>
+        prev
+          ? { ...prev, pending: Math.max(0, prev.pending - 1), sent: prev.sent + 1 }
+          : prev
+      );
+
+      void (async () => {
+        try {
+          const authToken = await getIdToken();
+          if (!authToken) return;
+          await fetch(
+            `/api/events/${eventId}/invites/${invite.id}/mark-shared`,
+            { method: "POST", headers: { Authorization: `Bearer ${authToken}` } }
+          );
+        } catch {
+          // Best-effort — leave the optimistic state; a reload reconciles.
+        }
+      })();
+    },
+    [eventId, getIdToken]
+  );
 
   const handleRegenerate = async (invite: Invite) => {
     try {
@@ -721,6 +764,7 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
                 tokenCache={tokenCache}
                 getShareLink={getShareLink}
                 eventTitle={eventTitle}
+                onMarkShared={handleMarkShared}
                 resendingInviteIds={resendingInviteIds}
               />
               {pagination && pagination.total > PAGE_SIZE && (

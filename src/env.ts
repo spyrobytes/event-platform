@@ -106,6 +106,16 @@ export const serverEnvSchema = z.object({
   // attempted. Rotating this key invalidates every stored token.
   PROVIDER_TOKEN_ENCRYPTION_KEY: z.string().optional(),
 
+  // AES-256-GCM key for the durable phone-only invite share link. When set,
+  // the raw invite token is also stored encrypted (Invite.token_enc) so the
+  // owner-only invite list can re-display a working /rsvp/<token> link after a
+  // reload. Base64-encoded 32 bytes — generate with `openssl rand -base64 32`.
+  // Optional: when unset, share links fall back to session-ephemeral (today's
+  // behavior); RSVP never depends on this key. Rotating it drops durability
+  // for existing invites but does not break RSVP. src/lib/invite-token-crypto.ts
+  // degrades gracefully (returns null) rather than throwing.
+  INVITE_TOKEN_ENC_KEY: z.string().optional(),
+
   // HMAC key for signing the OAuth state cookie set during
   // /api/auth/google-drive/connect and verified in /callback. Distinct from
   // PROVIDER_TOKEN_ENCRYPTION_KEY so a state-cookie compromise doesn't

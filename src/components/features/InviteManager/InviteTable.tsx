@@ -60,6 +60,8 @@ type InviteTableProps = {
   getShareLink?: (invite: Invite) => string | null;
   /** Event title, woven into the prefilled WhatsApp/SMS message. */
   eventTitle?: string;
+  /** Marks a phone-only invite as shared when the organizer taps a channel. */
+  onMarkShared?: (invite: Invite) => void;
   /** Invite IDs whose Resend POST is currently in flight. Used to disable
    *  the Resend button so a fast double-click can't create two outbox rows. */
   resendingInviteIds?: Set<string>;
@@ -81,7 +83,7 @@ const RESPONSE_CONFIG: Record<RsvpResponse, { label: string; className: string }
   MAYBE: { label: "Maybe", className: "text-yellow-600 dark:text-yellow-400" },
 };
 
-export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache, getShareLink, eventTitle, resendingInviteIds }: InviteTableProps) {
+export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onRowClick, copiedInviteId, tokenCache, getShareLink, eventTitle, onMarkShared, resendingInviteIds }: InviteTableProps) {
   if (invites.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed">
@@ -227,6 +229,7 @@ export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onR
                             guestName={invite.name ?? invite.rsvp?.guestName ?? null}
                             eventTitle={eventTitle}
                             onCopy={() => onCopyLink(invite)}
+                            onShared={() => onMarkShared?.(invite)}
                           />
                         );
                       }
