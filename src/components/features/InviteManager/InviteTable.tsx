@@ -121,6 +121,12 @@ export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onR
             };
             const handleRowKeyDown = (e: React.KeyboardEvent<HTMLTableRowElement>) => {
               if (!onRowClick) return;
+              // Only act when the row itself is focused. Without this, an
+              // Enter/Space keydown originating from a focusable child (the
+              // WhatsApp/SMS/Copy controls) bubbles here and preventDefault()
+              // cancels the child's own activation — so keyboard users would
+              // open the panel instead of triggering the control.
+              if (e.target !== e.currentTarget) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 onRowClick(invite);

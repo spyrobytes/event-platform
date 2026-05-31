@@ -1,4 +1,5 @@
 import type { AttireExtrasVendor } from "@/schemas/event-page";
+import { stripNonDialChars } from "@/lib/phone";
 
 /** Default heading shown on the extras card when the user hasn't set one. */
 export const DEFAULT_VENDOR_CARD_TITLE = "Where to Shop";
@@ -20,10 +21,6 @@ export type ResolvedAttireContact = {
       }
     | null;
 };
-
-function stripNonDialChars(value: string): string {
-  return value.replace(/[^\d+]/g, "");
-}
 
 function ensureHttpsScheme(value: string): string {
   if (/^https?:\/\//i.test(value)) return value;
