@@ -14,6 +14,9 @@ type SharePhoneInviteProps = {
   eventTitle?: string;
   /** Reuses the table's existing copy handler so the "Copied!" badge fires. */
   onCopy: () => void;
+  /** Fired when the organizer activates ANY channel (WhatsApp / SMS / Copy) so
+   *  the row can be optimistically marked as shared. */
+  onShared: () => void;
 };
 
 /**
@@ -36,6 +39,7 @@ export function SharePhoneInvite({
   guestName,
   eventTitle,
   onCopy,
+  onShared,
 }: SharePhoneInviteProps) {
   // Trim *before* the truthiness check so a whitespace-only name doesn't
   // produce a dangling "Hi , ".
@@ -70,7 +74,10 @@ export function SharePhoneInvite({
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShared();
+            }}
             title="Open WhatsApp with the invite pre-filled — just tap send"
             className={cn(
               baseBtn,
@@ -85,7 +92,10 @@ export function SharePhoneInvite({
 
           <a
             href={smsHref}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShared();
+            }}
             title="Open Messages with the invite pre-filled"
             className={cn(baseBtn, secondaryBtn)}
           >
@@ -101,6 +111,7 @@ export function SharePhoneInvite({
         type="button"
         onClick={(e) => {
           e.stopPropagation();
+          onShared();
           onCopy();
         }}
         title="Copy the RSVP link to share manually"

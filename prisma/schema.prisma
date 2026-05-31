@@ -226,6 +226,13 @@ model Invite {
   name      String?
   tokenHash String  @unique @map("token_hash")
 
+  // AES-256-GCM envelope of the raw token, enabling a durable share link for
+  // phone-only invites (the owner-only list API decrypts it to re-display the
+  // /rsvp/<token> link after a reload). Nullable + forward-only: set only when
+  // INVITE_TOKEN_ENC_KEY is configured at creation/regeneration. RSVP always
+  // resolves by tokenHash — never this column. See src/lib/invite-token-crypto.ts.
+  tokenEnc Bytes? @map("token_enc")
+
   // Stable, non-secret identifier for the read-only pass view at
   // `/invite/pass/[passId]`. Decoupled from `tokenHash` so token
   // regenerations do not invalidate previously-distributed QR codes.

@@ -78,6 +78,21 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     return errorResponse(error.message, error.statusCode, error.code);
   }
 
+  // Prisma unique-constraint violation → friendly 409 instead of a leaked 500.
+  // Duck-typed (`.code === "P2002"`) to avoid importing Prisma's runtime here.
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  ) {
+    return errorResponse(
+      "That value is already in use.",
+      409,
+      "UNIQUE_CONSTRAINT"
+    );
+  }
+
   // Log unexpected errors
   console.error("Unexpected API error:", error);
 

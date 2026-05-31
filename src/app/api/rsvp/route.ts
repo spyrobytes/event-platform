@@ -175,13 +175,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Update invite status + curate guest-provided email for phone-only invites
+      // Advance invite status. The guest-email curation (phone-only invites)
+      // is intentionally NOT done here — see the best-effort update after the
+      // transaction commits, so a unique-constraint collision can't roll back
+      // the RSVP.
       await tx.invite.update({
         where: { id: invite.id },
-        data: {
-          status: "RESPONDED",
-          ...(data.guestEmail && !invite.email && { email: data.guestEmail }),
-        },
+        data: { status: "RESPONDED" },
       });
 
       // Queue confirmation email inside the transaction. The template no
@@ -214,6 +214,29 @@ export async function POST(request: NextRequest) {
     // Schedule post-response email delivery — outbox row is already committed.
     if (emailId) {
       scheduleEmailProcessing(emailId);
+    }
+
+    // Best-effort: curate the guest-provided email onto a phone-only invite so
+    // the dashboard shows it. Done OUTSIDE the transaction because the
+    // (event_id, email) partial unique index throws P2002 when that email
+    // already belongs to another active invite — and that must never roll back
+    // the RSVP (already committed) or the confirmation (already queued).
+    if (data.guestEmail && !invite.email) {
+      try {
+        await db.invite.update({
+          where: { id: invite.id },
+          // Lowercase to match invite creation (which stores email lowercased);
+          // the (event_id, email) partial unique index is case-sensitive.
+          data: { email: data.guestEmail.toLowerCase() },
+        });
+      } catch (err) {
+        // P2002 (email already on another active invite) or any other write
+        // failure here is non-fatal — the RSVP + confirmation already landed.
+        console.warn(
+          `Could not curate guest email onto invite ${invite.id}:`,
+          err instanceof Error ? err.message : err
+        );
+      }
     }
 
     return successResponse({

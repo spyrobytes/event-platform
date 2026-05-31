@@ -4,6 +4,7 @@ import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { generateTokenPair } from "@/lib/tokens";
+import { encryptInviteToken } from "@/lib/invite-token-crypto";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 
 type RouteContext = {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const invite = await db.invite.findUnique({
       where: { id: inviteId },
-      select: { id: true, eventId: true, status: true, tokenRegenerateCount: true },
+      select: { id: true, eventId: true, email: true, status: true, tokenRegenerateCount: true },
     });
 
     if (!invite || invite.eventId !== eventId) {
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       where: { id: inviteId },
       data: {
         tokenHash: hash,
+        // Durable link is phone-only; clear/skip the envelope for email invites.
+        tokenEnc: invite.email ? null : encryptInviteToken(token),
         tokenRegenerateCount: { increment: 1 },
       },
       select: {

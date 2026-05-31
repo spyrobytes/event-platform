@@ -6,6 +6,7 @@ import { requireEventOwner, assertCanPublish, assertProfileComplete } from "@/li
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createInviteSchema, bulkInviteSchema, inviteQuerySchema } from "@/schemas/invite";
 import { generateTokenPair } from "@/lib/tokens";
+import { encryptInviteToken, decryptInviteToken } from "@/lib/invite-token-crypto";
 import { generateGuestRsvpCode, hashRsvpCode } from "@/lib/rsvp-code";
 import {
   queueInviteEmail,
@@ -200,6 +201,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
           expiresAt: true,
           createdAt: true,
           tokenRegenerateCount: true,
+          tokenEnc: true,
           rsvpCodeIssuedAt: true,
           rsvpCodeRegenerateCount: true,
           passId: true,
@@ -256,8 +258,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const opened = (statsMap["OPENED"] || 0)
       + (statsMap["RESPONDED"] || 0);
 
+    // Decrypt the durable-link envelope back to a usable raw token (owner-only
+    // route). Scoped to ACTIVE PHONE-ONLY invites — the durable share link only
+    // exists for the phone-only flow, and a revoked/expired invite must not
+    // resurface a working link. Otherwise `token` is omitted and the client
+    // falls back to session-ephemeral. The raw envelope is never shipped.
+    const invitesWithTokens = invites.map((inv) => {
+      const { tokenEnc, ...rest } = inv;
+      const durable =
+        !rest.email && rest.status !== "REVOKED" && rest.status !== "EXPIRED";
+      const token = durable ? decryptInviteToken(tokenEnc) : null;
+      return token ? { ...rest, token } : rest;
+    });
+
     return successResponse({
-      invites,
+      invites: invitesWithTokens,
       pagination: {
         total,
         limit: query.limit,
@@ -355,6 +370,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone: invite.phone ?? null,
           name: invite.name,
           tokenHash: hash,
+          // Durable link is a phone-only affordance — don't store an envelope
+          // for email invites (delivered + recoverable via the email pipeline).
+          tokenEnc: invite.email ? null : encryptInviteToken(token),
           rsvpCodeHash: hashRsvpCode(rsvpCode),
           rsvpCodeIssuedAt: issuedAt,
           plusOnesAllowed: invite.plusOnesAllowed ?? 0,
@@ -473,6 +491,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
           phone,
           name: data.name,
           tokenHash: hash,
+          // Durable link is phone-only — see the bulk path above.
+          tokenEnc: email ? null : encryptInviteToken(token),
           rsvpCodeHash: hashRsvpCode(rsvpCode),
           rsvpCodeIssuedAt: new Date(),
           plusOnesAllowed: data.plusOnesAllowed ?? 0,

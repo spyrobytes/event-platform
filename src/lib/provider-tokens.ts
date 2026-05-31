@@ -1,18 +1,21 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import {
   GoogleTokenError,
   refreshGoogleDriveAccessToken,
 } from "@/lib/providers/google-drive";
+import {
+  aesGcmEncrypt,
+  aesGcmDecrypt,
+  loadAes256Key,
+} from "@/lib/crypto-envelope";
 import type { GallerySourceType } from "@prisma/client";
 
 /**
  * Encrypted OAuth token storage helpers.
  *
- * Envelope layout: iv (12 bytes) || authTag (16 bytes) || ciphertext.
- * AES-256-GCM with a 32-byte key from PROVIDER_TOKEN_ENCRYPTION_KEY
- * (base64-encoded). One row per (user, provider) in the provider_tokens
- * table — see prisma/schema.prisma.
+ * AES-256-GCM via the shared envelope helper (src/lib/crypto-envelope.ts),
+ * keyed by PROVIDER_TOKEN_ENCRYPTION_KEY (base64, 32 bytes). One row per
+ * (user, provider) in the provider_tokens table — see prisma/schema.prisma.
  *
  * Threat model: at-rest protection for refresh tokens in the database.
  * An attacker who compromises the DB without the encryption key cannot
@@ -20,55 +23,16 @@ import type { GallerySourceType } from "@prisma/client";
  * invalidates every stored token (forcing organizers to reconnect).
  */
 
-const IV_BYTES = 12;
-const AUTH_TAG_BYTES = 16;
-const KEY_BYTES = 32;
 /** Refresh access tokens this many ms before their stated expiry, so a
  * worker that takes a few seconds doesn't burn a refresh on the next call. */
 const REFRESH_SKEW_MS = 60_000;
 
-function getEncryptionKey(): Buffer {
-  const raw = process.env.PROVIDER_TOKEN_ENCRYPTION_KEY;
-  if (!raw) {
-    throw new Error(
-      "PROVIDER_TOKEN_ENCRYPTION_KEY is not set. Generate with `openssl rand -base64 32`.",
-    );
-  }
-  const key = Buffer.from(raw, "base64");
-  if (key.length !== KEY_BYTES) {
-    throw new Error(
-      `PROVIDER_TOKEN_ENCRYPTION_KEY must decode to ${KEY_BYTES} bytes (got ${key.length}). Generate with \`openssl rand -base64 32\`.`,
-    );
-  }
-  return key;
-}
-
 /**
- * Encrypts a UTF-8 plaintext token into an envelope suitable for storage
- * in a `Bytes` Prisma column. Generates a fresh IV per call — never re-use
- * IVs with the same key.
- *
- * Returns Uint8Array (not Buffer) so the type matches what Prisma's Bytes
- * column accepts. Node's Buffer is runtime-compatible but TypeScript
- * widens its generic in a way Prisma doesn't accept on writes.
+ * Encrypts a UTF-8 plaintext token for storage in the `Bytes` envelope column.
+ * Throws if PROVIDER_TOKEN_ENCRYPTION_KEY is missing / the wrong length.
  */
 export function encryptToken(plaintext: string): Uint8Array<ArrayBuffer> {
-  const key = getEncryptionKey();
-  const iv = randomBytes(IV_BYTES);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const ciphertext = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
-    cipher.final(),
-  ]);
-  const authTag = cipher.getAuthTag();
-  // Allocate over a fresh ArrayBuffer (not wrapping Buffer's pool) so the
-  // return type is Uint8Array<ArrayBuffer> — what Prisma's Bytes column
-  // accepts on writes. `new Uint8Array(N)` always backs onto ArrayBuffer.
-  const out = new Uint8Array(iv.length + authTag.length + ciphertext.length);
-  out.set(iv, 0);
-  out.set(authTag, iv.length);
-  out.set(ciphertext, iv.length + authTag.length);
-  return out;
+  return aesGcmEncrypt(plaintext, loadAes256Key("PROVIDER_TOKEN_ENCRYPTION_KEY"));
 }
 
 /**
@@ -78,20 +42,7 @@ export function encryptToken(plaintext: string): Uint8Array<ArrayBuffer> {
  * force the user to reconnect."
  */
 export function decryptToken(envelope: Uint8Array): string {
-  if (envelope.length < IV_BYTES + AUTH_TAG_BYTES + 1) {
-    throw new Error("Provider token envelope is truncated");
-  }
-  const key = getEncryptionKey();
-  const iv = envelope.subarray(0, IV_BYTES);
-  const authTag = envelope.subarray(IV_BYTES, IV_BYTES + AUTH_TAG_BYTES);
-  const ciphertext = envelope.subarray(IV_BYTES + AUTH_TAG_BYTES);
-  const decipher = createDecipheriv("aes-256-gcm", key, iv);
-  decipher.setAuthTag(authTag);
-  const plaintext = Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final(),
-  ]);
-  return plaintext.toString("utf8");
+  return aesGcmDecrypt(envelope, loadAes256Key("PROVIDER_TOKEN_ENCRYPTION_KEY"));
 }
 
 export class ProviderTokenNotFoundError extends Error {

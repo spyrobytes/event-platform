@@ -120,6 +120,9 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     () => new Set()
   );
   const resendingInviteIdsRef = useRef<Set<string>>(new Set());
+  // Invite IDs already marked shared this session — dedupes rapid multi-channel
+  // taps so the optimistic funnel adjustment runs at most once per invite.
+  const markedSharedRef = useRef<Set<string>>(new Set());
 
   const fetchInvites = useCallback(async (pageNum: number = 0) => {
     try {
@@ -323,9 +326,10 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     return `${baseUrl}/rsvp/${token}`;
   }, [eventSlug]);
 
-  // Resolve the shareable RSVP link for a row, or null when no raw token is
-  // available client-side (e.g. after a reload — tokens are never returned by
-  // the list API). Powers the phone-only WhatsApp/SMS deep links.
+  // Resolve the shareable RSVP link for a row. For active phone-only invites
+  // the list API returns a durable `token` (decrypted from token_enc) so the
+  // link survives a reload; otherwise we fall back to a token cached in this
+  // session (just created / regenerated). Null when neither is available.
   const getShareLink = useCallback(
     (invite: Invite): string | null => {
       const token = invite.token || tokenCache.get(invite.id);
@@ -355,6 +359,46 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     setTimeout(() => setCopiedInviteId(null), 3000);
   };
 
+  // Optimistically record that the organizer shared a phone-only invite's
+  // link (WhatsApp/SMS/Copy). Only PENDING advances to SENT — keeps the funnel
+  // monotonic. The ref dedupes rapid multi-channel taps on the same row so the
+  // stats can't double-count before a re-render. The POST is best-effort; a
+  // reload reflects server truth.
+  const handleMarkShared = useCallback(
+    (invite: Invite) => {
+      if (invite.status !== "PENDING") return;
+      if (markedSharedRef.current.has(invite.id)) return;
+      markedSharedRef.current.add(invite.id);
+
+      setInvites((prev) =>
+        prev.map((i) =>
+          i.id === invite.id && i.status === "PENDING"
+            ? { ...i, status: "SENT" }
+            : i
+        )
+      );
+      setServerStats((prev) =>
+        prev
+          ? { ...prev, pending: Math.max(0, prev.pending - 1), sent: prev.sent + 1 }
+          : prev
+      );
+
+      void (async () => {
+        try {
+          const authToken = await getIdToken();
+          if (!authToken) return;
+          await fetch(
+            `/api/events/${eventId}/invites/${invite.id}/mark-shared`,
+            { method: "POST", headers: { Authorization: `Bearer ${authToken}` } }
+          );
+        } catch {
+          // Best-effort — leave the optimistic state; a reload reconciles.
+        }
+      })();
+    },
+    [eventId, getIdToken]
+  );
+
   const handleRegenerate = async (invite: Invite) => {
     try {
       const authToken = await getIdToken();
@@ -381,7 +425,15 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
       setInvites((prev) =>
         prev.map((i) =>
           i.id === invite.id
-            ? { ...i, tokenRegenerateCount: result.data.tokenRegenerateCount }
+            ? {
+                // Refresh invite.token too: the list API now returns a durable
+                // token, and getShareLink prefers it over tokenCache — without
+                // this the share buttons would keep serving the old (now dead)
+                // link after a regenerate.
+                ...i,
+                token: newToken,
+                tokenRegenerateCount: result.data.tokenRegenerateCount,
+              }
             : i
         )
       );
@@ -721,6 +773,7 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
                 tokenCache={tokenCache}
                 getShareLink={getShareLink}
                 eventTitle={eventTitle}
+                onMarkShared={handleMarkShared}
                 resendingInviteIds={resendingInviteIds}
               />
               {pagination && pagination.total > PAGE_SIZE && (
