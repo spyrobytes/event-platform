@@ -28,7 +28,7 @@ type EmailStats = {
   bounced: number;
 };
 
-type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
+type InviteStatus = "PENDING" | "DRAFTED" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 type EmailOutboxStatus =
   | "QUEUED"
@@ -359,11 +359,12 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     setTimeout(() => setCopiedInviteId(null), 3000);
   };
 
-  // Optimistically record that the organizer shared a phone-only invite's
-  // link (WhatsApp/SMS/Copy). Only PENDING advances to SENT — keeps the funnel
-  // monotonic. The ref dedupes rapid multi-channel taps on the same row so the
-  // stats can't double-count before a re-render. The POST is best-effort; a
-  // reload reflects server truth.
+  // Optimistically record that the organizer composed/shared a phone-only
+  // invite's link (WhatsApp/SMS/Copy). Only PENDING advances to DRAFTED —
+  // "drafted" not "sent" because tapping only opens a pre-filled draft (no
+  // delivery signal). Keeps the funnel monotonic. The ref dedupes rapid
+  // multi-channel taps so the stats can't double-count before a re-render. The
+  // POST is best-effort; a reload reflects server truth.
   const handleMarkShared = useCallback(
     (invite: Invite) => {
       if (invite.status !== "PENDING") return;
@@ -373,7 +374,7 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
       setInvites((prev) =>
         prev.map((i) =>
           i.id === invite.id && i.status === "PENDING"
-            ? { ...i, status: "SENT" }
+            ? { ...i, status: "DRAFTED" }
             : i
         )
       );
@@ -603,7 +604,9 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
     }
   };
 
-  const SENT_OR_BEYOND: InviteStatus[] = ["SENT", "OPENED", "RESPONDED", "BOUNCED"];
+  // DRAFTED (phone-only share) counts as outreach alongside SENT — the
+  // "Sent / Drafted" funnel card. Pending then means truly not-yet-contacted.
+  const SENT_OR_BEYOND: InviteStatus[] = ["DRAFTED", "SENT", "OPENED", "RESPONDED", "BOUNCED"];
   const OPENED_OR_BEYOND: InviteStatus[] = ["OPENED", "RESPONDED"];
 
   const stats = serverStats ?? {
@@ -642,7 +645,7 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Sent
+              Sent / Drafted
             </CardTitle>
           </CardHeader>
           <CardContent>

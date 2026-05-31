@@ -101,8 +101,12 @@ export default async function InviteRSVPPage({ params }: PageProps) {
   const { invite, invitationConfig } = result;
   const event = invite.event;
 
-  // Mark invite as opened if still pending/sent (guest accessed RSVP page)
-  if (invite.status === "PENDING" || invite.status === "SENT") {
+  // Mark invite as opened if still pending/drafted/sent (guest accessed RSVP page)
+  if (
+    invite.status === "PENDING" ||
+    invite.status === "DRAFTED" ||
+    invite.status === "SENT"
+  ) {
     await db.invite.update({
       where: { id: invite.id },
       data: { status: "OPENED", openedAt: new Date() },

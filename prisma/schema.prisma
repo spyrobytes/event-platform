@@ -279,6 +279,7 @@ model Invite {
 
 enum InviteStatus {
   PENDING // Created, not sent
+  DRAFTED // Phone-only: organizer composed/shared the link (WhatsApp/SMS) — intent, delivery NOT confirmed. Phone-channel peer of SENT.
   SENT // Email delivered
   OPENED // Link clicked
   RESPONDED // RSVP submitted

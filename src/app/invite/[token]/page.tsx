@@ -162,8 +162,13 @@ export default async function InvitationPage({ params }: PageProps) {
     );
   }
 
-  // Update invite status to OPENED if SENT or PENDING
-  if (invite.status === "SENT" || invite.status === "PENDING") {
+  // Update invite status to OPENED if SENT, PENDING, or DRAFTED (phone-only
+  // share). The guest clicking the link is the first real engagement signal.
+  if (
+    invite.status === "SENT" ||
+    invite.status === "PENDING" ||
+    invite.status === "DRAFTED"
+  ) {
     await db.invite.update({
       where: { id: invite.id },
       data: {

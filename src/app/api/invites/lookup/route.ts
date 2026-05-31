@@ -96,8 +96,13 @@ export async function GET(request: NextRequest) {
       return errorResponse("This event has been cancelled", 400, "EVENT_CANCELLED");
     }
 
-    // Mark invite as opened if not already responded
-    if (invite.status === "SENT" || invite.status === "PENDING") {
+    // Mark invite as opened if not already responded (incl. DRAFTED, the
+    // phone-only share state — a link click is the first real engagement).
+    if (
+      invite.status === "SENT" ||
+      invite.status === "PENDING" ||
+      invite.status === "DRAFTED"
+    ) {
       await db.invite.update({
         where: { id: invite.id },
         data: {

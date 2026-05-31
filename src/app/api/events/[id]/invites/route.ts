@@ -251,7 +251,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Cumulative funnel: each stage includes all stages beyond it
+    // "Sent / Drafted" funnel card: email SENT + phone-only DRAFTED, both
+    // cumulative through later stages. DRAFTED is the phone-channel outreach
+    // peer of SENT; counting it here (not in pending) keeps Pending honest.
     const sent = (statsMap["SENT"] || 0)
+      + (statsMap["DRAFTED"] || 0)
       + (statsMap["OPENED"] || 0)
       + (statsMap["RESPONDED"] || 0)
       + (statsMap["BOUNCED"] || 0);
