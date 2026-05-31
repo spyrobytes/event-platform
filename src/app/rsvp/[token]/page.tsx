@@ -5,6 +5,7 @@ import { RSVPForm } from "@/components/features";
 import { PageViewTracker } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { markInviteOpenedIfUnopened } from "@/lib/invite-status";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
@@ -172,6 +173,11 @@ export default async function RSVPPage({ params }: PageProps) {
       </div>
     );
   }
+
+  // A link click is the first real engagement — advance any pre-open state to
+  // OPENED. Mirrors the /invite/[token] pages so events without an invitation
+  // card track Opened too.
+  await markInviteOpenedIfUnopened(invite.id, invite.status);
 
   // Check if RSVP deadline has passed
   if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {

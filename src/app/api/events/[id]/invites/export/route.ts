@@ -65,7 +65,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         where.rsvp = { response: "NO" };
         break;
       case "pending":
-        where.status = { in: ["PENDING", "SENT", "OPENED"] };
+        // DRAFTED = phone-only invite the organizer shared but the guest
+        // hasn't responded to — belongs in the "awaiting response" export.
+        where.status = { in: ["PENDING", "DRAFTED", "SENT", "OPENED"] };
         where.rsvp = null;
         break;
       case "responded":

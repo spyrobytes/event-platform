@@ -46,36 +46,35 @@ beforeEach(() => {
   dbMock.invite.findUnique.mockResolvedValue(pendingInvite);
   dbMock.invite.update.mockResolvedValue({
     id: "inv_1",
-    status: "SENT",
-    sentAt: new Date(),
+    status: "DRAFTED",
   });
 });
 
 describe("POST /api/events/[id]/invites/[inviteId]/mark-shared", () => {
-  it("advances a PENDING invite to SENT and stamps sentAt", async () => {
+  it("advances a PENDING invite to DRAFTED (not SENT) and does NOT stamp sentAt", async () => {
     const res = await POST(makeRequest(), ctx);
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.status).toBe("SENT");
+    expect(body.data.status).toBe("DRAFTED");
     expect(body.data.changed).toBe(true);
 
     const updateCall = dbMock.invite.update.mock.calls[0][0];
     expect(updateCall.where.id).toBe("inv_1");
-    expect(updateCall.data.status).toBe("SENT");
-    expect(updateCall.data.sentAt).toBeInstanceOf(Date);
+    expect(updateCall.data.status).toBe("DRAFTED");
+    // Nothing was actually sent — sentAt must not be set.
+    expect(updateCall.data.sentAt).toBeUndefined();
   });
 
-  it("is a no-op (changed:false) when already SENT — does not write", async () => {
+  it("is a no-op (changed:false) when already DRAFTED — does not write", async () => {
     dbMock.invite.findUnique.mockResolvedValueOnce({
       ...pendingInvite,
-      status: "SENT",
-      sentAt: new Date("2026-01-01"),
+      status: "DRAFTED",
     });
     const res = await POST(makeRequest(), ctx);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.changed).toBe(false);
-    expect(body.data.status).toBe("SENT");
+    expect(body.data.status).toBe("DRAFTED");
     expect(dbMock.invite.update).not.toHaveBeenCalled();
   });
 

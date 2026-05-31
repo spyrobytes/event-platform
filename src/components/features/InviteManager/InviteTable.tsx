@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { SharePhoneInvite } from "./SharePhoneInvite";
 
-type InviteStatus = "PENDING" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
+type InviteStatus = "PENDING" | "DRAFTED" | "SENT" | "OPENED" | "RESPONDED" | "BOUNCED" | "EXPIRED" | "REVOKED";
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 type EmailOutboxStatus =
   | "QUEUED"
@@ -69,6 +69,7 @@ type InviteTableProps = {
 
 const STATUS_CONFIG: Record<InviteStatus, { label: string; className: string }> = {
   PENDING: { label: "Pending", className: "bg-surface-3 text-foreground" },
+  DRAFTED: { label: "Drafted", className: "bg-violet-500/20 text-violet-600 dark:text-violet-400" },
   SENT: { label: "Sent", className: "bg-blue-500/20 text-blue-600 dark:text-blue-400" },
   OPENED: { label: "Opened", className: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400" },
   RESPONDED: { label: "Responded", className: "bg-green-500/20 text-green-600 dark:text-green-400" },
@@ -172,6 +173,11 @@ export function InviteTable({ invites, onResend, onCopyLink, onCopyPassLink, onR
                       "inline-flex rounded-full px-2 py-1 text-xs font-medium",
                       statusConfig.className
                     )}
+                    title={
+                      invite.status === "DRAFTED"
+                        ? "Invite link composed and shared from your device. We can't confirm it was sent or delivered — \"Opened\" appears once the guest visits the link."
+                        : undefined
+                    }
                   >
                     {statusConfig.label}
                   </span>

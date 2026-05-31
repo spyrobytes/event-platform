@@ -11,15 +11,15 @@ type RouteContext = {
 
 /**
  * POST /api/events/[id]/invites/[inviteId]/mark-shared
- * Records that the organizer manually shared a phone-only invite's link
- * (WhatsApp / SMS / Copy). Phone-only invites have no email pipeline to flip
- * them to SENT, so without this they'd sit at PENDING forever and the funnel
- * would under-count guests who were actually contacted.
+ * Records that the organizer composed/shared a phone-only invite's link
+ * (WhatsApp / SMS / Copy). The deep links hand off to the OS with no send or
+ * delivery callback, so the honest state is DRAFTED — "a draft was composed,"
+ * NOT SENT (which on the email channel means an actual dispatch). DRAFTED is
+ * the phone-channel peer of SENT and carries to OPENED once the guest clicks
+ * the tokenized link (see /api/invites/lookup + the /invite/[token] pages).
  *
- * Idempotent: only advances PENDING -> SENT (+ sentAt). For any later state
- * (OPENED / RESPONDED / SENT / BOUNCED / EXPIRED / REVOKED) it's a no-op so a
- * re-tap can't regress the funnel — we never want this to downgrade progress.
- * Owner-only.
+ * Idempotent: only advances PENDING -> DRAFTED. For any later state it's a
+ * no-op so a re-tap can't regress the funnel. Owner-only.
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const invite = await db.invite.findUnique({
       where: { id: inviteId },
-      select: { id: true, eventId: true, status: true, sentAt: true },
+      select: { id: true, eventId: true, status: true },
     });
 
     if (!invite || invite.eventId !== eventId) {
@@ -47,15 +47,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return successResponse({
         id: invite.id,
         status: invite.status,
-        sentAt: invite.sentAt,
         changed: false,
       });
     }
 
+    // Status only — deliberately NOT sentAt: nothing was actually sent, and a
+    // false "sent at" timestamp is exactly the dishonesty DRAFTED fixes.
     const updated = await db.invite.update({
       where: { id: inviteId },
-      data: { status: "SENT", sentAt: new Date() },
-      select: { id: true, status: true, sentAt: true },
+      data: { status: "DRAFTED" },
+      select: { id: true, status: true },
     });
 
     return successResponse({ ...updated, changed: true });
