@@ -23,6 +23,7 @@ import {
   getV3CSSVariables,
   getV3GlassVariables,
   getV3FontUrl,
+  getSectionThemeVariables,
   tokensToInline,
 } from "./theme-packs";
 
@@ -167,6 +168,17 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     const cssVars = getV3CSSVariables(defaultThemePack, primaryColor, definition.motionPreset);
     const glassVars = getV3GlassVariables(defaultThemePack);
     const fontUrl = getV3FontUrl(defaultThemePack);
+
+    // Resolve the optional section theme (recolors the feature surfaces — nav,
+    // hero cards, countdown strip, RSVP, schedule, footer — as a group). An
+    // unset or unknown id injects no --lux-* vars, so every themed surface
+    // falls back to the template's default look.
+    const activeSectionTheme = theme.sectionThemeId
+      ? definition.sectionThemes?.find((t) => t.id === theme.sectionThemeId)
+      : undefined;
+    const luxVars = activeSectionTheme
+      ? getSectionThemeVariables(activeSectionTheme)
+      : undefined;
 
     // Find hero asset
     const heroAsset = hero.heroImageAssetId
@@ -403,7 +415,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
             <article
               className="wedding-template-v2"
               style={{
-                ...tokensToInline({ ...cssVars, ...glassVars }),
+                ...tokensToInline({ ...cssVars, ...glassVars, ...luxVars }),
                 backgroundColor: "var(--bg)",
                 color: "var(--text)",
                 fontFamily: "var(--sans)",
@@ -453,8 +465,17 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 eventTimezone={temporal?.timezone ?? "UTC"}
               />
 
-              {/* Temporal Hero Overlay */}
-              <TemporalHeroOverlay accentColor={primaryColor} />
+              {/* Temporal Hero Overlay (countdown strip below the hero) —
+                  themed to match the active section theme's panel when set. */}
+              <TemporalHeroOverlay
+                accentColor={primaryColor}
+                panelColor={activeSectionTheme?.panel}
+                inkColor={
+                  activeSectionTheme
+                    ? activeSectionTheme.ink ?? "rgba(255,255,255,0.72)"
+                    : undefined
+                }
+              />
 
               {/* Prelude (optional welcome note — opt-in per template definition) */}
               {definition.supportsPrelude && (
