@@ -6,21 +6,39 @@
  */
 
 /**
- * The unsubscribe URL captured in the original invite email payload at send
- * time (see `queueInviteEmail`).
+ * The unsubscribe URL for a reminder, resolved from the original invite email
+ * payload (see `queueInviteEmail`).
  *
- * Reminder crons reuse this instead of re-deriving the token from the RSVP URL.
- * The old approach (`rsvpUrl.split("/rsvp/").pop()`) was coupled to a single
- * literal path segment: if the invite link format ever changed (e.g. to
- * `/invite/<token>`) the split would silently return the whole URL as the
- * "token" and produce a broken unsubscribe link — a no-throw failure that ships
- * green. The stored `unsubscribeUrl` is the authoritative value and is
- * format-agnostic.
+ * Prefers the stored `unsubscribeUrl` — the authoritative value captured at
+ * send time, format-agnostic. Reminder crons reuse it instead of re-deriving
+ * the token from the RSVP URL: the old `rsvpUrl.split("/rsvp/").pop()` was
+ * coupled to a single literal path segment and would silently return the whole
+ * URL as the "token" (a broken link that ships green) if the invite link format
+ * ever changed (e.g. to `/invite/<token>`).
+ *
+ * Fallback: invite emails predate the `unsubscribeUrl` field (it was added on
+ * 2026-04-08; invites have been sent since 2026-01-12), so payloads from that
+ * window carry only `rsvpUrl`. For those, derive the unsubscribe URL by mapping
+ * the `/rsvp/` path to `/unsubscribe/` — reusing the base + token already in
+ * `rsvpUrl` (so no env lookup, and the send-time host is preserved). This only
+ * runs for legacy payloads, which are always old-format `/rsvp/<token>`; any
+ * newer/`/invite/` payload carries `unsubscribeUrl` and returns above, so the
+ * fragile path can't be reached by a future link-format change.
  */
 export function getUnsubscribeUrlFromPayload(
   payload: unknown,
 ): string | undefined {
   if (!payload || typeof payload !== "object") return undefined;
-  const value = (payload as Record<string, unknown>).unsubscribeUrl;
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  const { unsubscribeUrl, rsvpUrl } = payload as Record<string, unknown>;
+
+  if (typeof unsubscribeUrl === "string" && unsubscribeUrl.length > 0) {
+    return unsubscribeUrl;
+  }
+
+  // Legacy fallback — see doc comment. `.replace` swaps only the first match.
+  if (typeof rsvpUrl === "string" && rsvpUrl.includes("/rsvp/")) {
+    return rsvpUrl.replace("/rsvp/", "/unsubscribe/");
+  }
+
+  return undefined;
 }

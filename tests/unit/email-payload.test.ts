@@ -11,10 +11,10 @@ describe("getUnsubscribeUrlFromPayload", () => {
     ).toBe("https://eventfxr.com/unsubscribe/abc");
   });
 
-  it("is independent of the rsvpUrl format (regression: the old /rsvp/ split would break here)", () => {
-    // If a future change makes the invite link /invite/<token>, the old
-    // `rsvpUrl.split("/rsvp/").pop()` returned the whole URL as the token.
-    // Reading unsubscribeUrl directly is unaffected.
+  it("prefers the stored unsubscribeUrl even when rsvpUrl is a /invite/ link (the fragile fallback is never reached)", () => {
+    // A future /invite/<token> rsvpUrl only ever appears in payloads that also
+    // carry unsubscribeUrl, so the stored value wins and the /rsvp/ fallback
+    // below is never exercised by a link-format change.
     expect(
       getUnsubscribeUrlFromPayload({
         rsvpUrl: "https://eventfxr.com/invite/abc",
@@ -23,9 +23,22 @@ describe("getUnsubscribeUrlFromPayload", () => {
     ).toBe("https://eventfxr.com/unsubscribe/abc");
   });
 
-  it("returns undefined when unsubscribeUrl is absent", () => {
+  it("falls back to deriving from rsvpUrl for legacy payloads with no unsubscribeUrl", () => {
+    // Invite emails queued before unsubscribeUrl was stored (2026-01-12 →
+    // 2026-04-08) carry only an old-format /rsvp/<token> URL. Map /rsvp/ to
+    // /unsubscribe/, reusing the same host + token — equivalent to the old
+    // cron derivation, so those reminders keep a working unsubscribe link.
     expect(
       getUnsubscribeUrlFromPayload({ rsvpUrl: "https://eventfxr.com/rsvp/abc" })
+    ).toBe("https://eventfxr.com/unsubscribe/abc");
+  });
+
+  it("returns undefined when neither unsubscribeUrl nor a /rsvp/ rsvpUrl is present", () => {
+    expect(getUnsubscribeUrlFromPayload({})).toBeUndefined();
+    // A /invite/ rsvpUrl with no unsubscribeUrl can't occur in real data, but
+    // the fallback is deliberately /rsvp/-specific, so it does not match here.
+    expect(
+      getUnsubscribeUrlFromPayload({ rsvpUrl: "https://eventfxr.com/invite/abc" })
     ).toBeUndefined();
   });
 
