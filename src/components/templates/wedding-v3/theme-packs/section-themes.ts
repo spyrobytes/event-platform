@@ -54,7 +54,7 @@ export type SectionTheme = {
 export function getSectionThemeVariables(theme: SectionTheme): Record<string, string> {
   const { panel, accent, ink } = theme;
 
-  return {
+  const vars: Record<string, string> = {
     // Surfaces derived from the single panel color
     "--lux-panel": panel,
     // Nav pill / mobile hamburger — translucent over blurred page content
@@ -72,9 +72,19 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     "--lux-ink-soft": "rgba(255, 255, 255, 0.62)",
     "--lux-ink-faint": "rgba(255, 255, 255, 0.4)",
 
-    // Metallic accent — stays driven by the template accent unless pinned
-    "--lux-accent": accent ?? "var(--accent)",
     // Text that sits on top of an accent fill (e.g. CTA pill label)
     "--lux-accent-ink": panel,
   };
+
+  // Only pin --lux-accent when a theme deliberately overrides the accent.
+  // Otherwise leave it unset so each consumer's own
+  // `var(--lux-accent, var(--accent, #c5a55a))` fallback keeps flowing from the
+  // live --accent (and preserves the #c5a55a hard default). Emitting
+  // "var(--accent)" here would be a redundant indirection that also makes that
+  // hard fallback unreachable.
+  if (accent) {
+    vars["--lux-accent"] = accent;
+  }
+
+  return vars;
 }

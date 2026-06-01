@@ -45,7 +45,7 @@
   background: linear-gradient(
     160deg,
     var(--lux-panel, var(--night, #1e1b17)) 0%,
-    var(--charcoal, #3d3830) 100%
+    var(--lux-panel, var(--charcoal, #3d3830)) 100%
   );
 }
 
