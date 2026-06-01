@@ -32,6 +32,7 @@ async function getInviteForRSVP(token: string) {
           slug: true,
           status: true,
           timezone: true,
+          rsvpDeadline: true,
           pageConfig: true,
           templateId: true,
         },
@@ -114,6 +115,13 @@ export default async function InviteRSVPPage({ params }: PageProps) {
     redirect(`/invite/${token}`);
   }
 
+  // Revoked invites: route to the canonical invite page, which renders the
+  // "no longer valid" terminal view. Parity with /rsvp/[token] and the RSVP
+  // API, which both reject a revoked invite before showing the form.
+  if (invite.status === "REVOKED") {
+    redirect(`/invite/${token}`);
+  }
+
   // Derive whether the RSVP form should expose the "Message for the couple"
   // textarea. Both the wishes section AND its enableSubmissions flag must be
   // on. Falls back to false when the event has no pageConfig or no wishes.
@@ -136,6 +144,24 @@ export default async function InviteRSVPPage({ params }: PageProps) {
   const textDirection = invitationConfig?.textDirection === "RTL" ? "rtl" : "ltr";
 
   const eventName = invitationConfig?.coupleDisplayName || event.title;
+
+  // RSVP window closed. The canonical /invite/[token] page doesn't gate on the
+  // deadline (it always renders the invitation), so a redirect there would loop
+  // back to a live-looking RSVP button — render the closed state here instead.
+  // Checked before the responded/form branches for parity with /rsvp/[token].
+  // A genuine open still counts, so keep the beacon on this path.
+  if (event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date()) {
+    return (
+      <InvitationShell
+        themeId={themeId}
+        typographyPair={typographyPair}
+        textDirection={textDirection}
+      >
+        <MarkOpenedBeacon token={token} />
+        <RsvpClosedView eventName={eventName} token={token} />
+      </InvitationShell>
+    );
+  }
 
   // Check if already responded
   const hasResponded = !!invite.rsvp;
@@ -289,6 +315,73 @@ function AlreadyRespondedView({
           If you need to change your response, please contact the event organizer.
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * Shown when the RSVP deadline has passed. Mirrors the closed-state view on
+ * /rsvp/[token] inside the themed invitation shell, with a way back to the
+ * invitation itself.
+ */
+function RsvpClosedView({
+  eventName,
+  token,
+}: {
+  eventName: string;
+  token: string;
+}) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md mb-6">
+        <Link
+          href={`/invite/${token}`}
+          className="inline-flex items-center gap-2 text-sm text-[var(--inv-text-secondary)] hover:text-[var(--inv-accent)] transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Back to invitation
+        </Link>
+      </div>
+
+      <div className="w-full max-w-md bg-[var(--inv-card-bg)] rounded-lg shadow-[var(--inv-shadow-soft)] overflow-hidden">
+        <div className="px-6 py-10 text-center space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-full bg-[var(--inv-accent)]/10 flex items-center justify-center">
+            <svg
+              className="w-8 h-8 text-[var(--inv-accent)]"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-[var(--inv-font-heading)] text-[var(--inv-text-primary)]">
+            RSVP Period Closed
+          </h1>
+          <p className="text-sm text-[var(--inv-text-secondary)]">
+            The RSVP deadline for{" "}
+            <strong className="text-[var(--inv-text-primary)]">{eventName}</strong>{" "}
+            has passed. If you have questions, please contact the event organizer.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

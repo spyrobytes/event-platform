@@ -17,6 +17,7 @@ import {
 import { AppError } from "@/lib/errors";
 import { generateTokenPair } from "@/lib/tokens";
 import { buildPortalUrl } from "@/lib/guest-access";
+import { exceedsEventCapacity } from "@/lib/event-capacity";
 
 const GENERIC_INVALID_MESSAGE =
   "Your RSVP couldn't be processed. Please re-enter your invitation code and try again.";
@@ -170,27 +171,23 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Capacity check under row lock — matches the invite-token path so
-      //    both entry points produce identical state under contention.
-      if (data.response === "YES" && invite.event.maxAttendees) {
-        const [lockedEvent] = await tx.$queryRaw<
-          { max_attendees: number | null }[]
-        >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
-
-        const maxAttendees = lockedEvent?.max_attendees;
-        if (maxAttendees) {
-          const [{ count: currentAttendees }] = await tx.$queryRaw<
-            { count: bigint }[]
-          >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
-          const existingGuestCount = invite.rsvp?.guestCount ?? 0;
-          const newGuests = data.guestCount - existingGuestCount;
-          if (Number(currentAttendees) + newGuests > maxAttendees) {
-            throw new AppError(
-              "Sorry, this event has reached its maximum capacity.",
-              "CAPACITY_FULL",
-              400
-            );
-          }
-        }
+      //    both entry points produce identical state under contention. The
+      //    helper locks the event row and counts seats, excluding this invite's
+      //    own row so the result never depends on a stale snapshot.
+      if (
+        await exceedsEventCapacity(tx, {
+          eventId: invite.event.id,
+          inviteId: invite.id,
+          response: data.response,
+          guestCount: data.guestCount,
+          maxAttendees: invite.event.maxAttendees,
+        })
+      ) {
+        throw new AppError(
+          "Sorry, this event has reached its maximum capacity.",
+          "CAPACITY_FULL",
+          400
+        );
       }
 
       // 6. Email conflict guard. If the guest provides an email that matches
