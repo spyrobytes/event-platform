@@ -52,7 +52,7 @@
   font-weight: 500;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: hsl(var(--foreground) / 0.7);
+  color: var(--temporal-ink, hsl(var(--foreground) / 0.7));
 }
 
 .countdownValue {
@@ -72,12 +72,12 @@
 .countdownUnit {
   font-size: 1rem;
   font-weight: 400;
-  color: hsl(var(--foreground) / 0.6);
+  color: var(--temporal-ink, hsl(var(--foreground) / 0.6));
 }
 
 .countdownSub {
   font-size: 0.875rem;
-  color: hsl(var(--muted-foreground));
+  color: var(--temporal-ink, hsl(var(--muted-foreground)));
 }
 
 /* ==========================================================================
@@ -257,10 +257,13 @@
   justify-content: center;
   gap: 1rem;
   padding: 2rem 1rem;
-  background: linear-gradient(
-    to bottom,
-    hsl(var(--background) / 0.95),
-    hsl(var(--background))
+  background: var(
+    --temporal-surface,
+    linear-gradient(
+      to bottom,
+      hsl(var(--background) / 0.95),
+      hsl(var(--background))
+    )
   );
   text-align: center;
 }

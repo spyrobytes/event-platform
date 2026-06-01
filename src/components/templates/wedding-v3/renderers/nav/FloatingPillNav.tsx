@@ -52,7 +52,7 @@ export function FloatingPillNav({
           ? "translateX(-50%) translateY(0)"
           : "translateX(-50%) translateY(-80px)",
         zIndex: 100,
-        background: "rgba(30, 27, 23, 0.85)",
+        background: "var(--lux-panel-soft, rgba(30, 27, 23, 0.85))",
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         borderRadius: 999,
@@ -78,12 +78,12 @@ export function FloatingPillNav({
           width: 28,
           height: 28,
           borderRadius: 2,
-          border: "1px solid var(--accent, #c5a55a)",
+          border: "1px solid var(--lux-accent, var(--accent, #c5a55a))",
           textDecoration: "none",
           fontFamily: "var(--serif)",
           fontSize: "0.75rem",
           fontWeight: 400,
-          color: "var(--accent, #c5a55a)",
+          color: "var(--lux-accent, var(--accent, #c5a55a))",
           marginRight: 8,
           transition: "background 0.3s ease",
         }}
@@ -97,7 +97,7 @@ export function FloatingPillNav({
         style={{
           width: 1,
           height: 20,
-          background: "rgba(255,255,255,0.15)",
+          background: "var(--lux-line, rgba(255,255,255,0.15))",
           marginRight: 4,
         }}
         aria-hidden="true"
@@ -117,7 +117,7 @@ export function FloatingPillNav({
               fontWeight: 500,
               letterSpacing: "0.1em",
               textTransform: "uppercase" as const,
-              color: "rgba(255,255,255,0.6)",
+              color: "var(--lux-ink-soft, rgba(255,255,255,0.6))",
               textDecoration: "none",
               padding: "6px 10px",
               borderRadius: 999,
@@ -143,8 +143,8 @@ export function FloatingPillNav({
               fontWeight: 600,
               letterSpacing: "0.12em",
               textTransform: "uppercase" as const,
-              color: "var(--night, #1e1b17)",
-              background: "var(--accent, #c5a55a)",
+              color: "var(--lux-accent-ink, var(--night, #1e1b17))",
+              background: "var(--lux-accent, var(--accent, #c5a55a))",
               textDecoration: "none",
               padding: "8px 18px",
               borderRadius: 999,
@@ -167,7 +167,7 @@ export function FloatingPillNav({
               fontWeight: 500,
               letterSpacing: "0.1em",
               textTransform: "uppercase" as const,
-              color: "rgba(255,255,255,0.6)",
+              color: "var(--lux-ink-soft, rgba(255,255,255,0.6))",
               padding: "6px 10px",
               borderRadius: 999,
             }}
@@ -188,7 +188,7 @@ export function FloatingPillNav({
           background: rgba(197, 165, 90, 0.15) !important;
         }
         .gl-nav-link:hover {
-          color: var(--accent, #c5a55a) !important;
+          color: var(--lux-accent, var(--accent, #c5a55a)) !important;
         }
         .gl-nav-cta:hover {
           filter: brightness(1.15) !important;
@@ -218,8 +218,8 @@ export function FloatingPillNav({
         height: 40,
         borderRadius: 999,
         border: "1px solid rgba(255,255,255,0.35)",
-        color: "rgba(255,255,255,0.92)",
-        background: "rgba(30, 27, 23, 0.6)",
+        color: "var(--lux-ink, rgba(255,255,255,0.92))",
+        background: "var(--lux-panel-soft, rgba(30, 27, 23, 0.6))",
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
       }}
