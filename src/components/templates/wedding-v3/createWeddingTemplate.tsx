@@ -170,15 +170,17 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     const fontUrl = getV3FontUrl(defaultThemePack);
 
     // Resolve the optional section theme (recolors the feature surfaces — nav,
-    // hero cards, countdown strip, RSVP, schedule, footer — as a group). An
-    // unset or unknown id injects no --lux-* vars, so every themed surface
-    // falls back to the template's default look.
-    const activeSectionTheme = theme.sectionThemeId
-      ? definition.sectionThemes?.find((t) => t.id === theme.sectionThemeId)
-      : undefined;
-    const luxVars = activeSectionTheme
-      ? getSectionThemeVariables(activeSectionTheme)
-      : undefined;
+    // hero cards, countdown strip, RSVP, schedule, footer — as a group) into a
+    // map of --lux-* CSS variables injected on the article below. An unset or
+    // unknown id yields no vars, so every themed surface (the countdown strip
+    // included — it reads --lux-* directly) falls back to the default look.
+    const luxVars = useMemo(() => {
+      const active = theme.sectionThemeId
+        ? definition.sectionThemes?.find((t) => t.id === theme.sectionThemeId)
+        : undefined;
+      return active ? getSectionThemeVariables(active) : undefined;
+      // definition is a stable factory-closure constant, not a reactive dep.
+    }, [theme.sectionThemeId]);
 
     // Find hero asset
     const heroAsset = hero.heroImageAssetId
@@ -465,17 +467,10 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 eventTimezone={temporal?.timezone ?? "UTC"}
               />
 
-              {/* Temporal Hero Overlay (countdown strip below the hero) —
-                  themed to match the active section theme's panel when set. */}
-              <TemporalHeroOverlay
-                accentColor={primaryColor}
-                panelColor={activeSectionTheme?.panel}
-                inkColor={
-                  activeSectionTheme
-                    ? activeSectionTheme.ink ?? "rgba(255,255,255,0.72)"
-                    : undefined
-                }
-              />
+              {/* Temporal Hero Overlay (countdown strip below the hero). When a
+                  section theme is active it inherits the panel + ink ramp from
+                  the --lux-* vars on the article, like every other surface. */}
+              <TemporalHeroOverlay accentColor={primaryColor} />
 
               {/* Prelude (optional welcome note — opt-in per template definition) */}
               {definition.supportsPrelude && (
