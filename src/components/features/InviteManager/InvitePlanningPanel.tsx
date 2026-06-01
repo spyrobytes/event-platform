@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useDebouncedSave, type SaveStatus } from "@/hooks/useDebouncedSave";
+import { buildInviteUrl } from "@/lib/invite-links";
 
 const FIELD_MAX = 500;
 /** Must match MAX_REGENERATIONS in the regenerate API route. */
@@ -162,7 +163,7 @@ export function InvitePlanningPanel({
       typeof window !== "undefined"
         ? (process.env.NEXT_PUBLIC_BASE_URL || window.location.origin)
         : (process.env.NEXT_PUBLIC_BASE_URL ?? "");
-    const url = `${baseUrl}/invite/${token}`;
+    const url = buildInviteUrl(baseUrl, token);
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

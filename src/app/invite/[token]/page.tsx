@@ -55,6 +55,7 @@ async function getInviteWithConfig(token: string) {
           coverImageUrl: true,
           status: true,
           maxAttendees: true,
+          rsvpDeadline: true,
         },
       },
       rsvp: {
@@ -236,6 +237,13 @@ export default async function InvitationPage({ params }: PageProps) {
     MAYBE: "Maybe",
   };
 
+  // RSVP window closed. This page (the canonical share target) still shows the
+  // invitation post-deadline — guests may want event details / registry — but
+  // the RSVP CTA is a dead end once the deadline passes (the sub-page rejects
+  // it). Surface a banner so an un-responded guest isn't surprised by that.
+  const deadlinePassed =
+    !!event.rsvpDeadline && new Date(event.rsvpDeadline) < new Date();
+
   // Build portal URL for event page access
   const portalUrl = event.slug ? buildPortalUrl(event.slug, token) : null;
 
@@ -412,6 +420,25 @@ export default async function InvitationPage({ params }: PageProps) {
             {invite.rsvp!.guestCount > 1 && (
               <span> ({invite.rsvp!.guestCount} guests)</span>
             )}
+          </p>
+          {portalUrl && (
+            <a
+              href={portalUrl}
+              className="inline-block mt-2 text-sm text-[var(--inv-accent)] hover:underline"
+            >
+              View Event Details &rarr;
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Deadline banner — only when the guest hasn't responded (a responded
+          guest sees their status above instead). Tells them RSVP is closed
+          before they click through to the closed sub-page. */}
+      {!hasResponded && deadlinePassed && (
+        <div className="fixed bottom-0 left-0 right-0 bg-[var(--inv-card-bg)] border-t border-[var(--inv-border)] p-4 text-center z-50">
+          <p className="text-sm text-[var(--inv-text-secondary)]">
+            RSVP for this event has closed.
           </p>
           {portalUrl && (
             <a

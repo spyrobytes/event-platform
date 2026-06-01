@@ -9,6 +9,7 @@ import { InvitePlanningPanel, type PlanningFields } from "./InvitePlanningPanel"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CreateInviteInput } from "@/schemas/invite";
+import { buildInviteUrl } from "@/lib/invite-links";
 
 const EXPORT_FILTERS = [
   { value: "all", label: "All Invites" },
@@ -317,8 +318,11 @@ export function InviteManager({ eventId, eventSlug, eventTitle }: InviteManagerP
 
   const buildGuestLink = useCallback((token: string, invite: Invite) => {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    // Phone-only invites: the full invitation experience is the canonical share
+    // target (matches the planning panel's Copy-link). It routes on to the RSVP
+    // form, and /rsvp/[token] redirects here when an invitation config exists.
     if (!invite.email) {
-      return `${baseUrl}/rsvp/${token}`;
+      return buildInviteUrl(baseUrl, token);
     }
     if (eventSlug) {
       return `${baseUrl}/e/${eventSlug}?tk=${token}`;
