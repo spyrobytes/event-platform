@@ -101,14 +101,22 @@ export async function POST(request: NextRequest) {
 
         const maxAttendees = lockedEvent?.max_attendees;
         if (maxAttendees) {
-          const [{ count: currentAttendees }] = await tx.$queryRaw<
-            { count: bigint }[]
-          >`SELECT COUNT(*) as count FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
+          // Sum the seats already taken — guest_count per attending row, not a
+          // count of rows. A party with plus-ones occupies more than one seat,
+          // so COUNT(*) would let plus-ones silently overbook the event.
+          const [{ seats: takenSeats }] = await tx.$queryRaw<
+            { seats: bigint }[]
+          >`SELECT COALESCE(SUM(guest_count), 0) as seats FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
 
-          const existingGuestCount = invite.rsvp?.guestCount || 0;
-          const newGuests = data.guestCount - existingGuestCount;
+          // Only this invite's *currently attending* seats are already in the
+          // sum; subtract them (zero unless it's an existing YES) so a re-submit
+          // or a NO/MAYBE→YES change is counted exactly once.
+          const alreadyCounted =
+            invite.rsvp?.response === "YES" ? invite.rsvp.guestCount : 0;
+          const projectedSeats =
+            Number(takenSeats) - alreadyCounted + data.guestCount;
 
-          if (Number(currentAttendees) + newGuests > maxAttendees) {
+          if (projectedSeats > maxAttendees) {
             throw new ValidationError(
               "Sorry, this event has reached its maximum capacity"
             );
