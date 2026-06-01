@@ -333,12 +333,33 @@ describe("capacity", () => {
       ...validInvite,
       event: { ...validInvite.event, maxAttendees: 10 },
     });
-    // Lock query then count query.
+    // Lock query then seat-sum query (SUM(guest_count), not COUNT(*)).
     dbMock.$queryRaw
       .mockResolvedValueOnce([{ max_attendees: 10 }])
-      .mockResolvedValueOnce([{ count: BigInt(10) }]);
+      .mockResolvedValueOnce([{ seats: BigInt(10) }]);
 
     const res = await POST(makeRequest(validBody, { sessionCookie: "tok" }));
+    expect((await res.json()).code).toBe("CAPACITY_FULL");
+    expect(dbMock.rSVP.upsert).not.toHaveBeenCalled();
+  });
+
+  it("counts seats, not rows — a plus-ones party can't overbook past the cap", async () => {
+    // 9 seats already taken; a party of 3 makes 12 > 10. The old
+    // COUNT(*)-of-rows logic would have under-counted and let it through.
+    dbMock.invite.findUnique.mockResolvedValue({
+      ...validInvite,
+      event: { ...validInvite.event, maxAttendees: 10 },
+    });
+    dbMock.$queryRaw
+      .mockResolvedValueOnce([{ max_attendees: 10 }])
+      .mockResolvedValueOnce([{ seats: BigInt(9) }]);
+
+    const res = await POST(
+      makeRequest(
+        { ...validBody, guestCount: 3, additionalGuestNames: ["Bob", "Carol"] },
+        { sessionCookie: "tok" }
+      )
+    );
     expect((await res.json()).code).toBe("CAPACITY_FULL");
     expect(dbMock.rSVP.upsert).not.toHaveBeenCalled();
   });
