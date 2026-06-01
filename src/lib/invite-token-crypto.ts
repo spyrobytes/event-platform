@@ -31,11 +31,6 @@ function warnBadKeyOnce(err: unknown): void {
   );
 }
 
-/** True when the durable-link key is configured. */
-export function inviteTokenEncryptionEnabled(): boolean {
-  return !!process.env[ENV_VAR];
-}
-
 /**
  * Encrypts a raw invite token for storage in `Invite.tokenEnc`. Returns null
  * when no key is configured — the caller stores null and the invite simply

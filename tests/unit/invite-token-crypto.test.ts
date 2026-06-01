@@ -4,7 +4,6 @@ import { randomBytes } from "node:crypto";
 import {
   encryptInviteToken,
   decryptInviteToken,
-  inviteTokenEncryptionEnabled,
 } from "@/lib/invite-token-crypto";
 
 const ORIGINAL = process.env.INVITE_TOKEN_ENC_KEY;
@@ -17,10 +16,6 @@ afterEach(() => {
 describe("invite-token-crypto — key configured", () => {
   beforeEach(() => {
     process.env.INVITE_TOKEN_ENC_KEY = randomBytes(32).toString("base64");
-  });
-
-  it("reports encryption enabled", () => {
-    expect(inviteTokenEncryptionEnabled()).toBe(true);
   });
 
   it("round-trips a raw invite token", () => {
@@ -40,10 +35,6 @@ describe("invite-token-crypto — key configured", () => {
 describe("invite-token-crypto — no key (graceful degradation)", () => {
   beforeEach(() => {
     delete process.env.INVITE_TOKEN_ENC_KEY;
-  });
-
-  it("reports encryption disabled", () => {
-    expect(inviteTokenEncryptionEnabled()).toBe(false);
   });
 
   it("encrypt returns null", () => {

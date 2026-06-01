@@ -157,6 +157,7 @@ export default async function InviteRSVPPage({ params }: PageProps) {
         typographyPair={typographyPair}
         textDirection={textDirection}
       >
+        <PageViewTracker eventId={event.id} source="rsvp_page" inviteRef={inviteRef} />
         <MarkOpenedBeacon token={token} />
         <RsvpClosedView eventName={eventName} token={token} />
       </InvitationShell>
