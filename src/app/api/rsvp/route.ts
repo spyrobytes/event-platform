@@ -6,6 +6,7 @@ import { hashToken } from "@/lib/tokens";
 import { queueConfirmationEmail, scheduleEmailProcessing, buildUnsubscribeUrl } from "@/lib/email";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { buildPortalUrl } from "@/lib/guest-access";
+import { exceedsEventCapacity } from "@/lib/event-capacity";
 
 /**
  * POST /api/rsvp
@@ -93,35 +94,22 @@ export async function POST(request: NextRequest) {
 
     // Atomic transaction: capacity check under lock + RSVP upsert + invite status + email outbox
     const { rsvp, emailId } = await db.$transaction(async (tx) => {
-      // Lock the event row to prevent concurrent capacity overflows
-      if (data.response === "YES" && invite.event.maxAttendees) {
-        const [lockedEvent] = await tx.$queryRaw<
-          { max_attendees: number | null }[]
-        >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
-
-        const maxAttendees = lockedEvent?.max_attendees;
-        if (maxAttendees) {
-          // Sum the seats already taken — guest_count per attending row, not a
-          // count of rows. A party with plus-ones occupies more than one seat,
-          // so COUNT(*) would let plus-ones silently overbook the event.
-          const [{ seats: takenSeats }] = await tx.$queryRaw<
-            { seats: bigint }[]
-          >`SELECT COALESCE(SUM(guest_count), 0) as seats FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
-
-          // Only this invite's *currently attending* seats are already in the
-          // sum; subtract them (zero unless it's an existing YES) so a re-submit
-          // or a NO/MAYBE→YES change is counted exactly once.
-          const alreadyCounted =
-            invite.rsvp?.response === "YES" ? invite.rsvp.guestCount : 0;
-          const projectedSeats =
-            Number(takenSeats) - alreadyCounted + data.guestCount;
-
-          if (projectedSeats > maxAttendees) {
-            throw new ValidationError(
-              "Sorry, this event has reached its maximum capacity"
-            );
-          }
-        }
+      // Capacity is enforced inside the transaction: the helper locks the event
+      // row (serializing concurrent YES submissions) and counts seats, excluding
+      // this invite's own row so the result never depends on a stale pre-lock
+      // snapshot of its prior RSVP.
+      if (
+        await exceedsEventCapacity(tx, {
+          eventId: invite.event.id,
+          inviteId: invite.id,
+          response: data.response,
+          guestCount: data.guestCount,
+          maxAttendees: invite.event.maxAttendees,
+        })
+      ) {
+        throw new ValidationError(
+          "Sorry, this event has reached its maximum capacity"
+        );
       }
 
       // Clear guest names if not attending or only 1 guest

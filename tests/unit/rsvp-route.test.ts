@@ -203,13 +203,14 @@ describe("POST /api/rsvp — capacity counts seats, not rows", () => {
     expect(dbMock.rSVP.upsert).toHaveBeenCalled();
   });
 
-  it("counts an existing YES party's seats only once on re-submit (no double-count)", async () => {
-    // This invite already contributes 2 of the 10 taken seats. Re-submitting
-    // the same party of 2 must stay at 10 (10 - 2 + 2), not 12.
+  it("counts only OTHER invites' seats + the new party (this invite's row is excluded)", async () => {
+    // The seat SUM excludes this invite's own row (invite_id IS DISTINCT FROM),
+    // so the mock value is OTHER invites' seats: 8. Re-submitting a party of 2 →
+    // 8 + 2 = 10 ≤ 10, and the invite's prior seats never double-count.
     dbMock.invite.findUnique.mockResolvedValue(
       capacityInvite({ rsvp: { response: "YES", guestCount: 2 } })
     );
-    stubSeats(10);
+    stubSeats(8);
     const res = await POST(
       makeRequest({ ...validBody, guestCount: 2, additionalGuestNames: ["Bob"] })
     );
@@ -220,7 +221,7 @@ describe("POST /api/rsvp — capacity counts seats, not rows", () => {
     dbMock.invite.findUnique.mockResolvedValue(
       capacityInvite({ rsvp: { response: "YES", guestCount: 2 } })
     );
-    stubSeats(10); // 10 - 2 + 3 = 11 > 10
+    stubSeats(8); // 8 other seats + new party of 3 = 11 > 10
     const res = await POST(
       makeRequest({
         ...validBody,
@@ -231,10 +232,10 @@ describe("POST /api/rsvp — capacity counts seats, not rows", () => {
     expect(res.status).toBe(400);
   });
 
-  it("does NOT credit a prior non-YES response's seats (NO→YES adds, not swaps)", async () => {
-    // Prior response was NO (guestCount 1) — those seats were never in the
-    // attending SUM, so they must not be subtracted. 10 - 0 + 1 = 11 > 10.
-    // A naive `existingGuestCount` subtraction would give 10 and wrongly pass.
+  it("does not credit a prior non-YES response toward the new party (NO→YES adds in full)", async () => {
+    // 10 seats held by others; this invite (currently NO) switches to YES with a
+    // party of 1 → 10 + 1 = 11 > 10. Its own row is excluded from the count
+    // regardless of prior response, so nothing is wrongly credited back.
     dbMock.invite.findUnique.mockResolvedValue(
       capacityInvite({ rsvp: { response: "NO", guestCount: 1 } })
     );

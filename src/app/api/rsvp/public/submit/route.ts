@@ -17,6 +17,7 @@ import {
 import { AppError } from "@/lib/errors";
 import { generateTokenPair } from "@/lib/tokens";
 import { buildPortalUrl } from "@/lib/guest-access";
+import { exceedsEventCapacity } from "@/lib/event-capacity";
 
 const GENERIC_INVALID_MESSAGE =
   "Your RSVP couldn't be processed. Please re-enter your invitation code and try again.";
@@ -170,35 +171,23 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Capacity check under row lock — matches the invite-token path so
-      //    both entry points produce identical state under contention.
-      if (data.response === "YES" && invite.event.maxAttendees) {
-        const [lockedEvent] = await tx.$queryRaw<
-          { max_attendees: number | null }[]
-        >`SELECT max_attendees FROM events WHERE id = ${invite.event.id} FOR UPDATE`;
-
-        const maxAttendees = lockedEvent?.max_attendees;
-        if (maxAttendees) {
-          // Sum the seats already taken — guest_count per attending row, not a
-          // count of rows. A party with plus-ones occupies more than one seat,
-          // so COUNT(*) would let plus-ones silently overbook the event.
-          const [{ seats: takenSeats }] = await tx.$queryRaw<
-            { seats: bigint }[]
-          >`SELECT COALESCE(SUM(guest_count), 0) as seats FROM rsvps WHERE event_id = ${invite.event.id} AND response = 'YES'`;
-          // Only this invite's *currently attending* seats are already in the
-          // sum; subtract them (zero unless it's an existing YES) so a re-submit
-          // or a NO/MAYBE→YES change is counted exactly once.
-          const alreadyCounted =
-            invite.rsvp?.response === "YES" ? invite.rsvp.guestCount : 0;
-          const projectedSeats =
-            Number(takenSeats) - alreadyCounted + data.guestCount;
-          if (projectedSeats > maxAttendees) {
-            throw new AppError(
-              "Sorry, this event has reached its maximum capacity.",
-              "CAPACITY_FULL",
-              400
-            );
-          }
-        }
+      //    both entry points produce identical state under contention. The
+      //    helper locks the event row and counts seats, excluding this invite's
+      //    own row so the result never depends on a stale snapshot.
+      if (
+        await exceedsEventCapacity(tx, {
+          eventId: invite.event.id,
+          inviteId: invite.id,
+          response: data.response,
+          guestCount: data.guestCount,
+          maxAttendees: invite.event.maxAttendees,
+        })
+      ) {
+        throw new AppError(
+          "Sorry, this event has reached its maximum capacity.",
+          "CAPACITY_FULL",
+          400
+        );
       }
 
       // 6. Email conflict guard. If the guest provides an email that matches
