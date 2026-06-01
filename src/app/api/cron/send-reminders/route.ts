@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { queueReminderEmail } from "@/lib/email";
+import { getUnsubscribeUrlFromPayload } from "@/lib/email-payload";
 import { formatEventDate } from "@/lib/utils";
 import { purgeExpiredRsvpSessions } from "@/lib/rsvp-session";
 
@@ -123,12 +124,13 @@ export async function GET(request: NextRequest) {
             select: { payload: true },
             orderBy: { createdAt: "asc" },
           });
-          const rsvpToken = (
-            (originalEmail?.payload as Record<string, unknown>)?.rsvpUrl as string
-          )?.split("/rsvp/").pop();
-          const unsubscribeUrl = rsvpToken
-            ? `${baseUrl}/unsubscribe/${rsvpToken}`
-            : undefined;
+          // Reuse the unsubscribe URL captured in the original invite payload
+          // rather than re-deriving the token by splitting rsvpUrl on "/rsvp/"
+          // — that split silently breaks if the link format changes. See
+          // email-payload.ts.
+          const unsubscribeUrl = getUnsubscribeUrlFromPayload(
+            originalEmail?.payload
+          );
 
           // Queue the reminder email
           await queueReminderEmail(invite.id, invite.email, {

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { queueNoResponseReminderEmail, scheduleEmailProcessing } from "@/lib/email";
+import { getUnsubscribeUrlFromPayload } from "@/lib/email-payload";
 import { formatEventDateLong, formatEventDateMedium, formatEventTime } from "@/lib/utils";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
 // Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
 export const maxDuration = 60;
@@ -161,9 +160,11 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
-          // Derive unsubscribe URL from the RSVP URL token
-          const rsvpToken = rsvpUrl.split("/rsvp/").pop();
-          const unsubscribeUrl = rsvpToken ? `${BASE_URL}/unsubscribe/${rsvpToken}` : undefined;
+          // Reuse the unsubscribe URL captured in the original invite payload
+          // rather than re-deriving the token by splitting rsvpUrl on the
+          // literal "/rsvp/" — that split silently yields a broken token if the
+          // link format ever changes (e.g. to /invite/). See email-payload.ts.
+          const unsubscribeUrl = getUnsubscribeUrlFromPayload(originalPayload);
 
           try {
             const emailId = await queueNoResponseReminderEmail(
