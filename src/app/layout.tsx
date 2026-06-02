@@ -69,9 +69,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning absorbs attributes that browser extensions
+    // (ColorZilla's `cz-shortcut-listen`, Grammarly's `data-gr-*`, Dark Reader,
+    // etc.) inject onto <html>/<body> before React hydrates. It only suppresses
+    // mismatches on these two elements' own attributes — descendants (the whole
+    // app) are still fully hydration-checked, so real mismatches still surface.
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         <AuthProvider>{children}</AuthProvider>
       </body>
