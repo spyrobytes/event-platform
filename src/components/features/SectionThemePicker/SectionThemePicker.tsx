@@ -69,7 +69,7 @@ export function SectionThemePicker({
             <span
               className={cn(
                 "relative h-10 w-10 rounded-full border-2",
-                isActive ? "border-foreground" : "border-foreground/15",
+                isActive ? "border-foreground" : "border-foreground/40",
               )}
               style={{ backgroundColor: opt.swatch }}
             >

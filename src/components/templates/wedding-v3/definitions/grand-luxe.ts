@@ -187,7 +187,9 @@ export const GRAND_LUXE: TemplateDefinition = {
     {
       // Soft slate dark — a cohesive, less-blackish dark band across all the
       // feature surfaces (vs the Light default, where only some are dark).
-      id: "midnight-gold",
+      // id "midnight-slate" (not "midnight-gold") to avoid colliding with the
+      // themePacks[0] id of the same name; the user-facing label is unchanged.
+      id: "midnight-slate",
       label: "Midnight Gold",
       panel: "#253139",
     },
