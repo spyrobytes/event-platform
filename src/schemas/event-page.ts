@@ -62,6 +62,14 @@ export const themeSchema = z.object({
   preset: themePresetSchema,
   primaryColor: hexColorSchema,
   fontPair: fontPairSchema,
+  /**
+   * Optional id of a template-specific *section theme* (recolors the feature
+   * surfaces — nav, hero cards, countdown, RSVP, schedule, footer). Resolved
+   * against the template definition's `sectionThemes` at render time; an unset
+   * or unknown id keeps the template's default look. Free-form (like
+   * primaryColor) rather than an enum, since valid ids vary per template.
+   */
+  sectionThemeId: z.string().max(64).optional(),
 });
 
 export type ThemeConfig = z.infer<typeof themeSchema>;

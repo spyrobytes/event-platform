@@ -295,27 +295,12 @@ type TemporalHeroOverlayProps = {
   accentColor?: string;
   /** Custom post-event message */
   postEventMessage?: string;
-  /**
-   * Optional solid surface color for the strip background. When provided,
-   * overrides the default page-background gradient via `--temporal-surface`.
-   * Used by templates with a section theme (e.g. Grand Luxe panels) so the
-   * countdown strip matches the surrounding dark surfaces. Omit to keep the
-   * default look — other templates are unaffected.
-   */
-  panelColor?: string;
-  /**
-   * Optional ink color for the strip's supporting text (label/unit/sub),
-   * applied via `--temporal-ink`. Pair with `panelColor` on dark surfaces.
-   */
-  inkColor?: string;
 };
 
 export function TemporalHeroOverlay({
   className,
   accentColor,
   postEventMessage,
-  panelColor,
-  inkColor,
 }: TemporalHeroOverlayProps) {
   const { phase, shouldShowCountdown, shouldShowLive, shouldShowPostEvent } = useTemporal();
 
@@ -323,16 +308,8 @@ export function TemporalHeroOverlay({
     return null;
   }
 
-  const overlayStyle =
-    panelColor || inkColor
-      ? ({
-          ...(panelColor ? { "--temporal-surface": panelColor } : {}),
-          ...(inkColor ? { "--temporal-ink": inkColor } : {}),
-        } as React.CSSProperties)
-      : undefined;
-
   return (
-    <div className={cn(styles.heroOverlay, className)} style={overlayStyle}>
+    <div className={cn(styles.heroOverlay, className)}>
       {shouldShowCountdown && (
         <CountdownDisplay variant="hero" accentColor={accentColor} />
       )}

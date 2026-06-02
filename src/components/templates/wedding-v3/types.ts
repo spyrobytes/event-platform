@@ -29,6 +29,7 @@ import type {
   SocialLink,
 } from "@/schemas/event-page";
 import type { V2FontPair, V2PaletteOverrides, V2GlassTokens } from "../wedding-v2/tokens";
+import type { SectionTheme } from "./theme-packs/section-themes";
 
 // ---------------------------------------------------------------------------
 // Template IDs
@@ -356,6 +357,14 @@ export type TemplateDefinition = {
   themePacks: ThemePack[];
   /** Quick accent color swatches */
   accentSwatches: CuratedSwatch[];
+  /**
+   * Optional curated *section themes* — recolor a subset of feature surfaces
+   * (nav, hero info cards, countdown strip, RSVP, schedule, footer) as a group,
+   * independently of the base palette. The organizer's choice is persisted on
+   * `config.theme.sectionThemeId`; when unset, the template's default look is
+   * used (no `--lux-*` injected). See `theme-packs/section-themes.ts`.
+   */
+  sectionThemes?: SectionTheme[];
 
   // --- Section defaults ---
   defaultSectionOrder: string[];

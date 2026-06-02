@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ templateId: string }>;
+  /** `?sectionTheme=<id>` injects a section theme id for visual QA (e.g.
+   *  `?sectionTheme=amethyst` on wedding_grand_luxe). Dev/test only. */
+  searchParams: Promise<{ sectionTheme?: string }>;
 };
 
 // Sample config for testing
@@ -174,13 +177,14 @@ const SAMPLE_EVENT_ID = "test-event-preview";
 // Empty assets for testing (no images)
 const SAMPLE_ASSETS: MediaAsset[] = [];
 
-export default async function TemplatePreviewPage({ params }: PageProps) {
+export default async function TemplatePreviewPage({ params, searchParams }: PageProps) {
   // Block in production
   if (process.env.NODE_ENV === "production" && !process.env.ALLOW_TEST_ROUTES) {
     notFound();
   }
 
   const { templateId } = await params;
+  const { sectionTheme } = await searchParams;
 
   // Verify template exists
   if (!(templateId in TEMPLATES)) {
@@ -189,5 +193,10 @@ export default async function TemplatePreviewPage({ params }: PageProps) {
 
   const Template = TEMPLATES[templateId];
 
-  return <Template config={SAMPLE_CONFIG} assets={SAMPLE_ASSETS} eventId={SAMPLE_EVENT_ID} />;
+  // Optionally exercise a section theme (e.g. ?sectionTheme=amethyst).
+  const config: EventPageConfigV1 = sectionTheme
+    ? { ...SAMPLE_CONFIG, theme: { ...SAMPLE_CONFIG.theme, sectionThemeId: sectionTheme } }
+    : SAMPLE_CONFIG;
+
+  return <Template config={config} assets={SAMPLE_ASSETS} eventId={SAMPLE_EVENT_ID} />;
 }

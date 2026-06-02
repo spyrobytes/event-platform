@@ -24,8 +24,15 @@ export type SectionTheme = {
   /** Human label shown in the organizer picker. */
   label: string;
   /**
-   * The deep, solid surface color for panels (RSVP, footer, schedule band,
-   * and the base of the nav/hero glass). This is the one defining color.
+   * The deep surface color for panels (RSVP, footer, schedule band, and the
+   * base of the nav/hero glass) — the one defining color.
+   *
+   * PRECONDITION: must be a DARK 6-digit hex (e.g. "#34005B"). The whole ink
+   * ramp (--lux-ink / -soft / -mid / -faint) and the line/card tokens are light
+   * (white-alpha) and assume a dark panel; a light panel would render
+   * white-on-light across every themed surface. `panel` is also interpolated
+   * into color-mix() for the translucent nav/glass surfaces, so it must be a
+   * valid CSS hex — a malformed value is replaced with a safe dark fallback.
    */
   panel: string;
   /**
@@ -36,8 +43,9 @@ export type SectionTheme = {
    */
   accent?: string;
   /**
-   * Optional primary ink (text) color on panels. Defaults to near-white.
-   * Override only for unusually light panels.
+   * Optional override for the PRIMARY panel ink (--lux-ink) only. Defaults to
+   * near-white. The secondary rungs (--lux-ink-soft / -mid / -faint) stay
+   * white-alpha, so this does NOT make a light panel legible — keep panels dark.
    */
   ink?: string;
 };
@@ -51,8 +59,20 @@ export type SectionTheme = {
  * single color drives the nav pill, the hero glass cards, and the solid
  * sections coherently.
  */
+/** Matches a 6-digit hex color (e.g. "#34005B"). */
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+/** Safe dark panel used if a definition ships a malformed `panel`. */
+const FALLBACK_PANEL = "#121110";
+
 export function getSectionThemeVariables(theme: SectionTheme): Record<string, string> {
-  const { panel, accent, ink } = theme;
+  const { accent, ink } = theme;
+
+  // `panel` is interpolated into color-mix() and used as a solid surface below.
+  // A malformed value would make those declarations invalid and silently drop
+  // the backgrounds (a transparent nav pill / hero glass), so fall back to a
+  // safe dark. Definitions should always supply a valid dark hex (see
+  // SectionTheme's precondition).
+  const panel = HEX_COLOR_RE.test(theme.panel) ? theme.panel : FALLBACK_PANEL;
 
   const vars: Record<string, string> = {
     // Surfaces derived from the single panel color
@@ -67,9 +87,11 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     // Hairlines / borders on panels
     "--lux-line": "rgba(255, 255, 255, 0.12)",
 
-    // Ink ramp on panels
+    // Ink ramp on panels (light → dim). The countdown strip uses the lower
+    // three rungs (soft/mid/faint) for its label/unit/sub supporting text.
     "--lux-ink": ink ?? "rgba(255, 255, 255, 0.92)",
     "--lux-ink-soft": "rgba(255, 255, 255, 0.62)",
+    "--lux-ink-mid": "rgba(255, 255, 255, 0.5)",
     "--lux-ink-faint": "rgba(255, 255, 255, 0.4)",
 
     // Text that sits on top of an accent fill (e.g. CTA pill label)
