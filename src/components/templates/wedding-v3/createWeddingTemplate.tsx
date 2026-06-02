@@ -26,6 +26,7 @@ import {
   getSectionThemeVariables,
   tokensToInline,
 } from "./theme-packs";
+import { getContrastRatio, HEX6_RE } from "@/lib/color";
 
 import {
   getHeroRenderer,
@@ -178,9 +179,29 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       const active = theme.sectionThemeId
         ? definition.sectionThemes?.find((t) => t.id === theme.sectionThemeId)
         : undefined;
-      return active ? getSectionThemeVariables(active) : undefined;
+      if (!active) return undefined;
+      const vars = getSectionThemeVariables(active);
+      // Accent-ink contrast: --lux-accent-ink is the text on the accent fill
+      // (CTA pill / RSVP button). --lux-accent flows from the live accent
+      // (the theme's pinned accent, else the organizer's primaryColor). The
+      // generator defaults the ink to the dark panel — elegant on a light
+      // accent (gold), but unreadable on a dark accent (e.g. the "Noir"
+      // swatch). Pick whichever of the panel / white contrasts better.
+      // HEX6_RE guards the accent (the one untrusted color: a theme's pinned
+      // accent or the organizer's primaryColor). A non-6-hex value would make
+      // the luminance math NaN/throw, so skip and keep the generator's panel
+      // default. --lux-panel is always a guarded hex.
+      const accent = active.accent ?? primaryColor;
+      if (accent && HEX6_RE.test(accent)) {
+        const panel = vars["--lux-panel"];
+        vars["--lux-accent-ink"] =
+          getContrastRatio(accent, "#ffffff") > getContrastRatio(accent, panel)
+            ? "#ffffff"
+            : panel;
+      }
+      return vars;
       // definition is a stable factory-closure constant, not a reactive dep.
-    }, [theme.sectionThemeId]);
+    }, [theme.sectionThemeId, primaryColor]);
 
     // Find hero asset
     const heroAsset = hero.heroImageAssetId
