@@ -179,17 +179,27 @@ export const GRAND_LUXE: TemplateDefinition = {
   ],
 
   // Section themes — recolor the feature surfaces (nav, hero info cards,
-  // countdown strip, RSVP, schedule, footer) as a group. The default
-  // (Midnight Gold) is the absence of a section theme, so it is not listed
-  // here; selecting nothing keeps the current look. Each entry only needs a
-  // panel color — the accent stays champagne gold (primaryColor-driven).
+  // countdown strip, RSVP, schedule, footer) as a group. Each entry needs only
+  // a (dark) panel color; the accent stays champagne gold (primaryColor-driven).
+  // The unthemed default is the "Light" look (mixed light/dark surfaces) — see
+  // `defaultSectionTheme` below; selecting nothing keeps it.
   sectionThemes: [
+    {
+      // Soft slate dark — a cohesive, less-blackish dark band across all the
+      // feature surfaces (vs the Light default, where only some are dark).
+      id: "midnight-gold",
+      label: "Midnight Gold",
+      panel: "#253139",
+    },
     {
       id: "amethyst",
       label: "Amethyst",
       panel: "#34005B",
     },
   ],
+
+  // The default (no section theme) option in the picker.
+  defaultSectionTheme: { label: "Light", swatch: "#f8f5f0" },
 
   defaultSectionOrder: [
     "details",

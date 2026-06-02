@@ -365,6 +365,12 @@ export type TemplateDefinition = {
    * used (no `--lux-*` injected). See `theme-packs/section-themes.ts`.
    */
   sectionThemes?: SectionTheme[];
+  /**
+   * Label + swatch for the "no section theme" (template default) option shown
+   * in the picker — the unthemed/default look. Falls back to a generic label
+   * and a neutral swatch when omitted.
+   */
+  defaultSectionTheme?: { label: string; swatch: string };
 
   // --- Section defaults ---
   defaultSectionOrder: string[];
