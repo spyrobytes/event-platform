@@ -257,10 +257,18 @@
   justify-content: center;
   gap: 1rem;
   padding: 2rem 1rem;
-  /* Themed: the section-theme panel. Unthemed: transparent, so the strip
-     blends with the page/body behind it instead of painting an out-of-place
-     light band (it previously fell back to the app-global light --background). */
-  background: var(--lux-panel, transparent);
+  /* Themed: the section-theme panel. Unthemed: the app-background gradient,
+     which always contrasts with the --foreground-derived label/unit text (both
+     come from the same fg/bg pair). A plain `transparent` fallback put the
+     near-white text on the light wedding page → invisible. */
+  background: var(
+    --lux-panel,
+    linear-gradient(
+      to bottom,
+      hsl(var(--background) / 0.95),
+      hsl(var(--background))
+    )
+  );
   text-align: center;
 }
 
