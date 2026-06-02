@@ -29,6 +29,7 @@ export {
 export { WeddingVariantPicker, getVariantInfo } from "./WeddingVariantPicker";
 export { V2VariantPicker } from "./V2VariantPicker";
 export { V2AccentSwatches } from "./V2AccentSwatches";
+export { SectionThemePicker } from "./SectionThemePicker";
 export {
   ScheduleEditor,
   FAQEditor,

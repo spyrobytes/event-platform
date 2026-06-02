@@ -18,6 +18,7 @@ import {
   WeddingVariantPicker,
   V2VariantPicker,
   V2AccentSwatches,
+  SectionThemePicker,
   ScheduleEditor,
   FAQEditor,
   GalleryEditor,
@@ -245,6 +246,14 @@ export default function PageEditorPage() {
       }
     }
     setTemplateId(newTemplateId);
+    // A section theme is template-specific; drop a stale id when switching
+    // templates so it can't linger in saved config (the new template won't
+    // define it). Only touch config when there's something to clear.
+    setConfig((prev) =>
+      prev?.theme.sectionThemeId
+        ? { ...prev, theme: { ...prev.theme, sectionThemeId: undefined } }
+        : prev,
+    );
     setHasChanges(true);
   }, [config]);
 
@@ -267,6 +276,8 @@ export default function PageEditorPage() {
           ...prev.theme,
           fontPair: variant.fontPair,
           primaryColor: variant.accentSwatches[0]?.hex || prev.theme.primaryColor,
+          // V2 variants have no section themes; clear any stale selection.
+          sectionThemeId: undefined,
         },
         chrome: {
           topbar: variant.chromeDefaults.topbar,
@@ -1049,6 +1060,34 @@ export default function PageEditorPage() {
                 swatches={v3Def.accentSwatches}
                 value={config.theme.primaryColor}
                 onChange={(hex) => updateTheme({ primaryColor: hex })}
+                disabled={saving}
+              />
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      {/* V3 Section Theme — show for V3 templates that define section themes */}
+      {config && (() => {
+        const v3Def = getV3Definition(templateId);
+        if (!v3Def?.sectionThemes?.length) return null;
+        return (
+          <Card id="pe-section-theme" className="scroll-mt-20">
+            <CardHeader>
+              <CardTitle>Section Theme</CardTitle>
+              <CardDescription>
+                Recolor the nav, hero cards, countdown, RSVP, schedule, and
+                footer of your {v3Def.displayName} page as a set. The default
+                keeps the template&apos;s signature look.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SectionThemePicker
+                themes={v3Def.sectionThemes}
+                classicLabel={v3Def.themePacks[0]?.label ?? "Classic"}
+                classicSwatch={v3Def.themePacks[0]?.palette.accent ?? "#c5a55a"}
+                value={config.theme.sectionThemeId}
+                onChange={(id) => updateTheme({ sectionThemeId: id })}
                 disabled={saving}
               />
             </CardContent>

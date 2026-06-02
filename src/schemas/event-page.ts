@@ -20,7 +20,7 @@ function getRelativeLuminance(hex: string): number {
   return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
 }
 
-function getContrastRatio(hex1: string, hex2: string): number {
+export function getContrastRatio(hex1: string, hex2: string): number {
   const l1 = getRelativeLuminance(hex1);
   const l2 = getRelativeLuminance(hex2);
   const lighter = Math.max(l1, l2);
