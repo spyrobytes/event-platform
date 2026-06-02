@@ -1085,7 +1085,11 @@ export default function PageEditorPage() {
               <SectionThemePicker
                 themes={v3Def.sectionThemes}
                 classicLabel={v3Def.themePacks[0]?.label ?? "Classic"}
-                classicSwatch={v3Def.themePacks[0]?.palette.accent ?? "#c5a55a"}
+                // Show the default's panel/surface color (dark), matching the
+                // section-theme swatches (which show their `panel`) so the set
+                // is comparable — the accent is shared (gold) and can't
+                // distinguish the options.
+                classicSwatch={v3Def.themePacks[0]?.palette.night ?? "#1e1b17"}
                 value={config.theme.sectionThemeId}
                 onChange={(id) => updateTheme({ sectionThemeId: id })}
                 disabled={saving}

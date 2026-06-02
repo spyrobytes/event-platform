@@ -37,21 +37,23 @@ export function SectionThemePicker({
   ];
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div role="radiogroup" aria-label="Section theme" className="flex flex-wrap gap-3">
       {options.map((opt) => {
-        const isActive = (value ?? undefined) === opt.id;
+        const isActive = value === opt.id;
         return (
           <button
             key={opt.id ?? "__classic__"}
             type="button"
+            role="radio"
+            aria-checked={isActive}
             disabled={disabled}
             onClick={() => onChange(opt.id)}
-            aria-pressed={isActive}
             title={opt.label}
             className={cn(
               "flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-all",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
               isActive
-                ? "border-foreground bg-muted shadow-sm"
+                ? "border-foreground shadow-sm"
                 : "border-border hover:border-foreground/30",
               disabled && "cursor-not-allowed opacity-50",
             )}

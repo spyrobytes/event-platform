@@ -5,41 +5,10 @@ import { parseStreamUrl } from "@/lib/livestream/parse-stream-url";
 // THEME CONFIGURATION
 // =============================================================================
 
-/**
- * Validates that a hex color meets WCAG AA contrast requirements
- * against white background (4.5:1 ratio for normal text)
- */
-function getRelativeLuminance(hex: string): number {
-  const rgb = hex
-    .replace("#", "")
-    .match(/.{2}/g)!
-    .map((c) => {
-      const val = parseInt(c, 16) / 255;
-      return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
-    });
-  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-}
-
-export function getContrastRatio(hex1: string, hex2: string): number {
-  const l1 = getRelativeLuminance(hex1);
-  const l2 = getRelativeLuminance(hex2);
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-/**
- * Check if color has sufficient contrast against white background
- * WCAG AA requires 4.5:1 for normal text
- */
-export function isAccessibleColor(color: string): boolean {
-  try {
-    const ratio = getContrastRatio(color, "#FFFFFF");
-    return ratio >= 4.5;
-  } catch {
-    return false;
-  }
-}
+// WCAG color helpers now live in @/lib/color (zero-dependency, so client
+// components can import them without pulling this schema module into their
+// bundle). Re-exported here for back-compat with existing importers.
+export { getContrastRatio, isAccessibleColor } from "@/lib/color";
 
 export const themePresetSchema = z.enum(["classic", "modern", "romantic"]);
 export type ThemePreset = z.infer<typeof themePresetSchema>;
