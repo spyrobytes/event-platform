@@ -72,7 +72,7 @@
 .countdownUnit {
   font-size: 1rem;
   font-weight: 400;
-  color: var(--lux-ink-faint, hsl(var(--foreground) / 0.6));
+  color: var(--lux-ink-mid, hsl(var(--foreground) / 0.6));
 }
 
 .countdownSub {
@@ -257,14 +257,10 @@
   justify-content: center;
   gap: 1rem;
   padding: 2rem 1rem;
-  background: var(
-    --lux-panel,
-    linear-gradient(
-      to bottom,
-      hsl(var(--background) / 0.95),
-      hsl(var(--background))
-    )
-  );
+  /* Themed: the section-theme panel. Unthemed: transparent, so the strip
+     blends with the page/body behind it instead of painting an out-of-place
+     light band (it previously fell back to the app-global light --background). */
+  background: var(--lux-panel, transparent);
   text-align: center;
 }
 
