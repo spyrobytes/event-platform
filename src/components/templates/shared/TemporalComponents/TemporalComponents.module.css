@@ -257,10 +257,11 @@
   justify-content: center;
   gap: 1rem;
   padding: 2rem 1rem;
-  /* Themed: the section-theme panel. Unthemed: transparent, so the strip
-     blends with the page/body behind it instead of painting an out-of-place
-     light band (it previously fell back to the app-global light --background). */
-  background: var(--lux-panel, transparent);
+  /* Themed: the section-theme panel. Unthemed: the wedding's --night surface
+     (matching the RSVP/footer dark), so the --foreground-derived label/unit
+     text reads on a contrasting dark band. (A `transparent` fallback put the
+     near-white text on the light wedding page → invisible.) */
+  background: var(--lux-panel, var(--night, #1e1b17));
   text-align: center;
 }
 

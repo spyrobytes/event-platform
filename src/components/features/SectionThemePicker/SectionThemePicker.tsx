@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { getContrastRatio, HEX6_RE } from "@/lib/color";
 import type { SectionTheme } from "@/components/templates/wedding-v3/theme-packs/section-themes";
 
 type SectionThemePickerProps = {
@@ -8,7 +9,7 @@ type SectionThemePickerProps = {
   themes: SectionTheme[];
   /** Label for the "no section theme" option (the template's default look). */
   classicLabel: string;
-  /** Swatch color representing the default look (e.g. the template's accent). */
+  /** Swatch color representing the default look (its signature surface color). */
   classicSwatch: string;
   /** Currently selected sectionThemeId; `undefined` selects the classic default. */
   value: string | undefined;
@@ -40,6 +41,13 @@ export function SectionThemePicker({
     <div role="radiogroup" aria-label="Section theme" className="flex flex-wrap gap-3">
       {options.map((opt) => {
         const isActive = value === opt.id;
+        // Checkmark color that reads on this swatch — a dark check on a light
+        // swatch (e.g. the "Light" default), white on a dark one.
+        const checkStroke =
+          HEX6_RE.test(opt.swatch) &&
+          getContrastRatio(opt.swatch, "#111111") > getContrastRatio(opt.swatch, "#ffffff")
+            ? "#111111"
+            : "#ffffff";
         return (
           <button
             key={opt.id ?? "__classic__"}
@@ -61,7 +69,7 @@ export function SectionThemePicker({
             <span
               className={cn(
                 "relative h-10 w-10 rounded-full border-2",
-                isActive ? "border-foreground" : "border-transparent",
+                isActive ? "border-foreground" : "border-foreground/40",
               )}
               style={{ backgroundColor: opt.swatch }}
             >
@@ -70,7 +78,7 @@ export function SectionThemePicker({
                   className="absolute inset-0 m-auto h-4 w-4 drop-shadow"
                   fill="none"
                   viewBox="0 0 24 24"
-                  stroke="white"
+                  stroke={checkStroke}
                   strokeWidth={3}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
