@@ -77,6 +77,15 @@ export type SectionTheme = {
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 /** Safe dark panel used if a definition ships a malformed `panel`. */
 const FALLBACK_PANEL = "#121110";
+/**
+ * Fallback accent for a LIGHT panel whose theme omits `accent`. A light panel
+ * must not let its accents flow to the live (light) gold `--accent` — gold reads
+ * ~1.2:1 on cerulean — so default to a legible dark ink instead.
+ */
+const LIGHT_PANEL_FALLBACK_ACCENT = "#1a1a1a";
+/** Min contrast (vs black) for a pinned accent to be mirrored onto the dark hero
+ *  glass; gold clears ~8.9, a dark accent fails and falls back to gold. */
+const HERO_ACCENT_MIN_CONTRAST = 3.5;
 
 /** White-alpha ink ramp for a dark panel (light-on-dark). */
 const DARK_INK = {
@@ -157,26 +166,34 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
       : "rgba(255, 255, 255, 0.12)",
   };
 
-  // Countdown number reads its own `--temporal-accent` — fine on a dark panel,
-  // invisible-risk on a light one — so pin a dark ink ONLY for light panels.
-  // Dark/unthemed keep --temporal-accent (zero regression).
-  if (isLight) {
-    vars["--lux-num-ink"] = LIGHT_INK.ink;
+  // The countdown band's big number reads `--lux-ink` directly (see
+  // TemporalComponents.module.css `.countdownNumber`) so it stays legible on
+  // every section theme — white on a dark panel, dark on a light one. Unthemed
+  // pages keep the number's `--temporal-accent` (primary) color, so no token is
+  // emitted here.
+
+  // --- Accent resolution ---
+  // Body accent. A LIGHT panel must NOT let its accents flow to the live (light)
+  // gold `--accent` (~1.2:1), so pin a safe dark fallback when the theme omits
+  // one. A DARK panel with no pinned accent keeps flowing to the live gold
+  // `--accent` via each consumer's `var(--lux-accent, var(--accent, #c5a55a))`.
+  const bodyAccent = accent ?? (isLight ? LIGHT_PANEL_FALLBACK_ACCENT : undefined);
+  if (bodyAccent) {
+    vars["--lux-accent"] = bodyAccent;
   }
 
-  // Pin --lux-accent only when a theme overrides the accent (a light panel must,
-  // since a light metallic dies on it). Otherwise leave it unset so consumers'
-  // `var(--lux-accent, var(--accent, #c5a55a))` keeps flowing from the live
-  // --accent (and preserves the #c5a55a hard default).
-  //
-  // --lux-hero-accent governs the hero info-card accents. On a dark panel it
-  // mirrors --lux-accent (a pinned dark-theme accent reaches the hero too); on
-  // a light panel it's left UNSET so the hero accents fall back to the live
-  // gold --accent over the dark photo — never the body's dark ink, which would
-  // vanish on the hero glass.
-  if (accent) {
-    vars["--lux-accent"] = accent;
-    if (!isLight) vars["--lux-hero-accent"] = accent;
+  // The hero info-card accents sit on the always-dark hero glass, so they need a
+  // LIGHT-on-dark color. Mirror a PINNED accent onto the hero only when it reads
+  // on that dark glass (contrast vs black ≥ threshold); otherwise leave
+  // `--lux-hero-accent` UNSET so the hero falls back to the live gold `--accent`
+  // over the photo — never a dark accent/ink that would vanish on the glass.
+  // (Light panels never mirror — they always want gold on the cinematic hero.)
+  if (
+    accent &&
+    !isLight &&
+    getContrastRatio(accent, "#000000") >= HERO_ACCENT_MIN_CONTRAST
+  ) {
+    vars["--lux-hero-accent"] = accent;
   }
 
   return vars;

@@ -66,10 +66,10 @@
   font-size: 3rem;
   font-weight: 300;
   line-height: 1;
-  /* Defaults to the temporal accent (primary). A light V3 section-theme panel
-   * pins --lux-num-ink to a dark ink so the number stays legible on the band;
-   * dark/unthemed keep --temporal-accent unchanged. */
-  color: var(--lux-num-ink, var(--temporal-accent));
+  /* On a V3 section-themed band the number takes the panel's primary ink
+   * (white on a dark panel, black on a light one) so it stays legible on every
+   * theme; unthemed/other templates keep the --temporal-accent (primary). */
+  color: var(--lux-ink, var(--temporal-accent));
 }
 
 .countdownUnit {
@@ -152,14 +152,17 @@
   font-family: var(--font-serif, Georgia, serif);
   font-size: 1.5rem;
   font-weight: 400;
-  color: hsl(var(--foreground));
+  /* On a V3 section-themed band (--lux-panel) take the polarity-aware ink so the
+   * post-event message flips like the countdown phase; unthemed keeps the app
+   * --foreground. */
+  color: var(--lux-ink, hsl(var(--foreground)));
 }
 
 .postEventSubtitle {
   margin: 0;
   font-size: 1rem;
   font-style: italic;
-  color: hsl(var(--muted-foreground));
+  color: var(--lux-ink-soft, hsl(var(--muted-foreground)));
 }
 
 /* ==========================================================================
