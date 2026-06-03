@@ -244,10 +244,47 @@ describe("lenientValidateAndMigrate", () => {
     expect(config).toEqual(validateAndMigrate(makeConfig([validFaq, validWeddingParty])));
   });
 
-  it("still throws when theme is invalid (theme/hero stay strict)", () => {
+  it("salvages an invalid theme field to a default, keeping valid fields + sections", () => {
     const bad = makeConfig([validFaq]);
-    bad.theme.preset = "not_a_preset";
-    expect(() => lenientValidateAndMigrate(bad)).toThrow();
+    bad.theme.preset = "not_a_preset"; // unknown enum on this branch
+    bad.theme.primaryColor = "#FF0000"; // valid — must survive
+    const { config, dropped } = lenientValidateAndMigrate(bad);
+
+    expect(config.theme.preset).toBe("modern"); // bad field reset to default
+    expect(config.theme.primaryColor).toBe("#FF0000"); // organizer's color kept
+    expect(config.sections).toHaveLength(1); // not blanked
+    expect(dropped).toHaveLength(0);
+  });
+
+  it("salvages an invalid hero field while keeping the title", () => {
+    const bad = makeConfig([validFaq]);
+    bad.hero.align = "diagonal"; // unknown enum
+    bad.hero.title = "Real Title";
+    const { config } = lenientValidateAndMigrate(bad);
+
+    expect(config.hero.title).toBe("Real Title");
+    expect(config.hero.align).toBe("center"); // defaulted
+    expect(config.sections).toHaveLength(1);
+  });
+
+  it("falls back to the default theme when theme is not even an object", () => {
+    const bad = makeConfig([validFaq]) as Record<string, unknown>;
+    bad.theme = "purple";
+    const { config } = lenientValidateAndMigrate(bad as never);
+
+    expect((config.theme as { preset: string }).preset).toBe("modern");
+    expect((config.theme as { primaryColor: string }).primaryColor).toBe("#2563EB");
+    expect(config.sections).toHaveLength(1);
+  });
+
+  it("drops an invalid optional top-level field instead of blanking", () => {
+    const bad = makeConfig([validFaq]) as Record<string, unknown>;
+    // Bad platform enum + bad url — the whole socialLinks array fails strict.
+    bad.socialLinks = [{ platform: "myspace", url: "not-a-url" }];
+    const { config } = lenientValidateAndMigrate(bad as never);
+
+    expect((config as { socialLinks?: unknown }).socialLinks).toBeUndefined();
+    expect(config.sections).toHaveLength(1);
   });
 
   it("keeps more than 12 valid sections without throwing (no .max blank-out)", () => {

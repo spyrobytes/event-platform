@@ -1,8 +1,15 @@
-import type { ZodError } from "zod";
+import { z, type ZodError } from "zod";
 import {
   eventPageConfigV1Schema,
   sectionSchema,
+  themeSchema,
+  heroSchema,
+  preludeSchema,
+  chromeConfigSchema,
+  socialLinksSchema,
   type EventPageConfigV1,
+  type ThemeConfig,
+  type HeroConfig,
 } from "@/schemas/event-page";
 
 // =============================================================================
@@ -195,16 +202,66 @@ function summarizeZodError(error: ZodError): string {
   return msg.length > 200 ? `${msg.slice(0, 197)}...` : msg;
 }
 
+const DEFAULT_THEME: ThemeConfig = {
+  preset: "modern",
+  primaryColor: "#2563EB",
+  fontPair: "modern",
+};
+
+const DEFAULT_HERO: HeroConfig = {
+  title: "Untitled Event",
+  align: "center",
+  overlay: "soft",
+};
+
+/** Anything with a Zod-shaped safeParse — avoids depending on Zod's exact
+ *  generic type names across versions. */
+type SafeParser = {
+  safeParse: (value: unknown) => { success: boolean; data?: unknown };
+};
+
 /**
- * Like {@link validateAndMigrate}, but tolerant at the section level. `theme`,
- * `hero`, and all top-level fields stay STRICT — an invalid theme still throws,
- * so callers fall back exactly as before. The `sections` array is validated
- * element-by-element: valid sections are kept, invalid ones are dropped and
- * reported in `dropped`.
+ * Parse a FLAT object schema (no cross-field refinements) leniently: if the
+ * whole object fails, salvage the individually-valid fields by overlaying them
+ * onto `fallback`, dropping only the invalid ones. Lets a single bad enum (e.g.
+ * an unknown theme preset on this branch) reset just that field instead of
+ * blanking the whole page. Only theme/hero call this — both are flat objects,
+ * so a kept field can never invalidate another.
+ */
+function salvageObject<T extends z.ZodObject<z.ZodRawShape>>(
+  schema: T,
+  raw: unknown,
+  fallback: z.infer<T>
+): { value: z.infer<T>; salvaged: boolean } {
+  const full = schema.safeParse(raw);
+  if (full.success) return { value: full.data, salvaged: false };
+
+  const merged: Record<string, unknown> = { ...fallback };
+  if (isRecord(raw)) {
+    for (const [key, fieldSchema] of Object.entries(schema.shape)) {
+      if (!(key in raw)) continue;
+      // .shape values are typed as Zod's core type (no public safeParse on the
+      // type) but are full schema instances at runtime — hence the unknown cast.
+      const res = (fieldSchema as unknown as SafeParser).safeParse(raw[key]);
+      if (res.success) merged[key] = res.data;
+    }
+  }
+  const reparsed = schema.safeParse(merged);
+  return { value: reparsed.success ? reparsed.data : fallback, salvaged: true };
+}
+
+/**
+ * Like {@link validateAndMigrate}, but tolerant of any single bad field so the
+ * page degrades instead of blanking. Sections are validated element-by-element
+ * (valid kept, invalid reported in `dropped`); `theme`/`hero` are salvaged
+ * field-by-field onto a default (a bad enum resets just that field, keeping the
+ * organizer's valid colors/title); optional top-level fields (prelude, chrome,
+ * socialLinks, variantId) are dropped if invalid. Only throws when the config
+ * isn't a record at all.
  *
- * This is the read-path defense against a single stale/unknown section (e.g. an
- * enum value absent from the running branch's schema) blanking the entire page.
- * Used by the public loader, the preview page, and the editor GET handler.
+ * This is the read-path defense against a stale/unknown value (e.g. an enum
+ * absent from the running branch's schema) blanking the entire page. Used by the
+ * public loader, the preview page, and the editor GET handler.
  */
 export function lenientValidateAndMigrate(config: unknown): LenientConfigResult {
   if (!isRecord(config)) {
@@ -230,13 +287,41 @@ export function lenientValidateAndMigrate(config: unknown): LenientConfigResult 
     dropped.push({ index, type, reason: summarizeZodError(result.error) });
   });
 
-  // Validate theme/hero/top-level strictly but WITHOUT re-imposing the section
-  // .max() or re-validating the already-parsed sections: parse with empty
-  // sections (applies top-level defaults), then splice the kept sections back
-  // in. Keeps theme/hero strict while tolerating any number of valid sections —
-  // a future cap bump must never make an older branch throw here and blank the
-  // page (the failure this whole function exists to prevent).
-  const shell = eventPageConfigV1Schema.parse({ ...migrated, sections: [] });
+  // Build a guaranteed-valid top-level shell so NO single bad field can blank
+  // the page, then splice the already-parsed sections in (no .max re-imposed on
+  // the array, no double section parse):
+  //   - theme/hero: salvage field-by-field onto a default (keeps the valid
+  //     fields — e.g. the couple's colors — even when one enum is unknown);
+  //   - optional top-level fields: keep if valid, else drop;
+  //   - sections: the kept (already-validated) array, any length.
+  const theme = salvageObject(themeSchema, migrated.theme, DEFAULT_THEME);
+  const hero = salvageObject(heroSchema, migrated.hero, DEFAULT_HERO);
+  if (theme.salvaged || hero.salvaged) {
+    console.warn("[page-config] salvaged invalid theme/hero to defaults", {
+      theme: theme.salvaged,
+      hero: hero.salvaged,
+    });
+  }
+
+  const base: Record<string, unknown> = {
+    schemaVersion: 1,
+    theme: theme.value,
+    hero: hero.value,
+    sections: [],
+  };
+  // Optional top-level fields: include only if individually valid — a bad
+  // socialLink platform / prelude / chrome must not take the whole page down.
+  const includeIfValid = (key: string, fieldSchema: SafeParser) => {
+    if (migrated[key] === undefined) return;
+    const res = fieldSchema.safeParse(migrated[key]);
+    if (res.success) base[key] = res.data;
+  };
+  includeIfValid("variantId", z.string().max(50));
+  includeIfValid("prelude", preludeSchema);
+  includeIfValid("chrome", chromeConfigSchema);
+  includeIfValid("socialLinks", socialLinksSchema);
+
+  const shell = eventPageConfigV1Schema.parse(base);
   const validated: EventPageConfigV1 = {
     ...shell,
     sections: kept as EventPageConfigV1["sections"],

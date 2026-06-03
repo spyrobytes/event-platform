@@ -166,8 +166,8 @@ export function loadAndMigrateConfig(
     }
     return config;
   } catch (err) {
-    // Reaching here means the config is structurally broken (bad theme/hero or
-    // not an object) — section-level failures are tolerated upstream. This
+    // Reaching here means the stored config isn't a record at all — section,
+    // theme, hero, and optional-field failures are all tolerated upstream. This
     // blanks the public page to a minimal fallback, so it warrants a trail.
     console.error("[page-config] invalid stored config; using fallback", {
       eventId: params.eventId,
