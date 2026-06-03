@@ -100,6 +100,7 @@ import { MetallicLineDivider } from "./divider/MetallicLineDivider";
 import { RhythmicPatternDivider } from "./divider/RhythmicPatternDivider";
 import { ScrapbookWeddingParty } from "./wedding-party/ScrapbookWeddingParty";
 import { GildedFramesWeddingParty } from "./wedding-party/GildedFramesWeddingParty";
+import { CouturePolaroidWeddingParty } from "./wedding-party/CouturePolaroidWeddingParty";
 
 // ---------------------------------------------------------------------------
 // Wedding Wishes — single renderer (currently no per-template variants)
@@ -232,6 +233,7 @@ export const weddingPartyRenderers: Record<WeddingPartyRendererId, WeddingPartyR
   cinematic: CinematicWeddingPartyAdapter,
   "scrapbook-flip": ScrapbookWeddingParty,
   "gilded-frames": GildedFramesWeddingParty,
+  "couture-polaroid": CouturePolaroidWeddingParty,
 };
 
 // ---------------------------------------------------------------------------
