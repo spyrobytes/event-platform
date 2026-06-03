@@ -99,6 +99,7 @@ import { FestiveLayeredFooter } from "./footer/FestiveLayeredFooter";
 import { MetallicLineDivider } from "./divider/MetallicLineDivider";
 import { RhythmicPatternDivider } from "./divider/RhythmicPatternDivider";
 import { ScrapbookWeddingParty } from "./wedding-party/ScrapbookWeddingParty";
+import { GildedFramesWeddingParty } from "./wedding-party/GildedFramesWeddingParty";
 
 // ---------------------------------------------------------------------------
 // Wedding Wishes — single renderer (currently no per-template variants)
@@ -230,6 +231,7 @@ export const mapRenderer: MapRenderer = CinematicMapAdapter;
 export const weddingPartyRenderers: Record<WeddingPartyRendererId, WeddingPartyRenderer> = {
   cinematic: CinematicWeddingPartyAdapter,
   "scrapbook-flip": ScrapbookWeddingParty,
+  "gilded-frames": GildedFramesWeddingParty,
 };
 
 // ---------------------------------------------------------------------------

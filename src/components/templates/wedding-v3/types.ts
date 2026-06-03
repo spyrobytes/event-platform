@@ -189,7 +189,8 @@ export type DividerRendererId =
 
 export type WeddingPartyRendererId =
   | "cinematic"             // existing V2 adapter (default)
-  | "scrapbook-flip";       // Celebration House — scrapbook photos with card flip
+  | "scrapbook-flip"        // Celebration House — scrapbook photos with card flip
+  | "gilded-frames";        // Grand Luxe — matted gold-framed gallery, --lux-* themed
 
 /**
  * A curated, organizer-selectable wedding-party display style. A template that

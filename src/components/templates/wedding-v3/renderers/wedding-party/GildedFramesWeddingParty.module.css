@@ -1,0 +1,368 @@
+/* ===================================================================
+   Gilded Frames Wedding Party — The Grand Luxe
+
+   A private-gallery wall of matted, gold-framed portraits. Theme-aware: every
+   color resolves from the --lux-* section-theme layer with base-token
+   fallbacks, so the band flips with the active section theme and stays
+   ivory/gold on the Light default. Front mat (--lux-card) and back placard
+   (--lux-card) are both panel-polarity surfaces, so --lux-ink reads correctly
+   on either face across every theme (incl. the Cerulean light panel).
+   =================================================================== */
+
+.section {
+  /* Theme-aware palette: --lux-* (section theme) → base token → hard default. */
+  --gf-band: var(--lux-panel, transparent);
+  --gf-card: var(--lux-card, var(--surface, #fdfbf7));
+  --gf-line: var(--lux-line, var(--border, rgba(42, 40, 36, 0.14)));
+  --gf-accent: var(--lux-accent, var(--accent, #c5a55a));
+  --gf-ink: var(--lux-ink, var(--text, #2a2824));
+  --gf-ink-soft: var(--lux-ink-soft, var(--text-2, #5e5a54));
+  --gf-ink-faint: var(--lux-ink-faint, var(--text-3, #8a8680));
+
+  position: relative;
+  background: var(--gf-band);
+  padding: var(--section-y, 96px) 0;
+}
+
+.container {
+  width: min(var(--max, 1140px), 100% - 2 * var(--pad, 40px));
+  margin: 0 auto;
+}
+
+/* ===== Header ===== */
+.header {
+  text-align: center;
+  margin-bottom: clamp(40px, 6vw, 72px);
+}
+
+.kicker {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.8rem);
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gf-accent);
+  margin: 0 0 14px;
+}
+
+.heading {
+  font-family: var(--serif);
+  font-size: var(--h2, clamp(1.9rem, 3.4vw, 3rem));
+  font-weight: 400;
+  line-height: 1.12;
+  /* Color is set inline on the <h2> (to outrank the global `.wedding-template-v2
+   * h2 { color: var(--night) }` rule) — see the component. */
+  margin: 0;
+}
+
+.description {
+  max-width: 54ch;
+  color: var(--gf-ink-soft);
+  line-height: 1.75;
+  margin: 14px auto 0;
+}
+
+/* ===== Group divider ===== */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gf-accent), transparent);
+  opacity: 0.5;
+}
+
+.dividerLabel {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  color: var(--gf-ink-soft);
+  flex-shrink: 0;
+}
+
+/* ===== Grid ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(24px, 3.4vw, 44px);
+}
+
+.gridSpaced { margin-bottom: clamp(40px, 5vw, 64px); }
+.groupSpaced { margin-top: clamp(40px, 5vw, 64px); }
+
+.specialGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(24px, 3.4vw, 44px);
+}
+
+/* ===== Flip card ===== */
+.cardOuter {
+  perspective: 1100px;
+  outline: none;
+  /* Staggered reveal — opacity only; the inline transform carries the tilt. */
+  opacity: 0;
+  animation: gfReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.cardOuter:not(.static) { cursor: pointer; }
+
+/* Straighten the tilt when flipped so the back reads upright. `!important`
+   beats the per-card inline rotate transform. */
+.cardOuter.flipped { transform: rotate(0deg) !important; }
+
+.specialCardOuter {
+  width: 280px;
+  max-width: 100%;
+}
+
+.cardInner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cardOuter.flipped .cardInner { transform: rotateY(180deg); }
+
+/* ===== Shared face ===== */
+.face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--r, 4px);
+  /* Clip content to the card box so a long bio can't spill past the gold frame
+   * (the tall 4/5 portrait makes overflow rare; this is the safety net, matching
+   * ScrapbookWeddingParty's .face). */
+  overflow: hidden;
+  background: var(--gf-card);
+  border: 1px solid var(--gf-line);
+  box-shadow:
+    0 18px 40px -24px rgba(0, 0, 0, 0.5),
+    0 2px 8px -4px rgba(0, 0, 0, 0.28);
+}
+
+/* ===== Front — framed portrait + placard ===== */
+.front {
+  position: relative;
+  padding: clamp(12px, 1.4vw, 18px);
+  padding-bottom: clamp(20px, 2.4vw, 28px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+/* Inner gold rule — the "frame within the mat". */
+.front::after,
+.back::after {
+  content: "";
+  position: absolute;
+  inset: clamp(6px, 0.8vw, 9px);
+  border: 1px solid var(--gf-accent);
+  opacity: 0.4;
+  border-radius: calc(var(--r, 4px) - 1px);
+  pointer-events: none;
+}
+
+.cardOuter:not(.static):hover .front,
+.cardOuter:not(.static):focus-visible .front {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--gf-accent) 50%, var(--gf-line));
+  box-shadow:
+    0 30px 56px -28px rgba(0, 0, 0, 0.58),
+    0 4px 14px -6px rgba(0, 0, 0, 0.32);
+}
+
+.photoFrame {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: calc(var(--r, 4px) - 1px);
+  /* Gold-foil hairline directly around the photograph. */
+  box-shadow:
+    0 0 0 1px var(--gf-accent),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
+  filter: saturate(0.96) contrast(1.02);
+  transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cardOuter:not(.static):hover .photo { transform: scale(1.04); }
+
+/* Monogram fallback when no photo. */
+.monogram {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--gf-accent) 12%, transparent), transparent 70%),
+    var(--gf-card);
+}
+
+.monogramLetter {
+  font-family: var(--serif);
+  font-size: clamp(2.6rem, 5vw, 4rem);
+  font-weight: 400;
+  color: var(--gf-accent);
+  opacity: 0.85;
+  line-height: 1;
+}
+
+.frontName {
+  font-family: var(--serif);
+  font-size: clamp(1rem, 1.3vw, 1.18rem);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--gf-ink);
+  text-align: center;
+  margin: clamp(14px, 1.6vw, 18px) 0 0;
+  line-height: 1.25;
+  /* Subtle letterpress emboss (works on light or dark faces). */
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 -1px 1px rgba(0, 0, 0, 0.16);
+}
+
+.frontRole {
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gf-accent);
+  text-align: center;
+  margin: 7px 0 0;
+}
+
+.flipHint {
+  position: absolute;
+  bottom: clamp(10px, 1.2vw, 14px);
+  right: clamp(12px, 1.4vw, 16px);
+  width: 18px;
+  height: 18px;
+  color: var(--gf-ink-faint);
+  opacity: 0.5;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.cardOuter:hover .flipHint,
+.cardOuter:focus-visible .flipHint {
+  opacity: 0.9;
+  color: var(--gf-accent);
+}
+
+/* ===== Back — placard ===== */
+.back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  padding: clamp(26px, 3vw, 38px) clamp(20px, 2.2vw, 30px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.backName {
+  font-family: var(--serif);
+  font-size: clamp(1.2rem, 1.7vw, 1.5rem);
+  font-weight: 500;
+  /* Primary text → polarity-aware ink (like .frontName), never the
+   * organizer-controlled accent, which can be any color (incl. the dark "Noir"
+   * swatch) and would go low-contrast on a themed panel. Gold lives on the rule
+   * and the frames. */
+  color: var(--gf-ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.backRule {
+  width: 40px;
+  height: 1px;
+  margin: 14px 0;
+  background: linear-gradient(90deg, transparent, var(--gf-accent), transparent);
+}
+
+.backRole {
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gf-ink-soft);
+  margin: 0 0 10px;
+}
+
+.backBio {
+  font-family: var(--sans);
+  font-size: var(--sm, 0.84rem);
+  color: var(--gf-ink-soft);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 32ch;
+}
+
+.returnHint {
+  position: absolute;
+  bottom: clamp(12px, 1.4vw, 16px);
+  right: clamp(12px, 1.4vw, 16px);
+  width: 17px;
+  height: 17px;
+  color: var(--gf-ink-faint);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.cardOuter:hover .returnHint,
+.cardOuter:focus-visible .returnHint { opacity: 0.9; }
+
+/* ===== Empty state ===== */
+.empty {
+  border: 1px solid var(--gf-line);
+  border-radius: var(--r, 4px);
+  padding: 56px;
+  text-align: center;
+  color: var(--gf-ink-faint);
+  font-family: var(--serif);
+  font-style: italic;
+}
+
+/* ===== Reveal ===== */
+@keyframes gfReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .cardOuter { opacity: 1; animation: none; }
+  .cardInner,
+  .photo,
+  .front { transition-duration: 0.01ms; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 800px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 500px) {
+  .grid {
+    grid-template-columns: 1fr;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .specialGrid { flex-direction: column; align-items: center; }
+  .specialCardOuter { width: 100%; max-width: 340px; }
+}

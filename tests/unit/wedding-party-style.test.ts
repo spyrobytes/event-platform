@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { resolveWeddingPartyStyleId } from "@/components/templates/wedding-v3/wedding-party-style";
 import { GRAND_LUXE } from "@/components/templates/wedding-v3/definitions/grand-luxe";
+import { weddingPartyDisplayStyleSchema } from "@/schemas/event-page";
 import type {
   WeddingPartyStyleOption,
   WeddingPartyRendererId,
@@ -59,5 +60,17 @@ describe("GRAND_LUXE wedding-party styles", () => {
     // displayStyle 'scrapbook' is NOT a renderer id; it must resolve to the
     // registered 'scrapbook-flip' via the option's `renderer` mapping.
     expect(resolveWeddingPartyStyleId(GRAND_LUXE, "scrapbook")).toBe("scrapbook-flip");
+  });
+
+  it("maps the Gilded Frames value to the gilded-frames renderer", () => {
+    expect(resolveWeddingPartyStyleId(GRAND_LUXE, "gilded")).toBe("gilded-frames");
+  });
+
+  it("declares only option values that are valid displayStyle enum members", () => {
+    // Review #4 coverage: a template can't ship an option whose `value` the
+    // central displayStyle enum doesn't include (which would fail Zod on save).
+    for (const opt of GRAND_LUXE.weddingPartyStyleOptions ?? []) {
+      expect(() => weddingPartyDisplayStyleSchema.parse(opt.value)).not.toThrow();
+    }
   });
 });

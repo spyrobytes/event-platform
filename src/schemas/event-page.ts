@@ -479,7 +479,7 @@ export const partyMemberSchema = z.object({
 // that declare `weddingPartyStyleOptions` (currently Grand Luxe: Cinematic vs
 // Scrapbook); other templates ignore it and use their fixed renderer. Optional
 // for backward compatibility — unset resolves to the template's default style.
-export const weddingPartyDisplayStyleSchema = z.enum(["cinematic", "scrapbook"]);
+export const weddingPartyDisplayStyleSchema = z.enum(["cinematic", "scrapbook", "gilded"]);
 export type WeddingPartyDisplayStyle = z.infer<typeof weddingPartyDisplayStyleSchema>;
 
 export const weddingPartySectionDataSchema = z.object({
