@@ -26,7 +26,7 @@ import {
   getSectionThemeVariables,
   tokensToInline,
 } from "./theme-packs";
-import { getContrastRatio, HEX6_RE } from "@/lib/color";
+import { mostReadable, HEX6_RE } from "@/lib/color";
 
 import {
   getHeroRenderer,
@@ -193,11 +193,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       // default. --lux-panel is always a guarded hex.
       const accent = active.accent ?? primaryColor;
       if (accent && HEX6_RE.test(accent)) {
-        const panel = vars["--lux-panel"];
-        vars["--lux-accent-ink"] =
-          getContrastRatio(accent, "#ffffff") > getContrastRatio(accent, panel)
-            ? "#ffffff"
-            : panel;
+        vars["--lux-accent-ink"] = mostReadable(accent, "#ffffff", vars["--lux-panel"]);
       }
       return vars;
       // definition is a stable factory-closure constant, not a reactive dep.

@@ -38,3 +38,22 @@ export function isAccessibleColor(color: string): boolean {
     return false;
   }
 }
+
+/**
+ * True when a color reads as "light" — dark text has more contrast on it than
+ * white does — so a surface of this color wants dark-on-light treatment.
+ * Compares both ways rather than using a luminance threshold. Expects a 6-digit
+ * hex; guard untrusted input with HEX6_RE upstream.
+ */
+export function isLightColor(hex: string): boolean {
+  return getContrastRatio(hex, "#000000") > getContrastRatio(hex, "#ffffff");
+}
+
+/**
+ * Returns whichever of two ink colors has more contrast against `bg` (ties
+ * favour `inkB`). Use to pick the more legible of two candidate text/ink colors
+ * on a given background. Expects 6-digit hex inputs.
+ */
+export function mostReadable(bg: string, inkA: string, inkB: string): string {
+  return getContrastRatio(bg, inkA) > getContrastRatio(bg, inkB) ? inkA : inkB;
+}

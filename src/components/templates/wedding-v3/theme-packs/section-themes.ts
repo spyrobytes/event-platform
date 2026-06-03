@@ -18,7 +18,7 @@
  * derived here from the panel's luminance.
  */
 
-import { getContrastRatio } from "@/lib/color";
+import { getContrastRatio, isLightColor } from "@/lib/color";
 
 /** A curated section color theme. Only `panel` is required. */
 export type SectionTheme = {
@@ -115,10 +115,8 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
   // the backgrounds (a transparent nav pill), so fall back to a safe dark.
   const panel = HEX_COLOR_RE.test(theme.panel) ? theme.panel : FALLBACK_PANEL;
 
-  // Polarity: does dark text read better than white on this panel? Compare
-  // contrast both ways rather than picking a magic luminance threshold.
-  const isLight =
-    getContrastRatio(panel, "#000000") > getContrastRatio(panel, "#ffffff");
+  // Polarity: does dark text read better than white on this panel?
+  const isLight = isLightColor(panel);
   const ramp = isLight ? LIGHT_INK : DARK_INK;
 
   const vars: Record<string, string> = {
@@ -126,15 +124,6 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     "--lux-panel": panel,
     // Nav pill / mobile hamburger — translucent over blurred page content
     "--lux-panel-soft": `color-mix(in srgb, ${panel} 85%, transparent)`,
-    // Hero info cards — translucent glass over the (darkened) photo, read by the
-    // hero only. A DARK panel's 60% tint is already dark enough for the white
-    // hero ink. A LIGHT panel's 60% tint would be a MID surface where the muted
-    // ink rungs and the gold accent fail (~3:1), so a light panel gets a dark,
-    // faintly-tinted glass instead — matching the dark themes' glass contrast
-    // (muted white ≥4:1, gold ≥5.8:1 over both dark and bright photo regions).
-    "--lux-glass": isLight
-      ? `color-mix(in srgb, ${panel} 14%, rgba(10, 12, 15, 0.72))`
-      : `color-mix(in srgb, ${panel} 60%, transparent)`,
     // Cards on top of a panel (RSVP card, schedule cards): a barely-there inset
     // — a light wash on a dark panel, a dark wash on a light one.
     "--lux-card": isLight ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)",
@@ -157,6 +146,15 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     "--lux-hero-surface": isLight
       ? `color-mix(in srgb, ${panel} 22%, #0b0d10)`
       : panel,
+    // Hero info-card glass over the (darkened) photo. A DARK panel's 60% tint is
+    // already dark enough for the white hero ink; a LIGHT panel's 60% tint would
+    // be a MID surface where the muted ink rungs and the gold accent fail (~3:1),
+    // so a light panel gets a dark, faintly-tinted glass instead — matching the
+    // dark themes' glass contrast (muted white ≥4:1, gold ≥5.8:1 over both dark
+    // and bright photo regions).
+    "--lux-hero-glass": isLight
+      ? `color-mix(in srgb, ${panel} 14%, rgba(10, 12, 15, 0.72))`
+      : `color-mix(in srgb, ${panel} 60%, transparent)`,
     "--lux-hero-ink-soft": isLight ? "rgba(255, 255, 255, 0.72)" : DARK_INK.soft,
     "--lux-hero-ink-faint": isLight
       ? "rgba(255, 255, 255, 0.45)"
