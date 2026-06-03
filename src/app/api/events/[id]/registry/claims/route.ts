@@ -6,7 +6,7 @@ import { verifyAuth } from "@/lib/auth";
 import { verifyEventOwnership } from "@/lib/authorization";
 import { hashToken } from "@/lib/tokens";
 import { createClaimSchema } from "@/schemas/registry-claim";
-import { validateAndMigrate } from "@/lib/config-migrations";
+import { lenientValidateAndMigrate } from "@/lib/config-migrations";
 import {
   findClaimableItem,
   runWithSerializableRetry,
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     >();
     if (event?.pageConfig) {
       try {
-        const config = validateAndMigrate(event.pageConfig);
+        const config = lenientValidateAndMigrate(event.pageConfig).config;
         for (const section of config.sections) {
           if (section.type !== "registry") continue;
           for (const item of section.data.items) {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!event?.pageConfig) {
       throw new NotFoundError("Registry not configured for this event");
     }
-    const config = validateAndMigrate(event.pageConfig);
+    const config = lenientValidateAndMigrate(event.pageConfig).config;
     const item = findClaimableItem(config, itemId);
     if (!item) {
       throw new NotFoundError("Registry item not found or not claimable");

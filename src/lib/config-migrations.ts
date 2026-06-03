@@ -230,10 +230,17 @@ export function lenientValidateAndMigrate(config: unknown): LenientConfigResult 
     dropped.push({ index, type, reason: summarizeZodError(result.error) });
   });
 
-  // Re-validate the whole config with only the kept (already-valid) sections.
-  // Enforces strict theme/hero and applies top-level defaults; cannot fail on
-  // sections since each already passed sectionSchema.
-  const validated = eventPageConfigV1Schema.parse({ ...migrated, sections: kept });
+  // Validate theme/hero/top-level strictly but WITHOUT re-imposing the section
+  // .max() or re-validating the already-parsed sections: parse with empty
+  // sections (applies top-level defaults), then splice the kept sections back
+  // in. Keeps theme/hero strict while tolerating any number of valid sections —
+  // a future cap bump must never make an older branch throw here and blank the
+  // page (the failure this whole function exists to prevent).
+  const shell = eventPageConfigV1Schema.parse({ ...migrated, sections: [] });
+  const validated: EventPageConfigV1 = {
+    ...shell,
+    sections: kept as EventPageConfigV1["sections"],
+  };
   return { config: validated, dropped };
 }
 
@@ -293,9 +300,54 @@ export function shouldPersistMigratedConfig(
   return isDeepSubset(rawConfig, migratedConfig);
 }
 
-export type MergePreservedResult =
-  | { ok: true; merged: Record<string, unknown> }
-  | { ok: false; error: string };
+/**
+ * Returns the sections in a stored config that the running schema cannot parse,
+ * with their original index. Shared by mergePreservedSections (re-attach on
+ * save) and the registry save-guard (don't treat a quarantined registry
+ * section's live claims as orphaned). Best-effort: returns [] for a structurally
+ * broken / non-record stored config.
+ */
+export function getPreservedSections(
+  storedRawConfig: unknown
+): Array<{ index: number; raw: unknown }> {
+  if (!isRecord(storedRawConfig)) return [];
+
+  let migrated: UnknownConfig;
+  try {
+    migrated = migratePageConfig(storedRawConfig) as unknown as UnknownConfig;
+  } catch {
+    migrated = storedRawConfig;
+  }
+
+  const rawSections = Array.isArray(migrated.sections) ? migrated.sections : [];
+  const preserved: Array<{ index: number; raw: unknown }> = [];
+  rawSections.forEach((section, index) => {
+    if (!sectionSchema.safeParse(section).success) {
+      preserved.push({ index, raw: section });
+    }
+  });
+  return preserved;
+}
+
+/**
+ * Item ids that live in a preserved (quarantined, unparseable-on-this-branch)
+ * registry section. Their claims must NOT be treated as orphaned by the save
+ * guard — the section is being preserved, not removed. Best-effort: reads ids as
+ * raw strings even though the section failed strict parse.
+ */
+export function getPreservedRegistryItemIds(storedRawConfig: unknown): Set<string> {
+  const ids = new Set<string>();
+  for (const { raw } of getPreservedSections(storedRawConfig)) {
+    if (!isRecord(raw) || raw.type !== "registry") continue;
+    const data = raw.data;
+    const items = isRecord(data) ? data.items : undefined;
+    if (!Array.isArray(items)) continue;
+    for (const item of items) {
+      if (isRecord(item) && typeof item.id === "string") ids.add(item.id);
+    }
+  }
+  return ids;
+}
 
 /**
  * Re-merge server-trusted preserved sections into a freshly-validated config on
@@ -306,51 +358,26 @@ export type MergePreservedResult =
  *
  * Preserved sections are appended after the validated sections; their on-page
  * position only matters once the schema understands them again, at which point
- * the organizer can reorder. Enforces the 12-section ceiling on the merged total.
+ * the organizer can reorder. Infallible — preserved sections do NOT count
+ * against the editable section cap (the strict `.max()` already bounds the
+ * editable sections the client sends); a quarantined section must never block a
+ * save or get silently stripped to fit a ceiling.
  */
 export function mergePreservedSections(args: {
   validatedConfig: EventPageConfigV1;
   storedRawConfig: unknown;
   removedIndices?: number[];
-}): MergePreservedResult {
+}): Record<string, unknown> {
   const { validatedConfig, storedRawConfig, removedIndices = [] } = args;
 
-  // Derive preserved sections from the stored row, leniently. Their content is
-  // whatever the running schema cannot parse — taken verbatim from storage.
-  let preserved: Array<{ index: number; raw: unknown }> = [];
-  if (storedRawConfig && typeof storedRawConfig === "object") {
-    let migrated: UnknownConfig;
-    try {
-      migrated = migratePageConfig(storedRawConfig as UnknownConfig) as unknown as UnknownConfig;
-    } catch {
-      migrated = storedRawConfig as UnknownConfig;
-    }
-    const rawSections = Array.isArray(migrated.sections) ? migrated.sections : [];
-    rawSections.forEach((section, index) => {
-      if (!sectionSchema.safeParse(section).success) {
-        preserved.push({ index, raw: section });
-      }
-    });
-  }
-
   const removeSet = new Set(removedIndices);
-  preserved = preserved.filter((p) => !removeSet.has(p.index));
-
-  const mergedSections = [
-    ...validatedConfig.sections,
-    ...preserved.map((p) => p.raw),
-  ];
-
-  if (mergedSections.length > 12) {
-    return {
-      ok: false,
-      error: `Maximum 12 sections allowed (${validatedConfig.sections.length} editable + ${preserved.length} preserved).`,
-    };
-  }
+  const preserved = getPreservedSections(storedRawConfig).filter(
+    (p) => !removeSet.has(p.index)
+  );
 
   return {
-    ok: true,
-    merged: { ...validatedConfig, sections: mergedSections },
+    ...validatedConfig,
+    sections: [...validatedConfig.sections, ...preserved.map((p) => p.raw)],
   };
 }
 

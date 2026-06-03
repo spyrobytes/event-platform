@@ -12,6 +12,7 @@ import {
   lenientValidateAndMigrate,
   shouldPersistMigratedConfig,
   mergePreservedSections,
+  getPreservedRegistryItemIds,
   createMinimalConfig,
   type DroppedSection,
 } from "@/lib/config-migrations";
@@ -226,10 +227,22 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // Claims backed by a preserved (quarantined) registry section aren't
+    // orphaned — that section is being re-merged below, not removed. Exempt them
+    // so a registry section that's unparseable on this branch can't wedge every
+    // save with a false "removed gift with live claims" violation.
+    const preservedRegistryItemIds = getPreservedRegistryItemIds(
+      existingEvent?.pageConfig
+    );
+    const claimsForGuard =
+      preservedRegistryItemIds.size > 0
+        ? existingClaims.filter((c) => !preservedRegistryItemIds.has(c.itemId))
+        : existingClaims;
+
     const violations = validateRegistrySaveAgainstClaims({
       oldConfig,
       newConfig: validatedConfig,
-      existingClaims,
+      existingClaims: claimsForGuard,
     });
     if (violations.length > 0) {
       return errorResponse(formatViolations(violations), 400);
@@ -238,17 +251,13 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     // Re-attach preserved (unparseable-on-this-branch) sections from the stored
     // row so a save can't strip them. Content comes from storage, never the
     // client (tamper-proof); removedIndices are the ones the organizer chose to
-    // drop permanently. Stored verbatim — they stay quarantined until the schema
-    // understands them again, then reappear in the editor.
-    const mergeResult = mergePreservedSections({
+    // drop permanently. Preserved sections don't count against the editable cap,
+    // so this is infallible — it never blocks or strips to fit a ceiling.
+    const configToStore = mergePreservedSections({
       validatedConfig,
       storedRawConfig: existingEvent?.pageConfig,
       removedIndices,
-    });
-    if (!mergeResult.ok) {
-      return errorResponse(mergeResult.error, 400);
-    }
-    const configToStore = mergeResult.merged as unknown as object;
+    }) as unknown as object;
 
     // Save version history and prune old versions
     await db.eventPageVersion.create({
@@ -344,13 +353,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
           );
         }
         config = lenient.config;
-        const mergeResult = mergePreservedSections({
+        // Infallible merge — preserved sections are re-attached, never stripped
+        // to fit a cap, so publishing can't silently delete quarantined data.
+        configToStore = mergePreservedSections({
           validatedConfig: config,
           storedRawConfig: fullEvent.pageConfig,
-        });
-        configToStore = mergeResult.ok
-          ? (mergeResult.merged as unknown as object)
-          : (config as unknown as object);
+        }) as unknown as object;
       } else {
         config = createMinimalConfig(fullEvent.title);
         configToStore = config as unknown as object;

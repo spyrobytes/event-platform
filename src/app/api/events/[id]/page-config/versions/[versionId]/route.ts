@@ -8,7 +8,10 @@ import {
   errorResponse,
 } from "@/lib/api-response";
 import { revalidateEventPage } from "@/lib/revalidation";
-import { eventPageConfigV1Schema } from "@/schemas/event-page";
+import {
+  lenientValidateAndMigrate,
+  mergePreservedSections,
+} from "@/lib/config-migrations";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 
 /** Keep only the most recent N versions per event, delete the rest. */
@@ -116,19 +119,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return errorResponse("Version not found", 404);
     }
 
-    // Validate the config
-    const parseResult = eventPageConfigV1Schema.safeParse(version.pageConfig);
-    if (!parseResult.success) {
+    // Validate leniently so a snapshot taken while a section was quarantined is
+    // still restorable; re-merge the snapshot's preserved sections so rollback
+    // doesn't strip them. theme/hero stay strict (a structurally broken snapshot
+    // can't be restored).
+    let lenient;
+    try {
+      lenient = lenientValidateAndMigrate(version.pageConfig);
+    } catch {
       return errorResponse("Cannot rollback: version config is invalid", 400);
     }
-
-    const validatedConfig: EventPageConfigV1 = parseResult.data;
+    const validatedConfig: EventPageConfigV1 = lenient.config;
+    const configToStore = mergePreservedSections({
+      validatedConfig,
+      storedRawConfig: version.pageConfig,
+    }) as unknown as object;
 
     // Create a new version entry for this rollback (to maintain history)
     await db.eventPageVersion.create({
       data: {
         eventId,
-        pageConfig: validatedConfig,
+        pageConfig: configToStore,
         configVersion: validatedConfig.schemaVersion,
         createdBy: user.id,
       },
@@ -139,7 +150,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const updatedEvent = await db.event.update({
       where: { id: eventId },
       data: {
-        pageConfig: validatedConfig,
+        pageConfig: configToStore,
       },
       select: {
         slug: true,

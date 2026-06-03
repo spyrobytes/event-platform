@@ -5,6 +5,7 @@ import {
   lenientValidateAndMigrate,
   shouldPersistMigratedConfig,
   mergePreservedSections,
+  getPreservedRegistryItemIds,
   isDeepSubset,
 } from "@/lib/config-migrations";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
@@ -248,6 +249,15 @@ describe("lenientValidateAndMigrate", () => {
     bad.theme.preset = "not_a_preset";
     expect(() => lenientValidateAndMigrate(bad)).toThrow();
   });
+
+  it("keeps more than 12 valid sections without throwing (no .max blank-out)", () => {
+    // A future cap bump could persist >12 valid sections; an older branch must
+    // render them, not throw on .max and blank the whole page.
+    const many = Array.from({ length: 14 }, () => ({ ...validFaq }));
+    const { config, dropped } = lenientValidateAndMigrate(makeConfig(many));
+    expect(config.sections).toHaveLength(14);
+    expect(dropped).toHaveLength(0);
+  });
 });
 
 describe("isDeepSubset", () => {
@@ -311,16 +321,17 @@ describe("validateAndMigrate input guard", () => {
 });
 
 describe("mergePreservedSections", () => {
+  const sectionsOf = (merged: Record<string, unknown>) =>
+    (merged as { sections: unknown[] }).sections;
+
   it("re-attaches preserved (unparseable) stored sections onto the validated config", () => {
     const stored = makeConfig([validFaq, invalidWeddingParty]);
     const validated = validateAndMigrate(makeConfig([validFaq]));
 
-    const result = mergePreservedSections({ validatedConfig: validated, storedRawConfig: stored });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const sections = (result.merged as { sections: unknown[] }).sections;
+    const merged = mergePreservedSections({ validatedConfig: validated, storedRawConfig: stored });
+    const sections = sectionsOf(merged);
     expect(sections).toHaveLength(2);
-    // Preserved section appended verbatim, sourced from storage.
+    // Preserved section appended, sourced from storage.
     expect(sections[1]).toEqual(invalidWeddingParty);
   });
 
@@ -328,32 +339,57 @@ describe("mergePreservedSections", () => {
     const stored = makeConfig([validFaq, validWeddingParty]);
     const validated = validateAndMigrate(makeConfig([validFaq]));
 
-    const result = mergePreservedSections({ validatedConfig: validated, storedRawConfig: stored });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect((result.merged as { sections: unknown[] }).sections).toHaveLength(1);
+    const merged = mergePreservedSections({ validatedConfig: validated, storedRawConfig: stored });
+    expect(sectionsOf(merged)).toHaveLength(1);
   });
 
   it("drops a preserved section when its original index is in removedIndices", () => {
     const stored = makeConfig([validFaq, invalidWeddingParty]);
     const validated = validateAndMigrate(makeConfig([validFaq]));
 
-    const result = mergePreservedSections({
+    const merged = mergePreservedSections({
       validatedConfig: validated,
       storedRawConfig: stored,
       removedIndices: [1],
     });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect((result.merged as { sections: unknown[] }).sections).toHaveLength(1);
+    expect(sectionsOf(merged)).toHaveLength(1);
   });
 
-  it("errors when the merged total exceeds 12 sections", () => {
-    const manyInvalid = Array.from({ length: 12 }, () => ({ ...unknownSection }));
-    const stored = makeConfig(manyInvalid);
-    const validated = validateAndMigrate(makeConfig([validFaq]));
+  it("does NOT cap the merged total — 12 editable + preserved never blocks a save", () => {
+    // The strict .max(12) already bounds the editable sections the client sends;
+    // preserved (quarantined) sections must not be stripped to fit a ceiling.
+    const editable = Array.from({ length: 12 }, () => ({ ...validFaq }));
+    const validated = validateAndMigrate(makeConfig(editable));
+    const stored = makeConfig([...editable, invalidWeddingParty]);
 
-    const result = mergePreservedSections({ validatedConfig: validated, storedRawConfig: stored });
-    expect(result.ok).toBe(false);
+    const merged = mergePreservedSections({ validatedConfig: validated, storedRawConfig: stored });
+    expect(sectionsOf(merged)).toHaveLength(13);
+  });
+});
+
+describe("getPreservedRegistryItemIds", () => {
+  it("collects item ids from a preserved (unparseable) registry section", () => {
+    // enabled must be a boolean — the string forces the whole section to fail
+    // strict parse (quarantined), while item ids remain readable as raw strings.
+    const badRegistry = {
+      type: "registry",
+      enabled: "yes",
+      data: {
+        items: [
+          { id: "item-1", name: "Gift A" },
+          { id: "item-2", name: "Gift B" },
+        ],
+      },
+    };
+    const stored = makeConfig([validFaq, badRegistry]);
+    const ids = getPreservedRegistryItemIds(stored);
+    expect(ids.has("item-1")).toBe(true);
+    expect(ids.has("item-2")).toBe(true);
+    expect(ids.size).toBe(2);
+  });
+
+  it("returns an empty set when there is no preserved registry section", () => {
+    const stored = makeConfig([validFaq, validWeddingParty]);
+    expect(getPreservedRegistryItemIds(stored).size).toBe(0);
   });
 });
