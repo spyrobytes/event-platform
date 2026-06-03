@@ -1,23 +1,20 @@
 /**
  * Shared wedding-party grouping + member helpers.
  *
- * Used by every V3 flip-card party renderer (Scrapbook, Gilded Frames, and the
- * upcoming Couture Polaroid) so the bride/groom/special partition, the divider
- * labels, the local member shape, and the asset lookup live in one place
- * instead of being copy-pasted per renderer.
+ * Currently consumed by the Gilded Frames renderer via `WeddingPartyGroups`;
+ * the Scrapbook renderer still has its own copies pending migration, and the
+ * upcoming Couture Polaroid will build on these. Centralizes the
+ * bride/groom/special partition, the divider labels, the member shape, and the
+ * asset lookup so they aren't copy-pasted per renderer.
  */
 
-import type { PartySide } from "@/schemas/event-page";
+import type { PartyMember } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 
-export type PartyMember = {
-  name: string;
-  role: string;
-  bio?: string;
-  imageAssetId?: string;
-  side?: PartySide;
-};
+// The member shape is owned by the Zod schema; re-export it so the shared
+// layout/card code has one canonical type that can't drift from the data.
+export type { PartyMember };
 
 /** Divider labels for the grouped layout. */
 export const PARTY_GROUP_LABELS = {

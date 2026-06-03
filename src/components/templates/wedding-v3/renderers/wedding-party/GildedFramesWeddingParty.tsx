@@ -148,11 +148,19 @@ export function GildedFramesWeddingParty({
 
         <WeddingPartyGroups
           members={members}
-          styles={styles}
+          classes={{
+            grid: styles.grid,
+            gridSpaced: styles.gridSpaced,
+            groupSpaced: styles.groupSpaced,
+            specialGrid: styles.specialGrid,
+            divider: styles.divider,
+            dividerLine: styles.dividerLine,
+            dividerLabel: styles.dividerLabel,
+            empty: styles.empty,
+          }}
           emptyLabel="Wedding party portraits coming soon"
           renderCard={(member, index, isSpecial) => (
             <FlipCard
-              key={`${member.name}-${index}`}
               member={member}
               assets={assets}
               tilt={TILTS[index % TILTS.length]}
