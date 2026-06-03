@@ -475,10 +475,18 @@ export const partyMemberSchema = z.object({
   side: partySideSchema.optional(),
 });
 
+// Organizer-selectable wedding-party display style. Only honored by templates
+// that declare `weddingPartyStyleOptions` (currently Grand Luxe: Cinematic vs
+// Scrapbook); other templates ignore it and use their fixed renderer. Optional
+// for backward compatibility — unset resolves to the template's default style.
+export const weddingPartyDisplayStyleSchema = z.enum(["cinematic", "scrapbook"]);
+export type WeddingPartyDisplayStyle = z.infer<typeof weddingPartyDisplayStyleSchema>;
+
 export const weddingPartySectionDataSchema = z.object({
   heading: z.string().max(80, "Heading must be 80 characters or less").default("The Wedding Party"),
   description: z.string().max(300, "Description must be 300 characters or less").optional(),
   members: z.array(partyMemberSchema).max(30, "Maximum 30 party members allowed"),
+  displayStyle: weddingPartyDisplayStyleSchema.optional(),
 });
 
 export const weddingPartySectionSchema = z.object({

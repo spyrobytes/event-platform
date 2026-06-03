@@ -28,6 +28,14 @@ export const GRAND_LUXE: TemplateDefinition = {
   footerRenderer: "dramatic-dark",
   dividerRenderer: "metallic-line",
 
+  // Organizer-selectable wedding-party display style (first is the default).
+  // "Scrapbook" reuses Celebration's token-driven scrapbook-flip renderer, which
+  // adapts to Grand Luxe's gold/ivory palette (refined, not festive).
+  weddingPartyStyleOptions: [
+    { value: "cinematic", label: "Cinematic", renderer: "cinematic" },
+    { value: "scrapbook", label: "Scrapbook", renderer: "scrapbook-flip" },
+  ],
+
   supportsSocialLinks: true,
 
   motionPreset: {

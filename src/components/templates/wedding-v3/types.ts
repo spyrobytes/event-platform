@@ -27,6 +27,7 @@ import type {
   RegistrySection,
   WishesSection,
   SocialLink,
+  WeddingPartyDisplayStyle,
 } from "@/schemas/event-page";
 import type { V2FontPair, V2PaletteOverrides, V2GlassTokens } from "../wedding-v2/tokens";
 import type { SectionTheme } from "./theme-packs/section-themes";
@@ -190,6 +191,22 @@ export type WeddingPartyRendererId =
   | "cinematic"             // existing V2 adapter (default)
   | "scrapbook-flip";       // Celebration House — scrapbook photos with card flip
 
+/**
+ * A curated, organizer-selectable wedding-party display style. A template that
+ * declares `weddingPartyStyleOptions` lets the organizer pick among these (the
+ * first is the default); the persisted choice lives on
+ * `section.data.displayStyle`. This is a deliberately CURATED list (not a free
+ * renderer picker) — see the V3 design philosophy.
+ */
+export type WeddingPartyStyleOption = {
+  /** Persisted value on `section.data.displayStyle`. */
+  value: WeddingPartyDisplayStyle;
+  /** Label shown in the editor toggle. */
+  label: string;
+  /** Renderer used when this style is selected. */
+  renderer: WeddingPartyRendererId;
+};
+
 // ---------------------------------------------------------------------------
 // Section Renderer Props — shared contract for all renderer variants
 // ---------------------------------------------------------------------------
@@ -345,6 +362,13 @@ export type TemplateDefinition = {
   dividerRenderer: DividerRendererId;
   /** Optional — defaults to "cinematic" (V2 adapter) when omitted */
   weddingPartyRenderer?: WeddingPartyRendererId;
+  /**
+   * Optional curated wedding-party display styles. When present, the wedding
+   * party section offers an organizer toggle (first option is the default, and
+   * `section.data.displayStyle` selects among them); when omitted, the fixed
+   * `weddingPartyRenderer` is used. See WeddingPartyStyleOption.
+   */
+  weddingPartyStyleOptions?: WeddingPartyStyleOption[];
 
   // --- Motion ---
   motionPreset: MotionPreset;

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { PAGE_CONFIG_LIMITS, type WeddingPartySection, type PartyMember, type PartySide } from "@/schemas/event-page";
+import { cn } from "@/lib/utils";
+import { PAGE_CONFIG_LIMITS, type WeddingPartySection, type PartyMember, type PartySide, type WeddingPartyDisplayStyle } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -21,6 +22,10 @@ type WeddingPartyEditorProps = {
   assets: Asset[];
   onChange: (data: WeddingPartySection["data"]) => void;
   maxMembers?: number;
+  /** Curated display styles offered by the active template (Grand Luxe:
+   *  Cinematic vs Scrapbook). When present (>1), a style toggle is shown; the
+   *  first option is the default. Omitted for templates with a fixed renderer. */
+  styleOptions?: { value: WeddingPartyDisplayStyle; label: string }[];
 };
 
 /**
@@ -32,6 +37,7 @@ export function WeddingPartyEditor({
   assets,
   onChange,
   maxMembers = PAGE_CONFIG_LIMITS.maxPartyMembers,
+  styleOptions,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   // Party member photos: portraits only. Couple photos live under the "couple"
@@ -80,8 +86,46 @@ export function WeddingPartyEditor({
     [data, members, onChange]
   );
 
+  const activeStyle = data.displayStyle ?? styleOptions?.[0]?.value;
+
   return (
     <div className="space-y-4">
+      {styleOptions && styleOptions.length > 1 && (
+        <div className="space-y-2">
+          <Label>Display Style</Label>
+          <div
+            role="radiogroup"
+            aria-label="Wedding party display style"
+            className="flex gap-2"
+          >
+            {styleOptions.map((opt) => {
+              const isActive = activeStyle === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={isActive}
+                  onClick={() => onChange({ ...data, displayStyle: opt.value })}
+                  className={cn(
+                    "flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    isActive
+                      ? "border-foreground bg-foreground/5 text-foreground"
+                      : "border-input text-muted-foreground hover:border-foreground/30",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            How the wedding party section is displayed on your page.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="party-heading">Section Heading</Label>
         <Input
