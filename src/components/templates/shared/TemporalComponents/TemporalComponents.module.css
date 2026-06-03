@@ -66,7 +66,10 @@
   font-size: 3rem;
   font-weight: 300;
   line-height: 1;
-  color: var(--temporal-accent);
+  /* Defaults to the temporal accent (primary). A light V3 section-theme panel
+   * pins --lux-num-ink to a dark ink so the number stays legible on the band;
+   * dark/unthemed keep --temporal-accent unchanged. */
+  color: var(--lux-num-ink, var(--temporal-accent));
 }
 
 .countdownUnit {

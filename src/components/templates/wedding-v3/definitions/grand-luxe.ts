@@ -198,6 +198,23 @@ export const GRAND_LUXE: TemplateDefinition = {
       label: "Amethyst",
       panel: "#34005B",
     },
+    {
+      // Blackened emerald — a black-tie green that keeps the gold accent.
+      // Dark panel, so it rides the standard light-on-dark path.
+      id: "emerald-noir",
+      label: "Emerald Noir",
+      panel: "#0E2E26",
+    },
+    {
+      // The one LIGHT panel: a cerulean field with deep-ink type (gold can't
+      // survive at ~1.2:1 on this panel, so the accent is pinned to a near-ink
+      // navy). Triggers the generator's dark-on-light path; the hero stays
+      // cinematic via the --lux-hero-* tokens.
+      id: "cerulean",
+      label: "Cerulean",
+      panel: "#55a1bf",
+      accent: "#0a1f2b",
+    },
   ],
 
   // The default (no section theme) option in the picker.
