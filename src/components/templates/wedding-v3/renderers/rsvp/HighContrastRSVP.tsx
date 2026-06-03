@@ -65,7 +65,7 @@ export function HighContrastRSVP({ data, eventSlug }: RSVPRendererProps) {
             eventSlug={eventSlug}
             buttonClassName="text-[var(--lux-accent-ink,var(--text,#1e1b17))] hover:opacity-90 transition-opacity"
             buttonStyle={{ backgroundColor: "var(--lux-accent, var(--accent, #c5a55a))" }}
-            helpTextClassName="text-white/70"
+            helpTextClassName="text-[var(--lux-ink-soft,rgba(255,255,255,0.7))]"
           />
         </div>
       </div>
