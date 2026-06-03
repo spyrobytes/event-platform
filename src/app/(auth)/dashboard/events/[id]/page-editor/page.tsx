@@ -726,8 +726,12 @@ export default function PageEditorPage() {
   const handleRemovePreserved = useCallback(
     async (index: number) => {
       if (!config || saving) return;
+      // It's a full PUT, so any unsaved edits get committed too — say so when
+      // the editor is dirty, rather than silently saving them.
       const confirmed = window.confirm(
-        "Remove this section permanently? Its data will be deleted from the live page. A copy remains in version history."
+        hasChanges
+          ? "Remove this section permanently? This will also SAVE your current unsaved changes. A copy of the removed section stays in version history."
+          : "Remove this section permanently? Its data will be deleted from the live page. A copy stays in version history."
       );
       if (!confirmed) return;
 
@@ -763,7 +767,7 @@ export default function PageEditorPage() {
         setSaving(false);
       }
     },
-    [config, saving, getIdToken, params.id, templateId]
+    [config, saving, hasChanges, getIdToken, params.id, templateId]
   );
 
   // Preview navigation gates on dirty state — same pattern as the invitation

@@ -153,21 +153,6 @@ export function validateAndMigrate(config: unknown): EventPageConfigV1 {
   return eventPageConfigV1Schema.parse(migrated);
 }
 
-/**
- * Safely validates and migrates, returning error instead of throwing
- */
-export function safeValidateAndMigrate(
-  config: unknown
-): { success: true; data: EventPageConfigV1 } | { success: false; error: string } {
-  try {
-    const result = validateAndMigrate(config);
-    return { success: true, data: result };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown validation error";
-    return { success: false, error: message };
-  }
-}
-
 // =============================================================================
 // LENIENT (SECTION-LEVEL) PARSE
 // =============================================================================
@@ -355,24 +340,31 @@ export function isDeepSubset(subset: unknown, superset: unknown): boolean {
   const sub = subset as UnknownConfig;
   const sup = superset as UnknownConfig;
   return Object.keys(sub).every(
-    (key) => key in sup && isDeepSubset(sub[key], sup[key])
+    (key) =>
+      Object.prototype.hasOwnProperty.call(sup, key) &&
+      isDeepSubset(sub[key], sup[key])
   );
 }
 
 /**
  * Read-time auto-persist gate. Both page loaders write a migrated config back to
- * the row when it differs from stored, to bake in idempotent backfills (registry
- * uuids, map `formattedAddress`). Three conditions must hold:
+ * the row to bake in idempotent backfills (registry uuids, map `formattedAddress`,
+ * a first-time default). Persist ONLY when the migration STRICTLY ADDED data:
  *
- * 1. Something changed (else the write is a no-op).
- * 2. No section was dropped — a transient schema skew must never strip the
- *    organizer's sections on a mere read.
- * 3. The migration is purely ADDITIVE — the migrated config deep-contains the
- *    stored one. An older branch's Zod parse silently strips unknown optional
- *    fields (we evolve by adding `.optional()` fields at schemaVersion 1); if we
- *    persisted that, the newer field would be erased. Skipping the write leaves
- *    it in storage, hidden until the schema understands it again — same self-heal
- *    guarantee the section-level lenient parse gives.
+ * - `isDeepSubset(raw, migrated)` — nothing the stored config had was dropped.
+ *   An older branch's Zod parse silently strips unknown optional fields (we
+ *   evolve by adding `.optional()` fields at schemaVersion 1); persisting that
+ *   would erase the newer field. Skipping leaves it in storage to self-heal.
+ * - `!isDeepSubset(migrated, raw)` — migrated actually has something extra.
+ *   Crucially this makes EQUAL content a no-op even when the serialized forms
+ *   differ: the stored row is `jsonb` (Postgres normalizes key order) while the
+ *   freshly-parsed config is in schema-declaration order, so a `JSON.stringify`
+ *   inequality is the common case and would otherwise fire a write on EVERY read
+ *   of EVERY published page (write amplification + row-lock contention on hot
+ *   event rows). A bidirectional subset means equal content → don't write.
+ *
+ * Also gated on zero dropped sections — a transient schema skew must never strip
+ * the organizer's sections on a mere read.
  */
 export function shouldPersistMigratedConfig(
   rawConfig: unknown,
@@ -380,9 +372,10 @@ export function shouldPersistMigratedConfig(
   droppedCount: number
 ): boolean {
   if (droppedCount > 0) return false;
-  const changed = JSON.stringify(rawConfig) !== JSON.stringify(migratedConfig);
-  if (!changed) return false;
-  return isDeepSubset(rawConfig, migratedConfig);
+  return (
+    isDeepSubset(rawConfig, migratedConfig) &&
+    !isDeepSubset(migratedConfig, rawConfig)
+  );
 }
 
 /**
