@@ -41,6 +41,9 @@ export const GRAND_LUXE: TemplateDefinition = {
     // Gilded Frames — bespoke Grand Luxe gallery that reads the --lux-* section
     // theme (matted gold-framed portraits; flips with Amethyst/Cerulean/etc.).
     { value: "gilded", label: "Gilded Frames", renderer: "gilded-frames" },
+    // Couture Polaroid — bespoke Grand Luxe album page; matte mounted photos
+    // with gold corner tape + engraved nameplate, also --lux-* theme-aware.
+    { value: "couture", label: "Couture Polaroid", renderer: "couture-polaroid" },
   ],
 
   supportsSocialLinks: true,
