@@ -167,7 +167,14 @@
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  border-radius: calc(var(--r, 5px) - 1px);
+  /* Square well so the gold corner tape lands on crisp right angles — a rounded
+   * frame + overflow:hidden would shave the triangle tips. */
+  border-radius: 0;
+  /* Neutral matte-print hairline so the well always reads, including the
+   * no-photo monogram (whose fill matches the card stock). Outset (not inset)
+   * so the photo/monogram child can't paint over it. Theme-aware, and
+   * deliberately --cp-line not gold, to stay distinct from Gilded's frame. */
+  box-shadow: 0 0 0 1px var(--cp-line);
 }
 
 .photo {
@@ -189,14 +196,15 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  --cp-corner: clamp(15px, 2.1vw, 20px);
+  /* Coincident hard stops (50%/50%) for a crisp diagonal — a 49%/50% gap leaves
+   * a faint feathered hypotenuse on hi-DPI. */
   background-image:
-    linear-gradient(to bottom right, var(--cp-accent) 0 49%, transparent 50%),
-    linear-gradient(to bottom left, var(--cp-accent) 0 49%, transparent 50%),
-    linear-gradient(to top right, var(--cp-accent) 0 49%, transparent 50%),
-    linear-gradient(to top left, var(--cp-accent) 0 49%, transparent 50%);
+    linear-gradient(to bottom right, var(--cp-accent) 0 50%, transparent 50%),
+    linear-gradient(to bottom left, var(--cp-accent) 0 50%, transparent 50%),
+    linear-gradient(to top right, var(--cp-accent) 0 50%, transparent 50%),
+    linear-gradient(to top left, var(--cp-accent) 0 50%, transparent 50%);
   background-position: top left, top right, bottom left, bottom right;
-  background-size: var(--cp-corner) var(--cp-corner);
+  background-size: clamp(15px, 2.1vw, 20px) clamp(15px, 2.1vw, 20px);
   background-repeat: no-repeat;
   /* A whisper of foil lift on the metal. */
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
