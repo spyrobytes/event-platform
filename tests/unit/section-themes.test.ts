@@ -31,7 +31,7 @@ describe("getSectionThemeVariables — dark panels (light-on-dark)", () => {
     expect(v["--lux-hero-ink-faint"]).toBe("rgba(255, 255, 255, 0.4)");
     expect(v["--lux-hero-line"]).toBe("rgba(255, 255, 255, 0.12)");
     // A dark panel's 60% tint is already a dark glass → unchanged.
-    expect(v["--lux-glass"]).toContain("60%");
+    expect(v["--lux-hero-glass"]).toContain("60%");
   });
 
   it("leaves accent unset when the theme does not pin one", () => {
@@ -79,8 +79,8 @@ describe("getSectionThemeVariables — light/mid panels (dark-on-light)", () => 
     expect(v["--lux-hero-accent"]).toBeUndefined();
     // Glass goes dark (faintly tinted), NOT the light 60% panel veil — keeps
     // muted ink + the gold accent legible on the info cards.
-    expect(v["--lux-glass"]).toContain("rgba(10, 12, 15, 0.72)");
-    expect(v["--lux-glass"]).not.toContain("60%");
+    expect(v["--lux-hero-glass"]).toContain("rgba(10, 12, 15, 0.72)");
+    expect(v["--lux-hero-glass"]).not.toContain("60%");
   });
 
   it("justifies the polarity flip with WCAG contrast", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { getContrastRatio, HEX6_RE } from "@/lib/color";
+import { isLightColor, HEX6_RE } from "@/lib/color";
 import type { SectionTheme } from "@/components/templates/wedding-v3/theme-packs/section-themes";
 
 type SectionThemePickerProps = {
@@ -43,9 +43,11 @@ export function SectionThemePicker({
         const isActive = value === opt.id;
         // Checkmark color that reads on this swatch — a dark check on a light
         // swatch (e.g. the "Light" default), white on a dark one.
+        // Decide polarity with the same shared test the generator uses (so the
+        // swatch preview matches how the real surfaces flip), then render a
+        // softened near-black stroke on light swatches, white on dark ones.
         const checkStroke =
-          HEX6_RE.test(opt.swatch) &&
-          getContrastRatio(opt.swatch, "#111111") > getContrastRatio(opt.swatch, "#ffffff")
+          HEX6_RE.test(opt.swatch) && isLightColor(opt.swatch)
             ? "#111111"
             : "#ffffff";
         return (
