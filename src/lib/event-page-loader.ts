@@ -1,6 +1,10 @@
 import { db } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
-import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
+import {
+  lenientValidateAndMigrate,
+  shouldPersistMigratedConfig,
+  createMinimalConfig,
+} from "@/lib/config-migrations";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { AccessLevel } from "@/lib/guest-access";
 
@@ -127,10 +131,17 @@ export async function resolveGuestAccess(
 }
 
 /**
- * Parse, validate, and migrate the stored page config. Fire-and-forget
- * persists the migrated config when registry items had uuids lazily
- * backfilled, so later reads (including the claim POST endpoint) observe
- * the same ids. Falls back to a minimal config if stored JSON is invalid.
+ * Parse, validate, and migrate the stored page config for the guest-facing
+ * surfaces. Section-level lenient: a single unparseable section (e.g. an enum
+ * value the running branch's schema doesn't know) is skipped, not fatal, so the
+ * published page degrades to its valid sections instead of blanking entirely.
+ *
+ * Fire-and-forget persists the migrated config when registry items had uuids
+ * lazily backfilled, so later reads (including the claim POST endpoint) observe
+ * the same ids — but ONLY when no section was dropped, so a transient schema
+ * skew can never strip the organizer's sections on a mere read. Falls back to a
+ * minimal config only when the stored JSON is structurally invalid (bad
+ * theme/hero or not an object).
  */
 export function loadAndMigrateConfig(
   rawPageConfig: unknown,
@@ -139,19 +150,29 @@ export function loadAndMigrateConfig(
   if (!rawPageConfig) return createMinimalConfig(params.eventTitle);
 
   try {
-    const config = validateAndMigrate(rawPageConfig);
-    if (JSON.stringify(rawPageConfig) !== JSON.stringify(config)) {
+    const { config, dropped } = lenientValidateAndMigrate(rawPageConfig);
+    if (shouldPersistMigratedConfig(rawPageConfig, config, dropped.length)) {
       db.event
         .update({
           where: { id: params.eventId },
           data: { pageConfig: config as unknown as object },
         })
         .catch((err) =>
-          console.error("[page-config-migrate] failed to persist", err)
+          console.error("[page-config-migrate] failed to persist", {
+            eventId: params.eventId,
+            error: err instanceof Error ? err.message : String(err),
+          })
         );
     }
     return config;
-  } catch {
+  } catch (err) {
+    // Reaching here means the stored config isn't a record at all — section,
+    // theme, hero, and optional-field failures are all tolerated upstream. This
+    // blanks the public page to a minimal fallback, so it warrants a trail.
+    console.error("[page-config] invalid stored config; using fallback", {
+      eventId: params.eventId,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return createMinimalConfig(params.eventTitle);
   }
 }

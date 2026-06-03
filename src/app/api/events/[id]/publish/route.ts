@@ -6,7 +6,7 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { publishEventSchema } from "@/schemas/event";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { revalidateEventPage } from "@/lib/revalidation";
-import { safeValidateAndMigrate } from "@/lib/config-migrations";
+import { lenientValidateAndMigrate } from "@/lib/config-migrations";
 import { validateMapSectionsInConfig } from "@/lib/maps/map-utils";
 
 type RouteContext = {
@@ -61,15 +61,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
       throw new ValidationError("Cannot publish an event with a start date in the past");
     }
 
-    // Reject publish if the saved config is structurally invalid, or if any
-    // enabled map section is missing address or coords. Drafts may have
-    // incomplete map data (schema allows it); publish must not.
+    // Reject publish only if the config is structurally invalid (bad
+    // theme/hero), or if any enabled map section is missing address or coords.
+    // Section-level lenient: one unparseable section must not block publishing —
+    // the page renders its valid sections, mirroring the page-config publish
+    // path. This route writes only status/publishedAt, never pageConfig, so
+    // preserved sections in storage are untouched.
     if (currentEvent.pageConfig) {
-      const result = safeValidateAndMigrate(currentEvent.pageConfig);
-      if (!result.success) {
-        throw new ValidationError(`Cannot publish: page config is invalid (${result.error}).`);
+      let config;
+      try {
+        config = lenientValidateAndMigrate(currentEvent.pageConfig).config;
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : "invalid config";
+        throw new ValidationError(`Cannot publish: page config is invalid (${reason}).`);
       }
-      const mapResult = validateMapSectionsInConfig(result.data);
+      const mapResult = validateMapSectionsInConfig(config);
       if (!mapResult.ok) {
         throw new ValidationError(mapResult.reason);
       }

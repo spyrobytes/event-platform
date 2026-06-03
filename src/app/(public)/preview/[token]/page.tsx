@@ -3,7 +3,7 @@ import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
 import { TEMPLATES } from "@/components/templates";
-import { validateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
+import { lenientValidateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -137,11 +137,13 @@ export default async function PreviewPage({ params }: PageProps) {
   const templateId = event.templateId || DEFAULT_TEMPLATE_ID;
   const resolvedTemplateId = templateId in TEMPLATES ? templateId : DEFAULT_TEMPLATE_ID;
 
-  // Validate and migrate config if needed
+  // Validate and migrate config if needed. Section-level lenient so the preview
+  // degrades to its valid sections (like the live page) instead of blanking when
+  // one section is unparseable on the running branch's schema.
   let config: EventPageConfigV1;
   if (event.pageConfig) {
     try {
-      config = validateAndMigrate(event.pageConfig);
+      config = lenientValidateAndMigrate(event.pageConfig).config;
     } catch {
       config = createMinimalConfig(event.title);
     }

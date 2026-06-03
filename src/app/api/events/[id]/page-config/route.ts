@@ -9,9 +9,12 @@ import {
   errorResponse,
 } from "@/lib/api-response";
 import {
-  validateAndMigrate,
-  safeValidateAndMigrate,
+  lenientValidateAndMigrate,
+  shouldPersistMigratedConfig,
+  mergePreservedSections,
+  getPreservedRegistryItemIds,
   createMinimalConfig,
+  type DroppedSection,
 } from "@/lib/config-migrations";
 import { revalidateEventPage } from "@/lib/revalidation";
 import { eventPageConfigV1Schema } from "@/schemas/event-page";
@@ -43,6 +46,16 @@ async function pruneOldVersions(eventId: string) {
 const pageConfigActionSchema = z.object({
   action: z.enum(["publish", "unpublish"]),
 });
+
+/**
+ * Original stored indices of preserved (unparseable) sections the organizer
+ * chose to drop permanently via the editor banner. Absent/empty = keep all
+ * preserved sections (the default — option (a), never lose data).
+ */
+const removedPreservedIndicesSchema = z
+  .array(z.number().int().nonnegative())
+  .optional()
+  .default([]);
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -98,14 +111,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return errorResponse("Event not found", 404);
     }
 
-    // Validate and migrate config or create minimal config
+    // Validate and migrate config or create minimal config. Section-level
+    // lenient: a single unparseable section is skipped (reported in `dropped`)
+    // rather than blanking the whole editor. theme/hero stay strict — a config
+    // broken there still falls back to minimal.
     let config: EventPageConfigV1;
+    let dropped: DroppedSection[] = [];
     if (fullEvent.pageConfig) {
       try {
-        config = validateAndMigrate(fullEvent.pageConfig);
+        const result = lenientValidateAndMigrate(fullEvent.pageConfig);
+        config = result.config;
+        dropped = result.dropped;
         // Persist if lazy-backfill assigned new registry item uuids; see
         // companion write in src/app/e/[slug]/page.tsx for the same reason.
-        if (JSON.stringify(fullEvent.pageConfig) !== JSON.stringify(config)) {
+        // Gated: only purely-additive backfills with zero dropped sections are
+        // written back, so a transient schema skew can neither strip sections
+        // nor erase a newer optional field on a mere read.
+        if (shouldPersistMigratedConfig(fullEvent.pageConfig, config, dropped.length)) {
           await db.event.update({
             where: { id: eventId },
             data: { pageConfig: config as unknown as object },
@@ -121,6 +143,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return successResponse({
       config,
+      // Sections the running schema couldn't parse — preserved in storage and
+      // re-merged on save; the editor surfaces these in a non-blocking banner.
+      dropped,
       templateId: fullEvent.templateId || "wedding_v1",
       isPublished: !!fullEvent.publishedAt,
       publishedAt: fullEvent.publishedAt,
@@ -161,6 +186,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     const body = await request.json();
     const { config, templateId } = body;
+    const removedIndices = removedPreservedIndicesSchema.parse(
+      body.removedPreservedIndices
+    );
 
     // Validate config against schema
     const parseResult = eventPageConfigV1Schema.safeParse(config);
@@ -190,27 +218,52 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     let oldConfig: EventPageConfigV1 | null = null;
     if (existingEvent?.pageConfig) {
       try {
-        oldConfig = validateAndMigrate(existingEvent.pageConfig);
+        // Lenient so a sibling unparseable section doesn't blind the registry
+        // guard to a valid registry section. Only throws on broken theme/hero.
+        oldConfig = lenientValidateAndMigrate(existingEvent.pageConfig).config;
       } catch {
         // Prior config couldn't be parsed — guard still runs against new config;
         // we just won't have old display names for any removed items.
       }
     }
 
+    // Claims backed by a preserved (quarantined) registry section aren't
+    // orphaned — that section is being re-merged below, not removed. Exempt them
+    // so a registry section that's unparseable on this branch can't wedge every
+    // save with a false "removed gift with live claims" violation.
+    const preservedRegistryItemIds = getPreservedRegistryItemIds(
+      existingEvent?.pageConfig
+    );
+    const claimsForGuard =
+      preservedRegistryItemIds.size > 0
+        ? existingClaims.filter((c) => !preservedRegistryItemIds.has(c.itemId))
+        : existingClaims;
+
     const violations = validateRegistrySaveAgainstClaims({
       oldConfig,
       newConfig: validatedConfig,
-      existingClaims,
+      existingClaims: claimsForGuard,
     });
     if (violations.length > 0) {
       return errorResponse(formatViolations(violations), 400);
     }
 
+    // Re-attach preserved (unparseable-on-this-branch) sections from the stored
+    // row so a save can't strip them. Content comes from storage, never the
+    // client (tamper-proof); removedIndices are the ones the organizer chose to
+    // drop permanently. Preserved sections don't count against the editable cap,
+    // so this is infallible — it never blocks or strips to fit a ceiling.
+    const configToStore = mergePreservedSections({
+      validatedConfig,
+      storedRawConfig: existingEvent?.pageConfig,
+      removedIndices,
+    }) as unknown as object;
+
     // Save version history and prune old versions
     await db.eventPageVersion.create({
       data: {
         eventId,
-        pageConfig: validatedConfig,
+        pageConfig: configToStore,
         configVersion: validatedConfig.schemaVersion,
         createdBy: user.id,
       },
@@ -221,7 +274,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const updatedEvent = await db.event.update({
       where: { id: eventId },
       data: {
-        pageConfig: validatedConfig,
+        pageConfig: configToStore,
         ...(templateId && { templateId }),
       },
       select: {
@@ -280,18 +333,35 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return errorResponse("Event not found", 404);
       }
 
-      // Get or create config. Run through safeValidateAndMigrate so legacy
-      // map sections get their formattedAddress backfilled before the publish
-      // gate runs — keeps parity with /api/events/[id]/publish.
+      // Get or create config. Section-level lenient so one unparseable section
+      // doesn't block publishing — the page goes live with its valid sections,
+      // mirroring the public render. Preserved sections are re-attached so
+      // publish doesn't strip them. theme/hero stay strict (a config broken
+      // there can't publish). Legacy map sections still get formattedAddress
+      // backfilled (via migratePageConfig) before the publish gate runs.
       let config: EventPageConfigV1;
+      let configToStore: object;
       if (fullEvent.pageConfig) {
-        const result = safeValidateAndMigrate(fullEvent.pageConfig);
-        if (!result.success) {
-          return errorResponse(`Cannot publish: page config is invalid (${result.error})`, 400);
+        let lenient;
+        try {
+          lenient = lenientValidateAndMigrate(fullEvent.pageConfig);
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "invalid config";
+          return errorResponse(
+            `Cannot publish: page config is invalid (${reason})`,
+            400
+          );
         }
-        config = result.data;
+        config = lenient.config;
+        // Infallible merge — preserved sections are re-attached, never stripped
+        // to fit a cap, so publishing can't silently delete quarantined data.
+        configToStore = mergePreservedSections({
+          validatedConfig: config,
+          storedRawConfig: fullEvent.pageConfig,
+        }) as unknown as object;
       } else {
         config = createMinimalConfig(fullEvent.title);
+        configToStore = config as unknown as object;
       }
 
       // Publish-time semantic checks beyond Zod (e.g. enabled map sections
@@ -305,7 +375,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         where: { id: eventId },
         data: {
           publishedAt: new Date(),
-          pageConfig: config,
+          pageConfig: configToStore,
         },
       });
 
