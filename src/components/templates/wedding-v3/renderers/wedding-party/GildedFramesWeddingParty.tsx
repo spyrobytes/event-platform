@@ -14,53 +14,24 @@
  * default, dramatic dark on Amethyst/Emerald Noir/Midnight Gold, and
  * dark-on-light on the Cerulean light panel (via the polarity engine).
  *
- * Preserves the bride/groom/special-roles grouping shared by the V3 party
- * renderers.
+ * Grouping, the flip interaction, the icons, and the asset lookup come from the
+ * shared wedding-party modules; this file is the gilded card skin + header.
  */
 
-import { useState, useCallback } from "react";
 import type { SectionRendererProps } from "../../types";
-import type { WeddingPartySection, PartySide } from "@/schemas/event-page";
+import type { WeddingPartySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
-import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 import { EventImage } from "@/components/media/EventImage";
+import { getPartyAsset, type PartyMember } from "./shared/party-groups";
+import { useFlipCard } from "./shared/useFlipCard";
+import { FlipIcon, ReturnIcon } from "./shared/FlipIcons";
+import { WeddingPartyGroups } from "./shared/WeddingPartyGroups";
 import styles from "./GildedFramesWeddingParty.module.css";
 
 // Composed near-aligned tilt — a hair off-true, like frames hung on a wall.
 const TILTS = [
   "-0.6deg", "0.5deg", "-0.4deg", "0.7deg", "-0.5deg", "0.4deg", "-0.7deg", "0.5deg",
 ];
-
-type PartyMember = {
-  name: string;
-  role: string;
-  bio?: string;
-  imageAssetId?: string;
-  side?: PartySide;
-};
-
-function getAsset(assetId: string | undefined, assets: MediaAsset[]): MediaAsset | null {
-  if (!assetId) return null;
-  return assets.find((a) => a.id === assetId) ?? null;
-}
-
-function FlipIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="1 4 1 10 7 10" />
-      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-    </svg>
-  );
-}
-
-function ReturnIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="9 14 4 9 9 4" />
-      <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-    </svg>
-  );
-}
 
 function FlipCard({
   member,
@@ -75,25 +46,10 @@ function FlipCard({
   index: number;
   isSpecial?: boolean;
 }) {
-  const [flipped, setFlipped] = useState(false);
-  const asset = getAsset(member.imageAssetId, assets);
+  const asset = getPartyAsset(member.imageAssetId, assets);
   const initial = member.name.charAt(0).toUpperCase();
   const canFlip = Boolean(member.bio && member.bio.trim());
-
-  const toggle = useCallback(() => {
-    if (canFlip) setFlipped((f) => !f);
-  }, [canFlip]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (!canFlip) return;
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        toggle();
-      }
-    },
-    [canFlip, toggle],
-  );
+  const { flipped, toggle, handleKeyDown } = useFlipCard(canFlip);
 
   const outerClass = [
     styles.cardOuter,
@@ -175,37 +131,6 @@ export function GildedFramesWeddingParty({
   const kickerText = "Wedding Party";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  // Partition: special roles first, then bride/groom by explicit `side` with
-  // role-keyword inference as the fallback.
-  const specialMembers = members.filter((m) => isSpecialRole(m.role));
-  const regularMembers = members.filter((m) => !isSpecialRole(m.role));
-  const bridesSide = regularMembers.filter((m) => getEffectiveSide(m) === "bride");
-  const groomsSide = regularMembers.filter((m) => getEffectiveSide(m) === "groom");
-  const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
-  const hasSides = bridesSide.length > 0 || groomsSide.length > 0;
-
-  const renderDivider = (label: string) => (
-    <div className={styles.divider}>
-      <span className={styles.dividerLine} />
-      <span className={styles.dividerLabel}>{label}</span>
-      <span className={styles.dividerLine} />
-    </div>
-  );
-
-  const renderCards = (list: PartyMember[], offset: number, isSpecial = false) =>
-    list.map((member, i) => (
-      <FlipCard
-        key={`${member.name}-${offset + i}`}
-        member={member}
-        assets={assets}
-        tilt={TILTS[(offset + i) % TILTS.length]}
-        index={offset + i}
-        isSpecial={isSpecial}
-      />
-    ));
-
-  let runningOffset = 0;
-
   return (
     <section className={styles.section} aria-label="Wedding party" id="party">
       <div className={styles.container}>
@@ -221,60 +146,29 @@ export function GildedFramesWeddingParty({
           {description && <p className={styles.description}>{description}</p>}
         </div>
 
-        {/* Bride's side */}
-        {bridesSide.length > 0 && (
-          <>
-            {renderDivider("Bride’s side")}
-            <div className={`${styles.grid} ${styles.gridSpaced}`}>
-              {renderCards(bridesSide, runningOffset)}
-              {void (runningOffset += bridesSide.length)}
-            </div>
-          </>
-        )}
-
-        {/* Groom's side */}
-        {groomsSide.length > 0 && (
-          <>
-            {renderDivider("Groom’s side")}
-            <div className={styles.grid}>
-              {renderCards(groomsSide, runningOffset)}
-              {void (runningOffset += groomsSide.length)}
-            </div>
-          </>
-        )}
-
-        {/* Ungrouped members (no explicit sides) */}
-        {!hasSides && others.length > 0 && (
-          <div className={styles.grid}>
-            {renderCards(others, runningOffset)}
-            {void (runningOffset += others.length)}
-          </div>
-        )}
-
-        {/* Others (when sides exist) */}
-        {hasSides && others.length > 0 && (
-          <div className={styles.groupSpaced}>
-            {renderDivider("Others")}
-            <div className={styles.grid}>
-              {renderCards(others, runningOffset)}
-              {void (runningOffset += others.length)}
-            </div>
-          </div>
-        )}
-
-        {/* Special roles */}
-        {specialMembers.length > 0 && (
-          <div className={styles.groupSpaced}>
-            {renderDivider("Special Roles")}
-            <div className={styles.specialGrid}>
-              {renderCards(specialMembers, runningOffset, true)}
-            </div>
-          </div>
-        )}
-
-        {members.length === 0 && (
-          <div className={styles.empty}>Wedding party portraits coming soon</div>
-        )}
+        <WeddingPartyGroups
+          members={members}
+          classes={{
+            grid: styles.grid,
+            gridSpaced: styles.gridSpaced,
+            groupSpaced: styles.groupSpaced,
+            specialGrid: styles.specialGrid,
+            divider: styles.divider,
+            dividerLine: styles.dividerLine,
+            dividerLabel: styles.dividerLabel,
+            empty: styles.empty,
+          }}
+          emptyLabel="Wedding party portraits coming soon"
+          renderCard={(member, index, isSpecial) => (
+            <FlipCard
+              member={member}
+              assets={assets}
+              tilt={TILTS[index % TILTS.length]}
+              index={index}
+              isSpecial={isSpecial}
+            />
+          )}
+        />
       </div>
     </section>
   );
