@@ -19,7 +19,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const event = await getEventBySlug(slug, false);
+  const event = await getEventBySlug(slug, undefined);
   if (!event) return { title: "RSVP" };
   return {
     title: `RSVP — ${event.title}`,
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function RsvpEntryPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const event = await getEventBySlug(slug, false);
+  const event = await getEventBySlug(slug, undefined);
   if (!event) {
     const renamed = await getRedirectForRetiredSlug(slug);
     if (renamed) permanentRedirect(`/e/${renamed}/rsvp`);

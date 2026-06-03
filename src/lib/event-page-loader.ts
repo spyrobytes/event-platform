@@ -15,7 +15,7 @@ import type { AccessLevel } from "@/lib/guest-access";
  * published/visibility/token rules as the event page itself.
  */
 
-export async function getEventBySlug(slug: string, hasGuestToken: boolean) {
+export async function getEventBySlug(slug: string, tk: string | undefined) {
   const event = await db.event.findUnique({
     where: { slug },
     select: {
@@ -57,7 +57,15 @@ export async function getEventBySlug(slug: string, hasGuestToken: boolean) {
   if (!event) return null;
   if (!event.publishedAt) return null;
   if (event.status === "CANCELLED") return null;
-  if (event.visibility === "PRIVATE" && !hasGuestToken) return null;
+  // PRIVATE events require a VALID guest token — token PRESENCE is not access.
+  // A present-but-invalid/expired token grants nothing, so resolve it and 404
+  // unless it maps to a live guest invite. Centralized here so no current or
+  // future sub-route can leak a private event by checking only `?tk` presence.
+  // (PUBLIC and UNLISTED stay open — UNLISTED means anyone with the direct link.)
+  if (event.visibility === "PRIVATE") {
+    const { accessLevel } = await resolveGuestAccess(tk, event.id);
+    if (accessLevel !== "guest") return null;
+  }
 
   return event;
 }

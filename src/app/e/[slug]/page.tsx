@@ -53,7 +53,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const { tk } = await searchParams;
-  const event = await getEventBySlug(slug, !!tk);
+  const event = await getEventBySlug(slug, tk);
 
   if (!event) {
     return {
@@ -137,7 +137,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   const { slug } = await params;
   const { tk } = await searchParams;
 
-  const event = await getEventBySlug(slug, !!tk);
+  const event = await getEventBySlug(slug, tk);
 
   if (!event) {
     const renamed = await getRedirectForRetiredSlug(slug);
