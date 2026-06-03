@@ -122,7 +122,7 @@ export function FloatingPillNav({
               padding: "6px 10px",
               borderRadius: 999,
               whiteSpace: "nowrap",
-              transition: "color 0.3s ease",
+              transition: "color 0.3s ease, background 0.3s ease",
             }}
           >
             {s.label}
@@ -185,10 +185,17 @@ export function FloatingPillNav({
       {/* Hover + mobile styles for the desktop pill */}
       <style>{`
         .gl-nav-monogram:hover {
-          background: rgba(197, 165, 90, 0.15) !important;
+          /* Theme-aware tint (was a hardcoded gold that read off-theme on a
+             light panel like Cerulean). */
+          background: color-mix(in srgb, var(--lux-accent, var(--accent, #c5a55a)) 15%, transparent) !important;
         }
         .gl-nav-link:hover {
+          /* Text shifts to the accent — gold on dark themes. On a light panel
+             (e.g. Cerulean) the accent is a dark ink, nearly indistinguishable
+             from the resting ink and blended with the blue pill, so a
+             polarity-aware ink wash is the actual visible hover signal. */
           color: var(--lux-accent, var(--accent, #c5a55a)) !important;
+          background: color-mix(in srgb, var(--lux-ink, rgba(255, 255, 255, 0.92)) 12%, transparent) !important;
         }
         .gl-nav-cta:hover {
           filter: brightness(1.15) !important;
