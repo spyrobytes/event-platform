@@ -35,7 +35,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const { tk } = await searchParams;
-  const event = await getEventBySlug(slug, !!tk);
+  const event = await getEventBySlug(slug, tk);
 
   if (!event) return { title: "Livestream Not Found" };
 
@@ -69,7 +69,7 @@ export default async function LivestreamPage({ params, searchParams }: PageProps
   const { slug } = await params;
   const { tk } = await searchParams;
 
-  const event = await getEventBySlug(slug, !!tk);
+  const event = await getEventBySlug(slug, tk);
   if (!event) {
     const renamed = await getRedirectForRetiredSlug(slug);
     if (renamed) {

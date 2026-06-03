@@ -43,7 +43,7 @@ export async function generateMetadata({
     return { title: "Gallery" };
   }
 
-  const event = await getEventBySlug(slug, !!tk);
+  const event = await getEventBySlug(slug, tk);
   if (!event) return { title: "Gallery Not Found" };
 
   const gallery = await getPublishedGalleryForEvent(event.id);
@@ -83,7 +83,7 @@ export default async function PostEventGalleryPage({
   const { slug } = await params;
   const { tk } = await searchParams;
 
-  const event = await getEventBySlug(slug, !!tk);
+  const event = await getEventBySlug(slug, tk);
   if (!event) {
     const renamed = await getRedirectForRetiredSlug(slug);
     if (renamed) {
@@ -93,12 +93,11 @@ export default async function PostEventGalleryPage({
     notFound();
   }
 
-  // resolveGuestAccess handles the same token/visibility rules used by
-  // /e/[slug]. Unlike sibling sub-routes (/registry, /wishes, /live), the
-  // post-event gallery isn't a page-config section, so filterSectionsByVisibility
-  // can't gate it. PRIVATE events require a valid guest token here — without
-  // this check, any non-empty ?tk= would pass getEventBySlug and expose the
-  // gallery (the result of resolveGuestAccess was previously discarded).
+  // getEventBySlug now enforces PRIVATE -> valid-guest-token centrally, so a
+  // present-but-invalid ?tk= already 404s above. This explicit re-check is kept
+  // as defense-in-depth for the gallery's media surface (the most sensitive
+  // sub-route — it serves photos, not page-config sections gated by
+  // filterSectionsByVisibility) and to keep the access contract legible here.
   const { accessLevel } = await resolveGuestAccess(tk, event.id);
   if (event.visibility === "PRIVATE" && accessLevel !== "guest") notFound();
 

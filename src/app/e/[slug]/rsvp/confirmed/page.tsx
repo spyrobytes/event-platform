@@ -17,7 +17,7 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const event = await getEventBySlug(slug, false);
+  const event = await getEventBySlug(slug, undefined);
   if (!event) return { title: "RSVP" };
   return {
     title: `RSVP confirmed — ${event.title}`,
@@ -45,7 +45,7 @@ export default async function ConfirmedPage({ params, searchParams }: PageProps)
   const { slug } = await params;
   const { r, tk } = await searchParams;
 
-  const event = await getEventBySlug(slug, false);
+  const event = await getEventBySlug(slug, undefined);
   if (!event) notFound();
 
   const response = r && r in HEADINGS ? r : "YES";
