@@ -54,6 +54,7 @@ import {
   DEFAULT_NAV_SHOW,
   resolveNavLabel,
 } from "@/lib/section-nav-defaults";
+import type { DroppedSection } from "@/lib/config-migrations";
 import { isAccessibleColor, PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import type { SectionVisibility } from "@/schemas/event-page";
 import { DEFAULT_PRELUDE } from "@/schemas/event-page";
@@ -89,6 +90,9 @@ const TEMPLATE_SUPPORTED_SECTIONS: Record<string, Set<Section["type"]>> = {
 
 type PageConfigResponse = {
   config: EventPageConfigV1;
+  // Sections the server couldn't parse on this app version — preserved in
+  // storage, surfaced here for the quarantined-sections banner.
+  dropped?: DroppedSection[];
   templateId: string;
   isPublished: boolean;
   publishedAt: string | null;
@@ -167,6 +171,7 @@ export default function PageEditorPage() {
   const { getIdToken } = useAuthContext();
   const [pageData, setPageData] = useState<PageConfigResponse | null>(null);
   const [config, setConfig] = useState<EventPageConfigV1 | null>(null);
+  const [droppedSections, setDroppedSections] = useState<DroppedSection[]>([]);
   const [templateId, setTemplateId] = useState<string>("wedding_v1");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -218,6 +223,7 @@ export default function PageEditorPage() {
         const data = await response.json();
         setPageData(data.data);
         setConfig(data.data.config);
+        setDroppedSections(data.data.dropped ?? []);
         setTemplateId(data.data.templateId || "wedding_v1");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load page config");
@@ -712,6 +718,54 @@ export default function PageEditorPage() {
     }
   };
 
+  // Permanently drop a preserved (unparseable-on-this-version) section. The
+  // default is to keep these forever — this is the deliberate escape hatch from
+  // the quarantined-sections banner. Sends the current config plus the removal
+  // index; the server drops it from the stored row (a copy stays in version
+  // history). Saves any in-flight edits too, since it's a full PUT.
+  const handleRemovePreserved = useCallback(
+    async (index: number) => {
+      if (!config || saving) return;
+      const confirmed = window.confirm(
+        "Remove this section permanently? Its data will be deleted from the live page. A copy remains in version history."
+      );
+      if (!confirmed) return;
+
+      setSaving(true);
+      setError(null);
+      try {
+        const token = await getIdToken();
+        if (!token) throw new Error("Not authenticated");
+
+        const response = await fetch(`/api/events/${params.id}/page-config`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            config,
+            templateId,
+            removedPreservedIndices: [index],
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to remove section");
+        }
+
+        setDroppedSections((prev) => prev.filter((d) => d.index !== index));
+        setHasChanges(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to remove section");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [config, saving, getIdToken, params.id, templateId]
+  );
+
   // Preview navigation gates on dirty state — same pattern as the invitation
   // editor (see invitation/page.tsx). The preview page reads pageConfig from
   // the DB, so navigating away with unsaved edits silently drops them from
@@ -944,6 +998,72 @@ export default function PageEditorPage() {
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
           <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
+
+      {/* Quarantined sections — present in storage but unparseable on this app
+          version. Hidden from the editor, preserved on save, self-heal when the
+          app catches up; the organizer can also drop them permanently. */}
+      {droppedSections.length > 0 && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
+          <div className="flex items-start gap-3">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+              />
+            </svg>
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                {droppedSections.length === 1
+                  ? "1 section couldn't be loaded on this app version"
+                  : `${droppedSections.length} sections couldn't be loaded on this app version`}
+              </p>
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                Your data is safe — {droppedSections.length === 1 ? "it is" : "they are"}{" "}
+                hidden here but preserved when you save, and will reappear
+                automatically once the app updates. You can also remove{" "}
+                {droppedSections.length === 1 ? "it" : "them"} permanently.
+              </p>
+              <ul className="space-y-1.5">
+                {droppedSections.map((d) => (
+                  <li
+                    key={d.index}
+                    className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-white/60 px-3 py-1.5 dark:border-amber-500/30 dark:bg-black/20"
+                  >
+                    <span className="min-w-0 text-xs text-amber-900 dark:text-amber-200">
+                      <span className="font-medium">
+                        {typeof d.type === "string"
+                          ? getSectionLabel(d.type)
+                          : "Unknown section"}
+                      </span>
+                      <span className="text-amber-700 dark:text-amber-400">
+                        {" — "}
+                        {d.reason}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePreserved(d.index)}
+                      disabled={saving}
+                      className="flex-shrink-0 rounded-md border border-amber-300 px-2 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-500/20"
+                    >
+                      Remove permanently
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
