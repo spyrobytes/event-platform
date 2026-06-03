@@ -7,7 +7,7 @@
 
 import { notFound } from "next/navigation";
 import { TEMPLATES } from "@/components/templates";
-import type { EventPageConfigV1 } from "@/schemas/event-page";
+import type { EventPageConfigV1, WeddingPartyDisplayStyle } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 // Only allow in development/test
@@ -16,8 +16,10 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: Promise<{ templateId: string }>;
   /** `?sectionTheme=<id>` injects a section theme id for visual QA (e.g.
-   *  `?sectionTheme=amethyst` on wedding_grand_luxe). Dev/test only. */
-  searchParams: Promise<{ sectionTheme?: string }>;
+   *  `?sectionTheme=amethyst` on wedding_grand_luxe). `?weddingPartyStyle=<id>`
+   *  injects the wedding-party display style (e.g. `?weddingPartyStyle=scrapbook`
+   *  on wedding_grand_luxe). Dev/test only. */
+  searchParams: Promise<{ sectionTheme?: string; weddingPartyStyle?: string }>;
 };
 
 // Sample config for testing
@@ -168,6 +170,20 @@ const SAMPLE_CONFIG: EventPageConfigV1 = {
         showDirectionsLink: true,
       },
     },
+    {
+      type: "weddingParty",
+      enabled: true,
+      data: {
+        heading: "The Wedding Party",
+        description: "The people standing beside us.",
+        members: [
+          { name: "Olivia Bennett", role: "Maid of Honor", side: "bride", bio: "Best friends since freshman year." },
+          { name: "Sophia Lane", role: "Bridesmaid", side: "bride" },
+          { name: "James Carter", role: "Best Man", side: "groom", bio: "Brother and partner in crime." },
+          { name: "Liam Walsh", role: "Groomsman", side: "groom" },
+        ],
+      },
+    },
   ],
 };
 
@@ -184,7 +200,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   }
 
   const { templateId } = await params;
-  const { sectionTheme } = await searchParams;
+  const { sectionTheme, weddingPartyStyle } = await searchParams;
 
   // Verify template exists
   if (!(templateId in TEMPLATES)) {
@@ -194,9 +210,22 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   const Template = TEMPLATES[templateId];
 
   // Optionally exercise a section theme (e.g. ?sectionTheme=amethyst).
-  const config: EventPageConfigV1 = sectionTheme
+  let config: EventPageConfigV1 = sectionTheme
     ? { ...SAMPLE_CONFIG, theme: { ...SAMPLE_CONFIG.theme, sectionThemeId: sectionTheme } }
     : SAMPLE_CONFIG;
+
+  // Optionally exercise the wedding-party display style (e.g.
+  // ?weddingPartyStyle=scrapbook on wedding_grand_luxe).
+  if (weddingPartyStyle) {
+    config = {
+      ...config,
+      sections: config.sections.map((s) =>
+        s.type === "weddingParty"
+          ? { ...s, data: { ...s.data, displayStyle: weddingPartyStyle as WeddingPartyDisplayStyle } }
+          : s,
+      ),
+    };
+  }
 
   return <Template config={config} assets={SAMPLE_ASSETS} eventId={SAMPLE_EVENT_ID} />;
 }

@@ -1880,6 +1880,9 @@ export default function PageEditorPage() {
                 data={section.data}
                 assets={pageData?.assets || []}
                 onChange={(data) => updateSectionData(index, data)}
+                styleOptions={getV3Definition(templateId)?.weddingPartyStyleOptions?.map(
+                  (o) => ({ value: o.value, label: o.label }),
+                )}
               />
             )}
             {section.type === "attire" && (

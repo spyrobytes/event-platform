@@ -27,6 +27,7 @@ import {
   tokensToInline,
 } from "./theme-packs";
 import { mostReadable, HEX6_RE } from "@/lib/color";
+import { resolveWeddingPartyStyleId } from "./wedding-party-style";
 
 import {
   getHeroRenderer,
@@ -127,7 +128,8 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
   const ScheduleComponent = getScheduleRenderer(definition.scheduleRenderer);
   const StoryComponent = getStoryRenderer(definition.storyRenderer);
   const RSVPComponent = getRSVPRenderer(definition.rsvpRenderer);
-  const WeddingPartyComponent = getWeddingPartyRenderer(definition.weddingPartyRenderer);
+  // Wedding party renderer is resolved per-render (not here): when the template
+  // offers organizer-selectable styles, the choice lives on section.data.
 
   // Convert MotionPreset to AnimationProvider's MotionPresetConfig
   const motionConfig: MotionPresetConfig = {
@@ -336,10 +338,14 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
           return wrapWithChrome(wrapWithAnimation(
             <GalleryComponent data={section.data} assets={assets} />
           ));
-        case "weddingParty":
+        case "weddingParty": {
+          const WeddingPartyComponent = getWeddingPartyRenderer(
+            resolveWeddingPartyStyleId(definition, section.data.displayStyle),
+          );
           return wrapWithChrome(wrapWithAnimation(
             <WeddingPartyComponent data={section.data} assets={assets} />
           ));
+        }
         case "travelStay":
           return wrapWithChrome(wrapWithAnimation(
             <TravelStayRenderer data={section.data} assets={assets} />
