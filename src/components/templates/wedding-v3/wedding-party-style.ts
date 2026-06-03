@@ -9,6 +9,11 @@ import type { TemplateDefinition, WeddingPartyRendererId } from "./types";
  * `weddingPartyRenderer` is used. Returns `undefined` when neither is set, so
  * callers fall through to the cinematic default via `getWeddingPartyRenderer`.
  *
+ * NOTE: `displayStyle` values (e.g. "scrapbook") are NOT renderer ids (e.g.
+ * "scrapbook-flip") — they're decoupled via the option's `renderer`. Always map
+ * a displayStyle through this function; never pass one straight to
+ * `getWeddingPartyRenderer` (it would silently fall back to cinematic).
+ *
  * Pure with type-only imports, so it stays unit-testable without pulling the
  * renderer component tree (and its next/font imports).
  */

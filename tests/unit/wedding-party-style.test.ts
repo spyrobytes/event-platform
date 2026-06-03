@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { resolveWeddingPartyStyleId } from "@/components/templates/wedding-v3/wedding-party-style";
+import { GRAND_LUXE } from "@/components/templates/wedding-v3/definitions/grand-luxe";
 import type {
   WeddingPartyStyleOption,
   WeddingPartyRendererId,
@@ -40,5 +41,23 @@ describe("resolveWeddingPartyStyleId", () => {
 
   it("returns undefined when neither is set (caller defaults to cinematic)", () => {
     expect(resolveWeddingPartyStyleId({}, undefined)).toBeUndefined();
+  });
+});
+
+// Pins the REAL Grand Luxe definition (not the local fixture above) so a future
+// reorder of weddingPartyStyleOptions can't silently change behavior.
+describe("GRAND_LUXE wedding-party styles", () => {
+  it("keeps cinematic as the backward-compat default (no persisted displayStyle)", () => {
+    // Existing Grand Luxe events have no displayStyle → must stay cinematic.
+    // Leading the options with scrapbook would silently flip every legacy event;
+    // this assertion against the live definition catches that.
+    expect(resolveWeddingPartyStyleId(GRAND_LUXE, undefined)).toBe("cinematic");
+    expect(GRAND_LUXE.weddingPartyStyleOptions?.[0]?.value).toBe("cinematic");
+  });
+
+  it("maps the Scrapbook value to the scrapbook-flip renderer (value != renderer id)", () => {
+    // displayStyle 'scrapbook' is NOT a renderer id; it must resolve to the
+    // registered 'scrapbook-flip' via the option's `renderer` mapping.
+    expect(resolveWeddingPartyStyleId(GRAND_LUXE, "scrapbook")).toBe("scrapbook-flip");
   });
 });

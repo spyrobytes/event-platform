@@ -28,9 +28,13 @@ export const GRAND_LUXE: TemplateDefinition = {
   footerRenderer: "dramatic-dark",
   dividerRenderer: "metallic-line",
 
-  // Organizer-selectable wedding-party display style (first is the default).
-  // "Scrapbook" reuses Celebration's token-driven scrapbook-flip renderer, which
-  // adapts to Grand Luxe's gold/ivory palette (refined, not festive).
+  // Organizer-selectable wedding-party display style (first is the default —
+  // backward-compat for events with no persisted displayStyle; pinned by a test).
+  // `value` is the persisted displayStyle enum, NOT a renderer id — the two are
+  // decoupled (e.g. value "scrapbook" → renderer "scrapbook-flip"). Always
+  // resolve via resolveWeddingPartyStyleId; never pass a displayStyle straight
+  // to getWeddingPartyRenderer. "Scrapbook" reuses Celebration's token-driven
+  // scrapbook-flip, which adapts to Grand Luxe's gold/ivory palette.
   weddingPartyStyleOptions: [
     { value: "cinematic", label: "Cinematic", renderer: "cinematic" },
     { value: "scrapbook", label: "Scrapbook", renderer: "scrapbook-flip" },
