@@ -345,6 +345,16 @@ describe("shouldPersistMigratedConfig", () => {
     const migrated = { ...stored } as unknown as EventPageConfigV1;
     expect(shouldPersistMigratedConfig(storedWithFutureField, migrated, 0)).toBe(false);
   });
+
+  it("does NOT persist when only key ORDER differs (jsonb reorder — no write-amplification)", () => {
+    // Stored row comes back from jsonb with normalized key order; the parsed
+    // config is in schema-declaration order. Content is identical → no write.
+    const storedRow = { schemaVersion: 1, theme: { a: 1, b: 2 }, hero: { x: 9 } };
+    const parsed = { hero: { x: 9 }, theme: { b: 2, a: 1 }, schemaVersion: 1 } as unknown as EventPageConfigV1;
+    // JSON.stringify of these differs (order), but the gate must treat them as equal.
+    expect(JSON.stringify(storedRow)).not.toBe(JSON.stringify(parsed));
+    expect(shouldPersistMigratedConfig(storedRow, parsed, 0)).toBe(false);
+  });
 });
 
 describe("validateAndMigrate input guard", () => {
