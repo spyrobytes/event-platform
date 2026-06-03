@@ -38,6 +38,9 @@ export const GRAND_LUXE: TemplateDefinition = {
   weddingPartyStyleOptions: [
     { value: "cinematic", label: "Cinematic", renderer: "cinematic" },
     { value: "scrapbook", label: "Scrapbook", renderer: "scrapbook-flip" },
+    // Gilded Frames — bespoke Grand Luxe gallery that reads the --lux-* section
+    // theme (matted gold-framed portraits; flips with Amethyst/Cerulean/etc.).
+    { value: "gilded", label: "Gilded Frames", renderer: "gilded-frames" },
   ],
 
   supportsSocialLinks: true,
