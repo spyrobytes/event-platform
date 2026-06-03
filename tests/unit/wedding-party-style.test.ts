@@ -66,6 +66,10 @@ describe("GRAND_LUXE wedding-party styles", () => {
     expect(resolveWeddingPartyStyleId(GRAND_LUXE, "gilded")).toBe("gilded-frames");
   });
 
+  it("maps the Couture Polaroid value to the couture-polaroid renderer", () => {
+    expect(resolveWeddingPartyStyleId(GRAND_LUXE, "couture")).toBe("couture-polaroid");
+  });
+
   it("declares only option values that are valid displayStyle enum members", () => {
     // Review #4 coverage: a template can't ship an option whose `value` the
     // central displayStyle enum doesn't include (which would fail Zod on save).
