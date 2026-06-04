@@ -129,14 +129,14 @@ export function resolveVisibleCount(
 
 /** Sensible default for image grids (couple gallery, masonry, scrapbook). */
 export const GALLERY_REVEAL: ProgressiveRevealConfig = {
-  initial: { mobile: 6, tablet: 12, desktop: REVEAL_ALL },
-  batch: { mobile: 6, tablet: 12, desktop: 0 },
+  initial: { mobile: 4, tablet: 12, desktop: REVEAL_ALL },
+  batch: { mobile: 4, tablet: 12, desktop: 0 },
 };
 
 /** Sensible default for wedding-party member grids. */
 export const PARTY_REVEAL: ProgressiveRevealConfig = {
-  initial: { mobile: 6, tablet: 12, desktop: REVEAL_ALL },
-  batch: { mobile: 6, tablet: 12, desktop: 0 },
+  initial: { mobile: 4, tablet: 12, desktop: REVEAL_ALL },
+  batch: { mobile: 4, tablet: 12, desktop: 0 },
 };
 
 /**
