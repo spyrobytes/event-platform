@@ -33,6 +33,9 @@ export { useScrollThreshold } from "./use-scroll-threshold";
 // Scroll an element into view when a value becomes truthy (e.g. form errors)
 export { useScrollIntoViewWhen } from "./use-scroll-into-view-when";
 
+// "Did you mean?" typo suggestion for email fields
+export { useEmailTypoSuggestion } from "./use-email-typo-suggestion";
+
 // Invitation animation state
 export {
   useInvitationState,

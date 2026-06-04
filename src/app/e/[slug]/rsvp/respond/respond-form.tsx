@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { clearInvitePreview, type InvitePreview } from "@/lib/public-rsvp-portal";
 import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
-import { useScrollIntoViewWhen } from "@/hooks";
+import { useScrollIntoViewWhen, useEmailTypoSuggestion } from "@/hooks";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
@@ -66,6 +66,11 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorRef = useScrollIntoViewWhen<HTMLDivElement>(error);
+  const {
+    suggestion: emailSuggestion,
+    checkEmail,
+    dismiss: dismissEmailSuggestion,
+  } = useEmailTypoSuggestion();
 
   const handleGuestCountChange = (next: number) => {
     const clamped = Math.max(1, Math.min(maxGuestCount, next));
@@ -209,10 +214,30 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
             inputMode="email"
             autoComplete="email"
             value={guestEmail}
-            onChange={(e) => setGuestEmail(e.target.value)}
+            onChange={(e) => {
+              setGuestEmail(e.target.value);
+              if (emailSuggestion) dismissEmailSuggestion();
+            }}
+            onBlur={(e) => checkEmail(e.target.value)}
             placeholder="your@email.com"
             disabled={submitting}
           />
+          {emailSuggestion && (
+            <p className="text-sm text-muted-foreground">
+              Did you mean{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setGuestEmail(emailSuggestion);
+                  dismissEmailSuggestion();
+                }}
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                {emailSuggestion}
+              </button>
+              ?
+            </p>
+          )}
           <p className="text-xs text-muted-foreground">
             We&apos;ll send a confirmation if you provide one.
           </p>

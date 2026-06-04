@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
-import { useScrollIntoViewWhen } from "@/hooks";
+import { useScrollIntoViewWhen, useEmailTypoSuggestion } from "@/hooks";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 import {
@@ -156,6 +156,12 @@ export function RSVPForm({
   const watchGuestCount = watch("guestCount");
   const watchGuestName = watch("guestName");
   const watchGuestEmail = watch("guestEmail");
+  const guestEmailField = register("guestEmail");
+  const {
+    suggestion: emailSuggestion,
+    checkEmail,
+    dismiss: dismissEmailSuggestion,
+  } = useEmailTypoSuggestion();
 
   // Gate Submit on required-field presence so the button reflects what the
   // schema would enforce on submit. Matches the * indicators next to labels.
@@ -363,10 +369,36 @@ export function RSVPForm({
               inputMode="email"
               autoComplete="email"
               placeholder="your@email.com"
-              {...register("guestEmail")}
+              {...guestEmailField}
               onFocus={() => handleFormInteraction("guestEmail")}
+              onBlur={(e) => {
+                guestEmailField.onBlur(e);
+                checkEmail(e.target.value);
+              }}
+              onChange={(e) => {
+                guestEmailField.onChange(e);
+                if (emailSuggestion) dismissEmailSuggestion();
+              }}
               aria-invalid={!!errors.guestEmail}
             />
+            {emailSuggestion && (
+              <p className="text-sm text-muted-foreground">
+                Did you mean{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue("guestEmail", emailSuggestion, {
+                      shouldValidate: true,
+                    });
+                    dismissEmailSuggestion();
+                  }}
+                  className="font-medium text-foreground underline underline-offset-2"
+                >
+                  {emailSuggestion}
+                </button>
+                ?
+              </p>
+            )}
             {needsEmail && (
               <p className="text-xs text-muted-foreground">
                 Enter your email to receive confirmation and event updates

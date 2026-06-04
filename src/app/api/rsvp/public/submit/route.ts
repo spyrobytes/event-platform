@@ -18,6 +18,7 @@ import { AppError } from "@/lib/errors";
 import { generateTokenPair } from "@/lib/tokens";
 import { buildPortalUrl } from "@/lib/guest-access";
 import { exceedsEventCapacity } from "@/lib/event-capacity";
+import { domainCanReceiveMail } from "@/lib/email-mx";
 
 const GENERIC_INVALID_MESSAGE =
   "Your RSVP couldn't be processed. Please re-enter your invitation code and try again.";
@@ -68,6 +69,18 @@ export async function POST(request: NextRequest) {
           401,
           "SESSION_INVALID"
         )
+      );
+    }
+
+    // Reject a guest-typed email whose domain can't receive mail (typo'd or
+    // non-existent domain) — protects sender reputation. Runs BEFORE the
+    // transaction consumes the session, so the guest can fix the email and
+    // resubmit. Fail-open: a flaky DNS lookup never blocks the RSVP.
+    if (data.guestEmail && !(await domainCanReceiveMail(data.guestEmail))) {
+      return errorResponse(
+        "That email address's domain can't receive mail — please double-check it.",
+        400,
+        "INVALID_EMAIL"
       );
     }
 
