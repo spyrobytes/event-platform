@@ -8,35 +8,22 @@
  * member's role and bio on the back. Cards straighten when flipped
  * so text is always readable.
  *
- * Preserves bride/groom/special-roles grouping from WeddingPartyV2.
+ * Grouping, the global index, and the mobile reveal budget come from the shared
+ * WeddingPartyGroups (same as Gilded Frames / Couture Polaroid); this file is
+ * the scrapbook card skin + header.
  */
 
 import { useState, useCallback } from "react";
 import type { SectionRendererProps } from "../../types";
 import type { WeddingPartySection } from "@/schemas/event-page";
-import type { PartySide } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
-import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 import { EventImage } from "@/components/media/EventImage";
-import { useProgressiveReveal, PARTY_REVEAL } from "@/hooks/use-progressive-reveal";
-import { RevealMoreButton } from "@/components/media/RevealMoreButton";
+import { getPartyAsset, type PartyMember } from "./shared/party-groups";
+import { WeddingPartyGroups } from "./shared/WeddingPartyGroups";
 import styles from "./ScrapbookWeddingParty.module.css";
 
 // Same rotation set as ScrapbookCollage gallery for visual cohesion
 const ROTATIONS = ["-2deg", "1.5deg", "-1deg", "2.5deg", "-1.5deg", "1deg", "-2.5deg", "0.5deg"];
-
-type PartyMember = {
-  name: string;
-  role: string;
-  bio?: string;
-  imageAssetId?: string;
-  side?: PartySide;
-};
-
-function getAsset(assetId: string | undefined, assets: MediaAsset[]): MediaAsset | null {
-  if (!assetId) return null;
-  return assets.find((a) => a.id === assetId) ?? null;
-}
 
 // ---------------------------------------------------------------------------
 // Flip icon SVGs
@@ -92,7 +79,7 @@ function FlipCard({
   isSpecial?: boolean;
 }) {
   const [flipped, setFlipped] = useState(false);
-  const asset = getAsset(member.imageAssetId, assets);
+  const asset = getPartyAsset(member.imageAssetId, assets);
   const initial = member.name.charAt(0).toUpperCase();
 
   const toggle = useCallback(() => setFlipped((f) => !f), []);
@@ -173,55 +160,10 @@ export function ScrapbookWeddingParty({
   const kickerText = "Wedding Party";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
 
-  // Partition members: special roles first, then bride/groom based on
-  // explicit `side` with role-keyword inference as the fallback.
-  const specialMembers = members.filter((m) => isSpecialRole(m.role));
-  const regularMembers = members.filter((m) => !isSpecialRole(m.role));
-  const bridesSide = regularMembers.filter((m) => getEffectiveSide(m) === "bride");
-  const groomsSide = regularMembers.filter((m) => getEffectiveSide(m) === "groom");
-  const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
-  const hasSides = bridesSide.length > 0 || groomsSide.length > 0;
-
-  // Mobile member budget — render a small batch, reveal the rest on demand.
-  // Applied across all groups via a continuous global index, so the cap is
-  // section-wide rather than per sub-grid.
-  const { visibleCount, hasMore, remaining, revealMore } = useProgressiveReveal(
-    members.length,
-    PARTY_REVEAL,
-  );
-  const groomsOffset = bridesSide.length;
-  const othersOffset = groomsOffset + groomsSide.length;
-  const specialOffset = othersOffset + others.length;
-  const groupVisible = (startOffset: number, list: PartyMember[]) =>
-    list.length > 0 && startOffset < visibleCount;
-
-  const renderDivider = (label: string) => (
-    <div className={styles.divider}>
-      <div className={styles.dividerLine} />
-      <span className={styles.dividerLabel}>{label}</span>
-      <div className={styles.dividerLine} />
-    </div>
-  );
-
-  const renderCards = (
-    list: PartyMember[],
-    offset: number,
-    isSpecial = false
-  ) =>
-    list.map((member, i) => {
-      const globalIndex = offset + i;
-      if (globalIndex >= visibleCount) return null;
-      return (
-        <FlipCard
-          key={`${member.name}-${globalIndex}`}
-          member={member}
-          assets={assets}
-          rotation={ROTATIONS[globalIndex % ROTATIONS.length]}
-          isSpecial={isSpecial}
-        />
-      );
-    });
-
+  // Grouping, the continuous global index, the section-wide mobile reveal
+  // budget, dividers, and the empty state all live in the shared
+  // WeddingPartyGroups (the same component Gilded Frames / Couture Polaroid
+  // use). This file only supplies the scrapbook card skin + header.
   return (
     <section className={styles.section} aria-label="Wedding party" id="party">
       <div className={styles.container}>
@@ -232,66 +174,28 @@ export function ScrapbookWeddingParty({
           {description && <p className={styles.description}>{description}</p>}
         </div>
 
-        {/* Bride's side */}
-        {groupVisible(0, bridesSide) && (
-          <>
-            {renderDivider("Bride\u2019s side")}
-            <div className={`${styles.grid} ${styles.gridSpaced}`}>
-              {renderCards(bridesSide, 0)}
-            </div>
-          </>
-        )}
-
-        {/* Groom's side */}
-        {groupVisible(groomsOffset, groomsSide) && (
-          <>
-            {renderDivider("Groom\u2019s side")}
-            <div className={`${styles.grid} ${groomsSide.length > 0 && others.length === 0 && specialMembers.length === 0 ? "" : styles.gridSpaced}`}>
-              {renderCards(groomsSide, groomsOffset)}
-            </div>
-          </>
-        )}
-
-        {/* Ungrouped members */}
-        {!hasSides && groupVisible(othersOffset, others) && (
-          <div className={styles.grid}>
-            {renderCards(others, othersOffset)}
-          </div>
-        )}
-
-        {/* Others (when sides exist) */}
-        {hasSides && groupVisible(othersOffset, others) && (
-          <div className={styles.groupSpaced}>
-            {renderDivider("Others")}
-            <div className={styles.grid}>
-              {renderCards(others, othersOffset)}
-            </div>
-          </div>
-        )}
-
-        {/* Special roles */}
-        {groupVisible(specialOffset, specialMembers) && (
-          <div className={styles.groupSpaced}>
-            {renderDivider("Special Roles")}
-            <div className={styles.specialGrid}>
-              {renderCards(specialMembers, specialOffset, true)}
-            </div>
-          </div>
-        )}
-
-        {hasMore && (
-          <RevealMoreButton
-            label="Meet the rest of the party"
-            remaining={remaining}
-            onClick={revealMore}
-          />
-        )}
-
-        {members.length === 0 && (
-          <div className={styles.empty}>
-            Wedding party details coming soon
-          </div>
-        )}
+        <WeddingPartyGroups
+          members={members}
+          classes={{
+            grid: styles.grid,
+            gridSpaced: styles.gridSpaced,
+            groupSpaced: styles.groupSpaced,
+            specialGrid: styles.specialGrid,
+            divider: styles.divider,
+            dividerLine: styles.dividerLine,
+            dividerLabel: styles.dividerLabel,
+            empty: styles.empty,
+          }}
+          emptyLabel="Wedding party details coming soon"
+          renderCard={(member, index, isSpecial) => (
+            <FlipCard
+              member={member}
+              assets={assets}
+              rotation={ROTATIONS[index % ROTATIONS.length]}
+              isSpecial={isSpecial}
+            />
+          )}
+        />
       </div>
     </section>
   );
