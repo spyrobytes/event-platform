@@ -15,6 +15,8 @@ import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
 
 // Slight rotation angles for scrapbook feel
@@ -47,6 +49,14 @@ export function ScrapbookCollage({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const isLightboxOpen = lightboxIndex !== null;
   const itemCount = resolvedItems.length;
+
+  // Mobile image budget: render a small batch, reveal the rest on demand.
+  // The lightbox keeps the full list so arrows can still browse every photo.
+  const { visibleCount, hasMore, remaining, revealMore } = useProgressiveReveal(
+    itemCount,
+    GALLERY_REVEAL,
+  );
+  const visibleItems = resolvedItems.slice(0, visibleCount);
 
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
 
@@ -112,7 +122,7 @@ export function ScrapbookCollage({
             gap: "clamp(16px, 2.5vw, 28px)",
           }}
         >
-          {resolvedItems.map((item, i) => (
+          {visibleItems.map((item, i) => (
             <div
               key={item.assetId || i}
               style={{
@@ -171,6 +181,14 @@ export function ScrapbookCollage({
             </div>
           ))}
         </div>
+
+        {hasMore && (
+          <RevealMoreButton
+            label="View more memories"
+            remaining={remaining}
+            onClick={revealMore}
+          />
+        )}
       </div>
 
       {/* Lightbox — portaled to body to escape transform containing block */}

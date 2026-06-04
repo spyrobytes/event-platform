@@ -1,9 +1,8 @@
 /**
  * Shared wedding-party grouping + member helpers.
  *
- * Consumed by the Gilded Frames and Couture Polaroid renderers via
- * `WeddingPartyGroups`; the Scrapbook (Celebration) renderer still has its own
- * copies pending migration. Centralizes the bride/groom/special partition, the
+ * Consumed by the Scrapbook, Gilded Frames, and Couture Polaroid renderers via
+ * `WeddingPartyGroups`. Centralizes the bride/groom/special partition, the
  * divider labels, the member shape, and the asset lookup so they aren't
  * copy-pasted per renderer.
  */

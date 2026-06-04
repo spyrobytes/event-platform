@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -81,6 +83,13 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
 
   const itemCount = resolvedItems.length;
 
+  // Mobile image budget for the grid/masonry layouts (slideshow & carousel
+  // already expose one image at a time). The lightbox keeps the full list.
+  const { visibleCount, hasMore, remaining, revealMore } = useProgressiveReveal(
+    itemCount,
+    GALLERY_REVEAL,
+  );
+
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
 
   const showPrev = useCallback(() => {
@@ -152,23 +161,33 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
     }
 
     const isMasonry = displayMode === "masonry";
+    const visibleItems = resolvedItems.slice(0, visibleCount);
     return (
-      <div
-        className={isMasonry ? styles.grid : styles.gridEven}
-        role="group"
-        aria-label="Photo gallery"
-      >
-        {resolvedItems.map((item, index) => (
-          <GalleryItem
-            key={item.assetId}
-            item={item}
-            index={index}
-            spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : undefined}
-            showCaption={showCaptions}
-            onOpen={() => setLightboxIndex(index)}
+      <>
+        <div
+          className={isMasonry ? styles.grid : styles.gridEven}
+          role="group"
+          aria-label="Photo gallery"
+        >
+          {visibleItems.map((item, index) => (
+            <GalleryItem
+              key={item.assetId}
+              item={item}
+              index={index}
+              spanClass={isMasonry ? SPAN_CLASSES[index % SPAN_CLASSES.length] : undefined}
+              showCaption={showCaptions}
+              onOpen={() => setLightboxIndex(index)}
+            />
+          ))}
+        </div>
+        {hasMore && (
+          <RevealMoreButton
+            label="View more photos"
+            remaining={remaining}
+            onClick={revealMore}
           />
-        ))}
-      </div>
+        )}
+      </>
     );
   };
 

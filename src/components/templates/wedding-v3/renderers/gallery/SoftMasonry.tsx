@@ -15,6 +15,8 @@ import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
 import styles from "./SoftMasonry.module.css";
 
@@ -71,10 +73,18 @@ export function SoftMasonry({
     };
   }, [lightboxIndex, closeLightbox, goNext, goPrev]);
 
+  // Mobile image budget: render a small batch, reveal the rest on demand.
+  // The lightbox keeps the full list so arrows can still browse every photo.
+  const { visibleCount, hasMore, remaining, revealMore } = useProgressiveReveal(
+    resolvedItems.length,
+    GALLERY_REVEAL,
+  );
+
   if (resolvedItems.length === 0) return null;
 
   const current =
     lightboxIndex !== null ? resolvedItems[lightboxIndex] : null;
+  const visibleItems = resolvedItems.slice(0, visibleCount);
 
   return (
     <section className={styles.section} aria-label="Gallery" id="gallery">
@@ -85,7 +95,7 @@ export function SoftMasonry({
 
         {/* Masonry grid */}
         <div className={styles.masonry}>
-          {resolvedItems.map((item, i) => (
+          {visibleItems.map((item, i) => (
             <button
               key={item.assetId || i}
               type="button"
@@ -111,6 +121,14 @@ export function SoftMasonry({
             </button>
           ))}
         </div>
+
+        {hasMore && (
+          <RevealMoreButton
+            label="View more photos"
+            remaining={remaining}
+            onClick={revealMore}
+          />
+        )}
       </div>
 
       {/* Lightbox */}
