@@ -48,18 +48,21 @@ describe("reveal increments (simulating revealMore)", () => {
     Math.min(total, resolveVisibleCount(prev, floor, total) + batch);
 
   it("adds one mobile batch per click and clamps at total", () => {
-    const { mobile: floor } = GALLERY_REVEAL.initial;
-    const { mobile: batch } = GALLERY_REVEAL.batch;
+    // Derived from the config so retuning the mobile budget doesn't break this.
+    const floor = GALLERY_REVEAL.initial.mobile;
+    const batch = GALLERY_REVEAL.batch.mobile;
     const total = 20;
 
     let raw = 0;
-    expect(resolveVisibleCount(raw, floor, total)).toBe(6); // initial
-    raw = step(raw, floor, batch, total);
-    expect(resolveVisibleCount(raw, floor, total)).toBe(12);
-    raw = step(raw, floor, batch, total);
-    expect(resolveVisibleCount(raw, floor, total)).toBe(18);
-    raw = step(raw, floor, batch, total);
-    expect(resolveVisibleCount(raw, floor, total)).toBe(20); // clamped, not 24
+    expect(resolveVisibleCount(raw, floor, total)).toBe(floor); // initial batch
+    for (let clicks = 1; resolveVisibleCount(raw, floor, total) < total; clicks++) {
+      raw = step(raw, floor, batch, total);
+      // Each click shows floor + clicks*batch, clamped to total (never overshoots).
+      expect(resolveVisibleCount(raw, floor, total)).toBe(
+        Math.min(total, floor + clicks * batch),
+      );
+    }
+    expect(resolveVisibleCount(raw, floor, total)).toBe(total);
   });
 });
 
