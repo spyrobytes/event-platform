@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
-import { useScrollIntoViewWhen } from "@/hooks";
+import { useScrollIntoViewWhen, useEmailTypoSuggestion } from "@/hooks";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
@@ -140,6 +140,12 @@ export function InvitationRSVPForm({
   const watchGuestCount = watch("guestCount");
   const watchGuestName = watch("guestName");
   const watchGuestEmail = watch("guestEmail");
+  const guestEmailField = register("guestEmail");
+  const {
+    suggestion: emailSuggestion,
+    checkEmail,
+    dismiss: dismissEmailSuggestion,
+  } = useEmailTypoSuggestion();
 
   // Gate Submit on all required-field presence so the button matches the
   // `*` indicators next to labels. Each condition mirrors what the Zod schema
@@ -389,10 +395,36 @@ export function InvitationRSVPForm({
               autoComplete="email"
               placeholder="your@email.com"
               className={inputStyles}
-              {...register("guestEmail")}
+              {...guestEmailField}
               onFocus={() => handleFormInteraction("guestEmail")}
+              onBlur={(e) => {
+                guestEmailField.onBlur(e);
+                checkEmail(e.target.value);
+              }}
+              onChange={(e) => {
+                guestEmailField.onChange(e);
+                if (emailSuggestion) dismissEmailSuggestion();
+              }}
               aria-invalid={!!errors.guestEmail}
             />
+            {emailSuggestion && (
+              <p className="mt-1 text-sm text-[var(--inv-text-secondary)]">
+                Did you mean{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValue("guestEmail", emailSuggestion, {
+                      shouldValidate: true,
+                    });
+                    dismissEmailSuggestion();
+                  }}
+                  className="font-medium text-[var(--inv-accent)] underline underline-offset-2"
+                >
+                  {emailSuggestion}
+                </button>
+                ?
+              </p>
+            )}
             {needsEmail && (
               <p className="mt-1 text-xs text-[var(--inv-text-secondary)]">
                 Enter your email to receive confirmation and event updates

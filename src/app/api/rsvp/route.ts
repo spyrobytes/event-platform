@@ -7,6 +7,7 @@ import { queueConfirmationEmail, scheduleEmailProcessing, buildUnsubscribeUrl } 
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { buildPortalUrl } from "@/lib/guest-access";
 import { exceedsEventCapacity } from "@/lib/event-capacity";
+import { domainCanReceiveMail } from "@/lib/email-mx";
 
 /**
  * POST /api/rsvp
@@ -59,6 +60,16 @@ export async function POST(request: NextRequest) {
     if (!invite.email && !data.guestEmail) {
       throw new ValidationError(
         "Please provide an email address so we can send your confirmation."
+      );
+    }
+
+    // Reject a guest-typed email whose domain can't receive mail (typo'd or
+    // non-existent domain) — protects sender reputation from guaranteed bounces.
+    // Fail-open: a flaky/slow DNS lookup never blocks the RSVP. Only validates
+    // the guest's own input; an invite's stored email is the organizer's to own.
+    if (data.guestEmail && !(await domainCanReceiveMail(data.guestEmail))) {
+      throw new ValidationError(
+        "That email address's domain can't receive mail — please double-check it."
       );
     }
 
