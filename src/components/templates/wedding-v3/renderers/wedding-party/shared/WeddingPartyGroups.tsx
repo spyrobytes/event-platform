@@ -1,9 +1,13 @@
+"use client";
+
 import { Fragment, type ReactNode } from "react";
 import {
   partitionPartyMembers,
   PARTY_GROUP_LABELS,
   type PartyMember,
 } from "./party-groups";
+import { useProgressiveReveal, PARTY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 
 /**
  * The grid/divider/empty classes the layout needs from a renderer's CSS module.
@@ -33,6 +37,8 @@ type WeddingPartyGroupsProps = {
    * card in a keyed Fragment, so consumers can't desync the list keys.
    */
   renderCard: (member: PartyMember, globalIndex: number, isSpecial: boolean) => ReactNode;
+  /** CTA label for the mobile "reveal more" button. */
+  revealLabel?: string;
 };
 
 /**
@@ -46,7 +52,16 @@ export function WeddingPartyGroups({
   classes,
   emptyLabel,
   renderCard,
+  revealLabel = "Meet the rest of the party",
 }: WeddingPartyGroupsProps) {
+  // Mobile member budget — render a small batch, reveal the rest on demand.
+  // Applied across ALL groups via the continuous globalIndex, so the cap is
+  // section-wide rather than per sub-grid.
+  const { visibleCount, hasMore, remaining, revealMore } = useProgressiveReveal(
+    members.length,
+    PARTY_REVEAL,
+  );
+
   if (members.length === 0) {
     return <div className={classes.empty}>{emptyLabel}</div>;
   }
@@ -65,12 +80,18 @@ export function WeddingPartyGroups({
   const renderGroup = (list: PartyMember[], startOffset: number, isSpecial = false) =>
     list.map((member, i) => {
       const globalIndex = startOffset + i;
+      if (globalIndex >= visibleCount) return null;
       return (
         <Fragment key={`${member.name}-${globalIndex}`}>
           {renderCard(member, globalIndex, isSpecial)}
         </Fragment>
       );
     });
+
+  // A group renders only when at least its first member is within the budget,
+  // so a divider never sits above an empty grid.
+  const groupVisible = (startOffset: number, list: PartyMember[]) =>
+    list.length > 0 && startOffset < visibleCount;
 
   const divider = (label: string) => (
     <div className={classes.divider}>
@@ -82,7 +103,7 @@ export function WeddingPartyGroups({
 
   return (
     <>
-      {bridesSide.length > 0 && (
+      {groupVisible(0, bridesSide) && (
         <>
           {divider(PARTY_GROUP_LABELS.brides)}
           <div className={`${classes.grid} ${classes.gridSpaced}`}>
@@ -91,7 +112,7 @@ export function WeddingPartyGroups({
         </>
       )}
 
-      {groomsSide.length > 0 && (
+      {groupVisible(groomsOffset, groomsSide) && (
         <>
           {divider(PARTY_GROUP_LABELS.grooms)}
           <div className={classes.grid}>{renderGroup(groomsSide, groomsOffset)}</div>
@@ -99,25 +120,33 @@ export function WeddingPartyGroups({
       )}
 
       {/* Ungrouped members (no explicit sides) */}
-      {!hasSides && others.length > 0 && (
+      {!hasSides && groupVisible(othersOffset, others) && (
         <div className={classes.grid}>{renderGroup(others, othersOffset)}</div>
       )}
 
       {/* Others (when sides exist) */}
-      {hasSides && others.length > 0 && (
+      {hasSides && groupVisible(othersOffset, others) && (
         <div className={classes.groupSpaced}>
           {divider(PARTY_GROUP_LABELS.others)}
           <div className={classes.grid}>{renderGroup(others, othersOffset)}</div>
         </div>
       )}
 
-      {specialMembers.length > 0 && (
+      {groupVisible(specialOffset, specialMembers) && (
         <div className={classes.groupSpaced}>
           {divider(PARTY_GROUP_LABELS.special)}
           <div className={classes.specialGrid}>
             {renderGroup(specialMembers, specialOffset, true)}
           </div>
         </div>
+      )}
+
+      {hasMore && (
+        <RevealMoreButton
+          label={revealLabel}
+          remaining={remaining}
+          onClick={revealMore}
+        />
       )}
     </>
   );

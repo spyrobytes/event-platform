@@ -4,6 +4,8 @@ import type { MediaAsset } from "@prisma/client";
 import type { PartySide } from "@/schemas/event-page";
 import { isSpecialRole, getEffectiveSide } from "@/lib/wedding-party-roles";
 import { EventImage } from "@/components/media/EventImage";
+import { useProgressiveReveal, PARTY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import styles from "./WeddingPartyV2.module.css";
 
 type PartyMember = {
@@ -51,6 +53,19 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
   const groomsSide = regularMembers.filter((m) => getEffectiveSide(m) === "groom");
   const others = regularMembers.filter((m) => getEffectiveSide(m) === "other");
   const hasSides = bridesSide.length > 0 || groomsSide.length > 0;
+
+  // Mobile member budget — render a small batch, reveal the rest on demand.
+  // Applied across all groups via a continuous global index, so the cap is
+  // section-wide rather than per sub-grid.
+  const { visibleCount, hasMore, remaining, revealMore } = useProgressiveReveal(
+    members.length,
+    PARTY_REVEAL,
+  );
+  const groomsOffset = bridesSide.length;
+  const othersOffset = groomsOffset + groomsSide.length;
+  const specialOffset = othersOffset + others.length;
+  const groupVisible = (startOffset: number, list: PartyMember[]) =>
+    list.length > 0 && startOffset < visibleCount;
 
   const renderDivider = (label: string) => (
     <div className={styles.divider}>
@@ -112,6 +127,19 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
     );
   };
 
+  // Render a group's cards using a continuous global index, dropping any that
+  // fall beyond the current mobile budget.
+  const renderGroup = (
+    list: PartyMember[],
+    startOffset: number,
+    isSpecial = false,
+  ) =>
+    list.map((member, i) => {
+      const globalIndex = startOffset + i;
+      if (globalIndex >= visibleCount) return null;
+      return renderCard(member, globalIndex, isSpecial);
+    });
+
   return (
     <section className={styles.section} aria-label="Wedding party" id="party">
       <div className={styles.container}>
@@ -127,50 +155,58 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
         </div>
 
         {/* Bride's side */}
-        {bridesSide.length > 0 && (
+        {groupVisible(0, bridesSide) && (
           <>
             {renderDivider("Bride\u2019s side")}
             <div className={`${styles.grid} ${styles.gridSpaced}`}>
-              {bridesSide.map((m, i) => renderCard(m, i))}
+              {renderGroup(bridesSide, 0)}
             </div>
           </>
         )}
 
         {/* Groom's side */}
-        {groomsSide.length > 0 && (
+        {groupVisible(groomsOffset, groomsSide) && (
           <>
             {renderDivider("Groom\u2019s side")}
             <div className={styles.grid}>
-              {groomsSide.map((m, i) => renderCard(m, i))}
+              {renderGroup(groomsSide, groomsOffset)}
             </div>
           </>
         )}
 
         {/* Ungrouped members (no sides assigned at all) */}
-        {!hasSides && others.length > 0 && (
+        {!hasSides && groupVisible(othersOffset, others) && (
           <div className={styles.grid}>
-            {others.map((m, i) => renderCard(m, i))}
+            {renderGroup(others, othersOffset)}
           </div>
         )}
 
         {/* Others with divider (when sides exist) */}
-        {hasSides && others.length > 0 && (
+        {hasSides && groupVisible(othersOffset, others) && (
           <div className={styles.groupSpaced}>
             {renderDivider("Others")}
             <div className={styles.grid}>
-              {others.map((m, i) => renderCard(m, i))}
+              {renderGroup(others, othersOffset)}
             </div>
           </div>
         )}
 
         {/* Special roles — auto-detected, centered smaller cards */}
-        {specialMembers.length > 0 && (
+        {groupVisible(specialOffset, specialMembers) && (
           <div className={styles.groupSpaced}>
             {renderDivider("Special Roles")}
             <div className={styles.specialGrid}>
-              {specialMembers.map((m, i) => renderCard(m, i, true))}
+              {renderGroup(specialMembers, specialOffset, true)}
             </div>
           </div>
+        )}
+
+        {hasMore && (
+          <RevealMoreButton
+            label="Meet the rest of the party"
+            remaining={remaining}
+            onClick={revealMore}
+          />
         )}
 
         {members.length === 0 && (
