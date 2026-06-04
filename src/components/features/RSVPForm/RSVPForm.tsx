@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
+import { useScrollIntoViewWhen } from "@/hooks";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
 import {
@@ -66,6 +67,7 @@ export function RSVPForm({
   const [selectedSide, setSelectedSide] = useState<RsvpSide | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useScrollIntoViewWhen<HTMLDivElement>(error);
   const [success, setSuccess] = useState(false);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
   const [submittedResponse, setSubmittedResponse] = useState<RsvpResponse | null>(null);
@@ -266,7 +268,11 @@ export function RSVPForm({
   const formContent = (
     <>
       {error && (
-        <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+        <div
+          ref={errorRef}
+          role="alert"
+          className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3"
+        >
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}

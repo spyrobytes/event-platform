@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { clearInvitePreview, type InvitePreview } from "@/lib/public-rsvp-portal";
 import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
+import { useScrollIntoViewWhen } from "@/hooks";
 
 type RsvpResponse = "YES" | "NO" | "MAYBE";
 
@@ -64,6 +65,7 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
   const showSideField = invitePreview.showSideField ?? false;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useScrollIntoViewWhen<HTMLDivElement>(error);
 
   const handleGuestCountChange = (next: number) => {
     const clamped = Math.max(1, Math.min(maxGuestCount, next));
@@ -338,6 +340,7 @@ export function RespondForm({ eventSlug, invitePreview }: Props) {
 
       {error && (
         <div
+          ref={errorRef}
           role="alert"
           className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
         >

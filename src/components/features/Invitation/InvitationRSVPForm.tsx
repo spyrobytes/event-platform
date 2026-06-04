@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
+import { useScrollIntoViewWhen } from "@/hooks";
 import { defaultRsvpSuccessMessage } from "@/lib/rsvp-copy";
 import { buildSubmitRsvpSchema } from "@/schemas/rsvp";
 import { SIDE_OPTIONS, type RsvpSide } from "@/lib/rsvp-side";
@@ -64,6 +65,7 @@ export function InvitationRSVPForm({
   const [selectedSide, setSelectedSide] = useState<RsvpSide | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const errorRef = useScrollIntoViewWhen<HTMLDivElement>(error);
   const [success, setSuccess] = useState(false);
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [apiMessage, setApiMessage] = useState<string | null>(null);
@@ -277,7 +279,11 @@ export function InvitationRSVPForm({
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-3">
+        <div
+          ref={errorRef}
+          role="alert"
+          className="rounded-lg border border-red-300 bg-red-50 p-3"
+        >
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}

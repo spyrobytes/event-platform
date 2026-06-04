@@ -30,6 +30,9 @@ export {
 // Scroll threshold detection
 export { useScrollThreshold } from "./use-scroll-threshold";
 
+// Scroll an element into view when a value becomes truthy (e.g. form errors)
+export { useScrollIntoViewWhen } from "./use-scroll-into-view-when";
+
 // Invitation animation state
 export {
   useInvitationState,
