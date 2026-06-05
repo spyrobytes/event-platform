@@ -271,15 +271,16 @@
 /* ------------------------------------------------------------
    Mobile performance (phones, ≤767px — matches the JS mobile
    breakpoint used by the full-page reveal). Desktop/tablet keep
-   the full effect.
+   the full effect (filters, paper-tear, overhang tape) unchanged.
 
    The live feTurbulence/feDisplacementMap paper-tear + tape
    filters rasterize into offscreen buffers before the card can
    paint, which blanks the card on weaker mobile GPUs. Drop them
    on phones — the clip-path silhouette still reads as torn
    paper — and replace the double drop-shadow filter with a cheap
-   box-shadow. `content-visibility` then lets off-screen cards
-   skip render/raster entirely.
+   box-shadow. (The full-page card count is also capped on mobile
+   by the WishesGrid reveal.) The tape keeps its overhang on all
+   viewports.
    ------------------------------------------------------------ */
 @media (max-width: 767px) {
   .card {
@@ -287,8 +288,6 @@
     box-shadow:
       0 10px 20px rgba(64, 46, 32, 0.15),
       0 2px 5px rgba(64, 46, 32, 0.10);
-    content-visibility: auto;
-    contain-intrinsic-size: auto 360px;
   }
 
   /* The per-variant filters below carry an extra :nth-child pseudo-class, so a
@@ -301,12 +300,6 @@
   .card:nth-child(3n + 2)::after,
   .card:nth-child(3n + 3)::after {
     filter: none;
-  }
-
-  /* Pull the tape flush to the top edge so it sits inside the card box —
-     otherwise content-visibility's paint containment would clip its overhang. */
-  .card::after {
-    top: 0;
   }
 }
 
