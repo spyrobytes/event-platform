@@ -22,49 +22,13 @@ import {
   getPartyAsset,
   type PartyMember,
   WeddingPartyGroups,
+  FlipIcon,
+  ReturnIcon,
 } from "@/components/templates/shared/wedding-party";
 import styles from "./ScrapbookWeddingParty.module.css";
 
 // Same rotation set as ScrapbookCollage gallery for visual cohesion
 const ROTATIONS = ["-2deg", "1.5deg", "-1deg", "2.5deg", "-1.5deg", "1deg", "-2.5deg", "0.5deg"];
-
-// ---------------------------------------------------------------------------
-// Flip icon SVGs
-// ---------------------------------------------------------------------------
-
-function FlipIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="1 4 1 10 7 10" />
-      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-    </svg>
-  );
-}
-
-function ReturnIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="9 14 4 9 9 4" />
-      <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-    </svg>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // FlipCard
