@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { WishesSection } from "@/schemas/event-page";
+import { WishCard } from "./WishCard";
+import { WishesGrid } from "./WishesGrid";
 import styles from "./WishesRenderer.module.css";
 
 export type ApprovedWish = {
@@ -59,16 +61,16 @@ export function WishesRenderer({
         {data.intro && <p className={styles.intro}>{data.intro}</p>}
       </div>
 
-      <div className={styles.grid}>
-        {visibleWishes.map((wish) => (
-          <article key={wish.id} className={styles.card}>
-            <p className={styles.message}>{wish.message}</p>
-            {wish.authorName && (
-              <footer className={styles.author}>— {wish.authorName}</footer>
-            )}
-          </article>
-        ))}
-      </div>
+      {wishesMode === "full" ? (
+        // Full page can render the whole wall; cap + reveal on mobile only.
+        <WishesGrid wishes={visibleWishes} />
+      ) : (
+        <div className={styles.grid}>
+          {visibleWishes.map((wish) => (
+            <WishCard key={wish.id} wish={wish} />
+          ))}
+        </div>
+      )}
 
       {fullPageHref && (
         <div className={styles.cta}>

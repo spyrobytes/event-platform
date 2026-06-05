@@ -268,6 +268,41 @@
   }
 }
 
+/* ------------------------------------------------------------
+   Mobile performance (phones, ≤767px — matches the JS mobile
+   breakpoint used by the full-page reveal). Desktop/tablet keep
+   the full effect.
+
+   The live feTurbulence/feDisplacementMap paper-tear + tape
+   filters rasterize into offscreen buffers before the card can
+   paint, which blanks the card on weaker mobile GPUs. Drop them
+   on phones — the clip-path silhouette still reads as torn
+   paper — and replace the double drop-shadow filter with a cheap
+   box-shadow. `content-visibility` then lets off-screen cards
+   skip render/raster entirely.
+   ------------------------------------------------------------ */
+@media (max-width: 767px) {
+  .card {
+    filter: none;
+    box-shadow:
+      0 10px 20px rgba(64, 46, 32, 0.15),
+      0 2px 5px rgba(64, 46, 32, 0.10);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 360px;
+  }
+
+  .card::before,
+  .card::after {
+    filter: none;
+  }
+
+  /* Pull the tape flush to the top edge so it sits inside the card box —
+     otherwise content-visibility's paint containment would clip its overhang. */
+  .card::after {
+    top: 0;
+  }
+}
+
 @media (max-width: 620px) {
   .section {
     padding: 4rem 1rem;
