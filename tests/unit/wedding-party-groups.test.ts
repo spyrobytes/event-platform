@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   partitionPartyMembers,
   type PartyMember,
-} from "@/components/templates/wedding-v3/renderers/wedding-party/shared/party-groups";
+} from "@/components/templates/shared/wedding-party/party-groups";
 
 describe("partitionPartyMembers", () => {
   it("splits special roles, bride/groom sides, and others", () => {

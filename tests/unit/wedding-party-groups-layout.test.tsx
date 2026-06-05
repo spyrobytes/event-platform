@@ -3,8 +3,8 @@ import { render, screen } from "@testing-library/react";
 import {
   WeddingPartyGroups,
   type WeddingPartyLayoutClasses,
-} from "@/components/templates/wedding-v3/renderers/wedding-party/shared/WeddingPartyGroups";
-import type { PartyMember } from "@/components/templates/wedding-v3/renderers/wedding-party/shared/party-groups";
+} from "@/components/templates/shared/wedding-party/WeddingPartyGroups";
+import type { PartyMember } from "@/components/templates/shared/wedding-party/party-groups";
 
 // Identity-ish stub: each layout slot gets a distinct, present class string so a
 // dropped key would surface as `undefined` in markup (none should).
