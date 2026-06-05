@@ -18,8 +18,11 @@ import type { SectionRendererProps } from "../../types";
 import type { WeddingPartySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { EventImage } from "@/components/media/EventImage";
-import { getPartyAsset, type PartyMember } from "./shared/party-groups";
-import { WeddingPartyGroups } from "./shared/WeddingPartyGroups";
+import {
+  getPartyAsset,
+  type PartyMember,
+  WeddingPartyGroups,
+} from "@/components/templates/shared/wedding-party";
 import styles from "./ScrapbookWeddingParty.module.css";
 
 // Same rotation set as ScrapbookCollage gallery for visual cohesion

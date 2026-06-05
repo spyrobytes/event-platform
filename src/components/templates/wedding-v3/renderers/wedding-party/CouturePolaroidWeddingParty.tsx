@@ -27,10 +27,14 @@ import type { SectionRendererProps } from "../../types";
 import type { WeddingPartySection } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { EventImage } from "@/components/media/EventImage";
-import { getPartyAsset, type PartyMember } from "./shared/party-groups";
-import { useFlipCard } from "./shared/useFlipCard";
-import { FlipIcon, ReturnIcon } from "./shared/FlipIcons";
-import { WeddingPartyGroups } from "./shared/WeddingPartyGroups";
+import {
+  getPartyAsset,
+  type PartyMember,
+  useFlipCard,
+  FlipIcon,
+  ReturnIcon,
+  WeddingPartyGroups,
+} from "@/components/templates/shared/wedding-party";
 import styles from "./CouturePolaroidWeddingParty.module.css";
 
 // Collage tilt — a relaxed, album-page imperfection (wider than Gilded's ±0.5°).
