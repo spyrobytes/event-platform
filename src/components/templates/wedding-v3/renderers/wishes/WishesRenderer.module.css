@@ -291,8 +291,15 @@
     contain-intrinsic-size: auto 360px;
   }
 
+  /* The per-variant filters below carry an extra :nth-child pseudo-class, so a
+     plain `.card::before` reset (lower specificity) would lose to them and leave
+     2/3 of cards still filtered. Match the variant specificity to drop them all. */
   .card::before,
-  .card::after {
+  .card::after,
+  .card:nth-child(3n + 2)::before,
+  .card:nth-child(3n + 3)::before,
+  .card:nth-child(3n + 2)::after,
+  .card:nth-child(3n + 3)::after {
     filter: none;
   }
 
