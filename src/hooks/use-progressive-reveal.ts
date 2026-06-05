@@ -140,6 +140,16 @@ export const PARTY_REVEAL: ProgressiveRevealConfig = {
 };
 
 /**
+ * Full wishes page: the ripped-paper cards are paint-heavy, so cap them on
+ * MOBILE only and reveal more on tap; tablet/desktop render the whole wall
+ * unchanged (REVEAL_ALL).
+ */
+export const WISHES_REVEAL: ProgressiveRevealConfig = {
+  initial: { mobile: 6, tablet: REVEAL_ALL, desktop: REVEAL_ALL },
+  batch: { mobile: 6, tablet: 0, desktop: 0 },
+};
+
+/**
  * Returns the current image budget for a grid plus a `revealMore` action.
  *
  * @example

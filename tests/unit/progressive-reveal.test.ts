@@ -4,6 +4,7 @@ import {
   REVEAL_ALL,
   GALLERY_REVEAL,
   PARTY_REVEAL,
+  WISHES_REVEAL,
 } from "@/hooks/use-progressive-reveal";
 
 describe("resolveVisibleCount", () => {
@@ -68,16 +69,17 @@ describe("reveal increments (simulating revealMore)", () => {
 
 describe("reveal config sanity", () => {
   it("uncaps desktop so large viewports never show a reveal button", () => {
-    for (const cfg of [GALLERY_REVEAL, PARTY_REVEAL]) {
+    for (const cfg of [GALLERY_REVEAL, PARTY_REVEAL, WISHES_REVEAL]) {
       expect(cfg.initial.desktop).toBe(REVEAL_ALL);
       const visible = resolveVisibleCount(0, cfg.initial.desktop, 30);
       expect(visible).toBe(30); // hasMore would be false
     }
   });
 
-  it("keeps mobile budgets small and tablet budgets larger", () => {
-    for (const cfg of [GALLERY_REVEAL, PARTY_REVEAL]) {
-      expect(cfg.initial.mobile).toBeLessThan(cfg.initial.tablet);
+  it("keeps mobile budgets small and tablet at least as large", () => {
+    for (const cfg of [GALLERY_REVEAL, PARTY_REVEAL, WISHES_REVEAL]) {
+      // WISHES_REVEAL uncaps tablet (REVEAL_ALL); gallery/party use a finite 12.
+      expect(cfg.initial.mobile).toBeLessThanOrEqual(cfg.initial.tablet);
       expect(cfg.initial.mobile).toBeGreaterThan(0);
     }
   });
