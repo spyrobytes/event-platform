@@ -1,10 +1,10 @@
 /**
  * Shared wedding-party grouping + member helpers.
  *
- * Consumed by the Scrapbook, Gilded Frames, and Couture Polaroid renderers via
- * `WeddingPartyGroups`. Centralizes the bride/groom/special partition, the
- * divider labels, the member shape, and the asset lookup so they aren't
- * copy-pasted per renderer.
+ * Consumed by WeddingPartyV2 and the V3 Scrapbook / Gilded Frames / Couture
+ * Polaroid renderers via `WeddingPartyGroups`. Centralizes the bride/groom/
+ * special partition, the divider labels, the member shape, and the asset
+ * lookup so they aren't copy-pasted per renderer.
  */
 
 import type { PartyMember } from "@/schemas/event-page";

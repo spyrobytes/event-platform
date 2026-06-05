@@ -5,8 +5,8 @@ import { EventImage } from "@/components/media/EventImage";
 import {
   getPartyAsset,
   type PartyMember,
-} from "@/components/templates/shared/wedding-party/party-groups";
-import { WeddingPartyGroups } from "@/components/templates/shared/wedding-party/WeddingPartyGroups";
+  WeddingPartyGroups,
+} from "@/components/templates/shared/wedding-party";
 import styles from "./WeddingPartyV2.module.css";
 
 type WeddingPartyV2Props = {
