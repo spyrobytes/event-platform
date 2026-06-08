@@ -1,0 +1,37 @@
+import type { SectionTheme } from "../wedding-v3/theme-packs/section-themes";
+
+/**
+ * V2 Cinematic section color themes.
+ *
+ * Mirrors Grand Luxe's `--lux-*` section-theme system (see
+ * `wedding-v3/theme-packs/section-themes.ts`): a light "Cream" base punctuated
+ * by themed *anchor panels* (nav, hero cards, schedule, RSVP, footer) rather
+ * than a whole-page palette swap. Each theme is one `panel` hex; the generator
+ * derives the full ink/accent ramp and polarity from it.
+ *
+ * Panels reuse Grand Luxe's contrast-tuned hexes so the two templates read as
+ * one family. Accent is intentionally NOT pinned — it flows from the
+ * organizer's `theme.primaryColor` (the live `--accent`), so a couple can pair
+ * any metallic with the panel; gold gives the classic look.
+ *
+ * "Cream" is the default (no theme selected) — today's light look — so it is
+ * the picker's default option, not an entry here.
+ */
+export const V2_SECTION_THEMES: SectionTheme[] = [
+  { id: "midnight", label: "Midnight", panel: "#253139" },
+  { id: "emerald", label: "Emerald", panel: "#0E2E26" },
+  { id: "plum", label: "Plum", panel: "#34005B" },
+];
+
+/** The default "no section theme" option (today's cream/light look). */
+export const V2_DEFAULT_SECTION_THEME = {
+  label: "Cream",
+  swatch: "#f0ebe3",
+} as const;
+
+/** Resolve a persisted `theme.sectionThemeId` to its theme, or undefined. */
+export function getV2SectionTheme(
+  id: string | undefined
+): SectionTheme | undefined {
+  return id ? V2_SECTION_THEMES.find((t) => t.id === id) : undefined;
+}

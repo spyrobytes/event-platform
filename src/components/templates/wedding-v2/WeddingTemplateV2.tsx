@@ -55,6 +55,9 @@ import type { ApprovedWishDTO } from "../index";
 import { getV2CSSVariables, getV2GlassVariables, getV2FontUrl, v2TokensToInline } from "./tokens";
 import { getV2Variant } from "./variants";
 import type { V2BotanicalVariant } from "./variants";
+import { getV2SectionTheme } from "./section-themes";
+import { getSectionThemeVariables } from "../wedding-v3/theme-packs/section-themes";
+import { mostReadable, HEX6_RE } from "@/lib/color";
 import { WeddingV2Footer } from "./WeddingV2Footer";
 import "./WeddingTemplateV2.module.css";
 
@@ -174,6 +177,25 @@ export function WeddingTemplateV2({
   const cssVars = getV2CSSVariables(primaryColor, fontPair, variant?.palette);
   const glassVars = getV2GlassVariables(variant?.glass);
   const fontUrl = getV2FontUrl(fontPair);
+
+  // Section color theme → `--lux-*` map injected on the article below. An unset
+  // or unknown id yields no vars, so every themed surface (PR A's anchor
+  // surfaces) reads `var(--lux-*, <base>)` and falls back to the cream/light
+  // look. Mirrors the V3 factory (createWeddingTemplate.tsx).
+  const luxVars = useMemo(() => {
+    const active = getV2SectionTheme(theme.sectionThemeId);
+    if (!active) return undefined;
+    const vars = getSectionThemeVariables(active);
+    // --lux-accent-ink is the text on the accent fill (CTA pill / monogram).
+    // --lux-accent flows from the live accent (theme's pinned accent, else the
+    // organizer's primaryColor). Default ink to whichever of white / the panel
+    // reads better on that accent. HEX6_RE guards the one untrusted color.
+    const accent = active.accent ?? primaryColor;
+    if (accent && HEX6_RE.test(accent)) {
+      vars["--lux-accent-ink"] = mostReadable(accent, "#ffffff", vars["--lux-panel"]);
+    }
+    return vars;
+  }, [theme.sectionThemeId, primaryColor]);
 
   // Resolve chrome settings: explicit config > variant defaults > all-true
   const chrome: ChromeConfig = {
@@ -481,7 +503,7 @@ export function WeddingTemplateV2({
           <article
             className="wedding-template-v2"
             style={{
-              ...v2TokensToInline({ ...cssVars, ...glassVars }),
+              ...v2TokensToInline({ ...cssVars, ...glassVars, ...luxVars }),
               backgroundColor: "var(--bg)",
               color: "var(--text)",
               fontFamily: "var(--sans)",

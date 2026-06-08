@@ -104,7 +104,13 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
           />
 
           <div style={{ padding: "clamp(24px, 4vw, 40px)" }}>
-            <RsvpCta eventSlug={eventSlug} />
+            {/* helpText reads --lux-ink-soft so it stays legible when the RSVP
+                section becomes a dark themed panel (falls back to the base
+                muted text when no theme is active). */}
+            <RsvpCta
+              eventSlug={eventSlug}
+              helpTextClassName="text-[var(--lux-ink-soft,var(--text-2,#786f65))]"
+            />
           </div>
         </div>
       </div>

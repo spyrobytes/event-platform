@@ -255,10 +255,10 @@
 }
 
 .floatCard {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--lux-hero-glass, rgba(255, 255, 255, 0.72));
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--lux-hero-line, rgba(255, 255, 255, 0.85));
   border-radius: var(--r-lg, 24px);
   padding: 24px;
   box-shadow: 0 1px 2px rgba(30, 27, 23, 0.03),
@@ -283,14 +283,14 @@
   font-family: var(--serif);
   font-size: 1.1rem;
   font-weight: 500;
-  color: var(--night, #1e1b17);
+  color: var(--lux-hero-ink, var(--night, #1e1b17));
 }
 .floatCardTag {
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent, #7a8c72);
+  color: var(--lux-hero-accent, var(--accent, #7a8c72));
   padding: 4px 10px;
   border-radius: 999px;
   background: var(--accent-tint, rgba(122, 140, 114, 0.08));
@@ -306,8 +306,8 @@
   text-align: center;
   padding: 14px 8px;
   border-radius: var(--r, 16px);
-  background: var(--cream, #f0ebe3);
-  border: 1px solid var(--linen, #e8e1d6);
+  background: var(--lux-hero-glass, var(--cream, #f0ebe3));
+  border: 1px solid var(--lux-hero-line, var(--linen, #e8e1d6));
   transition: border-color var(--transition, 0.3s ease);
   overflow: hidden;
 }
@@ -318,7 +318,7 @@
   font-family: var(--serif);
   font-size: 1.6rem;
   font-weight: 600;
-  color: var(--night, #1e1b17);
+  color: var(--lux-hero-ink, var(--night, #1e1b17));
   line-height: 1;
   display: inline-block;
   animation: digitFlip 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
@@ -338,7 +338,7 @@
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--stone, #a69e93);
+  color: var(--lux-hero-ink-faint, var(--stone, #a69e93));
   margin-top: 6px;
 }
 
@@ -354,8 +354,8 @@
   gap: 12px;
   padding: 9px 14px;
   border-radius: var(--r, 16px);
-  background: var(--cream, #f0ebe3);
-  border: 1px solid var(--linen, #e8e1d6);
+  background: var(--lux-hero-glass, var(--cream, #f0ebe3));
+  border: 1px solid var(--lux-hero-line, var(--linen, #e8e1d6));
   transition: border-color var(--transition, 0.3s ease),
     background var(--transition, 0.3s ease);
 }
@@ -366,13 +366,13 @@
 .schedDay {
   font-size: var(--sm, 0.85rem);
   font-weight: 600;
-  color: var(--accent, #5c6b55);
+  color: var(--lux-hero-accent, var(--accent, #5c6b55));
   flex-shrink: 0;
   min-width: 32px;
 }
 .schedInfo {
   font-size: var(--sm, 0.85rem);
-  color: var(--text-2, #786f65);
+  color: var(--lux-hero-ink-soft, var(--text-2, #786f65));
   text-align: right;
 }
 
@@ -380,7 +380,7 @@
 .floatCardFooter {
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px solid var(--linen, #e8e1d6);
+  border-top: 1px solid var(--lux-hero-line, var(--linen, #e8e1d6));
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -389,7 +389,7 @@
 .deadlineText {
   font-size: var(--sm, 0.85rem);
   font-weight: 500;
-  color: var(--text-2, #786f65);
+  color: var(--lux-hero-ink-soft, var(--text-2, #786f65));
   font-style: italic;
 }
 .deadlineUrgent {
@@ -401,7 +401,7 @@
 .deadlineClosed {
   font-size: var(--sm, 0.85rem);
   font-weight: 500;
-  color: var(--text-3, #a09889);
+  color: var(--lux-hero-ink-faint, var(--text-3, #a09889));
 }
 
 @keyframes urgentPulse {

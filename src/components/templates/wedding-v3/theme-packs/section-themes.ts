@@ -146,6 +146,9 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     "--lux-hero-surface": isLight
       ? `color-mix(in srgb, ${panel} 22%, #0b0d10)`
       : panel,
+    // Primary ink on the hero glass — always near-white, because the hero sits
+    // over a dark, dimmed photo for every theme (light body themes included).
+    "--lux-hero-ink": "rgba(255, 255, 255, 0.92)",
     // Hero info-card glass over the (darkened) photo. A DARK panel's 60% tint is
     // already dark enough for the white hero ink; a LIGHT panel's 60% tint would
     // be a MID surface where the muted ink rungs and the gold accent fail (~3:1),

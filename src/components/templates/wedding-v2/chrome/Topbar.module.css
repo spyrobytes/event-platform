@@ -147,13 +147,13 @@
   display: none;
 }
 .navLinkCta:hover {
-  background: var(--accent-hover, var(--forest, #3f4f3a));
+  background: var(--lux-accent, var(--accent-hover, var(--forest, #3f4f3a)));
   color: var(--lux-accent-ink, #fff);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 .navLinkCta:focus-visible {
-  outline: 2px solid var(--accent, #7a8c72);
+  outline: 2px solid var(--lux-accent, var(--accent, #7a8c72));
   outline-offset: 2px;
 }
 .navLinkCta:hover::after {
@@ -181,7 +181,7 @@
   cursor: pointer;
 }
 .iconBtn:hover {
-  border-color: var(--accent, #7a8c72);
+  border-color: var(--lux-accent, var(--accent, #7a8c72));
   color: var(--lux-accent, var(--forest, #3f4f3a));
   background: var(--accent-hover-bg, rgba(122, 140, 114, 0.06));
 }
@@ -194,30 +194,6 @@
   display: none !important;
 }
 
-/* RSVP button */
-.rsvpBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--sans);
-  font-size: var(--sm, 0.85rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 10px 22px;
-  border-radius: 999px;
-  background: var(--lux-accent, var(--accent, #3f4f3a));
-  color: var(--lux-accent-ink, #fff);
-  border: 1px solid var(--accent, #3f4f3a);
-  cursor: pointer;
-  transition: all var(--transition, 0.3s ease);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.rsvpBtn:hover {
-  filter: brightness(0.88);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-}
 
 /* Mobile responsive */
 @media (max-width: 900px) {
