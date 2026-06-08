@@ -64,6 +64,13 @@ export const CONTENT_LIMITS = {
   eventTimeText: { max: 60, recommended: 40 },
 } as const;
 
+/**
+ * Connectors that join two names in invitation text — "Emma & James",
+ * "Mr. & Mrs. Smith". Shared by couple-name parsing and traditional
+ * family-name rendering so both recognize the same vocabulary.
+ */
+export const NAME_CONNECTORS = [" & ", " and ", " + "] as const;
+
 // =============================================================================
 // SCHEMAS
 // =============================================================================
