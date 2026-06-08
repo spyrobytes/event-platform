@@ -23,10 +23,10 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
-    "db:seed": "npx supabase db reset",
-    "supabase:start": "npx supabase start",
-    "supabase:stop": "npx supabase stop",
-    "supabase:status": "npx supabase status",
+    "db:seed": "npx -y supabase@2.93.0 db reset",
+    "supabase:start": "npx -y supabase@2.93.0 start",
+    "supabase:stop": "npx -y supabase@2.93.0 stop",
+    "supabase:status": "npx -y supabase@2.93.0 status",
     "emulators": "firebase emulators:start",
     "emulators:export": "firebase emulators:start --export-on-exit=.firebase-emulator-data --import=.firebase-emulator-data",
     "mailpit": "docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit"
@@ -82,7 +82,6 @@
     "jsdom": "^27.4.0",
     "nodemailer": "^7.0.12",
     "prisma": "^7.2.0",
-    "supabase": "^2.72.8",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.16"
