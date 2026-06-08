@@ -16,7 +16,6 @@ import {
   TemplateSelector,
   getTemplateInfo,
   WeddingVariantPicker,
-  V2VariantPicker,
   V2AccentSwatches,
   SectionThemePicker,
   ScheduleEditor,
@@ -48,6 +47,7 @@ import { getV3Definition } from "@/components/templates/wedding-v3";
 import {
   V2_SECTION_THEMES,
   V2_DEFAULT_SECTION_THEME,
+  mapVariantToSelection,
 } from "@/components/templates/wedding-v2/section-themes";
 import { templateSupportsSocialLinks, templateSupportsPrelude } from "@/components/templates";
 import { cn } from "@/lib/utils";
@@ -275,44 +275,6 @@ export default function PageEditorPage() {
     setHasChanges(true);
   }, []);
 
-  const handleV2VariantChange = useCallback((newVariantId: string) => {
-    const variant = getV2Variant(newVariantId);
-    setConfig((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        variantId: newVariantId,
-        theme: {
-          ...prev.theme,
-          fontPair: variant.fontPair,
-          primaryColor: variant.accentSwatches[0]?.hex || prev.theme.primaryColor,
-          // V2 variants have no section themes; clear any stale selection.
-          sectionThemeId: undefined,
-        },
-        chrome: {
-          topbar: variant.chromeDefaults.topbar,
-          scrollProgress: variant.chromeDefaults.scrollProgress,
-          mountainDividers: variant.chromeDefaults.mountainDividers,
-          footerSkyline: variant.chromeDefaults.footerSkyline,
-          botanicals: variant.chromeDefaults.botanicals,
-        },
-      };
-    });
-    setHasChanges(true);
-  }, []);
-
-  const handleV2VariantClear = useCallback(() => {
-    setConfig((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        variantId: undefined,
-        chrome: undefined,
-      };
-    });
-    setHasChanges(true);
-  }, []);
-
   const updateTheme = useCallback((updates: Partial<EventPageConfigV1["theme"]>) => {
     setConfig((prev) => {
       if (!prev) return prev;
@@ -320,6 +282,29 @@ export default function PageEditorPage() {
     });
     setHasChanges(true);
   }, []);
+
+  // Picking a section theme / display style migrates the event off any legacy
+  // color-mode variant: clear variantId and write both presentation axes (so a
+  // Cream-Scrapbook event picking "Midnight" stays scrapbook).
+  const updateV2Presentation = useCallback(
+    (updates: { sectionThemeId?: string; displayStyle?: "standard" | "scrapbook" }) => {
+      setConfig((prev) => {
+        if (!prev) return prev;
+        // Migrating off a legacy variant: also drop the variant's persisted
+        // chrome (the old handleV2VariantClear did this) so the new displayStyle's
+        // chrome default applies. Already-migrated events keep their explicit chrome.
+        const clearChrome = prev.variantId ? { chrome: undefined } : {};
+        return {
+          ...prev,
+          variantId: undefined,
+          ...clearChrome,
+          theme: { ...prev.theme, ...updates },
+        };
+      });
+      setHasChanges(true);
+    },
+    []
+  );
 
   const updateHero = useCallback((updates: Partial<EventPageConfigV1["hero"]>) => {
     setConfig((prev) => {
@@ -1113,23 +1098,23 @@ export default function PageEditorPage() {
         </Card>
       )}
 
-      {/* V2 Design Variant Selection - Only show for wedding_v2 */}
+      {/* V2 Accent Color — the metallic accent, independent of theme + style.
+          (Replaces the legacy Color Mode variant grid; section themes own color
+          and the Display Style toggle owns the scrapbook structure.) */}
       {templateId === "wedding_v2" && config && (
-        <Card id="pe-color-mode" className="scroll-mt-20">
+        <Card id="pe-accent" className="scroll-mt-20">
           <CardHeader>
-            <CardTitle>Color Mode</CardTitle>
+            <CardTitle>Accent Color</CardTitle>
             <CardDescription>
-              Choose a dark skin for a dramatic evening aesthetic, or keep the original light mode.
+              The metallic accent across buttons, dividers, and the section-theme panels.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <V2VariantPicker
-              value={config.variantId}
-              onChange={handleV2VariantChange}
-              onClear={handleV2VariantClear}
+            <V2AccentSwatches
+              swatches={getV2Variant("scrapbook_edition").accentSwatches}
+              value={config.theme.primaryColor}
+              onChange={(hex) => updateTheme({ primaryColor: hex })}
               disabled={saving}
-              accentColor={config.theme.primaryColor}
-              onAccentChange={(hex) => updateTheme({ primaryColor: hex })}
             />
           </CardContent>
         </Card>
@@ -1226,31 +1211,65 @@ export default function PageEditorPage() {
         );
       })()}
 
-      {/* V2 Section Theme — the Cinematic template's color themes. Hidden while
-          a legacy color-mode variant is active so the two color systems stay
-          mutually exclusive (clear the variant above to use section themes);
-          PR C retires the variant picker and decouples them fully. */}
-      {config && templateId === "wedding_v2" && !config.variantId && (
-        <Card id="pe-section-theme" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle>Section Theme</CardTitle>
-            <CardDescription>
-              Recolor the nav, hero cards, schedule, RSVP, and footer of your
-              Cinematic page as a set. Cream keeps the signature light look.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SectionThemePicker
-              themes={V2_SECTION_THEMES}
-              classicLabel={V2_DEFAULT_SECTION_THEME.label}
-              classicSwatch={V2_DEFAULT_SECTION_THEME.swatch}
-              value={config.theme.sectionThemeId}
-              onChange={(id) => updateTheme({ sectionThemeId: id })}
-              disabled={saving}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* V2 Theme & Style — color (section theme) + structure (display style),
+          the two decoupled presentation axes. Resolves a legacy variantId to its
+          selection so existing events show the right state and migrate on change. */}
+      {config && templateId === "wedding_v2" && (() => {
+        const sel = mapVariantToSelection(config.variantId);
+        const sectionThemeId = config.theme.sectionThemeId ?? sel.sectionThemeId;
+        const displayStyle = config.theme.displayStyle ?? sel.displayStyle;
+        return (
+          <Card id="pe-section-theme" className="scroll-mt-20">
+            <CardHeader>
+              <CardTitle>Theme &amp; Style</CardTitle>
+              <CardDescription>
+                Recolor the nav, hero cards, schedule, RSVP, and footer as a set,
+                and pick the Standard or Scrapbook layout. Cream keeps the light look.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <SectionThemePicker
+                themes={V2_SECTION_THEMES}
+                classicLabel={V2_DEFAULT_SECTION_THEME.label}
+                classicSwatch={V2_DEFAULT_SECTION_THEME.swatch}
+                value={sectionThemeId}
+                onChange={(id) => updateV2Presentation({ sectionThemeId: id, displayStyle })}
+                disabled={saving}
+              />
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Display Style</p>
+                <div role="radiogroup" aria-label="Display style" className="flex gap-2">
+                  {(["standard", "scrapbook"] as const).map((style) => {
+                    const active = displayStyle === style;
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        disabled={saving}
+                        onClick={() => updateV2Presentation({ displayStyle: style, sectionThemeId })}
+                        className={cn(
+                          "flex-1 rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-all",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
+                          active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
+                          saving && "cursor-not-allowed opacity-50",
+                        )}
+                      >
+                        {style}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Scrapbook adds the polaroid gallery, scrapbook wedding party,
+                  mountain dividers, and skyline. Standard is the clean cinematic look.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Social Links — only for templates that opt in (Premium feature) */}
       {config && templateSupportsSocialLinks(templateId) && (
@@ -1309,11 +1328,17 @@ export default function PageEditorPage() {
                     id="font"
                     value={config.theme.fontPair}
                     onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
+                    disabled={templateId === "wedding_v2" && config.theme.displayStyle === "scrapbook"}
                   >
                     <option value="modern">Modern (DM Sans)</option>
                     <option value="classic">Classic (Playfair Display + Source Serif)</option>
                     <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
                   </Select>
+                  {templateId === "wedding_v2" && config.theme.displayStyle === "scrapbook" && (
+                    <p className="text-xs text-muted-foreground">
+                      The Scrapbook display style uses its own serif font pairing.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </div>

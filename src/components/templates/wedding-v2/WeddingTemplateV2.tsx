@@ -169,8 +169,18 @@ export function WeddingTemplateV2({
   // Resolve variant (if set)
   const variant = variantId ? getV2Variant(variantId) : null;
 
-  // Font pair: variant overrides theme.fontPair
-  const fontPair = variant?.fontPair || theme.fontPair;
+  // Display style (structural; color is owned by sectionThemeId). Explicit
+  // theme.displayStyle wins; otherwise a legacy scrapbook variant maps to
+  // "scrapbook". Drives the gallery/party renderers, scrapbook chrome + font.
+  const isLegacyScrapbookVariant =
+    variant?.galleryRenderer === "scrapbook" ||
+    variant?.weddingPartyRenderer === "scrapbook";
+  const displayStyle: "standard" | "scrapbook" =
+    theme.displayStyle ?? (isLegacyScrapbookVariant ? "scrapbook" : "standard");
+  const isScrapbook = displayStyle === "scrapbook";
+
+  // Font pair: legacy variant wins; else scrapbook forces its serif pairing.
+  const fontPair = variant?.fontPair || (isScrapbook ? "dmsans_sourceserif" : theme.fontPair);
 
   // V2 token system: user's primaryColor → --accent, fontPair → font families
   const primaryColor = theme.primaryColor;
@@ -204,12 +214,19 @@ export function WeddingTemplateV2({
     return vars;
   }, [theme.sectionThemeId, primaryColor]);
 
-  // Resolve chrome settings: explicit config > variant defaults > all-true
+  // Scrapbook adds the textured chrome (mountain dividers + footer skyline);
+  // standard is the clean cinematic look. Explicit chromeConfig and legacy
+  // variant defaults still take precedence over the style default.
+  const styleChrome = isScrapbook
+    ? { mountainDividers: true, footerSkyline: true }
+    : { mountainDividers: false, footerSkyline: false };
+
+  // Resolve chrome settings: explicit config > variant defaults > style default
   const chrome: ChromeConfig = {
     topbar: chromeConfig?.topbar ?? variant?.chromeDefaults?.topbar ?? true,
     scrollProgress: chromeConfig?.scrollProgress ?? variant?.chromeDefaults?.scrollProgress ?? true,
-    mountainDividers: chromeConfig?.mountainDividers ?? variant?.chromeDefaults?.mountainDividers ?? true,
-    footerSkyline: chromeConfig?.footerSkyline ?? variant?.chromeDefaults?.footerSkyline ?? true,
+    mountainDividers: chromeConfig?.mountainDividers ?? variant?.chromeDefaults?.mountainDividers ?? styleChrome.mountainDividers,
+    footerSkyline: chromeConfig?.footerSkyline ?? variant?.chromeDefaults?.footerSkyline ?? styleChrome.footerSkyline,
     botanicals: chromeConfig?.botanicals ?? variant?.chromeDefaults?.botanicals ?? true,
   };
 
@@ -388,18 +405,14 @@ export function WeddingTemplateV2({
         ));
 
       case "gallery": {
-        const GalleryComp = variant?.galleryRenderer === "scrapbook"
-          ? ScrapbookCollage
-          : MasonryGallery;
+        const GalleryComp = isScrapbook ? ScrapbookCollage : MasonryGallery;
         return wrapWithChrome(wrapWithAnimation(
           <GalleryComp data={section.data} assets={assets} />
         ));
       }
 
       case "weddingParty": {
-        const PartyComp = variant?.weddingPartyRenderer === "scrapbook"
-          ? ScrapbookWeddingParty
-          : WeddingPartyV2;
+        const PartyComp = isScrapbook ? ScrapbookWeddingParty : WeddingPartyV2;
         return wrapWithChrome(wrapWithAnimation(
           <PartyComp data={section.data} assets={assets} />
         ));

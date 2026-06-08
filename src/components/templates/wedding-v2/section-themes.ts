@@ -35,3 +35,33 @@ export function getV2SectionTheme(
 ): SectionTheme | undefined {
   return id ? V2_SECTION_THEMES.find((t) => t.id === id) : undefined;
 }
+
+/**
+ * Map a legacy curated `variantId` (the old flat color modes) to its
+ * (sectionThemeId, displayStyle) equivalent. Lets the editor show the right
+ * selection for events still on a variant and migrate them off it on first
+ * change. Live events are all on `scrapbook_edition` (Cream Scrapbook).
+ */
+export function mapVariantToSelection(variantId: string | undefined): {
+  sectionThemeId: string | undefined;
+  displayStyle: "standard" | "scrapbook";
+} {
+  switch (variantId) {
+    case "scrapbook_edition":
+      return { sectionThemeId: undefined, displayStyle: "scrapbook" }; // Cream Scrapbook
+    case "scrapbook_midnight":
+      return { sectionThemeId: "midnight", displayStyle: "scrapbook" };
+    case "scrapbook_emerald":
+      return { sectionThemeId: "emerald", displayStyle: "scrapbook" };
+    case "scrapbook_plum":
+      return { sectionThemeId: "plum", displayStyle: "scrapbook" };
+    case "midnight_gold":
+      return { sectionThemeId: "midnight", displayStyle: "standard" };
+    case "emerald_ivory":
+      return { sectionThemeId: "emerald", displayStyle: "standard" };
+    case "plum_blush":
+      return { sectionThemeId: "plum", displayStyle: "standard" };
+    default:
+      return { sectionThemeId: undefined, displayStyle: "standard" };
+  }
+}

@@ -39,6 +39,15 @@ export const themeSchema = z.object({
    * primaryColor) rather than an enum, since valid ids vary per template.
    */
   sectionThemeId: z.string().max(64).optional(),
+  /**
+   * Structural display style, independent of color (which `sectionThemeId`
+   * owns). "scrapbook" swaps the gallery + wedding-party renderers to the
+   * scrapbook versions, applies the scrapbook chrome (mountain dividers +
+   * footer skyline) and font pairing. Currently used by the V2 Cinematic
+   * template; an unset value (or a legacy `variantId`-driven scrapbook variant)
+   * resolves at render time. Defaults to "standard".
+   */
+  displayStyle: z.enum(["standard", "scrapbook"]).optional(),
 });
 
 export type ThemeConfig = z.infer<typeof themeSchema>;
