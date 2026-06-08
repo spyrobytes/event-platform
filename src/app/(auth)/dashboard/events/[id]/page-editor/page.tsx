@@ -290,7 +290,16 @@ export default function PageEditorPage() {
     (updates: { sectionThemeId?: string; displayStyle?: "standard" | "scrapbook" }) => {
       setConfig((prev) => {
         if (!prev) return prev;
-        return { ...prev, variantId: undefined, theme: { ...prev.theme, ...updates } };
+        // Migrating off a legacy variant: also drop the variant's persisted
+        // chrome (the old handleV2VariantClear did this) so the new displayStyle's
+        // chrome default applies. Already-migrated events keep their explicit chrome.
+        const clearChrome = prev.variantId ? { chrome: undefined } : {};
+        return {
+          ...prev,
+          variantId: undefined,
+          ...clearChrome,
+          theme: { ...prev.theme, ...updates },
+        };
       });
       setHasChanges(true);
     },
@@ -1319,11 +1328,17 @@ export default function PageEditorPage() {
                     id="font"
                     value={config.theme.fontPair}
                     onChange={(e) => updateTheme({ fontPair: e.target.value as "serif_sans" | "modern" | "classic" })}
+                    disabled={templateId === "wedding_v2" && config.theme.displayStyle === "scrapbook"}
                   >
                     <option value="modern">Modern (DM Sans)</option>
                     <option value="classic">Classic (Playfair Display + Source Serif)</option>
                     <option value="serif_sans">Serif + Sans (Cormorant Garamond + DM Sans)</option>
                   </Select>
+                  {templateId === "wedding_v2" && config.theme.displayStyle === "scrapbook" && (
+                    <p className="text-xs text-muted-foreground">
+                      The Scrapbook display style uses its own serif font pairing.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </div>
