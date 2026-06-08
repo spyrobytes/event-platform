@@ -8,6 +8,10 @@ type ScheduleV2Props = { data: ScheduleSection["data"] };
  * Supports two modes:
  * - Grouped: renders day/event groups with headers + nested schedule items (multi-day weddings)
  * - Flat: renders a vertical stack of schedule-item cards (backward compat)
+ *
+ * Section-theme aware: every color reads `var(--lux-*, <base value>)` so an
+ * unset section theme is byte-identical to the base look, and an active theme
+ * turns the whole section into a themed panel (dark band + flipped ink).
  */
 export function ScheduleV2({ data }: ScheduleV2Props) {
   const { items, heading, description, groups } = data;
@@ -19,7 +23,7 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
 
   return (
     <section
-      style={{ padding: "var(--section-y, 96px) 0" }}
+      style={{ padding: "var(--section-y, 96px) 0", background: "var(--lux-panel, transparent)" }}
       aria-label="Schedule"
       id="schedule"
     >
@@ -40,7 +44,7 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
                 fontWeight: 500,
                 letterSpacing: ".18em",
                 textTransform: "uppercase" as const,
-                color: "var(--accent, #7a8c72)",
+                color: "var(--lux-accent, var(--accent, #7a8c72))",
                 marginBottom: 12,
               }}
             >
@@ -53,13 +57,13 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
               fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
               fontWeight: 400,
               lineHeight: 1.15,
-              color: "var(--night, #1e1b17)",
+              color: "var(--lux-ink, var(--night, #1e1b17))",
             }}
           >
             {displayHeading}
           </h2>
           {description && (
-            <p style={{ maxWidth: "56ch", color: "var(--text-2, #786f65)", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
+            <p style={{ maxWidth: "56ch", color: "var(--lux-ink-soft, var(--text-2, #786f65))", lineHeight: 1.75, marginTop: 8, marginLeft: "auto", marginRight: "auto" }}>
               {description}
             </p>
           )}
@@ -96,11 +100,11 @@ export function ScheduleV2({ data }: ScheduleV2Props) {
             ) : (
               <div
                 style={{
-                  border: "2px dashed var(--border, #e8e1d6)",
+                  border: "2px dashed var(--lux-line, var(--border, #e8e1d6))",
                   borderRadius: "var(--r-lg, 24px)",
                   padding: "clamp(32px, 4vw, 48px)",
                   textAlign: "center",
-                  color: "var(--stone, #a69e93)",
+                  color: "var(--lux-ink-faint, var(--stone, #a69e93))",
                   fontFamily: "var(--sans)",
                   fontSize: "var(--body, 1rem)",
                 }}
@@ -123,7 +127,7 @@ function ScheduleDayGroup({ group, isFirst }: { group: ScheduleGroup; isFirst: b
       {!isFirst && (
         <div style={{
           height: 1,
-          background: "linear-gradient(90deg, transparent, var(--border, #e8e1d6), transparent)",
+          background: "linear-gradient(90deg, transparent, var(--lux-line, var(--border, #e8e1d6)), transparent)",
           marginBottom: "clamp(32px, 4vw, 48px)",
         }} />
       )}
@@ -135,7 +139,7 @@ function ScheduleDayGroup({ group, isFirst }: { group: ScheduleGroup; isFirst: b
           fontSize: "var(--h3, clamp(1.15rem, 2vw, 1.4rem))",
           fontWeight: 400,
           lineHeight: 1.3,
-          color: "var(--night, #1e1b17)",
+          color: "var(--lux-ink, var(--night, #1e1b17))",
           marginBottom: 6,
         }}>
           {group.label}
@@ -144,19 +148,19 @@ function ScheduleDayGroup({ group, isFirst }: { group: ScheduleGroup; isFirst: b
           {group.date && (
             <span style={{
               fontSize: "var(--sm, 0.85rem)",
-              color: "var(--accent, #7a8c72)",
+              color: "var(--lux-accent, var(--accent, #7a8c72))",
               fontWeight: 500,
             }}>
               {group.date}
             </span>
           )}
           {group.date && group.location && (
-            <span style={{ color: "var(--border, #e8e1d6)" }}>|</span>
+            <span style={{ color: "var(--lux-line, var(--border, #e8e1d6))" }}>|</span>
           )}
           {group.location && (
             <span style={{
               fontSize: "var(--sm, 0.85rem)",
-              color: "var(--text-2, #786f65)",
+              color: "var(--lux-ink-soft, var(--text-2, #786f65))",
             }}>
               {group.location}
             </span>
@@ -178,11 +182,11 @@ function ScheduleDayGroup({ group, isFirst }: { group: ScheduleGroup; isFirst: b
           ))
         ) : (
           <div style={{
-            border: "2px dashed var(--border, #e8e1d6)",
+            border: "2px dashed var(--lux-line, var(--border, #e8e1d6))",
             borderRadius: "var(--r-lg, 24px)",
             padding: "clamp(24px, 3vw, 32px)",
             textAlign: "center",
-            color: "var(--stone, #a69e93)",
+            color: "var(--lux-ink-faint, var(--stone, #a69e93))",
             fontSize: "var(--sm, 0.85rem)",
           }}>
             Schedule items coming soon
@@ -207,8 +211,8 @@ function ScheduleCard({
   return (
     <div
       style={{
-        background: "var(--surface, #ffffff)",
-        border: "1px solid var(--border, #e8e1d6)",
+        background: "var(--lux-card, var(--surface, #ffffff))",
+        border: "1px solid var(--lux-line, var(--border, #e8e1d6))",
         borderRadius: "var(--r-lg, 24px)",
         padding: "clamp(24px, 3vw, 32px)",
         paddingLeft: "clamp(28px, 3.5vw, 40px)",
@@ -228,7 +232,7 @@ function ScheduleCard({
           bottom: 0,
           width: 3,
           background:
-            "linear-gradient(180deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72))",
+            "linear-gradient(180deg, var(--lux-accent, var(--sage-l, #a8b8a0)), var(--lux-accent, var(--accent, #7a8c72)))",
           opacity: 0.7,
         }}
       />
@@ -239,7 +243,7 @@ function ScheduleCard({
           fontFamily: "var(--serif)",
           fontSize: "var(--h3, clamp(1.15rem, 2vw, 1.4rem))",
           fontWeight: 400,
-          color: "var(--accent, #7a8c72)",
+          color: "var(--lux-accent, var(--accent, #7a8c72))",
           marginBottom: 4,
           lineHeight: 1.2,
         }}
@@ -254,7 +258,7 @@ function ScheduleCard({
           fontSize: "1.15rem",
           fontWeight: 400,
           lineHeight: 1.3,
-          color: "var(--night, #1e1b17)",
+          color: "var(--lux-ink, var(--night, #1e1b17))",
           margin: 0,
         }}
       >
@@ -267,7 +271,7 @@ function ScheduleCard({
           style={{
             marginTop: 6,
             fontSize: "var(--sm, 0.85rem)",
-            color: "var(--text-3, #a69e93)",
+            color: "var(--lux-ink-faint, var(--text-3, #a69e93))",
             display: "flex",
             alignItems: "center",
             gap: 4,
@@ -288,7 +292,7 @@ function ScheduleCard({
             marginTop: 8,
             fontSize: "var(--body, 1rem)",
             lineHeight: 1.75,
-            color: "var(--text-2, #786f65)",
+            color: "var(--lux-ink-soft, var(--text-2, #786f65))",
           }}
         >
           {description}

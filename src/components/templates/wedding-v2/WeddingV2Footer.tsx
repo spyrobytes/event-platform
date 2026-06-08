@@ -19,7 +19,9 @@ type WeddingV2FooterProps = {
  * Wedding V2 Footer — POC-parity
  *
  * Full footer with monogram circle, names, date, nav links, credits.
- * Cream background. Replaces one-liner "Powered by EventFXr".
+ * Cream background by default; section-theme aware — colors read
+ * `var(--lux-*, <base value>)` so an unset theme is byte-identical and an
+ * active theme turns the footer into a themed panel.
  */
 export function WeddingV2Footer({
   monogram,
@@ -32,7 +34,7 @@ export function WeddingV2Footer({
     <footer
       style={{
         padding: "0 0 48px",
-        background: "var(--cream, #f0ebe3)",
+        background: "var(--lux-panel, var(--cream, #f0ebe3))",
         borderTop: "none",
         position: "relative",
       }}
@@ -52,7 +54,7 @@ export function WeddingV2Footer({
               width: 42,
               height: 42,
               borderRadius: "50%",
-              background: "var(--accent, #3f4f3a)",
+              background: "var(--lux-accent, var(--accent, #3f4f3a))",
               display: "grid",
               placeItems: "center",
               position: "relative",
@@ -67,7 +69,7 @@ export function WeddingV2Footer({
                 fontSize: "0.9rem",
                 fontWeight: 500,
                 letterSpacing: "0.12em",
-                color: "rgba(255, 255, 255, 0.92)",
+                color: "var(--lux-accent-ink, rgba(255, 255, 255, 0.92))",
               }}
             >
               {monogram}
@@ -82,7 +84,7 @@ export function WeddingV2Footer({
               fontFamily: "var(--serif)",
               fontSize: "1.3rem",
               fontWeight: 500,
-              color: "var(--night, #1e1b17)",
+              color: "var(--lux-ink, var(--night, #1e1b17))",
               marginBottom: 4,
             }}
           >
@@ -95,7 +97,7 @@ export function WeddingV2Footer({
           <div
             style={{
               fontSize: "var(--sm, 0.85rem)",
-              color: "var(--text-3, #a69e93)",
+              color: "var(--lux-ink-faint, var(--text-3, #a69e93))",
               marginBottom: 20,
             }}
           >
@@ -108,8 +110,8 @@ export function WeddingV2Footer({
           links={socialLinks}
           size={20}
           gap={14}
-          color="var(--text-2, #786f65)"
-          hoverColor="var(--accent, #7a8c72)"
+          color="var(--lux-ink-soft, var(--text-2, #786f65))"
+          hoverColor="var(--lux-accent, var(--accent, #7a8c72))"
           style={{ marginBottom: 20 }}
         />
 
@@ -132,7 +134,7 @@ export function WeddingV2Footer({
                 style={{
                   fontSize: "var(--sm, 0.85rem)",
                   fontWeight: 500,
-                  color: "var(--text-2, #786f65)",
+                  color: "var(--lux-ink-soft, var(--text-2, #786f65))",
                   textDecoration: "none",
                   transition: "color var(--transition, 0.3s ease)",
                 }}
@@ -147,15 +149,15 @@ export function WeddingV2Footer({
         <div
           style={{
             paddingTop: 20,
-            borderTop: "1px solid var(--linen, #e8e1d6)",
+            borderTop: "1px solid var(--lux-line, var(--linen, #e8e1d6))",
             fontSize: ".82rem",
-            color: "var(--stone, #a69e93)",
+            color: "var(--lux-ink-faint, var(--stone, #a69e93))",
           }}
         >
           Made with{" "}
           <a
             href="https://eventfxr.com"
-            style={{ color: "var(--accent, #7a8c72)", textDecoration: "none" }}
+            style={{ color: "var(--lux-accent, var(--accent, #7a8c72))", textDecoration: "none" }}
             target="_blank"
             rel="noopener noreferrer"
           >

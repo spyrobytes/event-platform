@@ -10,15 +10,15 @@
     border-color var(--transition, 0.3s ease);
   border-bottom: 1px solid transparent;
   /* Light frosted glass even before scroll so nav is readable over hero image */
-  background: var(--glass-bg, rgba(248, 245, 240, 0.55));
+  background: var(--lux-panel-soft, var(--glass-bg, rgba(248, 245, 240, 0.55)));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 .scrolled {
-  background: var(--glass-bg-scrolled, rgba(248, 245, 240, 0.92));
+  background: var(--lux-panel-soft, var(--glass-bg-scrolled, rgba(248, 245, 240, 0.92)));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom-color: var(--border, #e8e1d6);
+  border-bottom-color: var(--lux-line, var(--border, #e8e1d6));
   box-shadow: 0 1px 12px rgba(30, 27, 23, 0.04);
 }
 
@@ -46,7 +46,7 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: var(--accent, #3f4f3a);
+  background: var(--lux-accent, var(--accent, #3f4f3a));
   display: grid;
   place-items: center;
   position: relative;
@@ -64,7 +64,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--lux-accent-ink, rgba(255, 255, 255, 0.92));
 }
 
 .brandText {
@@ -76,11 +76,11 @@
   font-family: var(--serif);
   font-size: 1.05rem;
   font-weight: 500;
-  color: var(--night, #1e1b17);
+  color: var(--lux-ink, var(--night, #1e1b17));
 }
 .brandDate {
   font-size: var(--sm, 0.85rem);
-  color: var(--text-2, #786f65);
+  color: var(--lux-ink-soft, var(--text-2, #786f65));
 }
 
 /* Nav links */
@@ -92,7 +92,7 @@
 .navLink {
   font-size: var(--sm, 0.85rem);
   font-weight: 500;
-  color: var(--text-2, #786f65);
+  color: var(--lux-ink-soft, var(--text-2, #786f65));
   padding: 7px 14px;
   border-radius: 999px;
   transition: color var(--transition, 0.3s ease);
@@ -106,24 +106,24 @@
   left: 50%;
   width: 0;
   height: 1.5px;
-  background: var(--accent, #7a8c72);
+  background: var(--lux-accent, var(--accent, #7a8c72));
   transition: width .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1)),
               left .3s var(--ease-out-expo, cubic-bezier(.16,1,.3,1));
 }
 .navLink:hover {
-  color: var(--night, #1e1b17);
+  color: var(--lux-ink, var(--night, #1e1b17));
 }
 .navLink:hover::after {
   width: calc(100% - 28px);
   left: 14px;
 }
 .navLinkActive {
-  color: var(--forest, #3f4f3a);
+  color: var(--lux-accent, var(--forest, #3f4f3a));
 }
 .navLinkActive::after {
   width: calc(100% - 28px);
   left: 14px;
-  background: var(--accent, #7a8c72);
+  background: var(--lux-accent, var(--accent, #7a8c72));
 }
 
 /* CTA pill — distinguishes the RSVP nav entry as the primary action.
@@ -131,8 +131,8 @@
    underline pseudo-element from .navLink is suppressed since the pill
    shape already provides visual containment. */
 .navLinkCta {
-  background: var(--accent, #7a8c72);
-  color: #fff;
+  background: var(--lux-accent, var(--accent, #7a8c72));
+  color: var(--lux-accent-ink, #fff);
   font-weight: 600;
   padding: 8px 18px;
   margin-left: 4px;
@@ -148,7 +148,7 @@
 }
 .navLinkCta:hover {
   background: var(--accent-hover, var(--forest, #3f4f3a));
-  color: #fff;
+  color: var(--lux-accent-ink, #fff);
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
@@ -174,15 +174,15 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  border: 1px solid var(--border, #e8e1d6);
-  color: var(--text-2, #786f65);
+  border: 1px solid var(--lux-line, var(--border, #e8e1d6));
+  color: var(--lux-ink-soft, var(--text-2, #786f65));
   transition: all var(--transition, 0.3s ease);
   background: none;
   cursor: pointer;
 }
 .iconBtn:hover {
   border-color: var(--accent, #7a8c72);
-  color: var(--forest, #3f4f3a);
+  color: var(--lux-accent, var(--forest, #3f4f3a));
   background: var(--accent-hover-bg, rgba(122, 140, 114, 0.06));
 }
 
@@ -205,8 +205,8 @@
   letter-spacing: 0.02em;
   padding: 10px 22px;
   border-radius: 999px;
-  background: var(--accent, #3f4f3a);
-  color: #fff;
+  background: var(--lux-accent, var(--accent, #3f4f3a));
+  color: var(--lux-accent-ink, #fff);
   border: 1px solid var(--accent, #3f4f3a);
   cursor: pointer;
   transition: all var(--transition, 0.3s ease);
