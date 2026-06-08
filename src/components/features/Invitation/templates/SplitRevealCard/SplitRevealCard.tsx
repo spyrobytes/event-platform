@@ -367,6 +367,8 @@ export function SplitRevealCard({
               traditionalClassName={styles.traditionalHeader}
               familiesLabelClassName={styles.familiesLabel}
               familyNamesClassName={styles.familyNames}
+              familyGroupClassName={styles.familyNameUnit}
+              familySeparatorClassName={styles.familySeparator}
               familyInviteClassName={styles.familyInviteText}
             />
 

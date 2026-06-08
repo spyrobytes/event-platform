@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { InvitationData } from "@/schemas/invitation";
 import { CONTENT_LIMITS, truncateWithEllipsis } from "@/schemas/invitation";
 
@@ -15,11 +16,50 @@ type InvitationHeaderProps = {
   familiesLabelClassName?: string;
   /** CSS class for the family names line */
   familyNamesClassName?: string;
+  /**
+   * CSS class for each unbreakable parent-name unit within one family group
+   * (e.g. "Mr. Smith Oliver"). Opt-in: when set together with
+   * familySeparatorClassName, the families render as wrap-protected units; when
+   * omitted, the legacy inline markup is used (unchanged for other templates).
+   */
+  familyGroupClassName?: string;
+  /** CSS class for the central separator between the two families (own line). */
+  familySeparatorClassName?: string;
   /** CSS class for the invite text line (e.g., "invite you to the wedding...") */
   familyInviteClassName?: string;
 };
 
 const DEFAULT_FAMILY_INVITE_TEXT = "invite you to the wedding of their children";
+
+/**
+ * Connectors recognized *within* a single family field (e.g. the "&" in
+ * "Mr. & Mrs."). Ordered so multi-char words match before symbols. The
+ * connector *between* the two families is structural — rendered as its own
+ * element from two separate schema fields — and is never parsed here, so a
+ * within-family connector can never be mistaken for the central one.
+ */
+const FAMILY_CONNECTORS = [" & ", " and ", " + "];
+
+/**
+ * Render one family field as unbreakable parent-name units joined by breakable
+ * connectors. Each parent name stays whole (the unit className applies
+ * `white-space: nowrap`); a line break may only fall at the connector between
+ * two parents, so a long family wraps cleanly between its members instead of
+ * mid-name. A field with no connector renders as a single unit.
+ */
+function renderFamilyGroup(group: string, unitClassName?: string) {
+  for (const sep of FAMILY_CONNECTORS) {
+    if (group.includes(sep)) {
+      return group.split(sep).map((part, i) => (
+        <Fragment key={i}>
+          {i > 0 ? sep : null}
+          <span className={unitClassName}>{part.trim()}</span>
+        </Fragment>
+      ));
+    }
+  }
+  return <span className={unitClassName}>{group}</span>;
+}
 
 /**
  * Shared header renderer for invitation templates.
@@ -43,6 +83,8 @@ export function InvitationHeader({
   traditionalClassName,
   familiesLabelClassName,
   familyNamesClassName,
+  familyGroupClassName,
+  familySeparatorClassName,
   familyInviteClassName,
 }: InvitationHeaderProps) {
   const isTraditional =
@@ -71,7 +113,17 @@ export function InvitationHeader({
       <Wrapper className={traditionalClassName}>
         <Line className={familiesLabelClassName}>The families of</Line>
         <Line className={familyNamesClassName}>
-          {family1} <span>&amp;</span> {family2}
+          {familySeparatorClassName ? (
+            <>
+              {renderFamilyGroup(family1, familyGroupClassName)}
+              <span className={familySeparatorClassName}>&amp;</span>
+              {renderFamilyGroup(family2, familyGroupClassName)}
+            </>
+          ) : (
+            <>
+              {family1} <span>&amp;</span> {family2}
+            </>
+          )}
         </Line>
         <Line className={familyInviteClassName}>{inviteText}</Line>
       </Wrapper>
