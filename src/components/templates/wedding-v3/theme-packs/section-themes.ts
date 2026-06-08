@@ -158,6 +158,10 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     "--lux-hero-glass": isLight
       ? `color-mix(in srgb, ${panel} 14%, rgba(10, 12, 15, 0.72))`
       : `color-mix(in srgb, ${panel} 60%, transparent)`,
+    // Inset boxes on the hero glass (countdown tiles, schedule rows) — a faint
+    // light wash so they read as distinct boxes against the glass card rather
+    // than merging into it. Always white-alpha (the hero is always on-dark).
+    "--lux-hero-card": "rgba(255, 255, 255, 0.08)",
     "--lux-hero-ink-soft": isLight ? "rgba(255, 255, 255, 0.72)" : DARK_INK.soft,
     "--lux-hero-ink-faint": isLight
       ? "rgba(255, 255, 255, 0.45)"

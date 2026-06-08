@@ -306,7 +306,7 @@
   text-align: center;
   padding: 14px 8px;
   border-radius: var(--r, 16px);
-  background: var(--lux-hero-glass, var(--cream, #f0ebe3));
+  background: var(--lux-hero-card, var(--cream, #f0ebe3));
   border: 1px solid var(--lux-hero-line, var(--linen, #e8e1d6));
   transition: border-color var(--transition, 0.3s ease);
   overflow: hidden;
@@ -354,7 +354,7 @@
   gap: 12px;
   padding: 9px 14px;
   border-radius: var(--r, 16px);
-  background: var(--lux-hero-glass, var(--cream, #f0ebe3));
+  background: var(--lux-hero-card, var(--cream, #f0ebe3));
   border: 1px solid var(--lux-hero-line, var(--linen, #e8e1d6));
   transition: border-color var(--transition, 0.3s ease),
     background var(--transition, 0.3s ease);

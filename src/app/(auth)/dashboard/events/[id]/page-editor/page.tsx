@@ -1226,8 +1226,11 @@ export default function PageEditorPage() {
         );
       })()}
 
-      {/* V2 Section Theme — the Cinematic template's color themes */}
-      {config && templateId === "wedding_v2" && (
+      {/* V2 Section Theme — the Cinematic template's color themes. Hidden while
+          a legacy color-mode variant is active so the two color systems stay
+          mutually exclusive (clear the variant above to use section themes);
+          PR C retires the variant picker and decouples them fully. */}
+      {config && templateId === "wedding_v2" && !config.variantId && (
         <Card id="pe-section-theme" className="scroll-mt-20">
           <CardHeader>
             <CardTitle>Section Theme</CardTitle>

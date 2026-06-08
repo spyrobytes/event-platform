@@ -57,7 +57,7 @@ import { getV2Variant } from "./variants";
 import type { V2BotanicalVariant } from "./variants";
 import { getV2SectionTheme } from "./section-themes";
 import { getSectionThemeVariables } from "../wedding-v3/theme-packs/section-themes";
-import { mostReadable, HEX6_RE } from "@/lib/color";
+import { mostReadable, getContrastRatio, HEX6_RE } from "@/lib/color";
 import { WeddingV2Footer } from "./WeddingV2Footer";
 import "./WeddingTemplateV2.module.css";
 
@@ -193,6 +193,13 @@ export function WeddingTemplateV2({
     const accent = active.accent ?? primaryColor;
     if (accent && HEX6_RE.test(accent)) {
       vars["--lux-accent-ink"] = mostReadable(accent, "#ffffff", vars["--lux-panel"]);
+      // The hero glass is always dark, so its accent (float-card tag, schedule
+      // day labels) must read light. A dark primaryColor would vanish there —
+      // the generator only mirrors a *pinned* light accent onto the hero, so
+      // pin a light gold here when the live accent is too dark for the glass.
+      if (getContrastRatio(accent, "#000000") < 3.5) {
+        vars["--lux-hero-accent"] = "#c5a961";
+      }
     }
     return vars;
   }, [theme.sectionThemeId, primaryColor]);
