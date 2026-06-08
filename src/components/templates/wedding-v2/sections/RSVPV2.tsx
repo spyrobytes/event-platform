@@ -6,6 +6,14 @@ type RSVPV2Props = {
   eventSlug: string;
 };
 
+/**
+ * RSVP V2 — section-theme aware. Colors read `var(--lux-*, <base value>)`, so an
+ * unset section theme is byte-identical and an active theme turns the section
+ * into a themed panel with a translucent inset card.
+ *
+ * NOTE: the inner <RsvpCta> is a shared feature component with its own colors;
+ * theming its controls on a dark panel is handled separately (PR B), not here.
+ */
 export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
   const heading = data.heading || "RSVP";
   const kickerText = "RSVP";
@@ -13,7 +21,7 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
 
   return (
     <section
-      style={{ padding: "var(--section-y, 96px) 0" }}
+      style={{ padding: "var(--section-y, 96px) 0", background: "var(--lux-panel, transparent)" }}
       aria-label="RSVP"
       id="rsvp"
     >
@@ -34,7 +42,7 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
                 fontWeight: 500,
                 letterSpacing: ".18em",
                 textTransform: "uppercase" as const,
-                color: "var(--accent, #7a8c72)",
+                color: "var(--lux-accent, var(--accent, #7a8c72))",
                 marginBottom: 12,
               }}
             >
@@ -47,7 +55,7 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
               fontSize: "var(--h2, clamp(1.8rem, 3.2vw, 2.8rem))",
               fontWeight: 400,
               lineHeight: 1.15,
-              color: "var(--night, #1e1b17)",
+              color: "var(--lux-ink, var(--night, #1e1b17))",
             }}
           >
             {heading}
@@ -56,7 +64,7 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
             <p
               style={{
                 maxWidth: "56ch",
-                color: "var(--text-2, #786f65)",
+                color: "var(--lux-ink-soft, var(--text-2, #786f65))",
                 lineHeight: 1.75,
                 marginTop: 8,
                 marginLeft: "auto",
@@ -73,8 +81,8 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
           style={{
             maxWidth: 600,
             margin: "0 auto",
-            background: "var(--surface, #ffffff)",
-            border: "1px solid var(--border, #e8e1d6)",
+            background: "var(--lux-card, var(--surface, #ffffff))",
+            border: "1px solid var(--lux-line, var(--border, #e8e1d6))",
             borderRadius: "var(--r-lg, 24px)",
             boxShadow: "var(--shadow)",
             position: "relative",
@@ -90,7 +98,7 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
               right: 0,
               height: 3,
               background:
-                "linear-gradient(90deg, var(--sage-l, #a8b8a0), var(--accent, #7a8c72))",
+                "linear-gradient(90deg, var(--lux-accent, var(--sage-l, #a8b8a0)), var(--lux-accent, var(--accent, #7a8c72)))",
               opacity: 0.7,
             }}
           />
