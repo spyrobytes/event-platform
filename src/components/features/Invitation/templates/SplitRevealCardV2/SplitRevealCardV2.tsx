@@ -5,7 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
-import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
+import { truncateWithEllipsis, CONTENT_LIMITS, NAME_CONNECTORS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
 import { classifyInvitationDensity } from "@/lib/invitation-density";
 import { isAllowedImageHost } from "@/lib/images/host";
@@ -69,8 +69,7 @@ const CONFETTI_SHAPES = ["■", "●", "◆", "★", "♥"];
 // =============================================================================
 
 function parseCoupleNames(coupleNames: string): { person1: string; person2: string } {
-  const separators = [" & ", " and ", " + "];
-  for (const sep of separators) {
+  for (const sep of NAME_CONNECTORS) {
     if (coupleNames.includes(sep)) {
       const [person1, person2] = coupleNames.split(sep).map((s) => s.trim());
       return { person1: person1 || "Partner", person2: person2 || "Partner" };
@@ -310,6 +309,8 @@ export function SplitRevealCardV2({
               traditionalClassName={styles.traditionalHeader}
               familiesLabelClassName={styles.familiesLabel}
               familyNamesClassName={styles.familyNames}
+              familyGroupClassName={styles.familyNameUnit}
+              familySeparatorClassName={styles.familySeparator}
               familyInviteClassName={styles.familyInviteText}
             />
 

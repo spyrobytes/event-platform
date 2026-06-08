@@ -295,8 +295,18 @@
   max-width: 100%;
 }
 
-.familyNames span {
-  margin: 0 0.2em;
+/* Each parent name stays whole; line breaks land only at the within-family
+   connectors between two parents, so a long family wraps cleanly instead of
+   mid-name. */
+.familyNameUnit {
+  white-space: nowrap;
+}
+
+/* Central separator between the two families drops to its own line (mirrors the
+   couple-name .ampersand block treatment). */
+.familySeparator {
+  display: block;
+  margin: 0.1rem 0;
   font-style: italic;
 }
 
