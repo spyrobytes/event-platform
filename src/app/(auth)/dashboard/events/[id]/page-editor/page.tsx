@@ -45,6 +45,10 @@ import {
 } from "@/components/features";
 import { getV2Variant } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
+import {
+  V2_SECTION_THEMES,
+  V2_DEFAULT_SECTION_THEME,
+} from "@/components/templates/wedding-v2/section-themes";
 import { templateSupportsSocialLinks, templateSupportsPrelude } from "@/components/templates";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
@@ -1221,6 +1225,32 @@ export default function PageEditorPage() {
           </Card>
         );
       })()}
+
+      {/* V2 Section Theme — the Cinematic template's color themes. Hidden while
+          a legacy color-mode variant is active so the two color systems stay
+          mutually exclusive (clear the variant above to use section themes);
+          PR C retires the variant picker and decouples them fully. */}
+      {config && templateId === "wedding_v2" && !config.variantId && (
+        <Card id="pe-section-theme" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle>Section Theme</CardTitle>
+            <CardDescription>
+              Recolor the nav, hero cards, schedule, RSVP, and footer of your
+              Cinematic page as a set. Cream keeps the signature light look.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SectionThemePicker
+              themes={V2_SECTION_THEMES}
+              classicLabel={V2_DEFAULT_SECTION_THEME.label}
+              classicSwatch={V2_DEFAULT_SECTION_THEME.swatch}
+              value={config.theme.sectionThemeId}
+              onChange={(id) => updateTheme({ sectionThemeId: id })}
+              disabled={saving}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Social Links — only for templates that opt in (Premium feature) */}
       {config && templateSupportsSocialLinks(templateId) && (

@@ -79,14 +79,10 @@
   color: var(--accent, #7a8c72);
 }
 
-/* Alternating section backgrounds — cream on story, party, registry, faq, attire */
-:global(.wedding-template-v2) #story,
-:global(.wedding-template-v2) #party,
-:global(.wedding-template-v2) #registry,
-:global(.wedding-template-v2) #faq,
-:global(.wedding-template-v2) #attire {
-  background: var(--cream, #f0ebe3);
-}
+/* Content sections sit uniformly on the page background. The only color rhythm
+   is the section-theme panels (nav, hero cards, schedule, RSVP, footer); the
+   former cream-band alternation on #story/#party/#registry/#faq/#attire was
+   retired so it doesn't compete with the themed panels. */
 
 /* Noise texture overlay — subtle film-grain warmth */
 :global(.wedding-template-v2)::before {

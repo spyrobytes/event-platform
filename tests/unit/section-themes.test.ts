@@ -27,6 +27,8 @@ describe("getSectionThemeVariables — dark panels (light-on-dark)", () => {
     // Guarantees the hero is byte-unchanged for dark themes after the rewire.
     const v = getSectionThemeVariables(AMETHYST);
     expect(v["--lux-hero-surface"]).toBe(v["--lux-panel"]); // was var(--lux-panel)
+    expect(v["--lux-hero-ink"]).toBe("rgba(255, 255, 255, 0.92)");
+    expect(v["--lux-hero-card"]).toBe("rgba(255, 255, 255, 0.08)");
     expect(v["--lux-hero-ink-soft"]).toBe("rgba(255, 255, 255, 0.62)");
     expect(v["--lux-hero-ink-faint"]).toBe("rgba(255, 255, 255, 0.4)");
     expect(v["--lux-hero-line"]).toBe("rgba(255, 255, 255, 0.12)");
