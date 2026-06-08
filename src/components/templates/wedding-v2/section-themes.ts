@@ -21,6 +21,11 @@ export const V2_SECTION_THEMES: SectionTheme[] = [
   { id: "midnight", label: "Midnight", panel: "#253139" },
   { id: "emerald", label: "Emerald", panel: "#0E2E26" },
   { id: "plum", label: "Plum", panel: "#34005B" },
+  // The one LIGHT panel — a cerulean field with deep-ink type. Triggers the
+  // generator's dark-on-light path; the accent is pinned to a near-ink navy
+  // because gold can't survive at ~1.2:1 on this panel. The hero stays
+  // cinematic via the --lux-hero-* tokens. Mirrors Grand Luxe's `cerulean`.
+  { id: "cerulean", label: "Cerulean", panel: "#55a1bf", accent: "#0a1f2b" },
 ];
 
 /** The default "no section theme" option (today's cream/light look). */

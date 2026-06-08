@@ -1,7 +1,18 @@
 /* ===== Wedding Party V2 ===== */
 
+/*
+ * Section-theme aware (mirrors Grand Luxe's GildedFrames pattern): every color
+ * resolves from the `--lux-*` section-theme layer with the original base token
+ * as the fallback. When NO theme is active the fallbacks reproduce today's
+ * light look byte-for-byte (zero diff); when a theme is active the whole
+ * section flips into a themed panel (background `--lux-panel`, polarity-aware
+ * `--lux-ink` type, `--lux-card` photo mats) — light-on-dark for Midnight/
+ * Emerald/Plum, dark-on-light for the Cerulean light panel.
+ */
 .section {
   padding: var(--section-y, 96px) 0;
+  /* Themed: the section-theme panel. Unthemed: transparent (the light page). */
+  background: var(--lux-panel, transparent);
 }
 
 .container {
@@ -21,7 +32,7 @@
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--accent, #7a8c72);
+  color: var(--lux-accent, var(--accent, #7a8c72));
   margin-bottom: 12px;
 }
 
@@ -30,12 +41,26 @@
   font-size: var(--h2, clamp(1.8rem, 3.2vw, 2.8rem));
   font-weight: 400;
   line-height: 1.15;
-  color: var(--night, #1e1b17);
+  /* Color is asserted below at a higher specificity — see the `:global` block. */
+}
+
+/*
+ * `.heading` is an <h2> and `.memberName` an <h3>; the global
+ * `:global(.wedding-template-v2) h2 / h3 { color }` rules (specificity 0,1,1)
+ * outrank a bare scoped class (0,1,0), so re-assert the theme-aware ink here at
+ * 0,2,0. Fallbacks match today's effective color (h2 → --night, h3 → --charcoal)
+ * so unthemed pages are byte-identical; a section theme flips both to --lux-ink.
+ */
+:global(.wedding-template-v2) .heading {
+  color: var(--lux-ink, var(--night, #1e1b17));
+}
+:global(.wedding-template-v2) .memberName {
+  color: var(--lux-ink, var(--charcoal, #3d3830));
 }
 
 .description {
   max-width: 56ch;
-  color: var(--text-2, #786f65);
+  color: var(--lux-ink-soft, var(--text-2, #786f65));
   line-height: 1.75;
   margin: 8px auto 0;
 }
@@ -51,14 +76,14 @@
 .dividerLine {
   flex: 1;
   height: 1px;
-  background: var(--linen, #e8e1d6);
+  background: var(--lux-line, var(--linen, #e8e1d6));
 }
 
 .dividerLabel {
   font-family: var(--serif);
   font-size: 1.1rem;
   font-style: italic;
-  color: var(--stone, #a69e93);
+  color: var(--lux-ink-faint, var(--stone, #a69e93));
   flex-shrink: 0;
 }
 
@@ -86,8 +111,10 @@
 
 /* ===== Card ===== */
 .card {
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #e8e1d6);
+  /* On a theme the card is a panel-polarity inset (--lux-card: a faint wash on
+     the panel), matching GildedFrames; unthemed it stays the solid white card. */
+  background: var(--lux-card, var(--surface, #ffffff));
+  border: 1px solid var(--lux-line, var(--border, #e8e1d6));
   border-radius: var(--r-lg, 24px);
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -112,7 +139,7 @@
   position: relative;
   height: 280px;
   padding: 16px 16px 6px;
-  background: var(--cream, #f0ebe3);
+  background: var(--lux-card, var(--cream, #f0ebe3));
 }
 
 .specialCard .photoArea {
@@ -123,13 +150,17 @@
  * Arch frame with ornamental mat-style double border.
  *
  * Two concentric box-shadow rings simulate a picture mat:
- *   1. 3px cream ring  — the "mat" gap (matches photoArea background)
- *   2. 1.5px accent ring — the outer frame line
+ *   1. 3px mat ring   — the "mat" gap (matches photoArea background)
+ *   2. 1.5px frame ring — the outer frame line
  *
  * overflow:hidden clips the image; the outward box-shadow is NOT
  * clipped by the element's own overflow, only by an ancestor's.
  * photoArea has enough padding (16px sides, 6px bottom) to contain
  * the 4.5px ring, so no clipping occurs.
+ *
+ * Both rings are theme-aware: the mat tracks the photoArea (`--lux-card`) and
+ * the frame line tracks the panel hairline (`--lux-line`), so the frame reads
+ * on every theme. Unthemed they keep the original cream/sage look.
  */
 .photoFrame {
   position: relative;
@@ -138,8 +169,8 @@
   border-radius: 999px 999px 8px 8px;
   overflow: hidden;
   box-shadow:
-    0 0 0 3px var(--cream, #f0ebe3),
-    0 0 0 4.5px rgba(122, 140, 114, 0.3);
+    0 0 0 3px var(--lux-card, var(--cream, #f0ebe3)),
+    0 0 0 4.5px var(--lux-line, rgba(122, 140, 114, 0.3));
 }
 
 /* Inset shadow — subtle depth at the top of the arch */
@@ -168,7 +199,7 @@
 .placeholder {
   width: 100%;
   height: 100%;
-  background: var(--linen, #e8e1d6);
+  background: var(--lux-card, var(--linen, #e8e1d6));
   display: grid;
   place-items: center;
 }
@@ -182,7 +213,7 @@
   font-family: var(--serif);
   font-size: 1.15rem;
   font-weight: 500;
-  color: var(--night, #1e1b17);
+  /* Color is asserted above at a higher specificity — see the `:global` block. */
   margin-bottom: 4px;
 }
 
@@ -191,23 +222,23 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent, #7a8c72);
+  color: var(--lux-accent, var(--accent, #7a8c72));
   margin-bottom: 10px;
 }
 
 .memberBio {
   font-size: var(--sm, 0.85rem);
-  color: var(--text-2, #786f65);
+  color: var(--lux-ink-soft, var(--text-2, #786f65));
   line-height: 1.65;
 }
 
 /* ===== Empty State ===== */
 .empty {
-  border: 2px dashed var(--border, #e8e1d6);
+  border: 2px dashed var(--lux-line, var(--border, #e8e1d6));
   border-radius: var(--r-lg, 24px);
   padding: 48px;
   text-align: center;
-  color: var(--text-3, #a09e93);
+  color: var(--lux-ink-faint, var(--text-3, #a09e93));
 }
 
 /* ===== Responsive ===== */

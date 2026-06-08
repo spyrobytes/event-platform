@@ -57,7 +57,7 @@ import { getV2Variant } from "./variants";
 import type { V2BotanicalVariant } from "./variants";
 import { getV2SectionTheme } from "./section-themes";
 import { getSectionThemeVariables } from "../wedding-v3/theme-packs/section-themes";
-import { mostReadable, getContrastRatio, HEX6_RE } from "@/lib/color";
+import { mostReadable, getContrastRatio, isLightColor, HEX6_RE } from "@/lib/color";
 import { WeddingV2Footer } from "./WeddingV2Footer";
 import "./WeddingTemplateV2.module.css";
 
@@ -210,6 +210,25 @@ export function WeddingTemplateV2({
       if (getContrastRatio(accent, "#000000") < 3.5) {
         vars["--lux-hero-accent"] = "#c5a961";
       }
+    }
+    // The shared generator keeps the hero glass DARK for every theme (it sits
+    // over the dimmed photo). That's right for dark panels, but on a LIGHT panel
+    // (e.g. Cerulean) it makes the float-cards read like a dark theme (Midnight)
+    // — out of step with the light Cream-default cards and the rest of the
+    // light-themed page. In V2 the `--lux-hero-*` tokens are consumed ONLY by the
+    // float-cards (the hero title reads `--night` directly), so flip them to the
+    // panel's light polarity: a frosted-panel glass with dark ink + the theme's
+    // pinned dark accent. V3 keeps the dark hero — this override is V2-only.
+    if (isLightColor(vars["--lux-panel"] ?? active.panel)) {
+      vars["--lux-hero-glass"] = `color-mix(in srgb, ${vars["--lux-panel"]} 85%, transparent)`;
+      vars["--lux-hero-ink"] = "rgba(0, 0, 0, 0.95)";
+      vars["--lux-hero-ink-soft"] = "rgba(0, 0, 0, 0.78)";
+      vars["--lux-hero-ink-faint"] = "rgba(0, 0, 0, 0.58)";
+      vars["--lux-hero-line"] = "rgba(0, 0, 0, 0.14)";
+      vars["--lux-hero-card"] = "rgba(0, 0, 0, 0.05)";
+      // The accent now sits on a LIGHT glass, so use the body accent (the theme's
+      // pinned dark navy) instead of the gold pinned above for the dark glass.
+      vars["--lux-hero-accent"] = vars["--lux-accent"] ?? active.accent ?? "#0a1f2b";
     }
     return vars;
   }, [theme.sectionThemeId, primaryColor]);
