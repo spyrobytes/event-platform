@@ -38,4 +38,8 @@
 .full {
   /* Hosts set only a width; the portrait ratio rides along. */
   aspect-ratio: var(--cpf-full-aspect, 2 / 3);
+  /* The photo must never paint outside the frame (heart gets this from its
+   * clip-path, circle from its radius) — e.g. hosts animating an inner
+   * Ken Burns zoom on the img. */
+  overflow: hidden;
 }

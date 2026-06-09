@@ -84,7 +84,9 @@
 .photoHeart {
   width: clamp(140px, 16vw, 220px);
   height: clamp(140px, 16vw, 220px);
-  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
+  /* Soft, low-opacity halo — heavy shadows make the portrait float above the
+   * scene instead of sitting in it. */
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.3));
 }
 
 /* Circle — same square footprint, ringed in champagne gold like the gilded
@@ -94,8 +96,8 @@
   height: clamp(140px, 16vw, 220px);
   border: 2px solid var(--accent, #c5a55a);
   box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(0, 0, 0, 0.25);
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 /* Full length — tall 2:3 portrait (aspect from the shared frame; only width
@@ -106,11 +108,33 @@
   outline: 1px solid
     color-mix(in srgb, var(--accent, #c5a55a) 55%, transparent);
   outline-offset: 4px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .couplePhoto img {
-  filter: contrast(1.05) brightness(0.95);
+  /* Grade toward the hero's treatment (bg runs brightness(0.45)): keep the
+   * portrait readable as the subject but clearly in the same dim, cinematic
+   * lighting world — not a bright sticker pasted on top. */
+  filter: contrast(1.05) brightness(0.8) saturate(0.95);
+  /* Share the hero bg's Ken Burns (same keyframes, duration, phase) so the
+   * portrait breathes with the scene instead of sitting statically above a
+   * moving backdrop — the frame stays put; only the photo drifts inside it. */
+  animation: luxeDrift 25s ease-in-out infinite alternate;
+}
+
+/* Vignette wash in the same language as the hero's .bgImage::after — darkens
+ * the portrait toward its edges so the photo/background boundary melts
+ * instead of cutting hard. */
+.couplePhoto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 35%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
 }
 
 /* ===== CONTENT ===== */
@@ -399,7 +423,8 @@
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
-  .bgImage img {
+  .bgImage img,
+  .couplePhoto img {
     animation: none;
   }
 
