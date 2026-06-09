@@ -61,6 +61,15 @@ export const heroOverlaySchema = z.enum(["none", "soft", "strong"]);
 
 export const heroStyleSchema = z.enum(["standard", "cinematic"]);
 
+/**
+ * Frame shape for the optional couple photo rendered over the hero.
+ * Template-agnostic vocabulary — each template curates which frames it offers
+ * (and its default) via `couplePhotoFrameOptions`; an unset/unknown value
+ * resolves to the template's first curated option at render time.
+ */
+export const couplePhotoFrameSchema = z.enum(["heart", "circle", "full"]);
+export type CouplePhotoFrameId = z.infer<typeof couplePhotoFrameSchema>;
+
 export const heroSchema = z.object({
   title: z.string().min(1, "Title is required").max(80, "Title must be 80 characters or less"),
   subtitle: z.string().max(120, "Subtitle must be 120 characters or less").optional(),
@@ -75,6 +84,7 @@ export const heroSchema = z.object({
   monogram: z.string().max(5, "Monogram must be 5 characters or less").optional(),
   rsvpDeadline: z.string().max(60, "RSVP deadline must be 60 characters or less").optional(),
   couplePhotoAssetId: z.string().cuid().optional(),
+  couplePhotoFrame: couplePhotoFrameSchema.optional(),
 });
 
 export type HeroConfig = z.infer<typeof heroSchema>;

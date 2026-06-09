@@ -3,7 +3,10 @@
 import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
-import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
+import { CouplePhotoFrame } from "../../shared/CouplePhotoFrame";
+import { resolveCouplePhotoFrame } from "../../shared/CouplePhotoFrame/frame-options";
+import { WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS } from "../couple-photo-frame-options";
+import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CinematicHero.module.css";
 
 type ScheduleCard = { day: string; info: string };
@@ -74,6 +77,19 @@ export function CinematicHero({
 
   const hasCouplePhoto = isCinematic && !!couplePhotoAsset?.publicUrl;
 
+  // Organizer-selected frame shape; unset/unknown resolves to the first
+  // curated option (circle — V2's original look).
+  const frame =
+    resolveCouplePhotoFrame(
+      WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS,
+      config.couplePhotoFrame,
+    ) ?? "circle";
+  const frameClass = {
+    heart: styles.photoHeart,
+    circle: styles.photoCircle,
+    full: styles.photoFull,
+  }[frame];
+
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
       {/* Background image with gradient overlay */}
@@ -108,13 +124,16 @@ export function CinematicHero({
         <div className={hasCouplePhoto ? styles.heroTextWithPhoto : styles.heroText}>
           {/* Couple photo — portrait beside the names */}
           {hasCouplePhoto && (
-            <div className={styles.couplePhoto}>
+            <CouplePhotoFrame
+              frame={frame}
+              className={cn(styles.couplePhoto, frameClass)}
+            >
               <img
                 src={couplePhotoAsset!.publicUrl!}
                 alt={coupleNames || ""}
                 loading="eager"
               />
-            </div>
+            </CouplePhotoFrame>
           )}
 
           <div className={hasCouplePhoto ? styles.heroTextBlock : undefined}>

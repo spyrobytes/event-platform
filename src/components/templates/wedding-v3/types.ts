@@ -31,6 +31,10 @@ import type {
 } from "@/schemas/event-page";
 import type { V2FontPair, V2PaletteOverrides, V2GlassTokens } from "../wedding-v2/tokens";
 import type { SectionTheme } from "./theme-packs/section-themes";
+import type {
+  CouplePhotoFrameId,
+  CouplePhotoFrameOption,
+} from "../shared/CouplePhotoFrame/frame-options";
 
 // ---------------------------------------------------------------------------
 // Template IDs
@@ -252,6 +256,12 @@ export type HeroRendererProps = {
   config: HeroConfig;
   heroAsset?: MediaAsset | null;
   couplePhotoAsset?: MediaAsset | null;
+  /** Frame shape for the couple photo, resolved by the factory from the
+   * definition's `couplePhotoFrameOptions` + `hero.couplePhotoFrame` (always
+   * via `resolveCouplePhotoFrame` — never read the raw config value).
+   * Undefined when the template declares no options; heroes then fall back
+   * to their built-in shape. */
+  couplePhotoFrame?: CouplePhotoFrameId;
   scheduleCards?: { day: string; info: string }[];
   hasDetailsSection?: boolean;
   eventRsvpDeadline?: string;
@@ -371,6 +381,13 @@ export type TemplateDefinition = {
    * `weddingPartyRenderer` is used. See WeddingPartyStyleOption.
    */
   weddingPartyStyleOptions?: WeddingPartyStyleOption[];
+  /**
+   * Optional curated couple-photo frame shapes. When present, the hero's
+   * couple photo offers an organizer toggle (first option is the default, and
+   * `hero.couplePhotoFrame` selects among them); when omitted, the hero
+   * renderer's built-in shape is used. See CouplePhotoFrameOption.
+   */
+  couplePhotoFrameOptions?: CouplePhotoFrameOption[];
 
   // --- Motion ---
   motionPreset: MotionPreset;

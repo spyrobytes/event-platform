@@ -7,6 +7,11 @@
  */
 
 import type { TemplateDefinition } from "../types";
+import {
+  HEART_FRAME_OPTION,
+  CIRCLE_FRAME_OPTION,
+  FULL_LENGTH_FRAME_OPTION,
+} from "../../shared/CouplePhotoFrame/frame-options";
 
 export const CELEBRATION: TemplateDefinition = {
   id: "celebration",
@@ -28,6 +33,15 @@ export const CELEBRATION: TemplateDefinition = {
   footerRenderer: "festive-layered",
   dividerRenderer: "rhythmic-pattern",
   weddingPartyRenderer: "scrapbook-flip",
+
+  // Organizer-selectable couple-photo frame (first is the default — circle is
+  // the shape Celebration has always rendered, so unset configs keep their
+  // current look; pinned by a test).
+  couplePhotoFrameOptions: [
+    CIRCLE_FRAME_OPTION,
+    HEART_FRAME_OPTION,
+    FULL_LENGTH_FRAME_OPTION,
+  ],
 
   supportsSocialLinks: true,
 

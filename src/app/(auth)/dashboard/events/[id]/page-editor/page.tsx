@@ -49,7 +49,12 @@ import {
   V2_DEFAULT_SECTION_THEME,
   mapVariantToSelection,
 } from "@/components/templates/wedding-v2/section-themes";
-import { templateSupportsSocialLinks, templateSupportsPrelude } from "@/components/templates";
+import {
+  templateSupportsSocialLinks,
+  templateSupportsPrelude,
+  getCouplePhotoFrameOptions,
+} from "@/components/templates";
+import { resolveCouplePhotoFrame } from "@/components/templates/shared/CouplePhotoFrame/frame-options";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -1517,14 +1522,52 @@ export default function PageEditorPage() {
             )}
           </div>
 
-          {/* Couple Photo Selection — cinematic + grand luxe templates */}
-          {(templateId === "wedding_v2" || templateId === "wedding_grand_luxe" || templateId === "wedding_celebration") && (
+          {/* Couple Photo Selection — gated on the template's curated frame
+              options (getCouplePhotoFrameOptions), the single source of truth
+              for which templates render a hero couple photo. */}
+          {(() => {
+            const frameOptions = getCouplePhotoFrameOptions(templateId);
+            if (!frameOptions) return null;
+            const activeFrame = resolveCouplePhotoFrame(
+              frameOptions,
+              config.hero.couplePhotoFrame
+            );
+            const activeOption = frameOptions.find((o) => o.value === activeFrame);
+            return (
             <div className="space-y-2 pt-4 border-t">
               <Label>Couple Photo <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
               <p className="text-xs text-muted-foreground">
                 A portrait photo that floats over the hero background. Works best with a close-up of the couple.
               </p>
-              <EditorTip tip={getV3Definition(templateId)?.couplePhotoTip} />
+              {frameOptions.length > 1 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-sm font-medium">Photo Frame</p>
+                  <div role="radiogroup" aria-label="Couple photo frame" className="flex gap-2">
+                    {frameOptions.map((opt) => {
+                      const active = activeFrame === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          disabled={saving}
+                          onClick={() => updateHero({ couplePhotoFrame: opt.value })}
+                          className={cn(
+                            "flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
+                            active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
+                            saving && "cursor-not-allowed opacity-50",
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <EditorTip tip={activeOption?.tip ?? getV3Definition(templateId)?.couplePhotoTip} />
               {pageData?.assets?.filter((a) => a.tags?.includes("hero")).length ? (
                 <div className="flex gap-2 flex-wrap">
                   <button
@@ -1581,7 +1624,8 @@ export default function PageEditorPage() {
                 <p className="text-xs text-muted-foreground italic">Upload hero images first to select a couple photo</p>
               )}
             </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
