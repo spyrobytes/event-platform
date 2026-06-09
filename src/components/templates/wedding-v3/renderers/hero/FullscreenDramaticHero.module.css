@@ -101,14 +101,13 @@
 }
 
 /* Full length — tall 2:3 portrait (aspect from the shared frame; only width
- * set here). Gold hairline + offset outline echo the gilded-frame matting. */
+ * set here). Deliberately frameless: any crisp hardware (gold hairline,
+ * outline, shadow) on this large rectangle re-reads as an object pasted over
+ * the drifting hero. Soft corners + the img vignette/drift do the blending
+ * (user-tuned in DevTools). */
 .photoFull {
   width: clamp(110px, 12vw, 170px);
-  border: 1px solid var(--accent, #c5a55a);
-  outline: 1px solid
-    color-mix(in srgb, var(--accent, #c5a55a) 55%, transparent);
-  outline-offset: 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  border-radius: 5%;
 }
 
 .couplePhoto img {
@@ -476,7 +475,6 @@
 
   .photoFull {
     width: clamp(56px, 16vw, 84px);
-    outline-offset: 3px;
   }
 
   .names {
