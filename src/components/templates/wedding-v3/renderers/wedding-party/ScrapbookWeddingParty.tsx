@@ -25,6 +25,7 @@ import {
   FlipIcon,
   ReturnIcon,
 } from "@/components/templates/shared/wedding-party";
+import { cn } from "@/lib/utils";
 import styles from "./ScrapbookWeddingParty.module.css";
 
 // Same rotation set as ScrapbookCollage gallery for visual cohesion
@@ -122,7 +123,8 @@ function FlipCard({
 export function ScrapbookWeddingParty({
   data,
   assets,
-}: SectionRendererProps<WeddingPartySection["data"]>) {
+  themed = false,
+}: SectionRendererProps<WeddingPartySection["data"]> & { themed?: boolean }) {
   const { heading = "Wedding Party", description, members } = data;
   const kickerText = "Wedding Party";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
@@ -132,7 +134,7 @@ export function ScrapbookWeddingParty({
   // WeddingPartyGroups (the same component Gilded Frames / Couture Polaroid
   // use). This file only supplies the scrapbook card skin + header.
   return (
-    <section className={styles.section} aria-label="Wedding party" id="party">
+    <section className={cn(styles.section, themed && styles.themed)} aria-label="Wedding party" id="party">
       <div className={styles.container}>
         {/* Header */}
         <div className={styles.header}>

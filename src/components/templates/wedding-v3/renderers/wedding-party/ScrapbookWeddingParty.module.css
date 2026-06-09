@@ -1,18 +1,44 @@
 /* ===== Scrapbook Wedding Party — The Celebration House ===== */
 
 /*
- * Section-theme aware (the `--lux-*` layer with base-token fallbacks, so it's
- * zero-diff for any template/theme that leaves `--lux-*` unset). The themed
- * surfaces are the section BAND, the header, the dividers and the empty state —
- * they flip with the active section theme. The polaroid CARDS deliberately stay
- * fixed light "physical photo" objects (white front, cream back, `--*-on-card`
- * ink): white-bordered polaroids pinned on the themed wall are the signature
- * look, so they are NOT flipped to the panel polarity.
+ * Theme opt-in (the `themed` prop → `.themed` class). This renderer is SHARED:
+ * V2 Cinematic (scrapbook display style) uses it as its *themed* party, while
+ * Grand Luxe uses it as the deliberately-PLAIN "Scrapbook" option, and
+ * Celebration uses it un-themed too. So theming is GATED behind `.themed`, never
+ * read unconditionally:
+ *   - `.section`        → plain base tokens (Grand Luxe Scrapbook, Celebration).
+ *   - `.section.themed` → flips the section BAND, header, dividers and empty state
+ *     to the active `--lux-*` theme.
+ * The polaroid CARDS deliberately stay fixed light "physical photo" objects
+ * (white front, cream back, `--*-on-card` ink) in BOTH modes — white-bordered
+ * polaroids pinned on the wall are the signature look, never panel-polarity.
+ * Plain mode is byte-identical to the pre-theming renderer.
  */
 .section {
+  --sb-panel: transparent;
+  --sb-heading-ink: var(--night, #1e1b17);
+  --sb-kicker: var(--accent, #c48820);
+  --sb-body-ink: var(--text-2, #706458);
+  --sb-faint-ink: var(--stone, #9c9084);
+  --sb-divider: var(--accent, #c48820);
+  --sb-empty-border: var(--border, #e8ddd0);
+  --sb-empty-ink: var(--text-3, #9c9084);
+
   padding: var(--section-y, 96px) 0;
-  /* Themed: the section-theme panel. Unthemed: transparent (the light page). */
-  background: var(--lux-panel, transparent);
+  background: var(--sb-panel);
+}
+
+/* V2 Cinematic (scrapbook style) opts in: flip the band/header/dividers/empty to
+   the active section theme. `.section.themed` (0,2,0) beats `.section` (0,1,0). */
+.section.themed {
+  --sb-panel: var(--lux-panel, transparent);
+  --sb-heading-ink: var(--lux-ink, var(--night, #1e1b17));
+  --sb-kicker: var(--lux-accent, var(--accent, #c48820));
+  --sb-body-ink: var(--lux-ink-soft, var(--text-2, #706458));
+  --sb-faint-ink: var(--lux-ink-faint, var(--stone, #9c9084));
+  --sb-divider: var(--lux-accent, var(--accent, #c48820));
+  --sb-empty-border: var(--lux-line, var(--border, #e8ddd0));
+  --sb-empty-ink: var(--lux-ink-faint, var(--text-3, #9c9084));
 }
 
 .container {
@@ -32,7 +58,7 @@
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--lux-accent, var(--accent, #c48820));
+  color: var(--sb-kicker);
   margin-bottom: 12px;
 }
 
@@ -48,17 +74,17 @@
  * `.heading` is an <h2>; the global `:global(.wedding-template-v2) h2 { color }`
  * rule (loaded by both the V2 and V3 factories, specificity 0,1,1) outranks a
  * bare scoped class (0,1,0), so re-assert the theme-aware ink here at 0,2,0. The
- * fallback matches today's effective color (--night via that global rule), so
- * unthemed pages are byte-identical; a section theme flips it to --lux-ink. The
- * polaroid faces are intentionally NOT themed (see the header note).
+ * `--sb-heading-ink` alias matches today's effective color (--night via that
+ * global rule) when plain, and flips to --lux-ink when themed. The polaroid faces
+ * are intentionally NOT themed (see the header note).
  */
 :global(.wedding-template-v2) .heading {
-  color: var(--lux-ink, var(--night, #1e1b17));
+  color: var(--sb-heading-ink);
 }
 
 .description {
   max-width: 56ch;
-  color: var(--lux-ink-soft, var(--text-2, #706458));
+  color: var(--sb-body-ink);
   line-height: 1.75;
   margin: 8px auto 0;
 }
@@ -76,8 +102,8 @@
   height: 1px;
   background: repeating-linear-gradient(
     90deg,
-    var(--lux-accent, var(--accent, #c48820)) 0,
-    var(--lux-accent, var(--accent, #c48820)) 6px,
+    var(--sb-divider) 0,
+    var(--sb-divider) 6px,
     transparent 6px,
     transparent 12px
   );
@@ -88,7 +114,7 @@
   font-family: var(--serif);
   font-size: 1.1rem;
   font-style: italic;
-  color: var(--lux-ink-faint, var(--stone, #9c9084));
+  color: var(--sb-faint-ink);
   flex-shrink: 0;
 }
 
@@ -305,11 +331,11 @@
 
 /* ===== Empty state ===== */
 .empty {
-  border: 2px dashed var(--lux-line, var(--border, #e8ddd0));
+  border: 2px dashed var(--sb-empty-border);
   border-radius: var(--r-lg, 24px);
   padding: 48px;
   text-align: center;
-  color: var(--lux-ink-faint, var(--text-3, #9c9084));
+  color: var(--sb-empty-ink);
 }
 
 /* ===== Reduced motion ===== */
