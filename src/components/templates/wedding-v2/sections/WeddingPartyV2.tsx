@@ -7,6 +7,7 @@ import {
   type PartyMember,
   WeddingPartyGroups,
 } from "@/components/templates/shared/wedding-party";
+import { cn } from "@/lib/utils";
 import styles from "./WeddingPartyV2.module.css";
 
 type WeddingPartyV2Props = {
@@ -16,6 +17,12 @@ type WeddingPartyV2Props = {
     members: PartyMember[];
   };
   assets: MediaAsset[];
+  /**
+   * Opt into the `--lux-*` section theme (the section flips into a themed panel).
+   * V2 Cinematic passes `true`; Grand Luxe uses this renderer as its deliberately
+   * PLAIN "Cinematic" party option, so it leaves this `false` (the default).
+   */
+  themed?: boolean;
 };
 
 /**
@@ -32,7 +39,7 @@ type WeddingPartyV2Props = {
  * budget come from the shared WeddingPartyGroups (the same layout the V3 party
  * renderers use); this file supplies the arch-frame card skin + header.
  */
-export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
+export function WeddingPartyV2({ data, assets, themed = false }: WeddingPartyV2Props) {
   const { heading = "Wedding Party", description, members } = data;
   const kickerText = "Wedding Party";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
@@ -67,7 +74,7 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
                   height="48"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="var(--stone, #a69e93)"
+                  stroke="currentColor"
                   strokeWidth={1.5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -90,7 +97,7 @@ export function WeddingPartyV2({ data, assets }: WeddingPartyV2Props) {
   };
 
   return (
-    <section className={styles.section} aria-label="Wedding party" id="party">
+    <section className={cn(styles.section, themed && styles.themed)} aria-label="Wedding party" id="party">
       <div className={styles.container}>
         {/* Section header */}
         <div className={styles.header}>

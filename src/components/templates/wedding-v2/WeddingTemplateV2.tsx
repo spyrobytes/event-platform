@@ -432,8 +432,11 @@ export function WeddingTemplateV2({
 
       case "weddingParty": {
         const PartyComp = isScrapbook ? ScrapbookWeddingParty : WeddingPartyV2;
+        // `themed` opts the party into the `--lux-*` section theme. V2 Cinematic
+        // wants it; the same renderers stay PLAIN under Grand Luxe (which mounts
+        // them without this prop) — see the party CSS header notes.
         return wrapWithChrome(wrapWithAnimation(
-          <PartyComp data={section.data} assets={assets} />
+          <PartyComp themed data={section.data} assets={assets} />
         ));
       }
 
