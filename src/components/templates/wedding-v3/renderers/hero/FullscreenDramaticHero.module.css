@@ -123,9 +123,9 @@
 
 /* Vignette wash in the same language as the hero's .bgImage::after — darkens
  * the portrait toward its edges so the photo/background boundary melts
- * instead of cutting hard. */
-.couplePhoto::after {
-  content: "";
+ * instead of cutting hard. An explicit child inside CouplePhotoFrame (after
+ * the image) so every frame shape clips it. */
+.photoVignette {
   position: absolute;
   inset: 0;
   pointer-events: none;

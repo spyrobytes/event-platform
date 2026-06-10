@@ -15,11 +15,16 @@
   width: 100%;
   height: 100%;
   /* Template-wide resets (e.g. `.wedding-template-v2 img { height: auto }`)
-   * tie this selector on specificity and can win on bundle order, collapsing
-   * a plain <img> to its intrinsic ratio (the PR #182 failure mode). min-*
-   * beats height:auto and max-width:100% on any cascade order. */
+   * tie this selector on specificity, so which `height` wins is bundle-order
+   * luck (the PR #182 failure mode). min-* alone only FLOORS the box — a
+   * portrait image with height:auto would still overflow the frame and turn
+   * object-position focal framing into a no-op. min + max together pin the
+   * used size to exactly 100% of the frame no matter which height/width
+   * declaration wins the cascade. */
   min-width: 100%;
   min-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: cover;
   /* Set per-frame (with host override) as an inline var by the component, so
    * it can't lose a cross-module cascade fight with host img rules. */
@@ -27,8 +32,14 @@
   display: block;
 }
 
-/* Heart: clip-path is set inline (per-instance clip id). Hosts wanting a halo
- * must use filter: drop-shadow — clip-path clips box-shadow. */
+/* Heart: clip-path is set inline (per-instance clip id) on this INNER element
+ * so a host filter: drop-shadow on the wrapper traces the silhouette — on the
+ * same element the filter runs before the clip and the halo is clipped away.
+ * (box-shadow still can't work for hearts; hosts use drop-shadow.) */
+.heartClip {
+  position: absolute;
+  inset: 0;
+}
 
 .circle {
   border-radius: 50%;

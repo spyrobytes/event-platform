@@ -56,10 +56,6 @@ export function CouplePhotoFrame({
   const style: CSSProperties = {
     "--cpf-object-position": objectPosition ?? DEFAULT_OBJECT_POSITION[frame],
   } as CSSProperties;
-  if (frame === "heart") {
-    style.clipPath = `url(#${clipId})`;
-    style.WebkitClipPath = `url(#${clipId})`;
-  }
 
   return (
     <div
@@ -71,22 +67,40 @@ export function CouplePhotoFrame({
       )}
       style={style}
     >
-      {frame === "heart" && (
-        <svg
-          aria-hidden="true"
-          focusable="false"
-          width="0"
-          height="0"
-          className={styles.clipDefs}
-        >
-          <defs>
-            <clipPath id={clipId} clipPathUnits="objectBoundingBox">
-              <path d={HEART_CLIP_PATH} />
-            </clipPath>
-          </defs>
-        </svg>
+      {frame === "heart" ? (
+        <>
+          <svg
+            aria-hidden="true"
+            focusable="false"
+            width="0"
+            height="0"
+            className={styles.clipDefs}
+          >
+            <defs>
+              <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+                <path d={HEART_CLIP_PATH} />
+              </clipPath>
+            </defs>
+          </svg>
+          {/* The clip lives on an INNER element, not the host-decorated
+              wrapper: per the CSS rendering model an element's filter is
+              applied before its own clip-path, so a host drop-shadow on the
+              clipped element itself would be clipped away (it never rendered
+              on pre-PR Grand Luxe). With the clip inside, the host's
+              drop-shadow on the wrapper traces the heart silhouette. */}
+          <div
+            className={styles.heartClip}
+            style={{
+              clipPath: `url(#${clipId})`,
+              WebkitClipPath: `url(#${clipId})`,
+            }}
+          >
+            {children}
+          </div>
+        </>
+      ) : (
+        children
       )}
-      {children}
     </div>
   );
 }

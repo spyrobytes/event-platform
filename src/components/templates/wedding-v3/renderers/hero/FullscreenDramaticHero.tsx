@@ -95,6 +95,10 @@ export function FullscreenDramaticHero({
             priority
             blurDataURL={couplePhotoAsset.blurDataUrl}
           />
+          {/* Rendered as a child (not ::after on the wrapper) so it is
+              clipped by the active frame shape — the heart's clip lives on
+              an inner element the wrapper pseudo wouldn't be clipped by. */}
+          <div className={styles.photoVignette} aria-hidden="true" />
         </CouplePhotoFrame>
       )}
 

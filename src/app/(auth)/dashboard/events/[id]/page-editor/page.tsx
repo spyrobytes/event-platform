@@ -1528,6 +1528,23 @@ export default function PageEditorPage() {
           {(() => {
             const frameOptions = getCouplePhotoFrameOptions(templateId);
             if (!frameOptions) return null;
+            // V2's hero renders the couple photo only in cinematic style —
+            // showing the picker/frame toggle in standard mode would be dead
+            // controls (selections persist but nothing changes on the page).
+            if (
+              templateId === "wedding_v2" &&
+              (config.hero.style ?? "standard") !== "cinematic"
+            ) {
+              return (
+                <div className="space-y-2 pt-4 border-t">
+                  <Label>Couple Photo <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
+                  <p className="text-xs text-muted-foreground">
+                    Available with the cinematic hero — set Hero Style above to
+                    &ldquo;Cinematic (Full Viewport)&rdquo; to add a couple photo.
+                  </p>
+                </div>
+              );
+            }
             const activeFrame = resolveCouplePhotoFrame(
               frameOptions,
               config.hero.couplePhotoFrame
