@@ -7,6 +7,11 @@
  */
 
 import type { TemplateDefinition } from "../types";
+import {
+  HEART_FRAME_OPTION,
+  CIRCLE_FRAME_OPTION,
+  FULL_LENGTH_FRAME_OPTION,
+} from "../../shared/CouplePhotoFrame/frame-options";
 
 export const GRAND_LUXE: TemplateDefinition = {
   id: "grand_luxe",
@@ -251,8 +256,14 @@ export const GRAND_LUXE: TemplateDefinition = {
   heroImageTip:
     "This template works best with a light or bright hero image — the dark cinematic overlay creates rich contrast. Very dark images may reduce text visibility.",
 
-  couplePhotoTip:
-    "Upload a head-and-shoulders portrait — Grand Luxe clips the photo to a heart silhouette, so wide framing or full-body shots may crop awkwardly.",
+  // Organizer-selectable couple-photo frame (first is the default — backward
+  // compat for events with no persisted couplePhotoFrame; pinned by a test).
+  // Per-frame editor tips ride on the canonical options.
+  couplePhotoFrameOptions: [
+    HEART_FRAME_OPTION,
+    CIRCLE_FRAME_OPTION,
+    FULL_LENGTH_FRAME_OPTION,
+  ],
 
   supportsPrelude: true,
 };

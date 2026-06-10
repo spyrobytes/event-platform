@@ -102,26 +102,45 @@
   min-width: 0;
 }
 
-/* Couple photo — circular portrait beside the names */
+/* Couple photo — portrait beside the names. Shape geometry (circle radius,
+ * heart clip, full-length aspect) comes from the shared CouplePhotoFrame
+ * component; these classes own size, decoration and the reveal animation,
+ * per frame. */
 .couplePhoto {
-  width: clamp(110px, 14vw, 160px);
-  height: clamp(110px, 14vw, 160px);
-  border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
-  border: 3px solid rgba(255, 255, 255, 0.35);
-  box-shadow:
-    0 8px 40px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
   opacity: 0;
   transform: scale(0.85);
   animation: couplePhotoReveal 0.9s 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.couplePhoto img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+
+/* Circle — V2's original look: frosted white ring + soft shadow. */
+.photoCircle {
+  width: clamp(110px, 14vw, 160px);
+  height: clamp(110px, 14vw, 160px);
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Heart — clip-path clips border/box-shadow, so the halo is a drop-shadow
+ * tracing the silhouette. */
+.photoHeart {
+  width: clamp(110px, 14vw, 160px);
+  height: clamp(110px, 14vw, 160px);
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.25));
+}
+
+/* Full length — tall 2:3 portrait (aspect from the shared frame; only width
+ * set here), same frosted ring as the circle with a gentle corner radius. */
+.photoFull {
+  width: clamp(100px, 12vw, 150px);
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 @keyframes couplePhotoReveal {
   to {
@@ -136,9 +155,13 @@
     flex-direction: column;
     gap: clamp(16px, 3vw, 24px);
   }
-  .couplePhoto {
+  .photoCircle,
+  .photoHeart {
     width: 110px;
     height: 110px;
+  }
+  .photoFull {
+    width: 92px;
   }
 }
 

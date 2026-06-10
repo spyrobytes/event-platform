@@ -15,13 +15,15 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
-import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
+import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
+import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CollageMosaicHero.module.css";
 
 export function CollageMosaicHero({
   config,
   heroAsset,
   couplePhotoAsset,
+  couplePhotoFrame,
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
@@ -96,9 +98,21 @@ export function CollageMosaicHero({
 
       {/* Center content */}
       <div className={styles.content}>
-        {/* Couple photo — uses dedicated couple photo asset */}
+        {/* Couple photo — uses dedicated couple photo asset; frame shape
+            resolved by the factory (?? is a defensive fallback to this
+            hero's original circle) */}
         {hasCouplePhoto && (
-          <div className={styles.couplePhoto}>
+          <CouplePhotoFrame
+            frame={couplePhotoFrame ?? "circle"}
+            className={cn(
+              styles.couplePhoto,
+              {
+                heart: styles.photoHeart,
+                circle: styles.photoCircle,
+                full: styles.photoFull,
+              }[couplePhotoFrame ?? "circle"],
+            )}
+          >
             <EventImage
               src={couplePhotoAsset!.publicUrl!}
               alt={coupleNames || title || ""}
@@ -107,7 +121,7 @@ export function CollageMosaicHero({
               priority
               blurDataURL={couplePhotoAsset!.blurDataUrl}
             />
-          </div>
+          </CouplePhotoFrame>
         )}
 
         {hasNames ? (

@@ -1,4 +1,12 @@
 export { SectionWrapper, SectionTitle } from "./SectionWrapper";
+export {
+  CouplePhotoFrame,
+  HEART_FRAME_OPTION,
+  CIRCLE_FRAME_OPTION,
+  FULL_LENGTH_FRAME_OPTION,
+  resolveCouplePhotoFrame,
+} from "./CouplePhotoFrame";
+export type { CouplePhotoFrameId, CouplePhotoFrameOption } from "./CouplePhotoFrame";
 export { SocialIconRow } from "./SocialIconRow";
 export type { SocialIconRowProps } from "./SocialIconRow";
 export { AnimatedSection, AnimatedSectionTitle, AnimatedWrapper } from "./AnimatedSection";

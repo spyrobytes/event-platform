@@ -61,42 +61,79 @@
   );
 }
 
-/* ===== COUPLE PHOTO — top-left portrait ===== */
+/* ===== COUPLE PHOTO — top-left portrait =====
+ * Shape geometry (heart clip, circle radius, full-length aspect) comes from
+ * the shared CouplePhotoFrame component; these classes own placement, size,
+ * decoration and the entrance animation, per frame. */
 
 .couplePhoto {
   position: absolute;
   top: clamp(20px, 3vw, 36px);
   left: clamp(20px, 3vw, 40px);
   z-index: 4;
-  /* Square container — heart shape reads best in a 1:1 box. Sized generously
-   * so head-and-shoulders portraits fit inside the heart silhouette without
-   * the face getting clipped by the notch or the lobe edges. */
-  width: clamp(140px, 16vw, 220px);
-  height: clamp(140px, 16vw, 220px);
-  /* Heart silhouette — references the inline <clipPath id="gl-heart-clip">
-   * mounted by FullscreenDramaticHero. clipPathUnits=objectBoundingBox lets
-   * the path scale to whatever the clamp() resolves to. */
-  -webkit-clip-path: url(#gl-heart-clip);
-  clip-path: url(#gl-heart-clip);
-  /* clip-path clips box-shadow; use filter: drop-shadow so the soft halo
-   * traces the heart silhouette instead of an invisible rectangle. */
-  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.5));
   opacity: 0;
   animation: luxeFadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform: translateY(20px);
 }
 
+/* Heart — square container (the silhouette reads best in a 1:1 box), sized
+ * generously so head-and-shoulders portraits fit inside the heart without the
+ * face getting clipped by the notch or the lobe edges. clip-path clips
+ * box-shadow, so the soft halo must be a filter: drop-shadow tracing the
+ * silhouette. */
+.photoHeart {
+  width: clamp(140px, 16vw, 220px);
+  height: clamp(140px, 16vw, 220px);
+  /* Soft, low-opacity halo — heavy shadows make the portrait float above the
+   * scene instead of sitting in it. */
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.3));
+}
+
+/* Circle — same square footprint, ringed in champagne gold like the gilded
+ * frames. No clip-path involved, so a real border + box-shadow work. */
+.photoCircle {
+  width: clamp(140px, 16vw, 220px);
+  height: clamp(140px, 16vw, 220px);
+  border: 2px solid var(--accent, #c5a55a);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Full length — tall 2:3 portrait (aspect from the shared frame; only width
+ * set here). Deliberately frameless: any crisp hardware (gold hairline,
+ * outline, shadow) on this large rectangle re-reads as an object pasted over
+ * the drifting hero. Soft corners + the img vignette/drift do the blending
+ * (user-tuned in DevTools). */
+.photoFull {
+  width: clamp(110px, 12vw, 170px);
+  border-radius: 5%;
+}
+
 .couplePhoto img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* Anchor the photo's upper region (25% from top) at the container's vertical
-   * center. Head-and-shoulders portraits typically have the face in the top
-   * third of the image; this lands the face in the heart's widest part
-   * instead of the narrower top region where lobes can clip it. */
-  object-position: center 25%;
-  display: block;
-  filter: contrast(1.05) brightness(0.95);
+  /* Grade toward the hero's treatment (bg runs brightness(0.45)): keep the
+   * portrait readable as the subject but clearly in the same dim, cinematic
+   * lighting world — not a bright sticker pasted on top. */
+  filter: contrast(1.05) brightness(0.8) saturate(0.95);
+  /* Share the hero bg's Ken Burns (same keyframes, duration, phase) so the
+   * portrait breathes with the scene instead of sitting statically above a
+   * moving backdrop — the frame stays put; only the photo drifts inside it. */
+  animation: luxeDrift 25s ease-in-out infinite alternate;
+}
+
+/* Vignette wash in the same language as the hero's .bgImage::after — darkens
+ * the portrait toward its edges so the photo/background boundary melts
+ * instead of cutting hard. An explicit child inside CouplePhotoFrame (after
+ * the image) so every frame shape clips it. */
+.photoVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 35%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
 }
 
 /* ===== CONTENT ===== */
@@ -385,7 +422,8 @@
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
-  .bgImage img {
+  .bgImage img,
+  .couplePhoto img {
     animation: none;
   }
 
@@ -418,10 +456,25 @@
 
 @media (max-width: 640px) {
   .couplePhoto {
-    width: clamp(60px, 18vw, 90px);
-    height: clamp(75px, 22vw, 115px);
     top: 14px;
     left: 14px;
+  }
+
+  /* Slightly taller-than-wide box stretches the heart a touch — intentional,
+   * matches the pre-frame-picker mobile look. */
+  .photoHeart {
+    width: clamp(60px, 18vw, 90px);
+    height: clamp(75px, 22vw, 115px);
+  }
+
+  /* Circle must stay 1:1 or it becomes an ellipse. */
+  .photoCircle {
+    width: clamp(64px, 19vw, 96px);
+    height: clamp(64px, 19vw, 96px);
+  }
+
+  .photoFull {
+    width: clamp(56px, 16vw, 84px);
   }
 
   .names {

@@ -72,28 +72,46 @@
   padding: 0 clamp(20px, 4vw, 40px);
 }
 
-/* ===== COUPLE PHOTO ===== */
+/* ===== COUPLE PHOTO =====
+ * Shape geometry (heart clip, circle radius, full-length aspect) comes from
+ * the shared CouplePhotoFrame component; these classes own size, decoration
+ * and the entrance animation, per frame. */
 
 .couplePhoto {
-  width: clamp(120px, 18vw, 180px);
-  height: clamp(120px, 18vw, 180px);
-  border-radius: 50%;
-  overflow: hidden;
   margin: 0 auto clamp(20px, 3vw, 32px);
-  border: 4px solid color-mix(in srgb, var(--surface, #ffffff) 80%, transparent);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    0 0 0 1px var(--border, #e8e1d6);
   opacity: 0;
   transform: scale(0.9);
   animation: celebrationPop 0.7s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-.couplePhoto img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+/* Circle — Celebration's original look: frosted surface ring + soft shadow. */
+.photoCircle {
+  width: clamp(120px, 18vw, 180px);
+  height: clamp(120px, 18vw, 180px);
+  border: 4px solid color-mix(in srgb, var(--surface, #ffffff) 80%, transparent);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px var(--border, #e8e1d6);
+}
+
+/* Heart — clip-path clips border/box-shadow, so the halo is a drop-shadow
+ * tracing the silhouette. */
+.photoHeart {
+  width: clamp(120px, 18vw, 180px);
+  height: clamp(120px, 18vw, 180px);
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.18));
+}
+
+/* Full length — tall 2:3 portrait (aspect from the shared frame; only width
+ * set here), same frosted ring as the circle with a gentle corner radius. */
+.photoFull {
+  width: clamp(110px, 15vw, 160px);
+  border: 4px solid color-mix(in srgb, var(--surface, #ffffff) 80%, transparent);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 0 0 1px var(--border, #e8e1d6);
 }
 
 /* ===== NAMES + DATE ===== */

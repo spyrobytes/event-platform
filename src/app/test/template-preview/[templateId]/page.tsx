@@ -7,7 +7,11 @@
 
 import { notFound } from "next/navigation";
 import { TEMPLATES } from "@/components/templates";
-import type { EventPageConfigV1, WeddingPartyDisplayStyle } from "@/schemas/event-page";
+import type {
+  EventPageConfigV1,
+  WeddingPartyDisplayStyle,
+  CouplePhotoFrameId,
+} from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 // Only allow in development/test
@@ -18,8 +22,14 @@ type PageProps = {
   /** `?sectionTheme=<id>` injects a section theme id for visual QA (e.g.
    *  `?sectionTheme=amethyst` on wedding_grand_luxe). `?weddingPartyStyle=<id>`
    *  injects the wedding-party display style (e.g. `?weddingPartyStyle=scrapbook`
-   *  on wedding_grand_luxe). Dev/test only. */
-  searchParams: Promise<{ sectionTheme?: string; weddingPartyStyle?: string }>;
+   *  on wedding_grand_luxe). `?couplePhotoFrame=<heart|circle|full>` injects a
+   *  sample couple photo with that frame shape (plus the cinematic hero fields
+   *  it needs). Dev/test only. */
+  searchParams: Promise<{
+    sectionTheme?: string;
+    weddingPartyStyle?: string;
+    couplePhotoFrame?: string;
+  }>;
 };
 
 // Sample config for testing
@@ -193,6 +203,17 @@ const SAMPLE_EVENT_ID = "test-event-preview";
 // Empty assets for testing (no images)
 const SAMPLE_ASSETS: MediaAsset[] = [];
 
+// Sample couple-photo asset — only injected when ?couplePhotoFrame= is set so
+// baseline previews stay unchanged. Reuses a bundled landing image; in dev the
+// supabase image loader returns local srcs unchanged.
+const SAMPLE_COUPLE_PHOTO_ASSET = {
+  id: "test-couple-photo",
+  publicUrl: "/landing/hero/01.jpg",
+  alt: "Sample couple",
+  tags: ["couple"],
+  blurDataUrl: null,
+} as unknown as MediaAsset;
+
 export default async function TemplatePreviewPage({ params, searchParams }: PageProps) {
   // Block in production
   if (process.env.NODE_ENV === "production" && !process.env.ALLOW_TEST_ROUTES) {
@@ -200,7 +221,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   }
 
   const { templateId } = await params;
-  const { sectionTheme, weddingPartyStyle } = await searchParams;
+  const { sectionTheme, weddingPartyStyle, couplePhotoFrame } = await searchParams;
 
   // Verify template exists
   if (!(templateId in TEMPLATES)) {
@@ -227,5 +248,23 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     };
   }
 
-  return <Template config={config} assets={SAMPLE_ASSETS} eventId={SAMPLE_EVENT_ID} />;
+  // Optionally exercise a couple-photo frame shape (e.g.
+  // ?couplePhotoFrame=full on wedding_grand_luxe). Injects the sample couple
+  // photo plus the cinematic hero fields the V2 hero needs to show it.
+  let assets = SAMPLE_ASSETS;
+  if (couplePhotoFrame) {
+    assets = [SAMPLE_COUPLE_PHOTO_ASSET];
+    config = {
+      ...config,
+      hero: {
+        ...config.hero,
+        style: "cinematic",
+        coupleNames: "Avery & Jordan",
+        couplePhotoAssetId: SAMPLE_COUPLE_PHOTO_ASSET.id,
+        couplePhotoFrame: couplePhotoFrame as CouplePhotoFrameId,
+      },
+    };
+  }
+
+  return <Template config={config} assets={assets} eventId={SAMPLE_EVENT_ID} />;
 }

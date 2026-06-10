@@ -28,6 +28,7 @@ import {
 } from "./theme-packs";
 import { mostReadable, HEX6_RE } from "@/lib/color";
 import { resolveWeddingPartyStyleId } from "./wedding-party-style";
+import { resolveCouplePhotoFrame } from "../shared/CouplePhotoFrame/frame-options";
 
 import {
   getHeroRenderer,
@@ -210,6 +211,14 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
     const couplePhotoAsset = hero.couplePhotoAssetId
       ? assets.find((a) => a.id === hero.couplePhotoAssetId)
       : null;
+
+    // Frame shape for the couple photo — unset/unknown resolves to the
+    // definition's first curated option; undefined when the template
+    // declares no options (hero falls back to its built-in shape).
+    const couplePhotoFrame = resolveCouplePhotoFrame(
+      definition.couplePhotoFrameOptions,
+      hero.couplePhotoFrame,
+    );
 
     // Build schedule cards for hero
     const scheduleCards = useMemo(() => {
@@ -484,6 +493,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
                 config={hero}
                 heroAsset={heroAsset}
                 couplePhotoAsset={couplePhotoAsset}
+                couplePhotoFrame={couplePhotoFrame}
                 scheduleCards={scheduleCards}
                 hasDetailsSection={sections.some((s) => s.type === "details" && s.enabled)}
                 eventRsvpDeadline={temporal?.rsvpDeadline ?? undefined}

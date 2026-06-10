@@ -12,13 +12,15 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
-import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
+import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
+import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./FullscreenDramaticHero.module.css";
 
 export function FullscreenDramaticHero({
   config,
   heroAsset,
   couplePhotoAsset,
+  couplePhotoFrame,
   scheduleCards,
   hasDetailsSection = false,
   eventRsvpDeadline,
@@ -49,6 +51,15 @@ export function FullscreenDramaticHero({
   const showSchedule = !!(scheduleCards && scheduleCards.length > 0);
   const showCards = showCountdown || showSchedule;
 
+  // Resolved by the factory from the definition's couplePhotoFrameOptions;
+  // the ?? is a defensive fallback to this hero's original shape.
+  const frame = couplePhotoFrame ?? "heart";
+  const frameClass = {
+    heart: styles.photoHeart,
+    circle: styles.photoCircle,
+    full: styles.photoFull,
+  }[frame];
+
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
       {heroAsset?.publicUrl ? (
@@ -66,38 +77,29 @@ export function FullscreenDramaticHero({
         <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
-      {/* Couple portrait — top left, heart-clipped */}
+      {/* Couple portrait — top left, organizer-selected frame shape */}
       {couplePhotoAsset?.publicUrl && (
-        <>
-          {/* Shared clipPath defs for the heart frame. clipPathUnits=objectBoundingBox
-              normalizes the path to 0..1, so the clip scales with any container size. */}
-          <svg
-            aria-hidden="true"
-            focusable="false"
-            width="0"
-            height="0"
-            style={{ position: "absolute", pointerEvents: "none" }}
-          >
-            <defs>
-              <clipPath id="gl-heart-clip" clipPathUnits="objectBoundingBox">
-                {/* Shallow-notch heart: valley at y=0.10 (not 0.20) so the top
-                 *  of a head-and-shoulders portrait isn't clipped by the V
-                 *  between the two lobes. */}
-                <path d="M0.5,0.88 C0.3,0.72 0.04,0.56 0.04,0.32 C0.04,0.14 0.18,0.04 0.32,0.04 C0.42,0.04 0.48,0.08 0.5,0.12 C0.52,0.08 0.58,0.04 0.68,0.04 C0.82,0.04 0.96,0.14 0.96,0.32 C0.96,0.56 0.7,0.72 0.5,0.88 Z" />
-              </clipPath>
-            </defs>
-          </svg>
-          <div className={styles.couplePhoto}>
-            <EventImage
-              src={couplePhotoAsset.publicUrl}
-              alt={coupleNames || "Couple"}
-              fill
-              sizes="100vw"
-              priority
-              blurDataURL={couplePhotoAsset.blurDataUrl}
-            />
-          </div>
-        </>
+        <CouplePhotoFrame
+          frame={frame}
+          // Head-and-shoulders portraits (per the editor tips): land the face
+          // in the widest band of the heart/circle. Full-length keeps the
+          // shared top-anchored default so heads never crop.
+          objectPosition={frame === "full" ? undefined : "center 25%"}
+          className={cn(styles.couplePhoto, frameClass)}
+        >
+          <EventImage
+            src={couplePhotoAsset.publicUrl}
+            alt={coupleNames || "Couple"}
+            fill
+            sizes="100vw"
+            priority
+            blurDataURL={couplePhotoAsset.blurDataUrl}
+          />
+          {/* Rendered as a child (not ::after on the wrapper) so it is
+              clipped by the active frame shape — the heart's clip lives on
+              an inner element the wrapper pseudo wouldn't be clipped by. */}
+          <div className={styles.photoVignette} aria-hidden="true" />
+        </CouplePhotoFrame>
       )}
 
       <div className={styles.content}>

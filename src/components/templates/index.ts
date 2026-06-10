@@ -20,6 +20,8 @@ import { WeddingCelebrationTemplate } from "./wedding-v3/templates/celebration-t
 // V3 definition registry — used by capability helpers below to derive
 // support flags directly from each template's TemplateDefinition.
 import { getV3Definition } from "./wedding-v3";
+import { WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS } from "./wedding-v2/couple-photo-frame-options";
+import type { CouplePhotoFrameOption } from "./shared/CouplePhotoFrame/frame-options";
 
 /**
  * Temporal data for time-aware page rendering
@@ -189,6 +191,21 @@ export function templateSupportsSocialLinks(templateId: string): boolean {
 export function templateSupportsPrelude(templateId: string): boolean {
   if (templateId === "wedding_v2") return true;
   return getV3Definition(templateId)?.supportsPrelude ?? false;
+}
+
+/**
+ * Curated couple-photo frame shapes for a template's hero, or undefined when
+ * the template has no couple photo. The first option is the template's
+ * default. V3 templates carry `couplePhotoFrameOptions` on their definition;
+ * V2 Cinematic curates its own list. Single source of truth — the editor's
+ * couple-photo block (picker + frame toggle) is gated on this, so enrolling a
+ * new template here is what lights the UI up.
+ */
+export function getCouplePhotoFrameOptions(
+  templateId: string,
+): CouplePhotoFrameOption[] | undefined {
+  if (templateId === "wedding_v2") return WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS;
+  return getV3Definition(templateId)?.couplePhotoFrameOptions;
 }
 
 /**
