@@ -1610,6 +1610,13 @@ export default function PageEditorPage() {
               config.hero.couplePhotoFrame
             );
             const activeOption = frameOptions.find((o) => o.value === activeFrame);
+            // Portrait background treatment means the background IS the couple
+            // photo — offering a frame shape alongside it reads as if it would
+            // re-frame the background. Disable the frame toggle (the persisted
+            // choice is kept and re-applies when switching back to Ambience).
+            const isPortraitBackdrop =
+              config.hero.backgroundTreatment === "portrait" &&
+              templateSupportsHeroBackgroundTreatment(templateId);
             return (
             <div className="space-y-2 pt-4 border-t">
               <Label>Couple Photo <span className="text-xs font-normal text-muted-foreground">(optional)</span></Label>
@@ -1628,13 +1635,13 @@ export default function PageEditorPage() {
                           type="button"
                           role="radio"
                           aria-checked={active}
-                          disabled={saving}
+                          disabled={saving || isPortraitBackdrop}
                           onClick={() => updateHero({ couplePhotoFrame: opt.value })}
                           className={cn(
                             "flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
                             active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
-                            saving && "cursor-not-allowed opacity-50",
+                            (saving || isPortraitBackdrop) && "cursor-not-allowed opacity-50",
                           )}
                         >
                           {opt.label}
@@ -1642,6 +1649,13 @@ export default function PageEditorPage() {
                       );
                     })}
                   </div>
+                  {isPortraitBackdrop && (
+                    <p className="text-xs text-muted-foreground">
+                      Frames are off while the Background Treatment is Portrait —
+                      Portrait is designed for the couple photo as the hero
+                      background itself. Switch back to Ambience to pick a frame.
+                    </p>
+                  )}
                 </div>
               )}
               <EditorTip tip={activeOption?.tip ?? getV3Definition(templateId)?.couplePhotoTip} />
