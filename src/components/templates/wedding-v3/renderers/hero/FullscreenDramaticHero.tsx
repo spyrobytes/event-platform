@@ -52,7 +52,9 @@ export function FullscreenDramaticHero({
   const showCards = showCountdown || showSchedule;
 
   // Portrait background treatment — the hero image IS the subject (couple
-  // photo as background): lighter grade, drift off, top-anchored crop (heads never clip).
+  // photo as background): lighter grade, drift off, top-anchored crop (heads
+  // never clip), and the floating couple portrait is skipped to keep the
+  // hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
@@ -81,8 +83,9 @@ export function FullscreenDramaticHero({
         <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
-      {/* Couple portrait — top left, organizer-selected frame shape */}
-      {couplePhotoAsset?.publicUrl && (
+      {/* Couple portrait — top left, organizer-selected frame shape.
+          Skipped in portrait mode: the background already IS the couple. */}
+      {couplePhotoAsset?.publicUrl && !isPortraitBackdrop && (
         <CouplePhotoFrame
           frame={frame}
           // Head-and-shoulders portraits (per the editor tips): land the face

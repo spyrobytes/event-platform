@@ -75,11 +75,13 @@ export function CinematicHero({
   // Date text for eyebrow — use subtitle as date text
   const dateText = subtitle || "";
 
-  const hasCouplePhoto = isCinematic && !!couplePhotoAsset?.publicUrl;
-
   // Portrait background treatment — the hero image IS the subject (couple
-  // photo as background): top-anchored crop (heads never clip), Ken Burns off.
+  // photo as background): top-anchored crop (heads never clip), Ken Burns off,
+  // and the floating couple photo is skipped to keep the hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
+
+  const hasCouplePhoto =
+    isCinematic && !!couplePhotoAsset?.publicUrl && !isPortraitBackdrop;
 
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
