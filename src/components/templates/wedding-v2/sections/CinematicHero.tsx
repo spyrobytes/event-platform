@@ -4,7 +4,10 @@ import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
 import { CouplePhotoFrame } from "../../shared/CouplePhotoFrame";
-import { resolveCouplePhotoFrame } from "../../shared/CouplePhotoFrame/frame-options";
+import {
+  resolveCouplePhotoFrame,
+  isFloatingCouplePhotoActive,
+} from "../../shared/CouplePhotoFrame/frame-options";
 import { WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS } from "../couple-photo-frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CinematicHero.module.css";
@@ -75,7 +78,15 @@ export function CinematicHero({
   // Date text for eyebrow — use subtitle as date text
   const dateText = subtitle || "";
 
-  const hasCouplePhoto = isCinematic && !!couplePhotoAsset?.publicUrl;
+  // Portrait background treatment — the hero image IS the subject (couple
+  // photo as background): top-anchored crop (heads never clip), Ken Burns off,
+  // and the floating couple photo is skipped to keep the hero clean.
+  const isPortraitBackdrop = config.backgroundTreatment === "portrait";
+
+  const hasCouplePhoto =
+    isCinematic &&
+    !!couplePhotoAsset?.publicUrl &&
+    isFloatingCouplePhotoActive(config.backgroundTreatment);
 
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
@@ -94,7 +105,10 @@ export function CinematicHero({
     <section className={styles.hero} aria-label="Event hero" id="top">
       {/* Background image with gradient overlay */}
       {heroAsset?.publicUrl ? (
-        <div className={styles.heroMedia} aria-hidden="true">
+        <div
+          className={cn(styles.heroMedia, isPortraitBackdrop && styles.heroMediaPortrait)}
+          aria-hidden="true"
+        >
           <img
             src={heroAsset.publicUrl}
             alt=""

@@ -1,22 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 
 // The renderers barrel transitively imports next/font/google fonts, which are
-// invoked at module load and are not functions under jsdom. Stub each font used
-// across the renderer tree so the registry is importable here. (If a new
-// next/font/google font is added anywhere in that tree, add it below — the
-// failure message points straight at the missing name.)
-vi.mock("next/font/google", () => {
-  const font = () => ({ className: "", variable: "", style: { fontFamily: "" } });
-  return {
-    Great_Vibes: font,
-    Dancing_Script: font,
-    Playfair_Display: font,
-    Cormorant_Garamond: font,
-    Pinyon_Script: font,
-    Geist: font,
-    Geist_Mono: font,
-  };
-});
+// invoked at module load and are not functions under jsdom. Stub them via the
+// shared mock (new fonts get added there, once).
+vi.mock("next/font/google", () => import("./helpers/next-font-google-mock"));
 
 import { weddingPartyRenderers } from "@/components/templates/wedding-v3/renderers";
 import { CouturePolaroidWeddingParty } from "@/components/templates/wedding-v3/renderers/wedding-party/CouturePolaroidWeddingParty";

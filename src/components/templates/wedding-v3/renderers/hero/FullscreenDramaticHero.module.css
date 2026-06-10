@@ -61,6 +61,28 @@
   );
 }
 
+/* Portrait background treatment (hero.backgroundTreatment = "portrait") —
+   the background IS the couple. Ambience's brightness(0.45) would silhouette
+   them, so grade lighter (same language as the layered couple photo's hero
+   blend), kill the drift so a correct framing can't wander, and top-anchor
+   the crop so heads can never clip: the anchor only acts along the
+   overflowing axis (vertical on wide viewports — headroom preserved, bottom
+   cropped; horizontal on tall phones — no-op). Same convention as the Full
+   Length couple-photo frame. Legibility comes back locally instead of by
+   re-darkening the faces: the edge vignette deepens and a bottom wash
+   anchors the info cards + CTA; the existing text-shadows carry the
+   centered names/date. */
+.bgImage.bgPortrait img {
+  object-position: center top;
+  filter: brightness(0.75) contrast(1.05) saturate(0.96);
+  animation: none;
+}
+.bgImage.bgPortrait::after {
+  background:
+    linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, 0.5) 100%),
+    radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.45) 100%);
+}
+
 /* ===== COUPLE PHOTO — top-left portrait =====
  * Shape geometry (heart clip, circle radius, full-length aspect) comes from
  * the shared CouplePhotoFrame component; these classes own placement, size,

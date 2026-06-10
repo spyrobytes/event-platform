@@ -6,3 +6,4 @@ export * from "./Checkbox";
 export * from "./Select";
 export * from "./Slider";
 export * from "./Textarea";
+export * from "./SegmentedRadioGroup";

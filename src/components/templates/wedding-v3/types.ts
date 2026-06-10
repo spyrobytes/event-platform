@@ -442,4 +442,13 @@ export type TemplateDefinition = {
    * `PreludeBlock` if `config.prelude` is enabled.
    */
   supportsPrelude?: boolean;
+
+  /**
+   * Whether this template's hero offers the background-treatment toggle
+   * (`hero.backgroundTreatment`: ambience | portrait). Portrait mode is for a
+   * couple photo used AS the background: the hero renderer must honor it with
+   * a lighter grade, no Ken Burns drift, and a top-anchored crop (heads never clip).
+   * Only set this on templates whose hero renderer implements that treatment.
+   */
+  supportsHeroBackgroundTreatment?: boolean;
 };

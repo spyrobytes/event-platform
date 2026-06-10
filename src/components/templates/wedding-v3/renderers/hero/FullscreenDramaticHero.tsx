@@ -13,6 +13,7 @@ import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
+import { isFloatingCouplePhotoActive } from "../../../shared/CouplePhotoFrame/frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./FullscreenDramaticHero.module.css";
 
@@ -51,6 +52,12 @@ export function FullscreenDramaticHero({
   const showSchedule = !!(scheduleCards && scheduleCards.length > 0);
   const showCards = showCountdown || showSchedule;
 
+  // Portrait background treatment — the hero image IS the subject (couple
+  // photo as background): lighter grade, drift off, top-anchored crop (heads
+  // never clip), and the floating couple portrait is skipped to keep the
+  // hero clean.
+  const isPortraitBackdrop = config.backgroundTreatment === "portrait";
+
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
   const frame = couplePhotoFrame ?? "heart";
@@ -63,7 +70,7 @@ export function FullscreenDramaticHero({
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
       {heroAsset?.publicUrl ? (
-        <div className={styles.bgImage}>
+        <div className={cn(styles.bgImage, isPortraitBackdrop && styles.bgPortrait)}>
           <EventImage
             src={heroAsset.publicUrl}
             alt=""
@@ -77,8 +84,10 @@ export function FullscreenDramaticHero({
         <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
-      {/* Couple portrait — top left, organizer-selected frame shape */}
-      {couplePhotoAsset?.publicUrl && (
+      {/* Couple portrait — top left, organizer-selected frame shape.
+          Skipped in portrait mode: the background already IS the couple. */}
+      {couplePhotoAsset?.publicUrl &&
+        isFloatingCouplePhotoActive(config.backgroundTreatment) && (
         <CouplePhotoFrame
           frame={frame}
           // Head-and-shoulders portraits (per the editor tips): land the face

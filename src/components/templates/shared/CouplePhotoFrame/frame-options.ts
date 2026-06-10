@@ -64,3 +64,21 @@ export function resolveCouplePhotoFrame(
   }
   return undefined;
 }
+
+/**
+ * Whether the floating (layered) couple photo is active for this hero
+ * config. The portrait background treatment means the background already IS
+ * the couple, so every enrolled hero skips the floating photo and the editor
+ * collapses the couple-photo controls to a hint. Single predicate so the
+ * renderers and the editor can't drift when a new template enrolls.
+ *
+ * Note: callers gated per-template (the editor) must ALSO check
+ * `templateSupportsHeroBackgroundTreatment` — a persisted "portrait" on a
+ * non-enrolled template is ignored by its hero, so its couple photo stays
+ * active. Enrolled hero renderers can call this directly.
+ */
+export function isFloatingCouplePhotoActive(
+  backgroundTreatment: string | undefined,
+): boolean {
+  return backgroundTreatment !== "portrait";
+}

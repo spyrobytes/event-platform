@@ -53,6 +53,10 @@ export const GRAND_LUXE: TemplateDefinition = {
 
   supportsSocialLinks: true,
 
+  // Fullscreen-dramatic hero implements the portrait background treatment
+  // (lighter grade, drift off, top-anchored crop (heads never clip)).
+  supportsHeroBackgroundTreatment: true,
+
   motionPreset: {
     revealType: "mask-reveal",
     duration: 700,

@@ -70,6 +70,21 @@ export const heroStyleSchema = z.enum(["standard", "cinematic"]);
 export const couplePhotoFrameSchema = z.enum(["heart", "circle", "full"]);
 export type CouplePhotoFrameId = z.infer<typeof couplePhotoFrameSchema>;
 
+/**
+ * How the hero background image is graded.
+ *
+ * - `ambience` (default, unset) — today's treatment: the photo recedes behind
+ *   the text (scrims/darkening, Ken Burns drift where the template has one).
+ * - `portrait` — the photo IS the subject (e.g. a couple photo used as the
+ *   background with no layered portrait): lighter template-tuned grade, drift
+ *   disabled, top-anchored crop (`object-position: center top`) so heads
+ *   never clip on wide viewports.
+ *
+ * Templates opt in via `templateSupportsHeroBackgroundTreatment`.
+ */
+export const heroBackgroundTreatmentSchema = z.enum(["ambience", "portrait"]);
+export type HeroBackgroundTreatment = z.infer<typeof heroBackgroundTreatmentSchema>;
+
 export const heroSchema = z.object({
   title: z.string().min(1, "Title is required").max(80, "Title must be 80 characters or less"),
   subtitle: z.string().max(120, "Subtitle must be 120 characters or less").optional(),
@@ -85,6 +100,7 @@ export const heroSchema = z.object({
   rsvpDeadline: z.string().max(60, "RSVP deadline must be 60 characters or less").optional(),
   couplePhotoAssetId: z.string().cuid().optional(),
   couplePhotoFrame: couplePhotoFrameSchema.optional(),
+  backgroundTreatment: heroBackgroundTreatmentSchema.optional(),
 });
 
 export type HeroConfig = z.infer<typeof heroSchema>;

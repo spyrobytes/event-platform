@@ -44,6 +44,23 @@
   100% { transform: scale(1.06) translate(-0.5%, -0.8%); }
 }
 
+/* Portrait background treatment (hero.backgroundTreatment = "portrait") —
+   the background IS the subject: a couple photo with no layered portrait.
+   Top-anchored so heads can never crop: with object-fit cover the anchor
+   only acts along the overflowing axis, so on wide viewports (vertical
+   overflow) the photo's own headroom is preserved and all cropping happens
+   at the bottom; on tall phones the crop axis flips to horizontal and the
+   anchor is a no-op. A percentage anchor (e.g. 25%) slices that fraction of
+   a potentially huge overflow off the top — measured pushing heads into the
+   frame edge on desktop. Ken Burns off so a correct framing can't drift.
+   The ivory legibility scrim stays as-is: it rises from the bottom where
+   the text sits and leaves the upper (faces) band clear. */
+.heroMedia.heroMediaPortrait img {
+  object-position: center top;
+  animation: none;
+  will-change: auto;
+}
+
 /* Complex gradient overlay fading to bg color (parameterized for dark variants) */
 .heroMedia::after {
   content: "";

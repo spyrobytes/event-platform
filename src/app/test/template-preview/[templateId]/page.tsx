@@ -24,11 +24,14 @@ type PageProps = {
    *  injects the wedding-party display style (e.g. `?weddingPartyStyle=scrapbook`
    *  on wedding_grand_luxe). `?couplePhotoFrame=<heart|circle|full>` injects a
    *  sample couple photo with that frame shape (plus the cinematic hero fields
-   *  it needs). Dev/test only. */
+   *  it needs). `?backgroundTreatment=<ambience|portrait>` exercises the hero
+   *  background treatment (e.g. ?backgroundTreatment=portrait on
+   *  wedding_grand_luxe). Dev/test only. */
   searchParams: Promise<{
     sectionTheme?: string;
     weddingPartyStyle?: string;
     couplePhotoFrame?: string;
+    backgroundTreatment?: string;
   }>;
 };
 
@@ -221,7 +224,8 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   }
 
   const { templateId } = await params;
-  const { sectionTheme, weddingPartyStyle, couplePhotoFrame } = await searchParams;
+  const { sectionTheme, weddingPartyStyle, couplePhotoFrame, backgroundTreatment } =
+    await searchParams;
 
   // Verify template exists
   if (!(templateId in TEMPLATES)) {
@@ -263,6 +267,15 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
         couplePhotoAssetId: SAMPLE_COUPLE_PHOTO_ASSET.id,
         couplePhotoFrame: couplePhotoFrame as CouplePhotoFrameId,
       },
+    };
+  }
+
+  // Optionally exercise the hero background treatment (e.g.
+  // ?backgroundTreatment=portrait on wedding_grand_luxe).
+  if (backgroundTreatment === "ambience" || backgroundTreatment === "portrait") {
+    config = {
+      ...config,
+      hero: { ...config.hero, backgroundTreatment },
     };
   }
 
