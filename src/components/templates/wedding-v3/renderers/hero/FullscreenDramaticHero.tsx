@@ -13,6 +13,7 @@ import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
+import { isFloatingCouplePhotoActive } from "../../../shared/CouplePhotoFrame/frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./FullscreenDramaticHero.module.css";
 
@@ -85,7 +86,8 @@ export function FullscreenDramaticHero({
 
       {/* Couple portrait — top left, organizer-selected frame shape.
           Skipped in portrait mode: the background already IS the couple. */}
-      {couplePhotoAsset?.publicUrl && !isPortraitBackdrop && (
+      {couplePhotoAsset?.publicUrl &&
+        isFloatingCouplePhotoActive(config.backgroundTreatment) && (
         <CouplePhotoFrame
           frame={frame}
           // Head-and-shoulders portraits (per the editor tips): land the face

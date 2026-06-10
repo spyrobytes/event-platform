@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SegmentedRadioGroup } from "@/components/ui/SegmentedRadioGroup";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +56,11 @@ import {
   templateSupportsHeroBackgroundTreatment,
   getCouplePhotoFrameOptions,
 } from "@/components/templates";
-import { resolveCouplePhotoFrame } from "@/components/templates/shared/CouplePhotoFrame/frame-options";
+import {
+  resolveCouplePhotoFrame,
+  isFloatingCouplePhotoActive,
+  type CouplePhotoFrameId,
+} from "@/components/templates/shared/CouplePhotoFrame/frame-options";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -1244,29 +1249,16 @@ export default function PageEditorPage() {
               />
               <div className="space-y-2">
                 <p className="text-sm font-medium">Display Style</p>
-                <div role="radiogroup" aria-label="Display style" className="flex gap-2">
-                  {(["standard", "scrapbook"] as const).map((style) => {
-                    const active = displayStyle === style;
-                    return (
-                      <button
-                        key={style}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        disabled={saving}
-                        onClick={() => updateV2Presentation({ displayStyle: style, sectionThemeId })}
-                        className={cn(
-                          "flex-1 rounded-lg border px-4 py-2 text-sm font-medium capitalize transition-all",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
-                          active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
-                          saving && "cursor-not-allowed opacity-50",
-                        )}
-                      >
-                        {style}
-                      </button>
-                    );
-                  })}
-                </div>
+                <SegmentedRadioGroup
+                  ariaLabel="Display style"
+                  options={[
+                    { value: "standard" as const, label: "Standard" },
+                    { value: "scrapbook" as const, label: "Scrapbook" },
+                  ]}
+                  value={displayStyle}
+                  onChange={(style) => updateV2Presentation({ displayStyle: style, sectionThemeId })}
+                  disabled={saving}
+                />
                 <p className="text-xs text-muted-foreground">
                   Scrapbook adds the polaroid gallery, scrapbook wedding party,
                   mountain dividers, and skyline. Standard is the clean cinematic look.
@@ -1534,32 +1526,16 @@ export default function PageEditorPage() {
                 <p className="text-xs text-muted-foreground">
                   How the hero image is presented behind your names.
                 </p>
-                <div role="radiogroup" aria-label="Hero background treatment" className="flex gap-2">
-                  {([
+                <SegmentedRadioGroup
+                  ariaLabel="Hero background treatment"
+                  options={[
                     { value: "ambience" as const, label: "Ambience" },
                     { value: "portrait" as const, label: "Portrait" },
-                  ]).map((opt) => {
-                    const active = treatment === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        disabled={saving}
-                        onClick={() => updateHero({ backgroundTreatment: opt.value })}
-                        className={cn(
-                          "flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
-                          active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
-                          saving && "cursor-not-allowed opacity-50",
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                  ]}
+                  value={treatment}
+                  onChange={(value) => updateHero({ backgroundTreatment: value })}
+                  disabled={saving}
+                />
                 <p className="text-xs text-muted-foreground">
                   {treatment === "portrait" ? (
                     <>
@@ -1610,9 +1586,12 @@ export default function PageEditorPage() {
             // (the background already IS the couple), so the picker + frame
             // toggle would be dead controls — show a hint instead (same
             // pattern as V2's standard-style early return above). Persisted
-            // photo/frame choices are kept and re-apply on Ambience.
+            // photo/frame choices are kept and re-apply on Ambience. The
+            // capability check is load-bearing: a persisted "portrait" on a
+            // non-enrolled template (after a template switch) is ignored by
+            // its hero, so its couple-photo controls must stay active.
             if (
-              config.hero.backgroundTreatment === "portrait" &&
+              !isFloatingCouplePhotoActive(config.hero.backgroundTreatment) &&
               templateSupportsHeroBackgroundTreatment(templateId)
             ) {
               return (
@@ -1640,29 +1619,13 @@ export default function PageEditorPage() {
               {frameOptions.length > 1 && (
                 <div className="space-y-2 pt-1">
                   <p className="text-sm font-medium">Photo Frame</p>
-                  <div role="radiogroup" aria-label="Couple photo frame" className="flex gap-2">
-                    {frameOptions.map((opt) => {
-                      const active = activeFrame === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          disabled={saving}
-                          onClick={() => updateHero({ couplePhotoFrame: opt.value })}
-                          className={cn(
-                            "flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
-                            active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
-                            saving && "cursor-not-allowed opacity-50",
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <SegmentedRadioGroup
+                    ariaLabel="Couple photo frame"
+                    options={frameOptions}
+                    value={activeFrame as CouplePhotoFrameId}
+                    onChange={(value) => updateHero({ couplePhotoFrame: value })}
+                    disabled={saving}
+                  />
                 </div>
               )}
               <EditorTip tip={activeOption?.tip ?? getV3Definition(templateId)?.couplePhotoTip} />

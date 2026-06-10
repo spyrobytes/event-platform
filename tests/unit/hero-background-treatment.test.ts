@@ -1,22 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 
 // The templates barrel transitively imports next/font/google fonts, which are
-// invoked at module load and are not functions under jsdom — same stub as
-// wedding-party-renderer-registry.test.ts.
-vi.mock("next/font/google", () => {
-  const font = () => ({ className: "", variable: "", style: { fontFamily: "" } });
-  return {
-    Great_Vibes: font,
-    Dancing_Script: font,
-    Playfair_Display: font,
-    Cormorant_Garamond: font,
-    Pinyon_Script: font,
-    Geist: font,
-    Geist_Mono: font,
-  };
-});
+// invoked at module load and are not functions under jsdom.
+vi.mock("next/font/google", () => import("./helpers/next-font-google-mock"));
 
 import { templateSupportsHeroBackgroundTreatment } from "@/components/templates";
+import { isFloatingCouplePhotoActive } from "@/components/templates/shared/CouplePhotoFrame/frame-options";
 import { GRAND_LUXE } from "@/components/templates/wedding-v3/definitions/grand-luxe";
 import { heroBackgroundTreatmentSchema, heroSchema } from "@/schemas/event-page";
 
@@ -37,6 +26,17 @@ describe("templateSupportsHeroBackgroundTreatment", () => {
 
   it("Grand Luxe opts in via its definition flag", () => {
     expect(GRAND_LUXE.supportsHeroBackgroundTreatment).toBe(true);
+  });
+});
+
+describe("isFloatingCouplePhotoActive", () => {
+  it("deactivates the floating couple photo only for portrait", () => {
+    expect(isFloatingCouplePhotoActive("portrait")).toBe(false);
+    expect(isFloatingCouplePhotoActive("ambience")).toBe(true);
+  });
+
+  it("stays active when unset (backward compat — existing events)", () => {
+    expect(isFloatingCouplePhotoActive(undefined)).toBe(true);
   });
 });
 

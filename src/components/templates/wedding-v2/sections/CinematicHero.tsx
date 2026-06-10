@@ -4,7 +4,10 @@ import type { HeroConfig } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
 import { CouplePhotoFrame } from "../../shared/CouplePhotoFrame";
-import { resolveCouplePhotoFrame } from "../../shared/CouplePhotoFrame/frame-options";
+import {
+  resolveCouplePhotoFrame,
+  isFloatingCouplePhotoActive,
+} from "../../shared/CouplePhotoFrame/frame-options";
 import { WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS } from "../couple-photo-frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CinematicHero.module.css";
@@ -81,7 +84,9 @@ export function CinematicHero({
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
   const hasCouplePhoto =
-    isCinematic && !!couplePhotoAsset?.publicUrl && !isPortraitBackdrop;
+    isCinematic &&
+    !!couplePhotoAsset?.publicUrl &&
+    isFloatingCouplePhotoActive(config.backgroundTreatment);
 
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
