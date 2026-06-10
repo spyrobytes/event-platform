@@ -77,6 +77,10 @@ export function CinematicHero({
 
   const hasCouplePhoto = isCinematic && !!couplePhotoAsset?.publicUrl;
 
+  // Portrait background treatment — the hero image IS the subject (couple
+  // photo as background): top-anchored crop (heads never clip), Ken Burns off.
+  const isPortraitBackdrop = config.backgroundTreatment === "portrait";
+
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
   const frame =
@@ -94,7 +98,10 @@ export function CinematicHero({
     <section className={styles.hero} aria-label="Event hero" id="top">
       {/* Background image with gradient overlay */}
       {heroAsset?.publicUrl ? (
-        <div className={styles.heroMedia} aria-hidden="true">
+        <div
+          className={cn(styles.heroMedia, isPortraitBackdrop && styles.heroMediaPortrait)}
+          aria-hidden="true"
+        >
           <img
             src={heroAsset.publicUrl}
             alt=""

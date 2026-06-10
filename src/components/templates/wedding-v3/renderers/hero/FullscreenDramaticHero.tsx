@@ -51,6 +51,10 @@ export function FullscreenDramaticHero({
   const showSchedule = !!(scheduleCards && scheduleCards.length > 0);
   const showCards = showCountdown || showSchedule;
 
+  // Portrait background treatment — the hero image IS the subject (couple
+  // photo as background): lighter grade, drift off, top-anchored crop (heads never clip).
+  const isPortraitBackdrop = config.backgroundTreatment === "portrait";
+
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
   const frame = couplePhotoFrame ?? "heart";
@@ -63,7 +67,7 @@ export function FullscreenDramaticHero({
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
       {heroAsset?.publicUrl ? (
-        <div className={styles.bgImage}>
+        <div className={cn(styles.bgImage, isPortraitBackdrop && styles.bgPortrait)}>
           <EventImage
             src={heroAsset.publicUrl}
             alt=""

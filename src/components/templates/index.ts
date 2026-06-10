@@ -194,6 +194,20 @@ export function templateSupportsPrelude(templateId: string): boolean {
 }
 
 /**
+ * Whether this template's hero offers the background-treatment toggle
+ * (`hero.backgroundTreatment`: ambience | portrait — see event-page schema).
+ * Portrait is for a couple photo used AS the hero background: a lighter
+ * template-tuned grade, Ken Burns drift disabled, top-anchored crop (heads never clip).
+ * V3 templates carry `supportsHeroBackgroundTreatment` on their definition;
+ * V2 Cinematic implements it in its hero. Single source of truth so the
+ * editor toggle can't light up for a template whose hero ignores the field.
+ */
+export function templateSupportsHeroBackgroundTreatment(templateId: string): boolean {
+  if (templateId === "wedding_v2") return true;
+  return getV3Definition(templateId)?.supportsHeroBackgroundTreatment ?? false;
+}
+
+/**
  * Curated couple-photo frame shapes for a template's hero, or undefined when
  * the template has no couple photo. The first option is the template's
  * default. V3 templates carry `couplePhotoFrameOptions` on their definition;

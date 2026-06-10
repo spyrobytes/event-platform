@@ -52,6 +52,7 @@ import {
 import {
   templateSupportsSocialLinks,
   templateSupportsPrelude,
+  templateSupportsHeroBackgroundTreatment,
   getCouplePhotoFrameOptions,
 } from "@/components/templates";
 import { resolveCouplePhotoFrame } from "@/components/templates/shared/CouplePhotoFrame/frame-options";
@@ -1521,6 +1522,65 @@ export default function PageEditorPage() {
               </div>
             )}
           </div>
+
+          {/* Background Treatment — how the hero image is graded. Gated on
+              templateSupportsHeroBackgroundTreatment (only templates whose
+              hero renderer implements the portrait treatment). */}
+          {templateSupportsHeroBackgroundTreatment(templateId) && (() => {
+            const treatment = config.hero.backgroundTreatment ?? "ambience";
+            return (
+              <div className="space-y-2 pt-4 border-t">
+                <Label>Background Treatment</Label>
+                <p className="text-xs text-muted-foreground">
+                  How the hero image is presented behind your names.
+                </p>
+                <div role="radiogroup" aria-label="Hero background treatment" className="flex gap-2">
+                  {([
+                    { value: "ambience" as const, label: "Ambience" },
+                    { value: "portrait" as const, label: "Portrait" },
+                  ]).map((opt) => {
+                    const active = treatment === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        disabled={saving}
+                        onClick={() => updateHero({ backgroundTreatment: opt.value })}
+                        className={cn(
+                          "flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
+                          active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
+                          saving && "cursor-not-allowed opacity-50",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {treatment === "portrait" ? (
+                    <>
+                      Portrait keeps the couple visible: a lighter grade, no slow
+                      zoom, and the crop favors the upper part of the photo. Use a
+                      photo with faces in the upper half and clear space lower down
+                      for your names{templateId === "wedding_v2"
+                        ? " — the countdown and schedule cards sit over the lower third"
+                        : ""}.
+                    </>
+                  ) : (
+                    <>
+                      Ambience treats the photo as a backdrop — darkened and slowly
+                      drifting behind the text. Pick Portrait when the photo itself
+                      is the subject (e.g. a couple photo as the background).
+                    </>
+                  )}
+                </p>
+              </div>
+            );
+          })()}
 
           {/* Couple Photo Selection — gated on the template's curated frame
               options (getCouplePhotoFrameOptions), the single source of truth
