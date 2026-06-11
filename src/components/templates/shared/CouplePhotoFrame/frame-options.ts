@@ -103,6 +103,12 @@ export function isFloatingCouplePhotoActive(
 export function isCutoutCouplePhotoActive(args: {
   /** Frame resolved via resolveCouplePhotoFrame (per-template options). */
   resolvedFrame: CouplePhotoFrameId | undefined;
+  /** Whether the floating couple photo WOULD ACTUALLY RENDER on this hero —
+   * not mere asset presence. Include any template-specific render gate
+   * (e.g. V2's couple photo only renders in the cinematic hero style, so
+   * its caller passes `isCinematic && !!asset?.publicUrl`; Grand Luxe has
+   * no such gate and passes presence alone). Passing bare presence on a
+   * gated hero would suppress the info cards while no cutout renders. */
   hasCouplePhoto: boolean;
   backgroundTreatment: string | undefined;
 }): boolean {

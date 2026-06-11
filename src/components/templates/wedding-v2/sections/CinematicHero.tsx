@@ -151,7 +151,7 @@ export function CinematicHero({
           parallax layers + same z-index keeps it above the mountains but
           below heroContent (z 4), so the names always win an overlap. */}
       {isCutout && (
-        <CouplePhotoFrame frame="cutout" className={styles.cutoutPhoto}>
+        <CouplePhotoFrame frame="cutout" className={styles.photoCutout}>
           <img
             src={couplePhotoAsset!.publicUrl!}
             alt={coupleNames || ""}

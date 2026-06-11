@@ -8,6 +8,12 @@
  * position, rings/borders, shadows, entrance animation, image filters — stays
  * in the host hero's CSS via `className`. The image element itself is passed
  * as children so hosts keep their own pipeline (EventImage vs plain <img>).
+ *
+ * Exception: the cutout frame also owns its SCENE-LAYER behavior (bottom
+ * anchor, fade-out mask, entrance rise, reduced-motion) — that behavior is
+ * the curated cutout concept itself, and host copies measured ~90%
+ * identical in review. Hosts keep offset/z/width/shadow and may tune the
+ * fade depth + entrance delay via --cpf-cutout-* vars.
  */
 
 import { useId, type CSSProperties, type ReactNode } from "react";

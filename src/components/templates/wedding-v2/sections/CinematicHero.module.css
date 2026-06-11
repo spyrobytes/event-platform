@@ -499,36 +499,22 @@
 }
 
 /* ===== Cutout couple photo — transparent PNG layered raw in the scene =====
- * No frame hardware at all. Grounding comes from an alpha-traced drop-shadow
- * and a bottom fade-out mask that seats the couple into the ivory scrim —
- * full-length cutouts don't end on a hard pixel line, and waist-up crops
- * don't read as a floating torso. (Shadow + mask coexist here because paint
- * order runs filter BEFORE mask, so the shadow fades out with the photo —
- * unlike the clip-path/drop-shadow conflict the heart frame works around.) */
-.cutoutPhoto {
-  position: absolute;
-  bottom: 0;
+ * The scene-layer base (bottom anchor, fade-out mask into the scrim,
+ * entrance rise, reduced-motion) lives on the shared CouplePhotoFrame
+ * `.cutout` class; this host class owns V2's tuning: offset, stacking,
+ * width, and the alpha-traced drop-shadow that grounds the photo without
+ * frame hardware. */
+.photoCutout {
   right: clamp(16px, 6vw, 96px);
   z-index: 3; /* above bg + mountains, below heroContent (z 4) — names win overlaps */
   width: clamp(220px, 32vw, 450px);
-  pointer-events: none; /* never block CTA taps underneath */
   filter: drop-shadow(0 18px 28px rgba(30, 27, 23, 0.35));
-  -webkit-mask-image: linear-gradient(180deg, #000 88%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 88%, transparent 100%);
-  /* Entrance in the hero's own language — rises with the staggered title */
-  opacity: 0;
-  animation: cutoutRise 0.9s 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes cutoutRise {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Tall-phone tuning: share the hero with the bottom-left names without
  * crowding — calibrate on device, not by eye in a desktop responsive mode. */
 @media (max-width: 640px) {
-  .cutoutPhoto {
+  .photoCutout {
     width: clamp(150px, 42vw, 240px);
     right: clamp(8px, 4vw, 24px);
   }
@@ -550,8 +536,9 @@
 
 /* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
-  .couplePhoto,
-  .cutoutPhoto {
+  /* (.photoCutout's entrance is reset by the shared CouplePhotoFrame
+     .cutout rule — only host-animated elements need entries here.) */
+  .couplePhoto {
     opacity: 1;
     transform: none;
     animation: none;

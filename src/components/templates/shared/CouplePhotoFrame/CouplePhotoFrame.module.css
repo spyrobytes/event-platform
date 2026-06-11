@@ -77,8 +77,51 @@
   object-fit: contain;
 }
 
-/* Fill-mode hosts pass `aspectRatio` (ideally the asset's intrinsic ratio)
+/* The cutout's scene-layer behavior is part of the curated frame concept
+ * (bottom-anchored, seated into the host's scrim by a fade-out mask, rises
+ * in on entrance), so it lives here — review of PR #194 found the two host
+ * copies ~90% identical. Hosts own what genuinely differs per template:
+ * horizontal offset, z-index, width clamps, drop-shadow/grading, plus the
+ * var hooks below for fade depth and entrance delay.
+ *
+ * Fill-mode hosts pass `aspectRatio` (ideally the asset's intrinsic ratio)
  * to size the wrapper; width-driven plain-<img> hosts leave it auto. */
 .cutout {
   aspect-ratio: var(--cpf-cutout-aspect, auto);
+  position: absolute;
+  bottom: 0;
+  pointer-events: none; /* never block CTA taps underneath */
+  /* Seat the couple into the host's scrim/vignette: fade the last ~10% so
+   * full-length cutouts don't end on a hard pixel line and waist-up crops
+   * don't read as a floating torso. (Paint order runs the host's filter
+   * BEFORE this mask, so a host drop-shadow fades out with the photo.) */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 var(--cpf-cutout-fade-start, 88%),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 var(--cpf-cutout-fade-start, 88%),
+    transparent 100%
+  );
+  opacity: 0;
+  transform: translateY(24px);
+  animation: cutoutEnter 0.9s var(--cpf-cutout-delay, 0.35s)
+    cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cutoutEnter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cutout {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
 }

@@ -127,7 +127,10 @@ export function FullscreenDramaticHero({
             src={couplePhotoAsset!.publicUrl!}
             alt={coupleNames || "Couple"}
             fill
-            sizes="(max-width: 640px) 45vw, 450px"
+            // Mirrors .photoCutout's width clamps exactly — a loose hint here
+            // makes next/image fetch the 640-750px srcset slot for a
+            // ~360px-rendered image (review-measured 4-15x pixel over-fetch).
+            sizes="(max-width: 640px) 42vw, (max-width: 1500px) 30vw, 450px"
             priority
           />
         </CouplePhotoFrame>
