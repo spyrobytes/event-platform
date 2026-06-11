@@ -17,6 +17,7 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { showHeroCountdown } from "../../hero-card-visibility";
 import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./AsymmetricHero.module.css";
 
@@ -41,6 +42,7 @@ export function AsymmetricHero({
 
   // Countdown data
   const countdown = (() => {
+    if (!showHeroCountdown(config)) return null; // organizer opt-out (unset = visible)
     if (!temporal?.shouldShowCountdown || !temporal.timeRemaining) return null;
     const { days, hours, minutes } = temporal.timeRemaining;
     return { days, hours, minutes };
