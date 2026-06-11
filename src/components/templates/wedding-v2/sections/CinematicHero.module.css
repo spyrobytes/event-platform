@@ -518,6 +518,17 @@
     width: clamp(150px, 42vw, 240px);
     right: clamp(8px, 4vw, 24px);
   }
+
+  /* V2's hero is bottom-aligned (flex-end), so on phones the text block and
+   * the bottom-anchored cutout otherwise collide in the bottom strip while
+   * the upper 2/3 sits empty (production phone sweep). Reserve the cutout's
+   * zone by padding the content up — the text stacks directly above the
+   * cutout, like Grand Luxe's raised composition. The reserve tracks the
+   * cutout's rendered height: 42vw-wide capped 240px, ~2:3 portrait
+   * → ~63vw capped ~360px, plus breathing room. */
+  .heroCutout .heroContent {
+    padding-bottom: min(68vw, 392px);
+  }
 }
 
 /* ===== Parallax mountain layers ===== */
