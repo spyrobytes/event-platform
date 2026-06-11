@@ -118,7 +118,11 @@ export function CinematicHero({
   }[frame];
 
   return (
-    <section className={styles.hero} aria-label="Event hero" id="top">
+    <section
+      className={cn(styles.hero, isCutout && styles.heroCutout)}
+      aria-label="Event hero"
+      id="top"
+    >
       {/* Background image with gradient overlay */}
       {heroAsset?.publicUrl ? (
         <div
