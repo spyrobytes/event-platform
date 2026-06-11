@@ -29,6 +29,7 @@ import {
 import { mostReadable, HEX6_RE } from "@/lib/color";
 import { resolveWeddingPartyStyleId } from "./wedding-party-style";
 import { resolveCouplePhotoFrame } from "../shared/CouplePhotoFrame/frame-options";
+import { showHeroScheduleCards } from "./hero-card-visibility";
 
 import {
   getHeroRenderer,
@@ -220,8 +221,11 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       hero.couplePhotoFrame,
     );
 
-    // Build schedule cards for hero
+    // Build schedule cards for hero. Gated here ONCE on the organizer's
+    // opt-out flag (unset = visible) — every hero renderer hides its schedule
+    // card when this is undefined, so no per-hero checks are needed.
     const scheduleCards = useMemo(() => {
+      if (!showHeroScheduleCards(hero)) return undefined;
       const scheduleSec = sections.find((s) => s.type === "schedule");
       if (!scheduleSec || scheduleSec.type !== "schedule") return undefined;
 
@@ -247,7 +251,8 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
         day: item.time,
         info: item.title,
       }));
-    }, [sections]);
+      // hero is the config object ref; the flag is the only field read here.
+    }, [sections, hero]);
 
     const { visibleNav, overflowNav } = useMemo(() => {
       const candidates = orderSectionsForNav(sections, "wedding").map((s) => {

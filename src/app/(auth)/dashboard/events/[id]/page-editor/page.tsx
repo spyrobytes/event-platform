@@ -61,6 +61,10 @@ import {
   isFloatingCouplePhotoActive,
   type CouplePhotoFrameId,
 } from "@/components/templates/shared/CouplePhotoFrame/frame-options";
+import {
+  showHeroCountdown,
+  showHeroScheduleCards,
+} from "@/components/templates/wedding-v3/hero-card-visibility";
 import { cn } from "@/lib/utils";
 import { getDefaultVisibility, getEffectiveVisibility, getSectionLabel } from "@/lib/guest-access";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -1420,6 +1424,68 @@ export default function PageEditorPage() {
                   <input
                     type="checkbox"
                     checked={config.hero.showScheduleCards || false}
+                    onChange={(e) => updateHero({ showScheduleCards: e.target.checked })}
+                    className="rounded"
+                  />
+                  Show Schedule Cards
+                </label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rsvpDeadline">RSVP Deadline (shown on countdown card)</Label>
+                <Input
+                  id="rsvpDeadline"
+                  value={config.hero.rsvpDeadline || ""}
+                  onChange={(e) => updateHero({ rsvpDeadline: e.target.value || undefined })}
+                  placeholder="e.g., August 10, 2026"
+                  maxLength={60}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* V3 Hero Options — these fields are rendered by every V3 hero but
+              were previously only editable on V2 (issue #191). The info-card
+              checkboxes are OPT-OUT for V3 (unchecked hides; unset = shown —
+              see hero-card-visibility.ts), unlike V2's opt-in above. */}
+          {!!getV3Definition(templateId) && (
+            <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+              <p className="text-sm font-medium">Hero Options</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="coupleNames">Couple Names</Label>
+                  <Input
+                    id="coupleNames"
+                    value={config.hero.coupleNames || ""}
+                    onChange={(e) => updateHero({ coupleNames: e.target.value || undefined })}
+                    placeholder="e.g., Sarah & Michael"
+                    maxLength={60}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monogram">Monogram</Label>
+                  <Input
+                    id="monogram"
+                    value={config.hero.monogram || ""}
+                    onChange={(e) => updateHero({ monogram: e.target.value || undefined })}
+                    placeholder="e.g., S&M"
+                    maxLength={5}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showHeroCountdown(config.hero)}
+                    onChange={(e) => updateHero({ showCountdown: e.target.checked })}
+                    className="rounded"
+                  />
+                  Show Countdown
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={showHeroScheduleCards(config.hero)}
                     onChange={(e) => updateHero({ showScheduleCards: e.target.checked })}
                     className="rounded"
                   />

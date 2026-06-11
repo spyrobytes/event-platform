@@ -12,6 +12,7 @@
 import { EventImage } from "@/components/media/EventImage";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
+import { showHeroCountdown } from "../../hero-card-visibility";
 import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
 import { isFloatingCouplePhotoActive } from "../../../shared/CouplePhotoFrame/frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
@@ -37,6 +38,7 @@ export function FullscreenDramaticHero({
 
   // Countdown
   const countdown = (() => {
+    if (!showHeroCountdown(config)) return null; // organizer opt-out (unset = visible)
     if (!temporal?.shouldShowCountdown || !temporal.timeRemaining) return null;
     const { days, hours, minutes } = temporal.timeRemaining;
     return { days, hours, minutes };
