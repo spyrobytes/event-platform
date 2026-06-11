@@ -112,6 +112,9 @@ export function CollageMosaicHero({
                 heart: styles.photoHeart,
                 circle: styles.photoCircle,
                 full: styles.photoFull,
+                // Unreachable — Celebration hasn't enrolled the cutout
+                // option (deferred to its own follow-up after V2 + Grand Luxe).
+                cutout: undefined,
               }[couplePhotoFrame ?? "circle"],
             )}
           >

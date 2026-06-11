@@ -44,6 +44,12 @@ export const FULL_LENGTH_FRAME_OPTION: CouplePhotoFrameOption = {
   tip: "Upload a tall, full-length portrait (roughly 2:3). Landscape photos will be cropped to the frame.",
 };
 
+export const CUTOUT_FRAME_OPTION: CouplePhotoFrameOption = {
+  value: "cutout",
+  label: "Cutout",
+  tip: "Requires a photo with a transparent background (PNG or WebP). Full-length cutouts look best — the couple stands directly in the scene, no frame.",
+};
+
 /**
  * Resolve which frame shape the couple photo should use.
  *
@@ -81,4 +87,44 @@ export function isFloatingCouplePhotoActive(
   backgroundTreatment: string | undefined,
 ): boolean {
   return backgroundTreatment !== "portrait";
+}
+
+/**
+ * MIME types that can carry an alpha channel. The Cutout frame is only
+ * meaningful for these — a JPEG "cutout" renders as a hard-edged rectangle
+ * floating on the hero. The editor uses this to gate the Cutout option and
+ * the couple-photo swatches while Cutout is selected.
+ */
+const ALPHA_CAPABLE_MIME_TYPES: ReadonlySet<string> = new Set([
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+
+export function canRenderCutout(mimeType: string | null | undefined): boolean {
+  return !!mimeType && ALPHA_CAPABLE_MIME_TYPES.has(mimeType);
+}
+
+/**
+ * Whether the cutout couple photo is the ACTIVE hero composition: the
+ * resolved frame is "cutout", a couple photo is actually selected, and the
+ * portrait background treatment isn't suppressing the floating photo.
+ *
+ * Single source of truth for everything the cutout mode drives — rendering
+ * the frameless layout AND suppressing the hero countdown/schedule cards —
+ * so the renderers and the editor can't drift (the #190 review lesson).
+ * Note the non-obvious falses: a persisted "cutout" with no photo selected,
+ * or with Portrait active, must leave the hero cards untouched.
+ */
+export function isCutoutCouplePhotoActive(args: {
+  /** Frame resolved via resolveCouplePhotoFrame (per-template options). */
+  resolvedFrame: CouplePhotoFrameId | undefined;
+  hasCouplePhoto: boolean;
+  backgroundTreatment: string | undefined;
+}): boolean {
+  return (
+    args.resolvedFrame === "cutout" &&
+    args.hasCouplePhoto &&
+    isFloatingCouplePhotoActive(args.backgroundTreatment)
+  );
 }

@@ -30,6 +30,8 @@ const DEFAULT_OBJECT_POSITION: Record<CouplePhotoFrameId, string> = {
   heart: "center 25%",
   circle: "center",
   full: "center top",
+  // cutout never crops (intrinsic aspect ratio), so this entry is inert.
+  cutout: "center",
 };
 
 type CouplePhotoFrameProps = {
@@ -63,6 +65,7 @@ export function CouplePhotoFrame({
         styles.frame,
         frame === "circle" && styles.circle,
         frame === "full" && styles.full,
+        frame === "cutout" && styles.cutout,
         className,
       )}
       style={style}

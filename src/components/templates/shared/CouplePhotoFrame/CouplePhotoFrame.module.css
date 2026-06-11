@@ -54,3 +54,21 @@
    * Ken Burns zoom on the img. */
   overflow: hidden;
 }
+
+/* Cutout: no shape at all — a transparent-background photo layered raw on
+ * the hero (no clip, no aspect enforcement, no overflow trap). The image
+ * keeps its INTRINSIC aspect ratio, width-driven: hosts set only a width and
+ * the height follows the photo, so nothing ever crops. This unwinds the
+ * cover pinning above (there height:auto was the enemy; here it is the
+ * point) — the compound selector outranks both `.frame img` and
+ * template-wide img resets on any cascade order. Hosts own size, anchoring,
+ * drop-shadow, and any bottom fade-out mask. */
+.frame.cutout img {
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: none;
+  object-fit: unset;
+}

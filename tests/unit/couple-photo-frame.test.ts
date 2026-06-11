@@ -1,9 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
   resolveCouplePhotoFrame,
+  canRenderCutout,
+  isCutoutCouplePhotoActive,
   HEART_FRAME_OPTION,
   CIRCLE_FRAME_OPTION,
   FULL_LENGTH_FRAME_OPTION,
+  CUTOUT_FRAME_OPTION,
   type CouplePhotoFrameOption,
 } from "@/components/templates/shared/CouplePhotoFrame/frame-options";
 import { GRAND_LUXE } from "@/components/templates/wedding-v3/definitions/grand-luxe";
@@ -66,11 +69,90 @@ describe("template couple-photo frame defaults", () => {
   });
 });
 
+describe("cutout frame option", () => {
+  it("resolves like any curated option, and falls back to the default when not enrolled", () => {
+    const withCutout = [...options, CUTOUT_FRAME_OPTION];
+    expect(resolveCouplePhotoFrame(withCutout, "cutout")).toBe("cutout");
+    // A persisted "cutout" on a template that has NOT enrolled the option
+    // resolves to that template's default — never renders frameless by accident.
+    expect(resolveCouplePhotoFrame(options, "cutout")).toBe("heart");
+  });
+});
+
+describe("canRenderCutout", () => {
+  it("accepts only alpha-capable formats", () => {
+    expect(canRenderCutout("image/png")).toBe(true);
+    expect(canRenderCutout("image/webp")).toBe(true);
+    expect(canRenderCutout("image/avif")).toBe(true);
+  });
+
+  it("rejects formats without an alpha channel (and missing types)", () => {
+    expect(canRenderCutout("image/jpeg")).toBe(false);
+    expect(canRenderCutout("image/gif")).toBe(false);
+    expect(canRenderCutout(undefined)).toBe(false);
+    expect(canRenderCutout(null)).toBe(false);
+    expect(canRenderCutout("")).toBe(false);
+  });
+});
+
+describe("isCutoutCouplePhotoActive", () => {
+  it("is active when cutout is resolved, a photo is selected, and not in portrait", () => {
+    expect(
+      isCutoutCouplePhotoActive({
+        resolvedFrame: "cutout",
+        hasCouplePhoto: true,
+        backgroundTreatment: undefined,
+      })
+    ).toBe(true);
+    expect(
+      isCutoutCouplePhotoActive({
+        resolvedFrame: "cutout",
+        hasCouplePhoto: true,
+        backgroundTreatment: "ambience",
+      })
+    ).toBe(true);
+  });
+
+  it("stays inactive without a selected photo (hero cards must not be suppressed)", () => {
+    expect(
+      isCutoutCouplePhotoActive({
+        resolvedFrame: "cutout",
+        hasCouplePhoto: false,
+        backgroundTreatment: undefined,
+      })
+    ).toBe(false);
+  });
+
+  it("stays inactive under the portrait background treatment", () => {
+    // Portrait already suppresses every floating couple photo (#190) — a
+    // persisted cutout frame must not double-dip into card suppression.
+    expect(
+      isCutoutCouplePhotoActive({
+        resolvedFrame: "cutout",
+        hasCouplePhoto: true,
+        backgroundTreatment: "portrait",
+      })
+    ).toBe(false);
+  });
+
+  it("stays inactive for every non-cutout frame", () => {
+    for (const frame of ["heart", "circle", "full", undefined] as const) {
+      expect(
+        isCutoutCouplePhotoActive({
+          resolvedFrame: frame,
+          hasCouplePhoto: true,
+          backgroundTreatment: undefined,
+        })
+      ).toBe(false);
+    }
+  });
+});
+
 describe("heroSchema couplePhotoFrame field", () => {
   const baseHero = { title: "Our Wedding", align: "center", overlay: "soft" };
 
   it("accepts each frame value", () => {
-    for (const frame of ["heart", "circle", "full"]) {
+    for (const frame of ["heart", "circle", "full", "cutout"]) {
       expect(() =>
         heroSchema.parse({ ...baseHero, couplePhotoFrame: frame })
       ).not.toThrow();

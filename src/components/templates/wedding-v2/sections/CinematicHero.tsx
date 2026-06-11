@@ -99,6 +99,9 @@ export function CinematicHero({
     heart: styles.photoHeart,
     circle: styles.photoCircle,
     full: styles.photoFull,
+    // Unreachable until this template enrolls CUTOUT_FRAME_OPTION (the
+    // resolver only returns enrolled options) — Phase 2 wires the real class.
+    cutout: undefined,
   }[frame];
 
   return (

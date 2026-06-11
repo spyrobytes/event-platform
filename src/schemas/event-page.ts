@@ -67,7 +67,7 @@ export const heroStyleSchema = z.enum(["standard", "cinematic"]);
  * (and its default) via `couplePhotoFrameOptions`; an unset/unknown value
  * resolves to the template's first curated option at render time.
  */
-export const couplePhotoFrameSchema = z.enum(["heart", "circle", "full"]);
+export const couplePhotoFrameSchema = z.enum(["heart", "circle", "full", "cutout"]);
 export type CouplePhotoFrameId = z.infer<typeof couplePhotoFrameSchema>;
 
 /**
