@@ -1606,9 +1606,12 @@ export default function PageEditorPage() {
                   {treatment === "portrait" ? (
                     <>
                       Portrait keeps the couple visible: a lighter grade, no slow
-                      zoom, and the crop favors the upper part of the photo. Use a
-                      photo with faces in the upper half and clear space lower down
-                      for your names{templateId === "wedding_v2"
+                      zoom, and the crop favors the upper part of the photo. A tall
+                      photo with the couple horizontally centered works best — on
+                      phones the sides crop away, so crop the photo before
+                      uploading if the couple is off-center. Keep faces in the
+                      upper half and clear space lower down for your names
+                      {templateId === "wedding_v2"
                         ? " — the countdown and schedule cards sit over the lower third"
                         : ""}. The floating couple photo is hidden while Portrait
                       is active.
