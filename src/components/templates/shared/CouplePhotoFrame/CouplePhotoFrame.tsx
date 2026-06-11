@@ -8,6 +8,12 @@
  * position, rings/borders, shadows, entrance animation, image filters — stays
  * in the host hero's CSS via `className`. The image element itself is passed
  * as children so hosts keep their own pipeline (EventImage vs plain <img>).
+ *
+ * Exception: the cutout frame also owns its SCENE-LAYER behavior (bottom
+ * anchor, fade-out mask, entrance rise, reduced-motion) — that behavior is
+ * the curated cutout concept itself, and host copies measured ~90%
+ * identical in review. Hosts keep offset/z/width/shadow and may tune the
+ * fade depth + entrance delay via --cpf-cutout-* vars.
  */
 
 import { useId, type CSSProperties, type ReactNode } from "react";
@@ -30,6 +36,8 @@ const DEFAULT_OBJECT_POSITION: Record<CouplePhotoFrameId, string> = {
   heart: "center 25%",
   circle: "center",
   full: "center top",
+  // cutout never crops (intrinsic aspect ratio), so this entry is inert.
+  cutout: "center",
 };
 
 type CouplePhotoFrameProps = {
@@ -38,6 +46,12 @@ type CouplePhotoFrameProps = {
   className?: string;
   /** Override the per-frame focal-point default (CSS object-position). */
   objectPosition?: string;
+  /** Cutout-only: wrapper aspect ratio (e.g. "2 / 3" or derived from the
+   * asset's intrinsic width/height). Needed by hosts whose image pipeline
+   * uses next/image `fill` (inline height:100% defeats height:auto) — the
+   * box gets this ratio and object-fit: contain shows the whole cutout.
+   * Plain-<img> hosts omit it (the intrinsic ratio drives the height). */
+  aspectRatio?: string;
   /** The image element (EventImage or <img>). */
   children: ReactNode;
 };
@@ -46,6 +60,7 @@ export function CouplePhotoFrame({
   frame,
   className,
   objectPosition,
+  aspectRatio,
   children,
 }: CouplePhotoFrameProps) {
   // Per-instance clip id so editor preview + published page (or multiple
@@ -55,6 +70,7 @@ export function CouplePhotoFrame({
 
   const style: CSSProperties = {
     "--cpf-object-position": objectPosition ?? DEFAULT_OBJECT_POSITION[frame],
+    ...(aspectRatio ? { "--cpf-cutout-aspect": aspectRatio } : {}),
   } as CSSProperties;
 
   return (
@@ -63,6 +79,7 @@ export function CouplePhotoFrame({
         styles.frame,
         frame === "circle" && styles.circle,
         frame === "full" && styles.full,
+        frame === "cutout" && styles.cutout,
         className,
       )}
       style={style}

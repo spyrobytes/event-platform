@@ -217,6 +217,29 @@ const SAMPLE_COUPLE_PHOTO_ASSET = {
   blurDataUrl: null,
 } as unknown as MediaAsset;
 
+// Transparent-PNG couple silhouette for ?couplePhotoFrame=cutout — the
+// cutout layout only makes visual sense with real alpha (an opaque sample
+// would read as a bug). width/height feed the fill-mode hosts' intrinsic
+// aspect ratio (Grand Luxe). Also injects a hero background image so the
+// layering is visible.
+const SAMPLE_CUTOUT_PHOTO_ASSET = {
+  id: "test-couple-cutout",
+  publicUrl: "/test-assets/couple-cutout-sample.png",
+  alt: "Sample couple cutout",
+  tags: ["couple"],
+  blurDataUrl: null,
+  width: 600,
+  height: 900,
+} as unknown as MediaAsset;
+
+const SAMPLE_HERO_BG_ASSET = {
+  id: "test-hero-bg",
+  publicUrl: "/landing/hero/01.jpg",
+  alt: "",
+  tags: ["hero"],
+  blurDataUrl: null,
+} as unknown as MediaAsset;
+
 export default async function TemplatePreviewPage({ params, searchParams }: PageProps) {
   // Block in production
   if (process.env.NODE_ENV === "production" && !process.env.ALLOW_TEST_ROUTES) {
@@ -257,15 +280,28 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   // photo plus the cinematic hero fields the V2 hero needs to show it.
   let assets = SAMPLE_ASSETS;
   if (couplePhotoFrame) {
-    assets = [SAMPLE_COUPLE_PHOTO_ASSET];
+    // Cutout gets the transparent silhouette + a hero background (the
+    // layered composition is the whole point); other frames keep the
+    // opaque sample photo.
+    const coupleAsset =
+      couplePhotoFrame === "cutout"
+        ? SAMPLE_CUTOUT_PHOTO_ASSET
+        : SAMPLE_COUPLE_PHOTO_ASSET;
+    assets =
+      couplePhotoFrame === "cutout"
+        ? [coupleAsset, SAMPLE_HERO_BG_ASSET]
+        : [coupleAsset];
     config = {
       ...config,
       hero: {
         ...config.hero,
         style: "cinematic",
         coupleNames: "Avery & Jordan",
-        couplePhotoAssetId: SAMPLE_COUPLE_PHOTO_ASSET.id,
+        couplePhotoAssetId: coupleAsset.id,
         couplePhotoFrame: couplePhotoFrame as CouplePhotoFrameId,
+        ...(couplePhotoFrame === "cutout"
+          ? { heroImageAssetId: SAMPLE_HERO_BG_ASSET.id }
+          : {}),
       },
     };
   }

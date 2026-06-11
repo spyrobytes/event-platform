@@ -7,6 +7,7 @@ import { CouplePhotoFrame } from "../../shared/CouplePhotoFrame";
 import {
   resolveCouplePhotoFrame,
   isFloatingCouplePhotoActive,
+  isCutoutCouplePhotoActive,
 } from "../../shared/CouplePhotoFrame/frame-options";
 import { WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS } from "../couple-photo-frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
@@ -83,11 +84,6 @@ export function CinematicHero({
   // and the floating couple photo is skipped to keep the hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
-  const hasCouplePhoto =
-    isCinematic &&
-    !!couplePhotoAsset?.publicUrl &&
-    isFloatingCouplePhotoActive(config.backgroundTreatment);
-
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
   const frame =
@@ -95,10 +91,30 @@ export function CinematicHero({
       WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS,
       config.couplePhotoFrame,
     ) ?? "circle";
+
+  // Cutout mode: the transparent-background photo is layered raw in the
+  // scene (bottom-right, no frame) instead of framed beside the names, and
+  // the float cards are suppressed to keep the composition clean.
+  const isCutout = isCutoutCouplePhotoActive({
+    resolvedFrame: frame,
+    hasCouplePhoto: isCinematic && !!couplePhotoAsset?.publicUrl,
+    backgroundTreatment: config.backgroundTreatment,
+  });
+
+  // The framed photo beside the names (non-cutout frames only).
+  const hasCouplePhoto =
+    isCinematic &&
+    !!couplePhotoAsset?.publicUrl &&
+    isFloatingCouplePhotoActive(config.backgroundTreatment) &&
+    !isCutout;
+
   const frameClass = {
     heart: styles.photoHeart,
     circle: styles.photoCircle,
     full: styles.photoFull,
+    // Cutout never goes through the beside-the-names slot (rendered as a
+    // scene layer below) — entry exists to keep the Record total.
+    cutout: undefined,
   }[frame];
 
   return (
@@ -129,6 +145,20 @@ export function CinematicHero({
       <div className={styles.parallaxLayer} style={{ zIndex: 3, opacity: 0.035, color: "var(--night, #1e1b17)" }} aria-hidden="true">
         <svg viewBox="0 0 1440 120" preserveAspectRatio="none"><path d="M0 120 L0 80 L80 60 L180 78 L300 40 L420 65 L520 30 L640 55 L760 20 L880 48 L1000 28 L1120 52 L1240 38 L1360 60 L1440 75 L1440 120Z" fill="currentColor"/></svg>
       </div>
+
+      {/* Cutout couple photo — transparent PNG layered raw in the scene,
+          bottom-right, opposite the bottom-left names. Source order after the
+          parallax layers + same z-index keeps it above the mountains but
+          below heroContent (z 4), so the names always win an overlap. */}
+      {isCutout && (
+        <CouplePhotoFrame frame="cutout" className={styles.photoCutout}>
+          <img
+            src={couplePhotoAsset!.publicUrl!}
+            alt={coupleNames || ""}
+            loading="eager"
+          />
+        </CouplePhotoFrame>
+      )}
 
       {/* Content — bottom-aligned via parent flex-end */}
       <div
@@ -192,8 +222,11 @@ export function CinematicHero({
           </div>
         </div>
 
-        {/* Float cards: countdown + schedule */}
-        {isCinematic && (countdown || showScheduleCards) && (
+        {/* Float cards: countdown + schedule. Suppressed in cutout mode —
+            the cutout occupies the lower-right where the cards sit, and the
+            composition is designed clean (organizer toggles re-apply when
+            switching frames). */}
+        {isCinematic && (countdown || showScheduleCards) && !isCutout && (
           <div className={styles.heroCards}>
             {/* Countdown card */}
             {countdown && (

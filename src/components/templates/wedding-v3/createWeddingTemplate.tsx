@@ -28,7 +28,10 @@ import {
 } from "./theme-packs";
 import { mostReadable, HEX6_RE } from "@/lib/color";
 import { resolveWeddingPartyStyleId } from "./wedding-party-style";
-import { resolveCouplePhotoFrame } from "../shared/CouplePhotoFrame/frame-options";
+import {
+  resolveCouplePhotoFrame,
+  isCutoutCouplePhotoActive,
+} from "../shared/CouplePhotoFrame/frame-options";
 import { showHeroScheduleCards } from "./hero-card-visibility";
 
 import {
@@ -221,11 +224,22 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       hero.couplePhotoFrame,
     );
 
+    // An active cutout suppresses the hero info cards (the cutout occupies
+    // their corner). Computed here so the schedule half of the suppression
+    // is factory-level — a hero that enrolls cutout later gets it for free.
+    // The countdown half stays per-hero (each hero derives its countdown
+    // from useTemporal), so enrolling heroes must still gate it.
+    const cutoutActive = isCutoutCouplePhotoActive({
+      resolvedFrame: couplePhotoFrame,
+      hasCouplePhoto: !!couplePhotoAsset?.publicUrl,
+      backgroundTreatment: hero.backgroundTreatment,
+    });
+
     // Build schedule cards for hero. Gated here ONCE on the organizer's
     // opt-out flag (unset = visible) — every hero renderer hides its schedule
     // card when this is undefined, so no per-hero checks are needed.
     const scheduleCards = useMemo(() => {
-      if (!showHeroScheduleCards(hero)) return undefined;
+      if (!showHeroScheduleCards(hero) || cutoutActive) return undefined;
       const scheduleSec = sections.find((s) => s.type === "schedule");
       if (!scheduleSec || scheduleSec.type !== "schedule") return undefined;
 
@@ -252,7 +266,7 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
         info: item.title,
       }));
       // hero is the config object ref; the flag is the only field read here.
-    }, [sections, hero]);
+    }, [sections, hero, cutoutActive]);
 
     const { visibleNav, overflowNav } = useMemo(() => {
       const candidates = orderSectionsForNav(sections, "wedding").map((s) => {

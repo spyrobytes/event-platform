@@ -44,6 +44,12 @@ export const FULL_LENGTH_FRAME_OPTION: CouplePhotoFrameOption = {
   tip: "Upload a tall, full-length portrait (roughly 2:3). Landscape photos will be cropped to the frame.",
 };
 
+export const CUTOUT_FRAME_OPTION: CouplePhotoFrameOption = {
+  value: "cutout",
+  label: "Cutout",
+  tip: "Requires a photo with a transparent background (PNG or WebP). Full-length cutouts look best — the couple stands directly in the scene, no frame.",
+};
+
 /**
  * Resolve which frame shape the couple photo should use.
  *
@@ -81,4 +87,34 @@ export function isFloatingCouplePhotoActive(
   backgroundTreatment: string | undefined,
 ): boolean {
   return backgroundTreatment !== "portrait";
+}
+
+/**
+ * Whether the cutout couple photo is the ACTIVE hero composition: the
+ * resolved frame is "cutout", a couple photo is actually selected, and the
+ * portrait background treatment isn't suppressing the floating photo.
+ *
+ * Single source of truth for everything the cutout mode drives — rendering
+ * the frameless layout AND suppressing the hero countdown/schedule cards —
+ * so the renderers and the editor can't drift (the #190 review lesson).
+ * Note the non-obvious falses: a persisted "cutout" with no photo selected,
+ * or with Portrait active, must leave the hero cards untouched.
+ */
+export function isCutoutCouplePhotoActive(args: {
+  /** Frame resolved via resolveCouplePhotoFrame (per-template options). */
+  resolvedFrame: CouplePhotoFrameId | undefined;
+  /** Whether the floating couple photo WOULD ACTUALLY RENDER on this hero —
+   * not mere asset presence. Include any template-specific render gate
+   * (e.g. V2's couple photo only renders in the cinematic hero style, so
+   * its caller passes `isCinematic && !!asset?.publicUrl`; Grand Luxe has
+   * no such gate and passes presence alone). Passing bare presence on a
+   * gated hero would suppress the info cards while no cutout renders. */
+  hasCouplePhoto: boolean;
+  backgroundTreatment: string | undefined;
+}): boolean {
+  return (
+    args.resolvedFrame === "cutout" &&
+    args.hasCouplePhoto &&
+    isFloatingCouplePhotoActive(args.backgroundTreatment)
+  );
 }
