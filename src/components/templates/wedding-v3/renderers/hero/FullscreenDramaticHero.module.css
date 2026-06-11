@@ -268,6 +268,36 @@
   box-shadow: 0 8px 32px rgba(197, 165, 90, 0.3);
 }
 
+/* ===== CUTOUT COUPLE PHOTO — scene layer, no gold hardware =====
+ * Transparent PNG layered raw in the scene, bottom-right. Grounding comes
+ * from a deep luxe drop-shadow (alpha-traced) and a bottom fade-out mask
+ * that seats the couple into the dark vignette; a whisper of grading
+ * (brightness/saturate) sits the photo in the dark scene without killing
+ * the cutout's crispness. Paint order runs filter before mask, so the
+ * shadow fades out with the photo. */
+.photoCutout {
+  position: absolute;
+  bottom: 0;
+  right: clamp(20px, 7vw, 110px);
+  z-index: 1; /* above bg, below .content (z 2) — centered names win overlaps */
+  width: clamp(220px, 30vw, 450px);
+  pointer-events: none;
+  filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55)) brightness(0.96)
+    saturate(0.97);
+  -webkit-mask-image: linear-gradient(180deg, #000 90%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 90%, transparent 100%);
+  opacity: 0;
+  transform: translateY(24px);
+  animation: luxeFadeUp 0.9s 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (max-width: 640px) {
+  .photoCutout {
+    width: clamp(150px, 42vw, 240px);
+    right: clamp(8px, 4vw, 24px);
+  }
+}
+
 /* ===== STAGGERED REVEAL ===== */
 
 @keyframes luxeFadeUp {
@@ -450,6 +480,7 @@
   }
 
   .couplePhoto,
+  .photoCutout,
   .monogram,
   .names,
   .titleOnly,

@@ -70,5 +70,15 @@
   min-height: 0;
   max-width: 100%;
   max-height: none;
-  object-fit: unset;
+  /* contain, not unset: a no-op for plain <img> (box ratio = intrinsic
+   * ratio), but fill-mode hosts (next/image sets inline height:100%) get
+   * the whole cutout letterboxed inside the wrapper's aspect-ratio box —
+   * and a transparent PNG's letterbox is invisible. */
+  object-fit: contain;
+}
+
+/* Fill-mode hosts pass `aspectRatio` (ideally the asset's intrinsic ratio)
+ * to size the wrapper; width-driven plain-<img> hosts leave it auto. */
+.cutout {
+  aspect-ratio: var(--cpf-cutout-aspect, auto);
 }

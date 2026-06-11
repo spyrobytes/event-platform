@@ -40,6 +40,12 @@ type CouplePhotoFrameProps = {
   className?: string;
   /** Override the per-frame focal-point default (CSS object-position). */
   objectPosition?: string;
+  /** Cutout-only: wrapper aspect ratio (e.g. "2 / 3" or derived from the
+   * asset's intrinsic width/height). Needed by hosts whose image pipeline
+   * uses next/image `fill` (inline height:100% defeats height:auto) — the
+   * box gets this ratio and object-fit: contain shows the whole cutout.
+   * Plain-<img> hosts omit it (the intrinsic ratio drives the height). */
+  aspectRatio?: string;
   /** The image element (EventImage or <img>). */
   children: ReactNode;
 };
@@ -48,6 +54,7 @@ export function CouplePhotoFrame({
   frame,
   className,
   objectPosition,
+  aspectRatio,
   children,
 }: CouplePhotoFrameProps) {
   // Per-instance clip id so editor preview + published page (or multiple
@@ -57,6 +64,7 @@ export function CouplePhotoFrame({
 
   const style: CSSProperties = {
     "--cpf-object-position": objectPosition ?? DEFAULT_OBJECT_POSITION[frame],
+    ...(aspectRatio ? { "--cpf-cutout-aspect": aspectRatio } : {}),
   } as CSSProperties;
 
   return (

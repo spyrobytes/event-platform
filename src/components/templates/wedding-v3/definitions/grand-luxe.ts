@@ -11,6 +11,7 @@ import {
   HEART_FRAME_OPTION,
   CIRCLE_FRAME_OPTION,
   FULL_LENGTH_FRAME_OPTION,
+  CUTOUT_FRAME_OPTION,
 } from "../../shared/CouplePhotoFrame/frame-options";
 
 export const GRAND_LUXE: TemplateDefinition = {
@@ -267,6 +268,10 @@ export const GRAND_LUXE: TemplateDefinition = {
     HEART_FRAME_OPTION,
     CIRCLE_FRAME_OPTION,
     FULL_LENGTH_FRAME_OPTION,
+    // Transparent-background photo layered raw in the scene (bottom-right,
+    // no gold hardware). Activates the frameless layout and hides the info
+    // cards — see isCutoutCouplePhotoActive.
+    CUTOUT_FRAME_OPTION,
   ],
 
   supportsPrelude: true,

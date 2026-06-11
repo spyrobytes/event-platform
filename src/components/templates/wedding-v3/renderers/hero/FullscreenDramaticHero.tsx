@@ -14,7 +14,10 @@ import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { showHeroCountdown } from "../../hero-card-visibility";
 import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
-import { isFloatingCouplePhotoActive } from "../../../shared/CouplePhotoFrame/frame-options";
+import {
+  isFloatingCouplePhotoActive,
+  isCutoutCouplePhotoActive,
+} from "../../../shared/CouplePhotoFrame/frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./FullscreenDramaticHero.module.css";
 
@@ -50,10 +53,6 @@ export function FullscreenDramaticHero({
     eventTimezone
   );
 
-  const showCountdown = !!countdown;
-  const showSchedule = !!(scheduleCards && scheduleCards.length > 0);
-  const showCards = showCountdown || showSchedule;
-
   // Portrait background treatment — the hero image IS the subject (couple
   // photo as background): lighter grade, drift off, top-anchored crop (heads
   // never clip), and the floating couple portrait is skipped to keep the
@@ -63,12 +62,34 @@ export function FullscreenDramaticHero({
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
   const frame = couplePhotoFrame ?? "heart";
+
+  // Cutout mode: the transparent-background photo is layered raw in the
+  // scene (bottom-right, no gold hardware) instead of framed top-left, and
+  // the info cards are suppressed to keep the composition clean.
+  const isCutout = isCutoutCouplePhotoActive({
+    resolvedFrame: frame,
+    hasCouplePhoto: !!couplePhotoAsset?.publicUrl,
+    backgroundTreatment: config.backgroundTreatment,
+  });
+
+  // This hero uses next/image fill, so the cutout wrapper needs the photo's
+  // intrinsic ratio to size itself; 2:3 portrait is the fallback when the
+  // asset predates dimension capture.
+  const cutoutAspect =
+    couplePhotoAsset?.width && couplePhotoAsset?.height
+      ? `${couplePhotoAsset.width} / ${couplePhotoAsset.height}`
+      : "2 / 3";
+
+  const showCountdown = !!countdown;
+  const showSchedule = !!(scheduleCards && scheduleCards.length > 0);
+  const showCards = (showCountdown || showSchedule) && !isCutout;
+
   const frameClass = {
     heart: styles.photoHeart,
     circle: styles.photoCircle,
     full: styles.photoFull,
-    // Unreachable until this template enrolls CUTOUT_FRAME_OPTION (the
-    // resolver only returns enrolled options) — Phase 3 wires the real class.
+    // Cutout never goes through the framed top-left slot (rendered as a
+    // scene layer instead) — entry exists to keep the Record total.
     cutout: undefined,
   }[frame];
 
@@ -89,10 +110,34 @@ export function FullscreenDramaticHero({
         <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
+      {/* Cutout couple photo — transparent PNG layered raw in the scene,
+          bottom-right at z 1: above the background, below the centered
+          content (z 2) and info row (z 3), so the names win any overlap.
+          No vignette/grading children — the cutout keeps its crispness;
+          no blur placeholder — a rectangular blur flash betrays the
+          transparent silhouette. */}
+      {isCutout && (
+        <CouplePhotoFrame
+          frame="cutout"
+          aspectRatio={cutoutAspect}
+          objectPosition="center bottom"
+          className={styles.photoCutout}
+        >
+          <EventImage
+            src={couplePhotoAsset!.publicUrl!}
+            alt={coupleNames || "Couple"}
+            fill
+            sizes="(max-width: 640px) 45vw, 450px"
+            priority
+          />
+        </CouplePhotoFrame>
+      )}
+
       {/* Couple portrait — top left, organizer-selected frame shape.
           Skipped in portrait mode: the background already IS the couple. */}
       {couplePhotoAsset?.publicUrl &&
-        isFloatingCouplePhotoActive(config.backgroundTreatment) && (
+        isFloatingCouplePhotoActive(config.backgroundTreatment) &&
+        !isCutout && (
         <CouplePhotoFrame
           frame={frame}
           // Head-and-shoulders portraits (per the editor tips): land the face
