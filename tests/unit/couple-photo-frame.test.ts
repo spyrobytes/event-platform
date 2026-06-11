@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   resolveCouplePhotoFrame,
-  canRenderCutout,
   isCutoutCouplePhotoActive,
   HEART_FRAME_OPTION,
   CIRCLE_FRAME_OPTION,
@@ -76,22 +75,6 @@ describe("cutout frame option", () => {
     // A persisted "cutout" on a template that has NOT enrolled the option
     // resolves to that template's default — never renders frameless by accident.
     expect(resolveCouplePhotoFrame(options, "cutout")).toBe("heart");
-  });
-});
-
-describe("canRenderCutout", () => {
-  it("accepts only alpha-capable formats", () => {
-    expect(canRenderCutout("image/png")).toBe(true);
-    expect(canRenderCutout("image/webp")).toBe(true);
-    expect(canRenderCutout("image/avif")).toBe(true);
-  });
-
-  it("rejects formats without an alpha channel (and missing types)", () => {
-    expect(canRenderCutout("image/jpeg")).toBe(false);
-    expect(canRenderCutout("image/gif")).toBe(false);
-    expect(canRenderCutout(undefined)).toBe(false);
-    expect(canRenderCutout(null)).toBe(false);
-    expect(canRenderCutout("")).toBe(false);
   });
 });
 

@@ -1695,6 +1695,14 @@ export default function PageEditorPage() {
                     onChange={(value) => updateHero({ couplePhotoFrame: value })}
                     disabled={saving}
                   />
+                  {activeFrame === "cutout" && (
+                    <p className="text-xs text-muted-foreground">
+                      The cutout is layered directly in the scene, and the
+                      countdown and schedule cards are hidden while it is
+                      active. A photo without a transparent background will
+                      show as a plain rectangle — check the preview.
+                    </p>
+                  )}
                 </div>
               )}
               <EditorTip tip={activeOption?.tip ?? getV3Definition(templateId)?.couplePhotoTip} />

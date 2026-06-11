@@ -90,22 +90,6 @@ export function isFloatingCouplePhotoActive(
 }
 
 /**
- * MIME types that can carry an alpha channel. The Cutout frame is only
- * meaningful for these — a JPEG "cutout" renders as a hard-edged rectangle
- * floating on the hero. The editor uses this to gate the Cutout option and
- * the couple-photo swatches while Cutout is selected.
- */
-const ALPHA_CAPABLE_MIME_TYPES: ReadonlySet<string> = new Set([
-  "image/png",
-  "image/webp",
-  "image/avif",
-]);
-
-export function canRenderCutout(mimeType: string | null | undefined): boolean {
-  return !!mimeType && ALPHA_CAPABLE_MIME_TYPES.has(mimeType);
-}
-
-/**
  * Whether the cutout couple photo is the ACTIVE hero composition: the
  * resolved frame is "cutout", a couple photo is actually selected, and the
  * portrait background treatment isn't suppressing the floating photo.
