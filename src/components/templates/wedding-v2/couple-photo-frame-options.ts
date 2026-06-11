@@ -13,6 +13,7 @@ import {
   CIRCLE_FRAME_OPTION,
   HEART_FRAME_OPTION,
   FULL_LENGTH_FRAME_OPTION,
+  CUTOUT_FRAME_OPTION,
   type CouplePhotoFrameOption,
 } from "../shared/CouplePhotoFrame/frame-options";
 
@@ -20,4 +21,8 @@ export const WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS: CouplePhotoFrameOption[] = [
   CIRCLE_FRAME_OPTION,
   HEART_FRAME_OPTION,
   FULL_LENGTH_FRAME_OPTION,
+  // Transparent-background photo layered raw in the scene (bottom-right,
+  // no frame). Activates the frameless layout and hides the float cards —
+  // see isCutoutCouplePhotoActive.
+  CUTOUT_FRAME_OPTION,
 ];
