@@ -49,6 +49,7 @@ const PORTAL_INHERITED_VARS = [
   // it sat dormant while the drawer painted hardcoded white.
   "--glass-bg-mobile",
   "--night",
+  "--charcoal",
   "--ivory",
   "--r",
   // The template's motion personality — entrance easing + item stagger
@@ -157,10 +158,15 @@ export function MobileNavMenu({
   const close = useCallback(() => {
     setOpenState(false);
     // Return focus to the hamburger trigger so keyboard users land
-    // back where they invoked the drawer. Skipped automatically when
-    // the trigger is gone (e.g. resized past desktop breakpoint, or
-    // hidden by CSS in templates with a desktop nav).
-    triggerRef.current?.focus();
+    // back where they invoked the drawer. Deferred a frame: in veil
+    // mode the trigger wrapper is visibility:hidden until the close
+    // re-render commits, and focus() on a hidden element silently
+    // no-ops. Skipped automatically when the trigger is gone (e.g.
+    // resized past desktop breakpoint, or hidden by CSS in templates
+    // with a desktop nav).
+    requestAnimationFrame(() => {
+      triggerRef.current?.focus();
+    });
   }, [setOpenState]);
 
   /**
@@ -316,7 +322,22 @@ export function MobileNavMenu({
       <div
         ref={wrapperRef}
         className={className}
-        style={{ display: "inline-flex", alignItems: "center" }}
+        // The veil covers the viewport but the trigger is host-positioned
+        // (often fixed top-right ABOVE the panel's z-index) — left in place
+        // it lands under/near the veil's own close button and reads as two
+        // misaligned layered buttons, AND the wrapper's hit-box silently
+        // swallows taps meant for the veil's close (a plain div intercepts
+        // pointer events even with nothing painted). Hide the whole wrapper
+        // and disable its hit-testing while the veil is open; it returns
+        // (and takes focus back) on close. The drawer keeps it: its panel
+        // is side-anchored, so the morphing X stays clear.
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          ...(open && expression === "veil"
+            ? { visibility: "hidden" as const, pointerEvents: "none" as const }
+            : {}),
+        }}
       >
         <button
           ref={triggerRef}

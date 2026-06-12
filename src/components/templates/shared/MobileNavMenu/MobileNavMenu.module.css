@@ -206,24 +206,27 @@
   inset: 0;
   padding: clamp(18px, 4vw, 32px);
   color: var(--ivory, #f8f5f0);
-  /* Champagne sheen breathing at the top, a fainter answer at the
-     foot, over near-black — velvet, not flat #000. Opaque enough that
-     no backdrop blur is needed (one less full-screen paint layer). */
+  /* Champagne glow breathing at the top, a fainter answer at the foot,
+     over WARM charcoal — candlelit, not funereal (device-sweep call:
+     near-black read too somber for a wedding). The base is the
+     palette's warm charcoal, settling toward (but never reaching)
+     night at the foot. Opaque enough that no backdrop blur is needed
+     (one less full-screen paint layer). */
   background:
     radial-gradient(
-      130% 52% at 50% -6%,
-      color-mix(in srgb, var(--mnm-gold) 11%, transparent) 0%,
-      transparent 60%
+      130% 55% at 50% -6%,
+      color-mix(in srgb, var(--mnm-gold) 19%, transparent) 0%,
+      transparent 62%
     ),
     radial-gradient(
-      110% 40% at 50% 108%,
-      color-mix(in srgb, var(--mnm-gold) 6%, transparent) 0%,
-      transparent 52%
+      110% 42% at 50% 110%,
+      color-mix(in srgb, var(--mnm-gold) 9%, transparent) 0%,
+      transparent 55%
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--night, #121110) 99%, #ffffff) 0%,
-      var(--night, #121110) 100%
+      var(--charcoal, #2a2824) 0%,
+      color-mix(in srgb, var(--night, #121110) 60%, var(--charcoal, #2a2824)) 100%
     );
   animation: mnmVeilIn 560ms var(--motion-easing, cubic-bezier(0.16, 1, 0.3, 1));
 }
@@ -286,13 +289,20 @@
 }
 
 /* The item group floats centered between two gold hairlines — the
-   frame holds the composition whether two sections or ten. */
+   frame holds the composition whether two sections or ten.
+
+   Centering is done with AUTO MARGINS on the hairline pseudo-children,
+   NOT justify-content: center — a centered flex container that
+   overflows clips its top into an unscrollable zone (the cut-off
+   top-items bug from the device sweep). Auto margins center the group
+   when it fits and collapse to 0 when it doesn't, so every item stays
+   reachable by scroll. */
 .root[data-expression="veil"] .list {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: clamp(2px, 1svh, 8px);
   overflow-y: auto;
   text-align: center;
@@ -314,11 +324,13 @@
 }
 
 .root[data-expression="veil"] .list::before {
+  margin-top: auto;
   margin-bottom: clamp(14px, 3svh, 26px);
 }
 
 .root[data-expression="veil"] .list::after {
   margin-top: clamp(14px, 3svh, 26px);
+  margin-bottom: auto;
 }
 
 .root[data-expression="veil"] .item {
