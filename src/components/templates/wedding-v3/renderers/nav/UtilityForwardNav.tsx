@@ -75,9 +75,11 @@ export function UtilityForwardNav({
   const ctaSections = sections.filter((s) => s.isCta);
   const otherSections = sections.filter((s) => !s.isCta);
 
+  const overImage = hasHeroImage && !scrolled;
+
   return (
     <header
-      className={`${styles.topbar} ${scrolled ? styles.scrolled : ""} ${hasHeroImage && !scrolled ? styles.overImage : ""}`}
+      className={`${styles.topbar} ${scrolled ? styles.scrolled : ""} ${overImage ? styles.overImage : ""}`}
       aria-label="Main navigation"
     >
       <div className={styles.inner}>
@@ -132,14 +134,32 @@ export function UtilityForwardNav({
                 href: s.href ?? `#${s.id}`,
                 isCta: s.isCta ?? false,
               }))}
-              buttonStyle={{
-                width: 40,
-                height: 40,
-                borderRadius: 999,
-                border: "1px solid var(--border, #e8e1d6)",
-                color: "var(--text-2, #786f65)",
-                background: "transparent",
-              }}
+              // State-aware: MobileNavMenu applies buttonStyle INLINE on the
+              // trigger button, so the CSS `.overImage` cascade can't recolor
+              // it — the warm-gray ink was invisible over the darkened hero
+              // photo (prod phone sweep). Over-image gets the same light-on-
+              // dark treatment as the desktop links, with a soft white wash
+              // chip (matches .overImage .priorityDefault) for guaranteed
+              // contrast on any photo.
+              buttonStyle={
+                overImage
+                  ? {
+                      width: 40,
+                      height: 40,
+                      borderRadius: 999,
+                      border: "1px solid rgba(255, 255, 255, 0.35)",
+                      color: "rgba(255, 255, 255, 0.92)",
+                      background: "rgba(255, 255, 255, 0.12)",
+                    }
+                  : {
+                      width: 40,
+                      height: 40,
+                      borderRadius: 999,
+                      border: "1px solid var(--border, #e8e1d6)",
+                      color: "var(--text-2, #786f65)",
+                      background: "transparent",
+                    }
+              }
               desktopBreakpoint={900}
             />
           )}
