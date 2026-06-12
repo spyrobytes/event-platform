@@ -121,26 +121,23 @@
  * bottom-CENTER — the template's symmetric layout makes them the focal point
  * (V2/Grand Luxe anchor bottom-right). Centering uses left/right + margin
  * auto: the shared entrance animation owns `transform`, so a translateX(-50%)
- * would be clobbered mid-rise. Width is double-capped: the vw clamp for
- * narrow screens, an svh-derived term so a tall portrait can never swallow
- * the hero (width = height-budget × aspect; --cpf-cutout-aspect expands to
- * "W / H" inside calc). */
+ * would be clobbered mid-rise. Width: floored at 450px on desktop (the
+ * focal point must not shrink below the V2/GL cap), scaling by 36vw with an
+ * svh-derived ceiling so a tall portrait yields above the floor rather than
+ * swallowing the hero (width = height-budget × aspect; --cpf-cutout-aspect
+ * expands to "W / H" inside calc).
+ *
+ * Deliberately NO drop-shadow, unlike V2/GL: over the busy mosaic a shadow
+ * halo reads as a stacked sticker, not a figure in the scene (user visual
+ * test). The wash + the shared bottom fade do the seating. */
 .photoCutout {
   left: 0;
   right: 0;
   margin-inline: auto;
   z-index: 1; /* above bg + wash, below .content (z 2) — names win overlaps */
-  width: min(
-    clamp(240px, 36vw, 480px),
-    calc(56svh * var(--cpf-cutout-aspect, 0.6667))
-  );
-  filter: drop-shadow(0 16px 36px rgba(54, 46, 40, 0.28));
+  width: var(--cc-cutout-w);
   --cpf-cutout-fade-start: 88%;
   --cpf-cutout-delay: 0.45s;
-}
-
-.overImage .photoCutout {
-  filter: drop-shadow(0 20px 44px rgba(0, 0, 0, 0.5));
 }
 
 /* Soft radial wash seating the cutout into the mosaic — the silhouette must
@@ -179,11 +176,29 @@
 
 /* The hero centers its column; in cutout mode the bottom half belongs to the
  * couple, so pin the text block to the top zone instead (below the 140px nav
- * scrim). The boundary may kiss the cutout's head-room on short viewports —
- * intentional: names sit at z 2 over the wash-quieted area. */
+ * scrim).
+ *
+ * The cutout width lives here (not on .photoCutout) because the hero's
+ * min-height needs it too: the 450px floor means text + cutout can't always
+ * share 100svh, so the hero GROWS to fit and the figure straddles the fold —
+ * a couple standing into the page beats heads rising behind the CTA (user
+ * visual test at 1440×900). 250px ≈ the text block (names + date + CTA +
+ * margins, measured ~215px) plus breathing room; --cc-cutout-aspect(-inv)
+ * are numeric vars set inline by the hero from the asset's dimensions. */
 .heroCutout {
+  --cc-cutout-w: max(
+    450px,
+    min(36vw, calc(72svh * var(--cc-cutout-aspect, 0.6667)), 560px)
+  );
   justify-content: flex-start;
   padding-top: clamp(96px, 16svh, 170px);
+  min-height: max(
+    100svh,
+    calc(
+      clamp(96px, 16svh, 170px) + 250px +
+        var(--cc-cutout-w) * var(--cc-cutout-aspect-inv, 1.5)
+    )
+  );
 }
 
 /* ===== NAMES + DATE ===== */
@@ -482,15 +497,14 @@
   }
 
   /* Tall-phone tuning: names stack above the centered cutout — calibrate on
-   * device, not by eye in a desktop responsive mode (PR #195 lesson). */
-  .photoCutout {
-    width: min(
-      clamp(200px, 62vw, 320px),
-      calc(50svh * var(--cpf-cutout-aspect, 0.6667))
-    );
-  }
-
+   * device, not by eye in a desktop responsive mode (PR #195 lesson). The
+   * width override lives on --cc-cutout-w so the grow-to-fit min-height
+   * stays consistent with the rendered size. */
   .heroCutout {
+    --cc-cutout-w: min(
+      clamp(200px, 62vw, 320px),
+      calc(50svh * var(--cc-cutout-aspect, 0.6667))
+    );
     padding-top: clamp(84px, 14svh, 140px);
   }
 }

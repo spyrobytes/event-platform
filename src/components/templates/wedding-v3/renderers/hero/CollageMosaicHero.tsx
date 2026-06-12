@@ -58,11 +58,25 @@ export function CollageMosaicHero({
 
   // This hero uses next/image fill, so the cutout wrapper needs the photo's
   // intrinsic ratio to size itself; 2:3 portrait is the fallback when the
-  // asset predates dimension capture.
-  const cutoutAspect =
+  // asset predates dimension capture. The hero ALSO needs the ratio (and its
+  // inverse) as numeric vars: the 450px width floor means cutout + text
+  // can't always share 100svh, so .heroCutout grows to fit — and CSS can't
+  // divide by a "W / H" ratio token to get the height back from the width.
+  const cutoutW =
     couplePhotoAsset?.width && couplePhotoAsset?.height
-      ? `${couplePhotoAsset.width} / ${couplePhotoAsset.height}`
-      : "2 / 3";
+      ? couplePhotoAsset.width
+      : 2;
+  const cutoutH =
+    couplePhotoAsset?.width && couplePhotoAsset?.height
+      ? couplePhotoAsset.height
+      : 3;
+  const cutoutAspect = `${cutoutW} / ${cutoutH}`;
+  const cutoutHeroVars = isCutout
+    ? ({
+        "--cc-cutout-aspect": (cutoutW / cutoutH).toFixed(4),
+        "--cc-cutout-aspect-inv": (cutoutH / cutoutW).toFixed(4),
+      } as React.CSSProperties)
+    : undefined;
 
   // Countdown data
   const countdown = (() => {
@@ -116,6 +130,7 @@ export function CollageMosaicHero({
         hasImage && styles.overImage,
         isCutout && styles.heroCutout,
       )}
+      style={cutoutHeroVars}
       aria-label="Event hero"
       id="top"
     >
@@ -154,9 +169,10 @@ export function CollageMosaicHero({
               src={couplePhotoAsset!.publicUrl!}
               alt={coupleNames || title || "Couple"}
               fill
-              // Mirrors .photoCutout's width clamps (the svh term can only
-              // shrink the render) — a loose hint over-fetches 4-15x.
-              sizes="(max-width: 640px) 62vw, (max-width: 1334px) 36vw, 480px"
+              // Mirrors .photoCutout's width rule minus the svh term (which
+              // can only shrink the render toward the 450px floor) — a loose
+              // hint over-fetches 4-15x.
+              sizes="(max-width: 640px) 62vw, max(450px, min(36vw, 560px))"
               priority
             />
           </CouplePhotoFrame>
