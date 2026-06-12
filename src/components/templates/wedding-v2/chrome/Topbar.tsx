@@ -160,19 +160,33 @@ export function Topbar({
           {(sections.length > 0 || overflow.length > 0) && (
             <MobileNavMenu
               className={styles.navToggle}
-              brand={coupleNames || monogram || ""}
+              // Full-screen veil, themed by V2's section themes via the
+              // --mnm-veil-* hooks (menuVars in WeddingTemplateV2): Cream is
+              // a light veil with dark ink, Midnight a slate one — the
+              // cinematic counterpart to Grand Luxe's night veil.
+              expression="veil"
+              // Monogram-first, like Grand Luxe: the veil's brand is
+              // display-scale serif with flanking hairlines, and full couple
+              // names wrap to two lines at ≤425px (user sweep). Single
+              // initial fallback when no monogram is set.
+              brand={monogram || (coupleNames ? coupleNames.charAt(0) : "")}
               items={[...sections, ...overflow].map((s) => ({
                 id: s.id,
                 label: s.label,
                 href: s.href ?? `#${s.id}`,
                 isCta: s.isCta || s.id === "rsvp",
               }))}
+              // Lux-aware: section themes paint the bar via --lux-panel-soft
+              // (a Midnight bar is DARK), so the trigger must ride the same
+              // ink ramp or it vanishes dark-on-dark — the PR #197 contrast
+              // bug class on the current color axis. Cream default unchanged
+              // via the fallbacks.
               buttonStyle={{
                 width: 40,
                 height: 40,
                 borderRadius: "var(--r, 16px)",
-                border: "1px solid var(--border, #e8e1d6)",
-                color: "var(--text-2, #786f65)",
+                border: "1px solid var(--lux-line, var(--border, #e8e1d6))",
+                color: "var(--lux-ink-soft, var(--text-2, #786f65))",
                 background: "transparent",
               }}
               desktopBreakpoint={900}
