@@ -230,17 +230,45 @@ export function WeddingTemplateV2({
       // pinned dark navy) instead of the gold pinned above for the dark glass.
       vars["--lux-hero-accent"] = vars["--lux-accent"] ?? active.accent ?? "#0a1f2b";
     }
-    // The mobile menu drawer is the one anchor surface that renders OUTSIDE
-    // the article (portaled to document.body), so it follows the section
-    // theme through the menu's neutral surface hooks instead of reading
-    // --lux-* directly: the panel hex at drawer opacity + the ramp's ink
-    // (polarity already derived by the generator — Cerulean gets dark ink).
-    // Without these the drawer stayed on the LEGACY variant glass axis
-    // (--glass-bg-mobile), which section-themed events migrated away from —
-    // a Midnight event opened a cream drawer.
-    vars["--mnm-surface"] = `color-mix(in srgb, ${vars["--lux-panel"] ?? active.panel} 97%, transparent)`;
-    vars["--mnm-ink"] = vars["--lux-ink"];
     return vars;
+  }, [theme.sectionThemeId, primaryColor]);
+
+  // Mobile menu (full-screen veil) theming. The menu renders OUTSIDE the
+  // article (portaled to document.body), so it follows V2's CURRENT color
+  // axis — section themes — through the menu's neutral --mnm-* hooks rather
+  // than --lux-* directly. Emitted ALWAYS (not only when a section theme is
+  // active): the Cream default must yield a LIGHT veil with dark ink, not
+  // fall through to Grand Luxe's dark canon. Polarity rides the section
+  // theme generator (Cerulean's light panel → dark ink), and the accent
+  // sheen follows the theme's pinned accent or the organizer's primary.
+  // (The legacy --glass-bg-mobile axis was retired with variantId — a
+  // Midnight event used to open a cream drawer; see PR #199.)
+  const menuVars = useMemo(() => {
+    const active = getV2SectionTheme(theme.sectionThemeId);
+    const panel = active?.panel ?? "#f0ebe3"; // Cream default
+    const ramp = getSectionThemeVariables(
+      active ?? { id: "cream", label: "Cream", panel },
+    );
+    const accent =
+      active?.accent ??
+      (primaryColor && HEX6_RE.test(primaryColor) ? primaryColor : "#c5a961");
+    const light = isLightColor(panel);
+    return {
+      // Side-drawer hooks (kept for safety should V2 ever revert): panel at
+      // drawer opacity + the ramp's ink.
+      "--mnm-surface": `color-mix(in srgb, ${panel} 97%, transparent)`,
+      "--mnm-ink": ramp["--lux-ink"],
+      // Full-screen veil: ink + readable-on-accent CTA ink + the layered
+      // surface (accent sheen over the panel, settling slightly deeper —
+      // lighter sheen on light panels so it tints rather than smokes).
+      "--mnm-veil-ink": ramp["--lux-ink"],
+      "--mnm-veil-cta-ink": mostReadable(accent, "#ffffff", panel),
+      "--mnm-veil-bg": [
+        `radial-gradient(130% 55% at 50% -6%, color-mix(in srgb, ${accent} ${light ? 12 : 19}%, transparent) 0%, transparent 62%)`,
+        `radial-gradient(110% 42% at 50% 110%, color-mix(in srgb, ${accent} ${light ? 6 : 9}%, transparent) 0%, transparent 55%)`,
+        `linear-gradient(180deg, ${panel} 0%, color-mix(in srgb, ${panel} 92%, ${light ? "#ffffff" : "#000000"}) 100%)`,
+      ].join(", "),
+    };
   }, [theme.sectionThemeId, primaryColor]);
 
   // Scrapbook adds the textured chrome (mountain dividers + footer skyline);
@@ -555,7 +583,7 @@ export function WeddingTemplateV2({
           <article
             className="wedding-template-v2"
             style={{
-              ...v2TokensToInline({ ...cssVars, ...glassVars, ...luxVars }),
+              ...v2TokensToInline({ ...cssVars, ...glassVars, ...luxVars, ...menuVars }),
               backgroundColor: "var(--bg)",
               color: "var(--text)",
               fontFamily: "var(--sans)",

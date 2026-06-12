@@ -160,6 +160,11 @@ export function Topbar({
           {(sections.length > 0 || overflow.length > 0) && (
             <MobileNavMenu
               className={styles.navToggle}
+              // Full-screen veil, themed by V2's section themes via the
+              // --mnm-veil-* hooks (menuVars in WeddingTemplateV2): Cream is
+              // a light veil with dark ink, Midnight a slate one — the
+              // cinematic counterpart to Grand Luxe's night veil.
+              expression="veil"
               brand={coupleNames || monogram || ""}
               items={[...sections, ...overflow].map((s) => ({
                 id: s.id,

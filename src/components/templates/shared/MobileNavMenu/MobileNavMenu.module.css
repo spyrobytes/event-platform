@@ -71,12 +71,6 @@
   animation: mnmItemIn 320ms var(--motion-easing, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
-.chevron {
-  flex: none;
-  opacity: 0.4;
-  transition: opacity 200ms ease, transform 200ms ease;
-}
-
 .cta {
   display: flex;
   align-items: center;
@@ -156,7 +150,6 @@
 }
 
 .root[data-expression="drawer"] .item {
-  justify-content: space-between;
   min-height: 48px;
   padding: 0.7rem 0.85rem;
   border-radius: 12px;
@@ -167,11 +160,6 @@
 
 .root[data-expression="drawer"] .item:hover {
   background: color-mix(in srgb, var(--accent, currentColor) 10%, transparent);
-}
-
-.root[data-expression="drawer"] .item:hover .chevron {
-  opacity: 1;
-  transform: translateX(2px);
 }
 
 .root[data-expression="drawer"] .ctaArea {
@@ -206,37 +194,45 @@
 
 .root[data-expression="veil"] {
   --mnm-item-base-delay: 200ms;
-  /* Rides Grand Luxe's accent machinery: --lux-accent follows the
-     organizer's live accent (champagne gold by default). */
+  /* Rides the template's accent machinery: --lux-accent follows the
+     organizer's live accent (champagne gold on Grand Luxe's default). */
   --mnm-gold: var(--lux-accent, var(--accent, #c5a55a));
+  /* The veil's surface/ink are template-themable via --mnm-veil-* hooks
+     (V2 emits them from its section themes — Cream is a LIGHT veil with
+     dark ink; see WeddingTemplateV2's menuVars). The fallbacks are Grand
+     Luxe's canon, byte-identical to its approved look. */
+  --mnm-veil-ink: var(--ivory, #f8f5f0);
 }
 
 .root[data-expression="veil"] .panel {
   inset: 0;
   padding: clamp(18px, 4vw, 32px);
-  color: var(--ivory, #f8f5f0);
-  /* Champagne glow breathing at the top, a fainter answer at the foot,
-     over WARM charcoal — candlelit, not funereal (device-sweep call:
-     near-black read too somber for a wedding). The base is the
-     palette's warm charcoal, settling toward (but never reaching)
-     night at the foot. Opaque enough that no backdrop blur is needed
-     (one less full-screen paint layer). */
-  background:
+  color: var(--mnm-veil-ink);
+  /* Accent glow breathing at the top, a fainter answer at the foot, over
+     a warm base — candlelit, not funereal (device-sweep call: near-black
+     read too somber for a wedding). GL fallback: warm charcoal settling
+     toward (but never reaching) night. Opaque enough that no backdrop
+     blur is needed (one less full-screen paint layer). */
+  background: var(
+    --mnm-veil-bg,
     radial-gradient(
-      130% 55% at 50% -6%,
-      color-mix(in srgb, var(--mnm-gold) 19%, transparent) 0%,
-      transparent 62%
-    ),
+        130% 55% at 50% -6%,
+        color-mix(in srgb, var(--mnm-gold) 19%, transparent) 0%,
+        transparent 62%
+      )
+      ,
     radial-gradient(
-      110% 42% at 50% 110%,
-      color-mix(in srgb, var(--mnm-gold) 9%, transparent) 0%,
-      transparent 55%
-    ),
+        110% 42% at 50% 110%,
+        color-mix(in srgb, var(--mnm-gold) 9%, transparent) 0%,
+        transparent 55%
+      )
+      ,
     linear-gradient(
-      180deg,
-      var(--charcoal, #2a2824) 0%,
-      color-mix(in srgb, var(--night, #121110) 60%, var(--charcoal, #2a2824)) 100%
-    );
+        180deg,
+        var(--charcoal, #2a2824) 0%,
+        color-mix(in srgb, var(--night, #121110) 60%, var(--charcoal, #2a2824)) 100%
+      )
+  );
   animation: mnmVeilIn 560ms var(--motion-easing, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
@@ -256,7 +252,7 @@
   font-size: clamp(2rem, 9vw, 2.6rem);
   font-weight: 400;
   letter-spacing: 0.14em;
-  color: var(--ivory, #f8f5f0);
+  color: var(--mnm-veil-ink);
   text-shadow: 0 2px 24px color-mix(in srgb, var(--mnm-gold) 30%, transparent);
 }
 
@@ -289,7 +285,7 @@
   right: clamp(14px, 3vw, 24px);
   width: 44px;
   height: 44px;
-  border: 1px solid color-mix(in srgb, var(--ivory, #f8f5f0) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mnm-veil-ink) 28%, transparent);
 }
 
 .root[data-expression="veil"] .close:hover {
@@ -348,7 +344,7 @@
   font-size: clamp(1.3rem, 3svh, 1.6rem);
   font-weight: 400;
   letter-spacing: 0.04em;
-  color: color-mix(in srgb, var(--ivory, #f8f5f0) 90%, transparent);
+  color: color-mix(in srgb, var(--mnm-veil-ink) 90%, transparent);
   padding: 0.5em 1.2em;
   transition: color 220ms ease, letter-spacing 320ms ease;
 }
@@ -356,10 +352,6 @@
 .root[data-expression="veil"] .item:hover {
   color: var(--accent-2, var(--mnm-gold));
   letter-spacing: 0.075em;
-}
-
-.root[data-expression="veil"] .chevron {
-  display: none;
 }
 
 .root[data-expression="veil"] .ctaArea {
@@ -375,9 +367,9 @@
   padding: 0.95rem 2.4rem;
   border-radius: var(--r, 4px); /* GL is sharp-cornered — honor it */
   background: var(--mnm-gold);
-  /* Guaranteed-readable ink on the accent fill (GL computes this per
-     accent — see createWeddingTemplate's --lux-accent-ink). */
-  color: var(--lux-accent-ink, var(--night, #121110));
+  /* Guaranteed-readable ink on the accent fill — V2 emits its own
+     computed value; GL's --lux-accent-ink is the fallback chain. */
+  color: var(--mnm-veil-cta-ink, var(--lux-accent-ink, var(--night, #121110)));
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.16em;

@@ -46,9 +46,12 @@ const PORTAL_INHERITED_VARS = [
   "--serif",
   // Neutral menu-surface hooks — the template-agnostic way for a template's
   // CURRENT theming axis to recolor the menu (V2 section themes emit them;
-  // see WeddingTemplateV2's luxVars). They outrank the legacy glass token.
+  // see WeddingTemplateV2's menuVars). They outrank the legacy glass token.
   "--mnm-surface",
   "--mnm-ink",
+  "--mnm-veil-ink",
+  "--mnm-veil-cta-ink",
+  "--mnm-veil-bg",
   // Surface + palette tokens the expressions draw on. --glass-bg-mobile is
   // emitted by every V2 variant and V3 theme pack precisely for this menu —
   // it sat dormant while the drawer painted hardcoded white.
@@ -415,7 +418,14 @@ export function MobileNavMenu({
             className={styles.panel}
           >
             <div className={styles.header}>
-              <span className={styles.brand}>{brand}</span>
+              {/* Empty brand renders nothing (the veil's flanking hairlines
+                  would otherwise frame a blank); the placeholder span keeps
+                  the drawer header's space-between pushing close right. */}
+              {brand ? (
+                <span className={styles.brand}>{brand}</span>
+              ) : (
+                <span aria-hidden />
+              )}
               <button
                 ref={closeButtonRef}
                 type="button"
@@ -440,7 +450,6 @@ export function MobileNavMenu({
                   style={itemEntranceDelay(i)}
                 >
                   <span>{item.label}</span>
-                  <ChevronIcon />
                 </a>
               ))}
             </nav>
@@ -479,27 +488,6 @@ function CloseIcon() {
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg
-      aria-hidden
-      className={styles.chevron}
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-    >
-      <path
-        d="M3 8h9.5M8.5 3.5L13 8l-4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
