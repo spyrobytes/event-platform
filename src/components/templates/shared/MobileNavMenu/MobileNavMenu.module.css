@@ -158,8 +158,13 @@
   letter-spacing: 0.01em;
 }
 
-.root[data-expression="drawer"] .item:hover {
-  background: color-mix(in srgb, var(--accent, currentColor) 10%, transparent);
+/* Hover affordances only where a hover state truly exists — on touch,
+   tap-hover sticks to the last-touched item and reads as a random
+   highlight (V2 sweep: "highlighted for no apparent reason"). */
+@media (hover: hover) {
+  .root[data-expression="drawer"] .item:hover {
+    background: color-mix(in srgb, var(--accent, currentColor) 10%, transparent);
+  }
 }
 
 .root[data-expression="drawer"] .ctaArea {
@@ -349,9 +354,14 @@
   transition: color 220ms ease, letter-spacing 320ms ease;
 }
 
-.root[data-expression="veil"] .item:hover {
-  color: var(--accent-2, var(--mnm-gold));
-  letter-spacing: 0.075em;
+@media (hover: hover) {
+  .root[data-expression="veil"] .item:hover {
+    /* Template-themable hover ink (V2 emits its section-theme accent —
+       its raw --accent-2 is the LEGACY palette gold #c5a55a, incoherent
+       with section themes); GL falls through to its light-gold pop. */
+    color: var(--mnm-veil-hover-ink, var(--accent-2, var(--mnm-gold)));
+    letter-spacing: 0.075em;
+  }
 }
 
 .root[data-expression="veil"] .ctaArea {

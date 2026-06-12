@@ -51,6 +51,7 @@ const PORTAL_INHERITED_VARS = [
   "--mnm-ink",
   "--mnm-veil-ink",
   "--mnm-veil-cta-ink",
+  "--mnm-veil-hover-ink",
   "--mnm-veil-bg",
   // Surface + palette tokens the expressions draw on. --glass-bg-mobile is
   // emitted by every V2 variant and V3 theme pack precisely for this menu —

@@ -165,7 +165,11 @@ export function Topbar({
               // a light veil with dark ink, Midnight a slate one — the
               // cinematic counterpart to Grand Luxe's night veil.
               expression="veil"
-              brand={coupleNames || monogram || ""}
+              // Monogram-first, like Grand Luxe: the veil's brand is
+              // display-scale serif with flanking hairlines, and full couple
+              // names wrap to two lines at ≤425px (user sweep). Single
+              // initial fallback when no monogram is set.
+              brand={monogram || (coupleNames ? coupleNames.charAt(0) : "")}
               items={[...sections, ...overflow].map((s) => ({
                 id: s.id,
                 label: s.label,

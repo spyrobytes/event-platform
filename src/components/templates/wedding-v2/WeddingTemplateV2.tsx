@@ -263,6 +263,11 @@ export function WeddingTemplateV2({
       // lighter sheen on light panels so it tints rather than smokes).
       "--mnm-veil-ink": ramp["--lux-ink"],
       "--mnm-veil-cta-ink": mostReadable(accent, "#ffffff", panel),
+      // Hover ink = the same resolved accent as the sheen/CTA, so the
+      // hover reads as "this theme's accent" — without this the veil
+      // falls back to --accent-2, V2's LEGACY palette gold (#c5a55a),
+      // which lit items in off-theme gold (user sweep report).
+      "--mnm-veil-hover-ink": accent,
       "--mnm-veil-bg": [
         `radial-gradient(130% 55% at 50% -6%, color-mix(in srgb, ${accent} ${light ? 12 : 19}%, transparent) 0%, transparent 62%)`,
         `radial-gradient(110% 42% at 50% 110%, color-mix(in srgb, ${accent} ${light ? 6 : 9}%, transparent) 0%, transparent 55%)`,
