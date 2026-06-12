@@ -17,7 +17,11 @@ import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { showHeroCountdown } from "../../hero-card-visibility";
 import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
-import { isCutoutCouplePhotoActive } from "../../../shared/CouplePhotoFrame/frame-options";
+import {
+  isCutoutCouplePhotoActive,
+  resolveCutoutAspect,
+} from "../../../shared/CouplePhotoFrame/frame-options";
+import type { CSSProperties } from "react";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CollageMosaicHero.module.css";
 
@@ -57,25 +61,15 @@ export function CollageMosaicHero({
   });
 
   // This hero uses next/image fill, so the cutout wrapper needs the photo's
-  // intrinsic ratio to size itself; 2:3 portrait is the fallback when the
-  // asset predates dimension capture. The hero ALSO needs the ratio (and its
-  // inverse) as numeric vars: the 450px width floor means cutout + text
-  // can't always share 100svh, so .heroCutout grows to fit — and CSS can't
-  // divide by a "W / H" ratio token to get the height back from the width.
-  const cutoutW =
-    couplePhotoAsset?.width && couplePhotoAsset?.height
-      ? couplePhotoAsset.width
-      : 2;
-  const cutoutH =
-    couplePhotoAsset?.width && couplePhotoAsset?.height
-      ? couplePhotoAsset.height
-      : 3;
-  const cutoutAspect = `${cutoutW} / ${cutoutH}`;
+  // intrinsic ratio to size itself. The hero ALSO consumes the ratio as a
+  // NUMERIC inline var: .heroCutout's width/height math runs in calc(),
+  // which can multiply and divide by a number but not by a "W / H" token.
+  const { aspectString: cutoutAspect, aspectNum: cutoutAspectNum } =
+    resolveCutoutAspect(couplePhotoAsset);
   const cutoutHeroVars = isCutout
     ? ({
-        "--cc-cutout-aspect": (cutoutW / cutoutH).toFixed(4),
-        "--cc-cutout-aspect-inv": (cutoutH / cutoutW).toFixed(4),
-      } as React.CSSProperties)
+        "--cc-cutout-aspect": cutoutAspectNum.toFixed(4),
+      } as CSSProperties)
     : undefined;
 
   // Countdown data
@@ -169,10 +163,12 @@ export function CollageMosaicHero({
               src={couplePhotoAsset!.publicUrl!}
               alt={coupleNames || title || "Couple"}
               fill
-              // Mirrors .photoCutout's width rule minus the svh term (which
-              // can only shrink the render toward the 450px floor) — a loose
-              // hint over-fetches 4-15x.
-              sizes="(max-width: 640px) 62vw, max(450px, min(36vw, 560px))"
+              // Plain lengths only — math functions in sizes defeat
+              // next/image's vw-extraction (srcset trimming) and legacy
+              // browsers fall back to 100vw. Mirrors --cc-cutout-w's
+              // 450px floor / 36vw scale / 560px cap (36vw crosses 450px
+              // at 1250px; the svh term can only shrink the render).
+              sizes="(max-width: 640px) 62vw, (max-width: 1250px) 450px, 560px"
               priority
             />
           </CouplePhotoFrame>

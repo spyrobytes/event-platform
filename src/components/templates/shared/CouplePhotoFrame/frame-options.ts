@@ -100,6 +100,24 @@ export function isFloatingCouplePhotoActive(
  * Note the non-obvious falses: a persisted "cutout" with no photo selected,
  * or with Portrait active, must leave the hero cards untouched.
  */
+/**
+ * Aspect ratio of the cutout couple photo, derived from the asset's
+ * intrinsic dimensions (2:3 portrait fallback for assets that predate
+ * dimension capture). `aspectString` feeds CouplePhotoFrame's `aspectRatio`
+ * prop (the CSS aspect-ratio "W / H" form); `aspectNum` is for hosts whose
+ * CSS does calc() math with the ratio — numbers can multiply AND divide,
+ * a "W / H" ratio token can only multiply. Shared so enrolled hosts can't
+ * drift on the fallback (this is the second host needing it).
+ */
+export function resolveCutoutAspect(
+  asset: { width?: number | null; height?: number | null } | null | undefined,
+): { aspectString: string; aspectNum: number } {
+  const hasDimensions = !!(asset?.width && asset?.height);
+  const w = hasDimensions ? asset.width! : 2;
+  const h = hasDimensions ? asset.height! : 3;
+  return { aspectString: `${w} / ${h}`, aspectNum: w / h };
+}
+
 export function isCutoutCouplePhotoActive(args: {
   /** Frame resolved via resolveCouplePhotoFrame (per-template options). */
   resolvedFrame: CouplePhotoFrameId | undefined;

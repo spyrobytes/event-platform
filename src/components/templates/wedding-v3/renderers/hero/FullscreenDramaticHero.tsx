@@ -17,6 +17,7 @@ import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
 import {
   isFloatingCouplePhotoActive,
   isCutoutCouplePhotoActive,
+  resolveCutoutAspect,
 } from "../../../shared/CouplePhotoFrame/frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./FullscreenDramaticHero.module.css";
@@ -73,12 +74,9 @@ export function FullscreenDramaticHero({
   });
 
   // This hero uses next/image fill, so the cutout wrapper needs the photo's
-  // intrinsic ratio to size itself; 2:3 portrait is the fallback when the
-  // asset predates dimension capture.
-  const cutoutAspect =
-    couplePhotoAsset?.width && couplePhotoAsset?.height
-      ? `${couplePhotoAsset.width} / ${couplePhotoAsset.height}`
-      : "2 / 3";
+  // intrinsic ratio to size itself (shared resolver, 2:3 portrait fallback
+  // when the asset predates dimension capture).
+  const { aspectString: cutoutAspect } = resolveCutoutAspect(couplePhotoAsset);
 
   const showCountdown = !!countdown;
   const showSchedule = !!(scheduleCards && scheduleCards.length > 0);
