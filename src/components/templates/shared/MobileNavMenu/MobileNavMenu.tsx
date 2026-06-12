@@ -54,7 +54,6 @@ const PORTAL_INHERITED_VARS = [
   "--r",
   // The template's motion personality — entrance easing + item stagger
   // rhythm follow the template instead of one hardcoded curve.
-  "--motion-duration",
   "--motion-easing",
   "--motion-stagger",
   // Grand Luxe accent machinery (veil expression): --lux-accent follows the
@@ -83,6 +82,18 @@ function releaseScrollLock(previous: string) {
   if (typeof document !== "undefined") {
     document.body.style.overflow = previous;
   }
+}
+
+/**
+ * Entrance stagger for the Nth element in the menu (items first, then CTAs
+ * continue the count). Base delay is 0 for the drawer; the veil sets
+ * --mnm-item-base-delay so its items wait for the panel to settle. The
+ * rhythm itself (--motion-stagger) is the template's own.
+ */
+function itemEntranceDelay(index: number): React.CSSProperties {
+  return {
+    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${index} * var(--motion-stagger, 45ms))`,
+  };
 }
 
 export type MobileNavItem = {
@@ -421,9 +432,7 @@ export function MobileNavMenu({
                   href={item.href}
                   onClick={onItemClick}
                   className={styles.item}
-                  style={{
-                    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${i} * var(--motion-stagger, 45ms))`,
-                  }}
+                  style={itemEntranceDelay(i)}
                 >
                   <span>{item.label}</span>
                   <ChevronIcon />
@@ -439,11 +448,8 @@ export function MobileNavMenu({
                     href={item.href}
                     onClick={onItemClick}
                     className={styles.cta}
-                    style={{
-                      animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${
-                        nonCtaItems.length + i
-                      } * var(--motion-stagger, 45ms))`,
-                    }}
+                    // CTAs continue the stagger after the last regular item.
+                    style={itemEntranceDelay(nonCtaItems.length + i)}
                   >
                     {item.label}
                   </a>

@@ -93,9 +93,12 @@
   bottom: 0;
   width: min(84vw, 340px);
   padding: 1.1rem 1rem 1rem;
+  /* No backdrop-filter here: mobileNavBg tokens are ~0.97 alpha (and the
+     --surface fallback is opaque), so a panel blur is imperceptible — it
+     only stacked a second full-height blur layer on top of the backdrop's
+     blur(4px). Review finding; this codebase has low-end-phone paint-cost
+     history. */
   background: var(--glass-bg-mobile, var(--surface, #ffffff));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   color: var(--text-on-card, var(--text, #1f1f1f));
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
   border-right: 1px solid
