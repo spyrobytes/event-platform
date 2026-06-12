@@ -1,0 +1,445 @@
+/* ===================================================================
+   MobileNavMenu — visual layer.
+
+   Mechanics (portal, focus trap, scroll lock, BFCache close paths)
+   live in MobileNavMenu.tsx and are expression-agnostic. This module
+   owns everything the eye sees, keyed by data-expression on .root:
+
+     "drawer" (default) — refined side drawer. Surface comes from the
+       theme system (--glass-bg-mobile, emitted by every V2 variant and
+       V3 theme pack) instead of hardcoded white; entrance/stagger ride
+       the template's --motion-* vars so each template's menu moves
+       like its template.
+
+     "veil" — full-screen takeover for dark, formal templates (Grand
+       Luxe): night gradient with a champagne sheen, centered monogram
+       over a gold hairline frame, serif items, gold CTA.
+
+   Items are DYNAMIC (sections come and go). Both expressions must
+   compose gracefully at 2 items and at 10: the drawer top-aligns its
+   list (align-content: start — grid's default stretch was scattering
+   sparse items across the panel) and pins the CTA to the bottom; the
+   veil centers the item group between hairlines, so the composition
+   is balanced at any count.
+   =================================================================== */
+
+/* ===== SHARED ===== */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(18, 12, 10, 0.46);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: mnmFadeIn 240ms ease;
+}
+
+.panel {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: grid;
+  place-content: center;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 220ms ease, background 220ms ease,
+    transform 220ms ease;
+}
+
+.close:active {
+  transform: scale(0.94);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  /* Per-item delay set inline: calc(var(--mnm-item-base-delay, 0ms) +
+     i * var(--motion-stagger, 45ms)) — the stagger rhythm is the
+     template's own. */
+  animation: mnmItemIn 320ms var(--motion-easing, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.chevron {
+  flex: none;
+  opacity: 0.4;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  animation: mnmItemIn 320ms var(--motion-easing, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* ===== DRAWER (default) ===== */
+
+.root[data-expression="drawer"] .panel {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(84vw, 340px);
+  padding: 1.1rem 1rem 1rem;
+  /* No backdrop-filter here: mobileNavBg tokens are ~0.97 alpha (and the
+     --surface fallback is opaque), so a panel blur is imperceptible — it
+     only stacked a second full-height blur layer on top of the backdrop's
+     blur(4px). Review finding; this codebase has low-end-phone paint-cost
+     history. */
+  background: var(--glass-bg-mobile, var(--surface, #ffffff));
+  color: var(--text-on-card, var(--text, #1f1f1f));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+  border-right: 1px solid
+    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 10%, transparent);
+  animation: mnmDrawerIn 380ms var(--motion-easing, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.root[data-expression="drawer"] .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 12%, transparent);
+}
+
+.root[data-expression="drawer"] .brand {
+  min-width: 0; /* allow ellipsis to engage inside the flex header */
+  font-family: var(--serif, Georgia, serif);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.root[data-expression="drawer"] .close {
+  border: 1px solid
+    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 16%, transparent);
+}
+
+.root[data-expression="drawer"] .close:hover {
+  background: color-mix(in srgb, var(--accent, currentColor) 10%, transparent);
+}
+
+.root[data-expression="drawer"] .list {
+  flex: 1;
+  padding-top: 1rem;
+  display: grid;
+  gap: 2px;
+  /* THE sparse-items fix: grid's default align-content stretches the
+     rows across the full panel height, scattering 2-3 items with huge
+     gaps. The list hugs the top; the CTA area pins to the bottom. */
+  align-content: start;
+  overflow-y: auto;
+}
+
+.root[data-expression="drawer"] .item {
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  font-size: 0.98rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.root[data-expression="drawer"] .item:hover {
+  background: color-mix(in srgb, var(--accent, currentColor) 10%, transparent);
+}
+
+.root[data-expression="drawer"] .item:hover .chevron {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.root[data-expression="drawer"] .ctaArea {
+  margin-top: auto; /* pinned to the bottom edge at ANY item count */
+  padding-top: 0.9rem;
+  border-top: 1px solid
+    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 10%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.root[data-expression="drawer"] .cta {
+  min-height: 50px;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--accent, #9f5f50);
+  color: var(--accent-foreground, #ffffff);
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  box-shadow: 0 12px 30px
+    color-mix(in srgb, var(--accent, #9f5f50) 28%, transparent);
+  transition: filter 220ms ease, transform 220ms ease;
+}
+
+.root[data-expression="drawer"] .cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+/* ===== VEIL — full-screen night takeover (Grand Luxe) ===== */
+
+.root[data-expression="veil"] {
+  --mnm-item-base-delay: 200ms;
+  /* Rides Grand Luxe's accent machinery: --lux-accent follows the
+     organizer's live accent (champagne gold by default). */
+  --mnm-gold: var(--lux-accent, var(--accent, #c5a55a));
+}
+
+.root[data-expression="veil"] .panel {
+  inset: 0;
+  padding: clamp(18px, 4vw, 32px);
+  color: var(--ivory, #f8f5f0);
+  /* Champagne glow breathing at the top, a fainter answer at the foot,
+     over WARM charcoal — candlelit, not funereal (device-sweep call:
+     near-black read too somber for a wedding). The base is the
+     palette's warm charcoal, settling toward (but never reaching)
+     night at the foot. Opaque enough that no backdrop blur is needed
+     (one less full-screen paint layer). */
+  background:
+    radial-gradient(
+      130% 55% at 50% -6%,
+      color-mix(in srgb, var(--mnm-gold) 19%, transparent) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      110% 42% at 50% 110%,
+      color-mix(in srgb, var(--mnm-gold) 9%, transparent) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      var(--charcoal, #2a2824) 0%,
+      color-mix(in srgb, var(--night, #121110) 60%, var(--charcoal, #2a2824)) 100%
+    );
+  animation: mnmVeilIn 560ms var(--motion-easing, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.root[data-expression="veil"] .header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: clamp(34px, 8svh, 72px);
+}
+
+/* Monogram centerpiece, framed by gold hairlines that fade outward. */
+.root[data-expression="veil"] .brand {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-family: var(--serif, Georgia, serif);
+  font-size: clamp(2rem, 9vw, 2.6rem);
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: var(--ivory, #f8f5f0);
+  text-shadow: 0 2px 24px color-mix(in srgb, var(--mnm-gold) 30%, transparent);
+}
+
+.root[data-expression="veil"] .brand::before,
+.root[data-expression="veil"] .brand::after {
+  content: "";
+  width: clamp(36px, 12vw, 64px);
+  height: 1px;
+}
+
+.root[data-expression="veil"] .brand::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--mnm-gold) 75%, transparent)
+  );
+}
+
+.root[data-expression="veil"] .brand::after {
+  background: linear-gradient(
+    270deg,
+    transparent,
+    color-mix(in srgb, var(--mnm-gold) 75%, transparent)
+  );
+}
+
+.root[data-expression="veil"] .close {
+  position: absolute;
+  top: clamp(14px, 3vw, 24px);
+  right: clamp(14px, 3vw, 24px);
+  width: 44px;
+  height: 44px;
+  border: 1px solid color-mix(in srgb, var(--ivory, #f8f5f0) 28%, transparent);
+}
+
+.root[data-expression="veil"] .close:hover {
+  border-color: color-mix(in srgb, var(--mnm-gold) 70%, transparent);
+  background: color-mix(in srgb, var(--mnm-gold) 10%, transparent);
+}
+
+/* The item group floats centered between two gold hairlines — the
+   frame holds the composition whether two sections or ten.
+
+   Centering is done with AUTO MARGINS on the hairline pseudo-children,
+   NOT justify-content: center — a centered flex container that
+   overflows clips its top into an unscrollable zone (the cut-off
+   top-items bug from the device sweep). Auto margins center the group
+   when it fits and collapse to 0 when it doesn't, so every item stays
+   reachable by scroll. */
+.root[data-expression="veil"] .list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(2px, 1svh, 8px);
+  overflow-y: auto;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.root[data-expression="veil"] .list::before,
+.root[data-expression="veil"] .list::after {
+  content: "";
+  flex: none;
+  width: 44px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--mnm-gold) 60%, transparent),
+    transparent
+  );
+}
+
+.root[data-expression="veil"] .list::before {
+  margin-top: auto;
+  margin-bottom: clamp(14px, 3svh, 26px);
+}
+
+.root[data-expression="veil"] .list::after {
+  margin-top: clamp(14px, 3svh, 26px);
+  margin-bottom: auto;
+}
+
+.root[data-expression="veil"] .item {
+  justify-content: center;
+  font-family: var(--serif, Georgia, serif);
+  font-size: clamp(1.3rem, 3svh, 1.6rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--ivory, #f8f5f0) 90%, transparent);
+  padding: 0.5em 1.2em;
+  transition: color 220ms ease, letter-spacing 320ms ease;
+}
+
+.root[data-expression="veil"] .item:hover {
+  color: var(--accent-2, var(--mnm-gold));
+  letter-spacing: 0.075em;
+}
+
+.root[data-expression="veil"] .chevron {
+  display: none;
+}
+
+.root[data-expression="veil"] .ctaArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: clamp(26px, 6svh, 56px);
+}
+
+.root[data-expression="veil"] .cta {
+  min-width: 210px;
+  padding: 0.95rem 2.4rem;
+  border-radius: var(--r, 4px); /* GL is sharp-cornered — honor it */
+  background: var(--mnm-gold);
+  /* Guaranteed-readable ink on the accent fill (GL computes this per
+     accent — see createWeddingTemplate's --lux-accent-ink). */
+  color: var(--lux-accent-ink, var(--night, #121110));
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: 0 14px 44px color-mix(in srgb, var(--mnm-gold) 35%, transparent);
+  transition: filter 240ms ease, transform 240ms ease;
+}
+
+.root[data-expression="veil"] .cta:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+/* ===== KEYFRAMES ===== */
+
+@keyframes mnmFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mnmDrawerIn {
+  from {
+    transform: translateX(-104%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes mnmVeilIn {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mnmItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .panel,
+  .item,
+  .cta {
+    animation: none !important;
+  }
+
+  .item,
+  .close,
+  .cta {
+    transition: none;
+  }
+}
