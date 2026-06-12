@@ -93,16 +93,22 @@
   bottom: 0;
   width: min(84vw, 340px);
   padding: 1.1rem 1rem 1rem;
-  /* No backdrop-filter here: mobileNavBg tokens are ~0.97 alpha (and the
+  /* Surface/ink resolution: the template's CURRENT theming axis
+     (--mnm-surface/--mnm-ink, e.g. V2 section themes) wins; the legacy
+     per-variant glass token is the fallback; plain surface last. The ink
+     rides the same chain so a dark panel automatically brings light text
+     (polarity is derived upstream by the section-theme generator). */
+  --mnm-drawer-ink: var(--mnm-ink, var(--text-on-card, var(--text, #1f1f1f)));
+  /* No backdrop-filter here: these surfaces are ~0.97 alpha (and the
      --surface fallback is opaque), so a panel blur is imperceptible — it
      only stacked a second full-height blur layer on top of the backdrop's
      blur(4px). Review finding; this codebase has low-end-phone paint-cost
      history. */
-  background: var(--glass-bg-mobile, var(--surface, #ffffff));
-  color: var(--text-on-card, var(--text, #1f1f1f));
+  background: var(--mnm-surface, var(--glass-bg-mobile, var(--surface, #ffffff)));
+  color: var(--mnm-drawer-ink);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
   border-right: 1px solid
-    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 10%, transparent);
+    color-mix(in srgb, var(--mnm-drawer-ink) 10%, transparent);
   animation: mnmDrawerIn 380ms var(--motion-easing, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
@@ -114,7 +120,7 @@
   min-height: 58px;
   padding-bottom: 0.8rem;
   border-bottom: 1px solid
-    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 12%, transparent);
+    color-mix(in srgb, var(--mnm-drawer-ink) 12%, transparent);
 }
 
 .root[data-expression="drawer"] .brand {
@@ -130,7 +136,7 @@
 
 .root[data-expression="drawer"] .close {
   border: 1px solid
-    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 16%, transparent);
+    color-mix(in srgb, var(--mnm-drawer-ink) 16%, transparent);
 }
 
 .root[data-expression="drawer"] .close:hover {
@@ -172,7 +178,7 @@
   margin-top: auto; /* pinned to the bottom edge at ANY item count */
   padding-top: 0.9rem;
   border-top: 1px solid
-    color-mix(in srgb, var(--text-on-card, var(--text, #000)) 10%, transparent);
+    color-mix(in srgb, var(--mnm-drawer-ink) 10%, transparent);
   display: grid;
   gap: 8px;
 }

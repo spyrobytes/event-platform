@@ -44,6 +44,11 @@ const PORTAL_INHERITED_VARS = [
   "--border",
   "--sans",
   "--serif",
+  // Neutral menu-surface hooks — the template-agnostic way for a template's
+  // CURRENT theming axis to recolor the menu (V2 section themes emit them;
+  // see WeddingTemplateV2's luxVars). They outrank the legacy glass token.
+  "--mnm-surface",
+  "--mnm-ink",
   // Surface + palette tokens the expressions draw on. --glass-bg-mobile is
   // emitted by every V2 variant and V3 theme pack precisely for this menu —
   // it sat dormant while the drawer painted hardcoded white.

@@ -167,12 +167,17 @@ export function Topbar({
                 href: s.href ?? `#${s.id}`,
                 isCta: s.isCta || s.id === "rsvp",
               }))}
+              // Lux-aware: section themes paint the bar via --lux-panel-soft
+              // (a Midnight bar is DARK), so the trigger must ride the same
+              // ink ramp or it vanishes dark-on-dark — the PR #197 contrast
+              // bug class on the current color axis. Cream default unchanged
+              // via the fallbacks.
               buttonStyle={{
                 width: 40,
                 height: 40,
                 borderRadius: "var(--r, 16px)",
-                border: "1px solid var(--border, #e8e1d6)",
-                color: "var(--text-2, #786f65)",
+                border: "1px solid var(--lux-line, var(--border, #e8e1d6))",
+                color: "var(--lux-ink-soft, var(--text-2, #786f65))",
                 background: "transparent",
               }}
               desktopBreakpoint={900}

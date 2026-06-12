@@ -230,6 +230,16 @@ export function WeddingTemplateV2({
       // pinned dark navy) instead of the gold pinned above for the dark glass.
       vars["--lux-hero-accent"] = vars["--lux-accent"] ?? active.accent ?? "#0a1f2b";
     }
+    // The mobile menu drawer is the one anchor surface that renders OUTSIDE
+    // the article (portaled to document.body), so it follows the section
+    // theme through the menu's neutral surface hooks instead of reading
+    // --lux-* directly: the panel hex at drawer opacity + the ramp's ink
+    // (polarity already derived by the generator — Cerulean gets dark ink).
+    // Without these the drawer stayed on the LEGACY variant glass axis
+    // (--glass-bg-mobile), which section-themed events migrated away from —
+    // a Midnight event opened a cream drawer.
+    vars["--mnm-surface"] = `color-mix(in srgb, ${vars["--lux-panel"] ?? active.panel} 97%, transparent)`;
+    vars["--mnm-ink"] = vars["--lux-ink"];
     return vars;
   }, [theme.sectionThemeId, primaryColor]);
 
