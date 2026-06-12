@@ -10,6 +10,17 @@ import {
 } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
+import styles from "./MobileNavMenu.module.css";
+
+/**
+ * Visual expression of the open menu. Mechanics are identical across
+ * expressions — this only selects which composition the CSS module paints:
+ *  - "drawer": side drawer (the shared default; themed via --glass-bg-mobile)
+ *  - "veil": full-screen takeover for dark formal templates (Grand Luxe)
+ * Curated per template (passed by the template's own nav renderer), never
+ * user-swappable — same philosophy as the V3 section renderers.
+ */
+export type MobileNavExpression = "drawer" | "veil";
 
 /**
  * CSS custom properties to copy from the wrapper's computed style onto the
@@ -28,10 +39,27 @@ const PORTAL_INHERITED_VARS = [
   "--text-2-on-card",
   "--muted",
   "--accent",
+  "--accent-2",
   "--accent-foreground",
   "--border",
   "--sans",
   "--serif",
+  // Surface + palette tokens the expressions draw on. --glass-bg-mobile is
+  // emitted by every V2 variant and V3 theme pack precisely for this menu —
+  // it sat dormant while the drawer painted hardcoded white.
+  "--glass-bg-mobile",
+  "--night",
+  "--ivory",
+  "--r",
+  // The template's motion personality — entrance easing + item stagger
+  // rhythm follow the template instead of one hardcoded curve.
+  "--motion-duration",
+  "--motion-easing",
+  "--motion-stagger",
+  // Grand Luxe accent machinery (veil expression): --lux-accent follows the
+  // live accent; --lux-accent-ink is the guaranteed-readable text on it.
+  "--lux-accent",
+  "--lux-accent-ink",
 ] as const;
 
 function captureThemeVars(el: HTMLElement | null): React.CSSProperties {
@@ -81,6 +109,8 @@ type MobileNavMenuProps = {
    *  Defaults to 768px. Templates with a different mobile breakpoint
    *  (e.g. Intimate Note uses 640px) can override. */
   desktopBreakpoint?: number;
+  /** Visual expression of the open menu — see MobileNavExpression. */
+  expression?: MobileNavExpression;
 };
 
 export function MobileNavMenu({
@@ -90,6 +120,7 @@ export function MobileNavMenu({
   buttonStyle,
   ariaLabel = "Open menu",
   desktopBreakpoint = 768,
+  expression = "drawer",
 }: MobileNavMenuProps) {
   const [open, setOpen] = useState(false);
   const [themeVars, setThemeVars] = useState<React.CSSProperties>({});
@@ -324,206 +355,121 @@ export function MobileNavMenu({
       </div>
 
       {open && typeof document !== "undefined" && createPortal(
-        <div style={themeVars}>
+        <div className={styles.root} data-expression={expression} style={themeVars}>
           {/* Backdrop (click-to-close). Portaled to body so it escapes any
               transformed/filtered/contained ancestor (e.g. the Grand Luxe
               floating pill has `transform: translateX(-50%)` on its <nav>,
               which would otherwise make it the containing block for
               `position: fixed` descendants and trap the drawer inside the
-              pill's rect). */}
-          <div
-            onClick={close}
-            aria-hidden
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 90,
-              background: "rgba(18, 12, 10, 0.46)",
-              backdropFilter: "blur(4px)",
-              WebkitBackdropFilter: "blur(4px)",
-              animation: "mnm-fade-in 240ms ease",
-            }}
-          />
+              pill's rect). The veil covers the viewport itself, so it skips
+              the backdrop — there is no "outside" to click, and it saves a
+              full-screen blur layer on mobile. */}
+          {expression !== "veil" && (
+            <div onClick={close} aria-hidden className={styles.backdrop} />
+          )}
 
-          {/* Side drawer. Marked as a modal dialog so screen readers
+          {/* Menu panel. Marked as a modal dialog so screen readers
               announce it correctly and the focus trap is meaningful. */}
           <aside
             id={drawerId}
             role="dialog"
             aria-modal="true"
             aria-label="Mobile navigation"
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              bottom: 0,
-              zIndex: 100,
-              width: "min(84vw, 340px)",
-              padding: "1rem",
-              background: "var(--surface, #ffffff)",
-              color: "var(--text-on-card, var(--text, #1f1f1f))",
-              boxShadow: "0 30px 80px rgba(0,0,0,0.24)",
-              borderRight:
-                "1px solid color-mix(in srgb, var(--text-on-card, var(--text, #000)) 12%, transparent)",
-              animation: "mnm-slide-in 360ms cubic-bezier(0.22, 1, 0.36, 1)",
-              display: "flex",
-              flexDirection: "column",
-            }}
+            className={styles.panel}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                minHeight: 62,
-                paddingBottom: "0.75rem",
-                borderBottom:
-                  "1px solid color-mix(in srgb, var(--text-on-card, var(--text, #000)) 14%, transparent)",
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: "var(--serif, Georgia, serif)",
-                  fontSize: "1.35rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {brand}
-              </span>
+            <div className={styles.header}>
+              <span className={styles.brand}>{brand}</span>
               <button
                 ref={closeButtonRef}
                 type="button"
                 aria-label="Close menu"
                 onClick={close}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 999,
-                  border:
-                    "1px solid color-mix(in srgb, var(--text-on-card, var(--text, #000)) 18%, transparent)",
-                  background: "transparent",
-                  color: "inherit",
-                  fontSize: "1.5rem",
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  transition: "transform 220ms ease, background 220ms ease",
-                }}
-                className="focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                className={cn(
+                  styles.close,
+                  "focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current",
+                )}
               >
-                <span aria-hidden>×</span>
+                <CloseIcon />
               </button>
             </div>
 
-            <nav
-              aria-label="Mobile section navigation"
-              style={{
-                paddingTop: "1.25rem",
-                display: "grid",
-                gap: "0.25rem",
-                overflowY: "auto",
-                flex: 1,
-              }}
-            >
+            <nav aria-label="Mobile section navigation" className={styles.list}>
               {nonCtaItems.map((item, i) => (
                 <a
                   key={item.id}
                   href={item.href}
                   onClick={onItemClick}
+                  className={styles.item}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    minHeight: 48,
-                    padding: "0.75rem 0.9rem",
-                    borderRadius: 14,
-                    color: "inherit",
-                    textDecoration: "none",
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    letterSpacing: "0.01em",
-                    animation: `mnm-item-in 320ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                      i * 45
-                    }ms both`,
+                    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${i} * var(--motion-stagger, 45ms))`,
                   }}
-                  className="mnm-item"
                 >
                   <span>{item.label}</span>
-                  <span
-                    aria-hidden
-                    className="mnm-item-chevron"
-                    style={{
-                      color: "var(--text-2, var(--muted, currentColor))",
-                      opacity: 0.5,
-                      fontSize: "0.95rem",
-                    }}
-                  >
-                    →
-                  </span>
-                </a>
-              ))}
-              {ctaItems.map((item, i) => (
-                <a
-                  key={item.id}
-                  href={item.href}
-                  onClick={onItemClick}
-                  style={{
-                    marginTop: "0.75rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 50,
-                    padding: "0.85rem 1rem",
-                    borderRadius: 14,
-                    background: "var(--accent, #9f5f50)",
-                    color: "var(--accent-foreground, #ffffff)",
-                    textDecoration: "none",
-                    fontSize: "1rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.04em",
-                    boxShadow:
-                      "0 12px 30px color-mix(in srgb, var(--accent, #9f5f50) 30%, transparent)",
-                    animation: `mnm-item-in 320ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                      (nonCtaItems.length + i) * 45
-                    }ms both`,
-                  }}
-                >
-                  {item.label}
+                  <ChevronIcon />
                 </a>
               ))}
             </nav>
-          </aside>
 
-          <style>{`
-            @keyframes mnm-fade-in {
-              from { opacity: 0; }
-              to { opacity: 1; }
-            }
-            @keyframes mnm-slide-in {
-              from { transform: translateX(-104%); }
-              to { transform: translateX(0); }
-            }
-            @keyframes mnm-item-in {
-              from { opacity: 0; transform: translateX(-18px); }
-              to { opacity: 1; transform: translateX(0); }
-            }
-            .mnm-item:hover {
-              background: color-mix(in srgb, var(--accent, currentColor) 12%, transparent) !important;
-            }
-            .mnm-item:hover .mnm-item-chevron {
-              opacity: 1 !important;
-              transform: translateX(2px);
-            }
-            @media (prefers-reduced-motion: reduce) {
-              [id="${drawerId}"], [id="${drawerId}"] a {
-                animation: none !important;
-              }
-            }
-          `}</style>
+            {ctaItems.length > 0 && (
+              <div className={styles.ctaArea}>
+                {ctaItems.map((item, i) => (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    onClick={onItemClick}
+                    className={styles.cta}
+                    style={{
+                      animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${
+                        nonCtaItems.length + i
+                      } * var(--motion-stagger, 45ms))`,
+                    }}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            )}
+          </aside>
         </div>,
         document.body,
       )}
     </>
+  );
+}
+
+/** Drawn close icon — a text "×" sits off-baseline and reads as a typo at
+ *  larger sizes; two strokes stay optically centered in any circle. */
+function CloseIcon() {
+  return (
+    <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M3.5 3.5l9 9M12.5 3.5l-9 9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      aria-hidden
+      className={styles.chevron}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <path
+        d="M3 8h9.5M8.5 3.5L13 8l-4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
