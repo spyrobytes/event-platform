@@ -17,6 +17,11 @@ import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { showHeroCountdown } from "../../hero-card-visibility";
 import { CouplePhotoFrame } from "../../../shared/CouplePhotoFrame";
+import {
+  isCutoutCouplePhotoActive,
+  resolveCutoutAspect,
+} from "../../../shared/CouplePhotoFrame/frame-options";
+import type { CSSProperties } from "react";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import styles from "./CollageMosaicHero.module.css";
 
@@ -41,8 +46,38 @@ export function CollageMosaicHero({
   const hasImage = !!heroAsset?.publicUrl;
   const hasCouplePhoto = !!couplePhotoAsset?.publicUrl;
 
+  // Resolved by the factory from the definition's couplePhotoFrameOptions;
+  // the ?? is a defensive fallback to this hero's original shape.
+  const frame = couplePhotoFrame ?? "circle";
+
+  // Cutout mode: the transparent-background photo stands bottom-CENTER in
+  // the scene (this hero's symmetric layout makes the couple the focal
+  // point — V2/Grand Luxe anchor bottom-right), the centered portrait slot
+  // is skipped, and the float cards are suppressed.
+  const isCutout = isCutoutCouplePhotoActive({
+    resolvedFrame: frame,
+    hasCouplePhoto,
+    backgroundTreatment: config.backgroundTreatment,
+  });
+
+  // This hero uses next/image fill, so the cutout wrapper needs the photo's
+  // intrinsic ratio to size itself. The hero ALSO consumes the ratio as a
+  // NUMERIC inline var: .heroCutout's width/height math runs in calc(),
+  // which can multiply and divide by a number but not by a "W / H" token.
+  const { aspectString: cutoutAspect, aspectNum: cutoutAspectNum } =
+    resolveCutoutAspect(couplePhotoAsset);
+  const cutoutHeroVars = isCutout
+    ? ({
+        "--cc-cutout-aspect": cutoutAspectNum.toFixed(4),
+      } as CSSProperties)
+    : undefined;
+
   // Countdown data
   const countdown = (() => {
+    // The factory suppresses schedule cards when a cutout is active, but the
+    // countdown gate is per-hero — without this a lone countdown float card
+    // would survive in flow and push the content into the cutout zone.
+    if (isCutout) return null;
     if (!showHeroCountdown(config)) return null; // organizer opt-out (unset = visible)
     if (!temporal?.shouldShowCountdown || !temporal.timeRemaining) return null;
     const { days, hours, minutes } = temporal.timeRemaining;
@@ -77,11 +112,22 @@ export function CollageMosaicHero({
     return { status: "upcoming" as const, text: `RSVP by ${resolvedRsvpDeadline}` };
   })();
 
-  const showScheduleCards = scheduleCards && scheduleCards.length > 0;
+  // Belt to the factory's suspenders: schedule cards are already withheld
+  // upstream when a cutout is active (createWeddingTemplate).
+  const showScheduleCards = !isCutout && !!scheduleCards?.length;
   const hasFloatCards = !!countdown || showScheduleCards;
 
   return (
-    <section className={`${styles.hero} ${hasImage ? styles.overImage : ""}`} aria-label="Event hero" id="top">
+    <section
+      className={cn(
+        styles.hero,
+        hasImage && styles.overImage,
+        isCutout && styles.heroCutout,
+      )}
+      style={cutoutHeroVars}
+      aria-label="Event hero"
+      id="top"
+    >
       {/* Background image */}
       {hasImage ? (
         <div className={styles.bgImage} aria-hidden="true">
@@ -98,24 +144,56 @@ export function CollageMosaicHero({
         <div className={styles.bgFallback} aria-hidden="true" />
       )}
 
+      {/* Cutout couple photo — transparent PNG standing bottom-center in the
+          scene at z 1: above the background, below the centered content
+          (z 2), so the names win the boundary overlap. The wash is a
+          SIBLING, not a ::before on the frame — the shared .cutout mask and
+          the host drop-shadow would both swallow a pseudo-element. No blur
+          placeholder — a rectangular blur flash betrays the silhouette. */}
+      {isCutout && (
+        <>
+          <div className={styles.cutoutWash} aria-hidden="true" />
+          <CouplePhotoFrame
+            frame="cutout"
+            aspectRatio={cutoutAspect}
+            objectPosition="center bottom"
+            className={styles.photoCutout}
+          >
+            <EventImage
+              src={couplePhotoAsset!.publicUrl!}
+              alt={coupleNames || title || "Couple"}
+              fill
+              // Plain lengths only — math functions in sizes defeat
+              // next/image's vw-extraction (srcset trimming) and legacy
+              // browsers fall back to 100vw. Mirrors --cc-cutout-w's
+              // 450px floor / 36vw scale / 560px cap (36vw crosses 450px
+              // at 1250px; the svh term can only shrink the render).
+              sizes="(max-width: 640px) 62vw, (max-width: 1250px) 450px, 560px"
+              priority
+            />
+          </CouplePhotoFrame>
+        </>
+      )}
+
       {/* Center content */}
       <div className={styles.content}>
         {/* Couple photo — uses dedicated couple photo asset; frame shape
             resolved by the factory (?? is a defensive fallback to this
-            hero's original circle) */}
-        {hasCouplePhoto && (
+            hero's original circle). Skipped in cutout mode — the photo is
+            rendered as a scene layer above instead. */}
+        {hasCouplePhoto && !isCutout && (
           <CouplePhotoFrame
-            frame={couplePhotoFrame ?? "circle"}
+            frame={frame}
             className={cn(
               styles.couplePhoto,
               {
                 heart: styles.photoHeart,
                 circle: styles.photoCircle,
                 full: styles.photoFull,
-                // Unreachable — Celebration hasn't enrolled the cutout
-                // option (deferred to its own follow-up after V2 + Grand Luxe).
+                // Cutout never goes through the centered framed slot
+                // (rendered as a scene layer) — entry keeps the Record total.
                 cutout: undefined,
-              }[couplePhotoFrame ?? "circle"],
+              }[frame],
             )}
           >
             <EventImage

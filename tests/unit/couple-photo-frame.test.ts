@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveCouplePhotoFrame,
   isCutoutCouplePhotoActive,
+  resolveCutoutAspect,
   HEART_FRAME_OPTION,
   CIRCLE_FRAME_OPTION,
   FULL_LENGTH_FRAME_OPTION,
@@ -47,6 +48,14 @@ describe("template couple-photo frame defaults", () => {
 
   it("Celebration keeps circle as the backward-compat default", () => {
     expect(CELEBRATION.couplePhotoFrameOptions?.[0]?.value).toBe("circle");
+    expect(resolveCouplePhotoFrame(CELEBRATION.couplePhotoFrameOptions, undefined)).toBe("circle");
+  });
+
+  it("Celebration enrolls the cutout option", () => {
+    expect(
+      CELEBRATION.couplePhotoFrameOptions?.some((o) => o.value === "cutout")
+    ).toBe(true);
+    expect(resolveCouplePhotoFrame(CELEBRATION.couplePhotoFrameOptions, "cutout")).toBe("cutout");
   });
 
   it("V2 Cinematic keeps circle as the backward-compat default", () => {
@@ -75,6 +84,26 @@ describe("cutout frame option", () => {
     // A persisted "cutout" on a template that has NOT enrolled the option
     // resolves to that template's default — never renders frameless by accident.
     expect(resolveCouplePhotoFrame(options, "cutout")).toBe("heart");
+  });
+});
+
+describe("resolveCutoutAspect", () => {
+  it("derives both forms from the asset's intrinsic dimensions", () => {
+    expect(resolveCutoutAspect({ width: 450, height: 675 })).toEqual({
+      aspectString: "450 / 675",
+      aspectNum: 450 / 675,
+    });
+  });
+
+  it("falls back to 2:3 portrait when dimensions are missing or zero", () => {
+    const fallback = { aspectString: "2 / 3", aspectNum: 2 / 3 };
+    expect(resolveCutoutAspect(undefined)).toEqual(fallback);
+    expect(resolveCutoutAspect(null)).toEqual(fallback);
+    expect(resolveCutoutAspect({})).toEqual(fallback);
+    expect(resolveCutoutAspect({ width: 450 })).toEqual(fallback);
+    // Zero dimensions must not produce a 0 or Infinity ratio.
+    expect(resolveCutoutAspect({ width: 0, height: 675 })).toEqual(fallback);
+    expect(resolveCutoutAspect({ width: 450, height: 0 })).toEqual(fallback);
   });
 });
 

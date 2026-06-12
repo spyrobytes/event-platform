@@ -11,6 +11,7 @@ import {
   HEART_FRAME_OPTION,
   CIRCLE_FRAME_OPTION,
   FULL_LENGTH_FRAME_OPTION,
+  CUTOUT_FRAME_OPTION,
 } from "../../shared/CouplePhotoFrame/frame-options";
 
 export const CELEBRATION: TemplateDefinition = {
@@ -41,6 +42,11 @@ export const CELEBRATION: TemplateDefinition = {
     CIRCLE_FRAME_OPTION,
     HEART_FRAME_OPTION,
     FULL_LENGTH_FRAME_OPTION,
+    // Transparent-background photo standing bottom-CENTER in the scene —
+    // Celebration's symmetric composition makes the couple the focal point
+    // (V2 + Grand Luxe anchor bottom-right). Activates the frameless layout
+    // and hides the float cards — see isCutoutCouplePhotoActive.
+    CUTOUT_FRAME_OPTION,
   ],
 
   supportsSocialLinks: true,

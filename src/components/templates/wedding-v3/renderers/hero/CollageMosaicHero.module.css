@@ -114,6 +114,96 @@
     0 0 0 1px var(--border, #e8e1d6);
 }
 
+/* ===== CUTOUT COUPLE PHOTO — bottom-center scene layer =====
+ * The scene-layer base (bottom anchor, fade-out mask, entrance rise,
+ * reduced-motion) lives on the shared CouplePhotoFrame `.cutout` class; this
+ * host owns Celebration's tuning. Distinctive here: the couple stands
+ * bottom-CENTER — the template's symmetric layout makes them the focal point
+ * (V2/Grand Luxe anchor bottom-right). Centering uses left/right + margin
+ * auto: the shared entrance animation owns `transform`, so a translateX(-50%)
+ * would be clobbered mid-rise. Width: floored at 450px on desktop (the
+ * focal point must not shrink below the V2/GL cap), scaling by 36vw with an
+ * svh-derived ceiling so a tall portrait yields above the floor rather than
+ * swallowing the hero (width = height-budget × aspect, via the NUMERIC
+ * --cc-cutout-aspect var the hero sets inline on the section — distinct
+ * from the shared frame's --cpf-cutout-aspect "W / H" token, which only
+ * feeds the aspect-ratio property and can't do calc() math).
+ *
+ * Deliberately NO drop-shadow, unlike V2/GL: over the busy mosaic a shadow
+ * halo reads as a stacked sticker, not a figure in the scene (user visual
+ * test). The wash + the shared bottom fade do the seating. */
+.photoCutout {
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  z-index: 1; /* above bg + wash, below .content (z 2) — names win overlaps */
+  width: var(--cc-cutout-w);
+  --cpf-cutout-fade-start: 88%;
+  --cpf-cutout-delay: 0.45s;
+}
+
+/* Soft radial wash seating the cutout into the mosaic — the silhouette must
+ * read as a foreground layer, not one more collage tile. A quiet darkened
+ * zone behind it, nothing ornamental (the cutout is the focal point). Kept
+ * ≤100vw: an over-constrained absolute box with auto margins stops centering
+ * once width exceeds the containing block. */
+.cutoutWash {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: min(100vw, 1100px);
+  height: min(64svh, 640px);
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 85% at 50% 100%,
+    rgba(54, 46, 40, 0.14),
+    transparent 72%
+  );
+  opacity: 0;
+  animation: washIn 1.2s 0.35s ease forwards;
+}
+
+/* Over the darkened mosaic the wash works harder; over the light fallback
+ * it stays a whisper (a heavy dark pool on cream reads as smoke). */
+.overImage .cutoutWash {
+  background: radial-gradient(
+    ellipse 70% 85% at 50% 100%,
+    rgba(0, 0, 0, 0.42),
+    transparent 72%
+  );
+}
+
+/* The hero centers its column; in cutout mode the bottom half belongs to the
+ * couple, so pin the text block to the top zone instead (below the 140px nav
+ * scrim). The cutout width lives here (not on .photoCutout) because the
+ * content's flow reserve below derives the cutout's height from it. */
+.heroCutout {
+  --cc-cutout-w: max(
+    450px,
+    min(36vw, calc(72svh * var(--cc-cutout-aspect, 0.6667)), 560px)
+  );
+  justify-content: flex-start;
+  padding-top: clamp(96px, 16svh, 170px);
+}
+
+/* Reserve the cutout's zone IN FLOW, on the content's own box: the hero
+ * (min-height 100svh, flex) then grows with the ACTUAL text height — names
+ * that wrap to two or three lines push the hero taller instead of colliding
+ * with the figure (a fixed-px reserve was review-measured insufficient for
+ * long organizer names at the 4.4rem clamp). The 450px floor means text +
+ * cutout can't always share 100svh; when they can't, the figure straddles
+ * the fold — a couple standing into the page beats heads rising behind the
+ * CTA (user visual test at 1440×900). Height = width / aspect; division is
+ * why --cc-cutout-aspect must be numeric. */
+.heroCutout .content {
+  padding-bottom: calc(
+    var(--cc-cutout-w) / var(--cc-cutout-aspect, 0.6667) + 32px
+  );
+}
+
 /* ===== NAMES + DATE ===== */
 
 .names {
@@ -391,6 +481,12 @@
   }
 }
 
+@keyframes washIn {
+  to {
+    opacity: 1;
+  }
+}
+
 /* ===== MOBILE ===== */
 
 @media (max-width: 640px) {
@@ -402,12 +498,27 @@
   .floatCard {
     min-width: 240px;
   }
+
+  /* Tall-phone tuning: names stack above the centered cutout — calibrate on
+   * device, not by eye in a desktop responsive mode (PR #195 lesson). The
+   * width override lives on --cc-cutout-w so the content's flow reserve
+   * (padding-bottom above) stays consistent with the rendered size. */
+  .heroCutout {
+    --cc-cutout-w: min(
+      clamp(200px, 62vw, 320px),
+      calc(50svh * var(--cc-cutout-aspect, 0.6667))
+    );
+    padding-top: clamp(84px, 14svh, 140px);
+  }
 }
 
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
+  /* (.photoCutout's entrance is reset by the shared CouplePhotoFrame
+     .cutout rule — only host-animated elements need entries here.) */
   .couplePhoto,
+  .cutoutWash,
   .names,
   .titleOnly,
   .dateText,
