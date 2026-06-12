@@ -114,6 +114,78 @@
     0 0 0 1px var(--border, #e8e1d6);
 }
 
+/* ===== CUTOUT COUPLE PHOTO — bottom-center scene layer =====
+ * The scene-layer base (bottom anchor, fade-out mask, entrance rise,
+ * reduced-motion) lives on the shared CouplePhotoFrame `.cutout` class; this
+ * host owns Celebration's tuning. Distinctive here: the couple stands
+ * bottom-CENTER — the template's symmetric layout makes them the focal point
+ * (V2/Grand Luxe anchor bottom-right). Centering uses left/right + margin
+ * auto: the shared entrance animation owns `transform`, so a translateX(-50%)
+ * would be clobbered mid-rise. Width is double-capped: the vw clamp for
+ * narrow screens, an svh-derived term so a tall portrait can never swallow
+ * the hero (width = height-budget × aspect; --cpf-cutout-aspect expands to
+ * "W / H" inside calc). */
+.photoCutout {
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  z-index: 1; /* above bg + wash, below .content (z 2) — names win overlaps */
+  width: min(
+    clamp(240px, 36vw, 480px),
+    calc(56svh * var(--cpf-cutout-aspect, 0.6667))
+  );
+  filter: drop-shadow(0 16px 36px rgba(54, 46, 40, 0.28));
+  --cpf-cutout-fade-start: 88%;
+  --cpf-cutout-delay: 0.45s;
+}
+
+.overImage .photoCutout {
+  filter: drop-shadow(0 20px 44px rgba(0, 0, 0, 0.5));
+}
+
+/* Soft radial wash seating the cutout into the mosaic — the silhouette must
+ * read as a foreground layer, not one more collage tile. A quiet darkened
+ * zone behind it, nothing ornamental (the cutout is the focal point). Kept
+ * ≤100vw: an over-constrained absolute box with auto margins stops centering
+ * once width exceeds the containing block. */
+.cutoutWash {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: min(100vw, 1100px);
+  height: min(64svh, 640px);
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 70% 85% at 50% 100%,
+    rgba(54, 46, 40, 0.14),
+    transparent 72%
+  );
+  opacity: 0;
+  animation: washIn 1.2s 0.35s ease forwards;
+}
+
+/* Over the darkened mosaic the wash works harder; over the light fallback
+ * it stays a whisper (a heavy dark pool on cream reads as smoke). */
+.overImage .cutoutWash {
+  background: radial-gradient(
+    ellipse 70% 85% at 50% 100%,
+    rgba(0, 0, 0, 0.42),
+    transparent 72%
+  );
+}
+
+/* The hero centers its column; in cutout mode the bottom half belongs to the
+ * couple, so pin the text block to the top zone instead (below the 140px nav
+ * scrim). The boundary may kiss the cutout's head-room on short viewports —
+ * intentional: names sit at z 2 over the wash-quieted area. */
+.heroCutout {
+  justify-content: flex-start;
+  padding-top: clamp(96px, 16svh, 170px);
+}
+
 /* ===== NAMES + DATE ===== */
 
 .names {
@@ -391,6 +463,12 @@
   }
 }
 
+@keyframes washIn {
+  to {
+    opacity: 1;
+  }
+}
+
 /* ===== MOBILE ===== */
 
 @media (max-width: 640px) {
@@ -402,12 +480,28 @@
   .floatCard {
     min-width: 240px;
   }
+
+  /* Tall-phone tuning: names stack above the centered cutout — calibrate on
+   * device, not by eye in a desktop responsive mode (PR #195 lesson). */
+  .photoCutout {
+    width: min(
+      clamp(200px, 62vw, 320px),
+      calc(50svh * var(--cpf-cutout-aspect, 0.6667))
+    );
+  }
+
+  .heroCutout {
+    padding-top: clamp(84px, 14svh, 140px);
+  }
 }
 
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
+  /* (.photoCutout's entrance is reset by the shared CouplePhotoFrame
+     .cutout rule — only host-animated elements need entries here.) */
   .couplePhoto,
+  .cutoutWash,
   .names,
   .titleOnly,
   .dateText,

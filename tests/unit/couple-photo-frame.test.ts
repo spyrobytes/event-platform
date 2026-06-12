@@ -47,6 +47,14 @@ describe("template couple-photo frame defaults", () => {
 
   it("Celebration keeps circle as the backward-compat default", () => {
     expect(CELEBRATION.couplePhotoFrameOptions?.[0]?.value).toBe("circle");
+    expect(resolveCouplePhotoFrame(CELEBRATION.couplePhotoFrameOptions, undefined)).toBe("circle");
+  });
+
+  it("Celebration enrolls the cutout option", () => {
+    expect(
+      CELEBRATION.couplePhotoFrameOptions?.some((o) => o.value === "cutout")
+    ).toBe(true);
+    expect(resolveCouplePhotoFrame(CELEBRATION.couplePhotoFrameOptions, "cutout")).toBe("cutout");
   });
 
   it("V2 Cinematic keeps circle as the backward-compat default", () => {
