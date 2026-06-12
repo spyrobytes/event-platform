@@ -229,10 +229,11 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.overImage .navToggle {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.85);
-}
+/* (No .overImage .navToggle rule: .navToggle is the trigger's WRAPPER —
+   MobileNavMenu styles the button itself via an inline buttonStyle, which a
+   CSS cascade can't override; this rule was silently ineffective. The
+   over-image recolor lives in the TSX, computed from the same overImage
+   state as this class.) */
 
 /* ===== MOBILE ===== */
 
