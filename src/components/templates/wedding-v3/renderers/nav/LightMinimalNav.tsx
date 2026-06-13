@@ -19,6 +19,7 @@ export function LightMinimalNav({
   sections,
   overflow = [],
   homeHref = "#top",
+  mobileNavExpression,
 }: NavRendererProps) {
   // CTA items (RSVP, Album) render as accent links on the right;
   // remaining sections render in the center cluster.
@@ -69,6 +70,10 @@ export function LightMinimalNav({
           ))}
           <MobileNavMenu
             className="im-nav-mobile-menu"
+            // Invitation sheet, curated by the definition (INTIMATE_NOTE
+            // declares mobileNavExpression — a small note card suits the
+            // template's quiet, personal register).
+            expression={mobileNavExpression}
             brand={monogram || (coupleNames ? coupleNames.charAt(0) : "W")}
             items={[...navSections, ...overflow, ...ctaSections].map((s) => ({
               id: s.id,

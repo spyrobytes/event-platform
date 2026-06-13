@@ -21,6 +21,7 @@ export function UtilityForwardNav({
   overflow = [],
   hasHeroImage,
   homeHref = "#top",
+  mobileNavExpression,
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -127,6 +128,7 @@ export function UtilityForwardNav({
           {(sections.length > 0 || overflow.length > 0) && (
             <MobileNavMenu
               className={styles.navToggle}
+              expression={mobileNavExpression}
               brand={coupleNames || monogram || ""}
               items={[...sections, ...overflow].map((s) => ({
                 id: s.id,

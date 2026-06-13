@@ -18,6 +18,7 @@ export function TransparentStickyNav({
   dateText,
   sections,
   overflow = [],
+  mobileNavExpression,
 }: NavRendererProps) {
   // CTA items (RSVP, Album) render as accent links on the right;
   // remaining sections render in the center cluster.
@@ -73,6 +74,7 @@ export function TransparentStickyNav({
           ))}
           <MobileNavMenu
             className="ed-nav-mobile-menu"
+            expression={mobileNavExpression}
             brand={coupleNames || "Our Wedding"}
             items={[...sections, ...overflow].map((s) => ({
               id: s.id,

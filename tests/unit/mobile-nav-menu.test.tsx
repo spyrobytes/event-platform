@@ -7,18 +7,72 @@ const items = [
   { id: "rsvp", label: "RSVP", href: "/e/demo/rsvp", isCta: true },
 ];
 
-function renderMenu() {
+function renderMenu(
+  expression?: React.ComponentProps<typeof MobileNavMenu>["expression"],
+) {
   return render(
     <MobileNavMenu
       brand="Demo"
       items={items}
       buttonStyle={{ width: 40, height: 40 }}
+      expression={expression}
     />,
   );
 }
 
+/** The portal root that hosts the backdrop + panel for the open menu. */
+function portalRoot() {
+  return screen.getByLabelText("Mobile navigation").parentElement!;
+}
+
+/** Opens the menu and returns the host-positioned trigger wrapper,
+ *  captured BEFORE opening — once open, the trigger and the panel's
+ *  close button share an accessible name, and a hidden trigger drops
+ *  out of the a11y tree entirely. */
+function openMenu() {
+  const trigger = screen.getByRole("button", { name: /open menu/i });
+  const wrapper = trigger.parentElement!;
+  fireEvent.click(trigger);
+  return wrapper;
+}
+
 afterEach(() => {
   document.body.style.overflow = "";
+});
+
+describe("MobileNavMenu expression traits", () => {
+  it("drawer paints a click-to-close backdrop and keeps the trigger visible", () => {
+    renderMenu("drawer");
+    const wrapper = openMenu();
+
+    expect(portalRoot().querySelector(':scope > div[aria-hidden]')).not.toBeNull();
+    expect(wrapper.style.visibility).not.toBe("hidden");
+  });
+
+  it("veil skips the backdrop and hides the host-positioned trigger", () => {
+    renderMenu("veil");
+    const wrapper = openMenu();
+
+    expect(portalRoot().querySelector(':scope > div[aria-hidden]')).toBeNull();
+    expect(wrapper.style.visibility).toBe("hidden");
+    expect(wrapper.style.pointerEvents).toBe("none");
+  });
+
+  it("sheet paints the backdrop AND hides the trigger (the card covers it)", () => {
+    renderMenu("sheet");
+    const wrapper = openMenu();
+
+    expect(portalRoot().querySelector(':scope > div[aria-hidden]')).not.toBeNull();
+    expect(wrapper.style.visibility).toBe("hidden");
+    expect(wrapper.style.pointerEvents).toBe("none");
+  });
+
+  it("stamps the expression on the portal root for the CSS module", () => {
+    renderMenu("sheet");
+    openMenu();
+
+    expect(portalRoot().getAttribute("data-expression")).toBe("sheet");
+  });
 });
 
 describe("MobileNavMenu BFCache cleanup", () => {

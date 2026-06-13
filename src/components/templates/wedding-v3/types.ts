@@ -9,6 +9,7 @@
 
 import type { ComponentType } from "react";
 import type { MediaAsset } from "@prisma/client";
+import type { MobileNavExpression } from "@/components/templates/shared/MobileNavMenu";
 import type {
   HeroConfig,
   DetailsSection,
@@ -292,6 +293,10 @@ export type NavRendererProps = {
   hasHeroImage?: boolean;
   /** On sub-pages, links the logo back to the landing page instead of #top. */
   homeHref?: string;
+  /** Visual expression of the shared mobile menu, declared by the template's
+   *  definition (mobileNavExpression). Renderers forward it verbatim to
+   *  MobileNavMenu; omitted = the shared drawer default. */
+  mobileNavExpression?: MobileNavExpression;
 };
 
 /** Footer props */
@@ -366,6 +371,13 @@ export type TemplateDefinition = {
   // --- Renderer selections ---
   heroRenderer: HeroRendererId;
   navRenderer: NavRendererId;
+  /**
+   * Visual expression of the shared mobile menu (drawer | veil | sheet).
+   * Curated per template — the definition is the source of truth and the
+   * nav renderer just forwards it (the same "definition declares, renderer
+   * obeys" contract as the section renderers). Omitted = drawer default.
+   */
+  mobileNavExpression?: MobileNavExpression;
   galleryRenderer: GalleryRendererId;
   scheduleRenderer: ScheduleRendererId;
   storyRenderer: StoryRendererId;

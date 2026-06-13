@@ -16,11 +16,38 @@ import styles from "./MobileNavMenu.module.css";
  * Visual expression of the open menu. Mechanics are identical across
  * expressions — this only selects which composition the CSS module paints:
  *  - "drawer": side drawer (the shared default; themed via --glass-bg-mobile)
- *  - "veil": full-screen takeover for dark formal templates (Grand Luxe)
- * Curated per template (passed by the template's own nav renderer), never
- * user-swappable — same philosophy as the V3 section renderers.
+ *  - "veil": full-screen takeover for dark formal templates (Grand Luxe,
+ *    V2 Cinematic)
+ *  - "sheet": centered stationery card over the blurred page (Fine Art
+ *    Romance, Intimate Note)
+ * Curated per template (V3 definitions declare it via mobileNavExpression;
+ * non-V3 hosts pass the prop directly), never user-swappable — same
+ * philosophy as the V3 section renderers.
  */
-export type MobileNavExpression = "drawer" | "veil";
+export type MobileNavExpression = "drawer" | "veil" | "sheet";
+
+/**
+ * Per-expression behavior traits the mechanics consult. Adding an
+ * expression = one row here + a CSS block in the module; the TSX never
+ * branches on a literal expression name.
+ *  - coversTrigger: the open menu covers the host-positioned trigger, so
+ *    the trigger wrapper is hidden while open — left in place it reads as
+ *    a second misaligned close button AND its hit-box silently swallows
+ *    taps meant for the panel's own close (a plain div intercepts pointer
+ *    events even with nothing painted). The deferred focus restore in
+ *    close() already waits a frame for the wrapper to return.
+ *  - hasBackdrop: paints the click-to-close backdrop behind the panel.
+ *    Expressions whose panel covers the viewport skip it — there is no
+ *    "outside" to click, and it saves a full-screen blur layer on mobile.
+ */
+const EXPRESSIONS: Record<
+  MobileNavExpression,
+  { coversTrigger: boolean; hasBackdrop: boolean }
+> = {
+  drawer: { coversTrigger: false, hasBackdrop: true },
+  veil: { coversTrigger: true, hasBackdrop: false },
+  sheet: { coversTrigger: true, hasBackdrop: true },
+};
 
 /**
  * CSS custom properties to copy from the wrapper's computed style onto the
@@ -53,6 +80,10 @@ const PORTAL_INHERITED_VARS = [
   "--mnm-veil-cta-ink",
   "--mnm-veil-hover-ink",
   "--mnm-veil-bg",
+  "--mnm-sheet-bg",
+  "--mnm-sheet-ink",
+  "--mnm-sheet-accent",
+  "--mnm-sheet-cta-ink",
   // Surface + palette tokens the expressions draw on. --glass-bg-mobile is
   // emitted by every V2 variant and V3 theme pack precisely for this menu —
   // it sat dormant while the drawer painted hardcoded white.
@@ -178,10 +209,10 @@ export function MobileNavMenu({
   const close = useCallback(() => {
     setOpenState(false);
     // Return focus to the hamburger trigger so keyboard users land
-    // back where they invoked the drawer. Deferred a frame: in veil
-    // mode the trigger wrapper is visibility:hidden until the close
-    // re-render commits, and focus() on a hidden element silently
-    // no-ops. Skipped automatically when the trigger is gone (e.g.
+    // back where they invoked the drawer. Deferred a frame: in
+    // covering expressions (veil, sheet) the trigger wrapper is
+    // visibility:hidden until the close re-render commits, and
+    // focus() on a hidden element silently no-ops. Skipped automatically when the trigger is gone (e.g.
     // resized past desktop breakpoint, or hidden by CSS in templates
     // with a desktop nav).
     requestAnimationFrame(() => {
@@ -342,19 +373,14 @@ export function MobileNavMenu({
       <div
         ref={wrapperRef}
         className={className}
-        // The veil covers the viewport but the trigger is host-positioned
-        // (often fixed top-right ABOVE the panel's z-index) — left in place
-        // it lands under/near the veil's own close button and reads as two
-        // misaligned layered buttons, AND the wrapper's hit-box silently
-        // swallows taps meant for the veil's close (a plain div intercepts
-        // pointer events even with nothing painted). Hide the whole wrapper
-        // and disable its hit-testing while the veil is open; it returns
-        // (and takes focus back) on close. The drawer keeps it: its panel
-        // is side-anchored, so the morphing X stays clear.
+        // Covering expressions (veil, sheet) hide the trigger wrapper while
+        // open; it returns (and takes focus back) on close. The drawer keeps
+        // it: its panel is side-anchored, so the morphing X stays clear.
+        // See EXPRESSIONS.coversTrigger for the full rationale.
         style={{
           display: "inline-flex",
           alignItems: "center",
-          ...(open && expression === "veil"
+          ...(open && EXPRESSIONS[expression].coversTrigger
             ? { visibility: "hidden" as const, pointerEvents: "none" as const }
             : {}),
         }}
@@ -402,10 +428,9 @@ export function MobileNavMenu({
               floating pill has `transform: translateX(-50%)` on its <nav>,
               which would otherwise make it the containing block for
               `position: fixed` descendants and trap the drawer inside the
-              pill's rect). The veil covers the viewport itself, so it skips
-              the backdrop — there is no "outside" to click, and it saves a
-              full-screen blur layer on mobile. */}
-          {expression !== "veil" && (
+              pill's rect). Full-bleed expressions skip it — see
+              EXPRESSIONS.hasBackdrop. */}
+          {EXPRESSIONS[expression].hasBackdrop && (
             <div onClick={close} aria-hidden className={styles.backdrop} />
           )}
 

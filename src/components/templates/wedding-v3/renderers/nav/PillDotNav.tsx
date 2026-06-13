@@ -20,6 +20,7 @@ export function PillDotNav({
   sections,
   overflow = [],
   homeHref = "#top",
+  mobileNavExpression,
 }: NavRendererProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -164,6 +165,7 @@ export function PillDotNav({
         {/* Mobile menu. */}
         <MobileNavMenu
           className="gh-nav-mobile-menu"
+          expression={mobileNavExpression}
           brand={displayMonogram}
           items={[...navSections, ...overflow].map((s) => ({
             id: s.id,

@@ -27,6 +27,9 @@ export const GRAND_LUXE: TemplateDefinition = {
 
   heroRenderer: "fullscreen-dramatic",
   navRenderer: "floating-pill",
+  // Velvet veil — full-screen night takeover with the monogram as the
+  // centerpiece (black-tie formality wants a moment, not a utility drawer).
+  mobileNavExpression: "veil",
   galleryRenderer: "scrapbook-collage",
   scheduleRenderer: "stacked-luxe",
   storyRenderer: "quote-led",
