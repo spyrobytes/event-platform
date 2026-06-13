@@ -271,17 +271,18 @@
 /* ===== CUTOUT COUPLE PHOTO — scene layer, no gold hardware =====
  * The scene-layer base (bottom anchor, fade-out mask, entrance rise,
  * reduced-motion) lives on the shared CouplePhotoFrame `.cutout` class;
- * this host class owns the luxe tuning: offset, stacking, width, a deep
- * alpha-traced drop-shadow plus a whisper of grading (brightness/saturate)
- * that sits the photo in the dark scene without killing its crispness,
- * and var hooks deepening the fade into the dark vignette + nudging the
- * entrance into the luxe stagger rhythm. */
+ * this host class owns the luxe tuning: offset, stacking, width, a whisper
+ * of grading (brightness/saturate) that sits the photo in the dark scene
+ * without killing its crispness, and var hooks deepening the fade into the
+ * dark vignette + nudging the entrance into the luxe stagger rhythm.
+ * No drop-shadow: the alpha-traced halo read as a stacked sticker around
+ * the silhouette (the artifact this cutout frame exists to avoid); the
+ * grading stays because it's tonal matching, not a halo. */
 .photoCutout {
   right: clamp(20px, 7vw, 110px);
   z-index: 1; /* above bg, below .content (z 2) — centered names win overlaps */
   width: clamp(220px, 30vw, 450px);
-  filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55)) brightness(0.96)
-    saturate(0.97);
+  filter: brightness(0.96) saturate(0.97);
   --cpf-cutout-fade-start: 90%;
   --cpf-cutout-delay: 0.4s;
 }
