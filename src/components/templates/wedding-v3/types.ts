@@ -470,4 +470,16 @@ export type TemplateDefinition = {
    * Only set this on templates whose hero renderer implements that treatment.
    */
   supportsHeroBackgroundTreatment?: boolean;
+
+  /**
+   * Whether this template's hero honors `hero.backgroundFocalX`
+   * (left | center | right) — the horizontal anchor for the mobile cover-crop.
+   * `object-fit: cover` only crops the overflowing axis, which on tall phones
+   * is the horizontal one, so a centered crop slices off a one-sided motif
+   * (e.g. a floral border down an edge). The hero renderer must anchor the
+   * crop to the chosen side and disable any Ken Burns drift off-center.
+   * A no-op on desktop. Only set this on heroes that implement the anchor;
+   * single full-bleed cover heroes qualify (multi-image mosaics do not).
+   */
+  supportsHeroFocalX?: boolean;
 };

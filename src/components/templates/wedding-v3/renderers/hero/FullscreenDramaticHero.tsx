@@ -60,6 +60,12 @@ export function FullscreenDramaticHero({
   // hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
+  // Horizontal focal point for the cover-crop — only bites on phones (the
+  // landscape image overflows horizontally there), a no-op on desktop. Keeps a
+  // one-sided motif in frame; CSS owns the per-side object-position and the
+  // luxeDrift-off, with the Y axis left to the treatment class.
+  const focalX = config.backgroundFocalX ?? "center";
+
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
   const frame = couplePhotoFrame ?? "heart";
@@ -94,7 +100,10 @@ export function FullscreenDramaticHero({
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
       {heroAsset?.publicUrl ? (
-        <div className={cn(styles.bgImage, isPortraitBackdrop && styles.bgPortrait)}>
+        <div
+          className={cn(styles.bgImage, isPortraitBackdrop && styles.bgPortrait)}
+          data-focal={focalX}
+        >
           <EventImage
             src={heroAsset.publicUrl}
             alt=""

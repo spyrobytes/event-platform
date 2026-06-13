@@ -5,22 +5,29 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("next/font/google", () => import("./helpers/next-font-google-mock"));
 
 import { templateSupportsHeroFocalX } from "@/components/templates";
+import { GRAND_LUXE } from "@/components/templates/wedding-v3/definitions/grand-luxe";
+import { CELEBRATION } from "@/components/templates/wedding-v3/definitions/celebration";
 import { heroFocalXSchema, heroSchema } from "@/schemas/event-page";
 
 describe("templateSupportsHeroFocalX", () => {
-  it("is enabled for V2 Cinematic only (the hero that honors backgroundFocalX)", () => {
+  it("is enabled for the single full-bleed cover heroes (V2, Grand Luxe, Celebration)", () => {
     expect(templateSupportsHeroFocalX("wedding_v2")).toBe(true);
+    expect(templateSupportsHeroFocalX("wedding_grand_luxe")).toBe(true);
+    // Celebration's "collage-mosaic" hero is a SINGLE cover image (the mosaic
+    // is the content-styling language, not a multi-image background), so it
+    // qualifies — unlike for backgroundTreatment, which it opts out of.
+    expect(templateSupportsHeroFocalX("wedding_celebration")).toBe(true);
   });
 
-  it("stays off for the V3 cover heroes (deferred) and everything else", () => {
-    // Grand Luxe et al. share the same latent crop but aren't wired yet — the
-    // gate must stay false so a future V3 pass flips them deliberately, and so
-    // the editor control can't light up as a dead control today.
-    expect(templateSupportsHeroFocalX("wedding_grand_luxe")).toBe(false);
-    expect(templateSupportsHeroFocalX("wedding_celebration")).toBe(false);
+  it("stays off for templates without a single full-bleed cover hero", () => {
     expect(templateSupportsHeroFocalX("wedding_v1")).toBe(false);
     expect(templateSupportsHeroFocalX("party_v1")).toBe(false);
     expect(templateSupportsHeroFocalX("bogus_template")).toBe(false);
+  });
+
+  it("Grand Luxe and Celebration opt in via their definition flags", () => {
+    expect(GRAND_LUXE.supportsHeroFocalX).toBe(true);
+    expect(CELEBRATION.supportsHeroFocalX).toBe(true);
   });
 });
 

@@ -83,6 +83,32 @@
     radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.45) 100%);
 }
 
+/* Horizontal focal point (hero.backgroundFocalX = left | right) — anchors the
+   cover-crop to one side so a one-sided motif survives the mobile crop instead
+   of being sliced to the empty middle. `object-position`'s anchor only acts on
+   the overflowing axis: vertical on desktop (X is a no-op, whole motif shows),
+   horizontal on tall phones (this bites). Y stays `center`/`top` from the rules
+   above so the base + portrait vertical framing is untouched — the combined
+   portrait+focal selectors below outrank both single-class rules. luxeDrift is
+   disabled off-center: its scale grows from the center origin and would drift
+   the anchored edge back out of frame (same reason portrait kills it). */
+.bgImage[data-focal="left"] img {
+  object-position: left center;
+}
+.bgImage[data-focal="right"] img {
+  object-position: right center;
+}
+.bgImage.bgPortrait[data-focal="left"] img {
+  object-position: left top;
+}
+.bgImage.bgPortrait[data-focal="right"] img {
+  object-position: right top;
+}
+.bgImage[data-focal="left"] img,
+.bgImage[data-focal="right"] img {
+  animation: none;
+}
+
 /* ===== COUPLE PHOTO — top-left portrait =====
  * Shape geometry (heart clip, circle radius, full-length aspect) comes from
  * the shared CouplePhotoFrame component; these classes own placement, size,

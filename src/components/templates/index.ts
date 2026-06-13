@@ -211,12 +211,13 @@ export function templateSupportsHeroBackgroundTreatment(templateId: string): boo
  * Whether a template's hero honors `hero.backgroundFocalX` — the horizontal
  * anchor for the mobile cover-crop (see the schema). Single source of truth so
  * the editor's focal-point control can't light up for a hero that ignores it.
- * V2 Cinematic implements it today; the latent same-crop on the V3 cover heroes
- * (Grand Luxe et al.) is a deliberate follow-up, so they stay false until each
- * renderer is wired.
+ * V2 Cinematic implements it directly; V3 templates carry `supportsHeroFocalX`
+ * on their definition (set only on single full-bleed cover heroes — Grand Luxe
+ * and Celebration today; multi-image mosaics don't qualify).
  */
 export function templateSupportsHeroFocalX(templateId: string): boolean {
-  return templateId === "wedding_v2";
+  if (templateId === "wedding_v2") return true;
+  return getV3Definition(templateId)?.supportsHeroFocalX ?? false;
 }
 
 /**

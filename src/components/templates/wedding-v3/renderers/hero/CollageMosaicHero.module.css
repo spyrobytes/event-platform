@@ -51,6 +51,19 @@
   pointer-events: none;
 }
 
+/* Horizontal focal point (hero.backgroundFocalX = left | right) — anchors the
+   single full-bleed cover image to one side so a one-sided motif survives the
+   mobile crop instead of being sliced to the empty middle. `object-position`'s
+   anchor only acts on the overflowing axis, so X bites only on tall phones and
+   is a no-op on desktop; Y stays `center` (the base) to keep today's framing.
+   This hero has no Ken Burns drift, so nothing to disable off-center. */
+.bgImage[data-focal="left"] img {
+  object-position: left center;
+}
+.bgImage[data-focal="right"] img {
+  object-position: right center;
+}
+
 .bgFallback {
   position: absolute;
   inset: 0;

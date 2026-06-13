@@ -46,6 +46,12 @@ export function CollageMosaicHero({
   const hasImage = !!heroAsset?.publicUrl;
   const hasCouplePhoto = !!couplePhotoAsset?.publicUrl;
 
+  // Horizontal focal point for the single full-bleed cover image — only bites
+  // on phones (horizontal overflow), a no-op on desktop. Keeps a one-sided
+  // motif in frame; CSS owns the per-side object-position. No portrait variant
+  // and no Ken Burns drift on this hero, so the wiring is simpler than V2/GL.
+  const focalX = config.backgroundFocalX ?? "center";
+
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
   const frame = couplePhotoFrame ?? "circle";
@@ -130,7 +136,7 @@ export function CollageMosaicHero({
     >
       {/* Background image */}
       {hasImage ? (
-        <div className={styles.bgImage} aria-hidden="true">
+        <div className={styles.bgImage} data-focal={focalX} aria-hidden="true">
           <EventImage
             src={heroAsset!.publicUrl!}
             alt=""
