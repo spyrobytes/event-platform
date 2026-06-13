@@ -85,6 +85,24 @@ export type CouplePhotoFrameId = z.infer<typeof couplePhotoFrameSchema>;
 export const heroBackgroundTreatmentSchema = z.enum(["ambience", "portrait"]);
 export type HeroBackgroundTreatment = z.infer<typeof heroBackgroundTreatmentSchema>;
 
+/**
+ * Horizontal focal point for the hero background crop.
+ *
+ * `object-fit: cover` only crops the axis that overflows: on wide viewports a
+ * landscape hero image overflows vertically (horizontal already fills, so the
+ * whole width — and any side motif — shows), but on tall phones it overflows
+ * horizontally and a centered crop slices off the edges. This anchors that
+ * horizontal crop so a one-sided decorative motif (e.g. a floral border down
+ * one edge) stays in frame on mobile. It is a no-op on desktop.
+ *
+ * - `center` (default, unset) — today's behavior.
+ * - `left` / `right` — pin the crop to that side on phones.
+ *
+ * Templates opt in via `templateSupportsHeroFocalX`.
+ */
+export const heroFocalXSchema = z.enum(["left", "center", "right"]);
+export type HeroFocalX = z.infer<typeof heroFocalXSchema>;
+
 export const heroSchema = z.object({
   title: z.string().min(1, "Title is required").max(80, "Title must be 80 characters or less"),
   subtitle: z.string().max(120, "Subtitle must be 120 characters or less").optional(),
@@ -101,6 +119,7 @@ export const heroSchema = z.object({
   couplePhotoAssetId: z.string().cuid().optional(),
   couplePhotoFrame: couplePhotoFrameSchema.optional(),
   backgroundTreatment: heroBackgroundTreatmentSchema.optional(),
+  backgroundFocalX: heroFocalXSchema.optional(),
 });
 
 export type HeroConfig = z.infer<typeof heroSchema>;

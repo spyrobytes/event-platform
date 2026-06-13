@@ -208,6 +208,18 @@ export function templateSupportsHeroBackgroundTreatment(templateId: string): boo
 }
 
 /**
+ * Whether a template's hero honors `hero.backgroundFocalX` — the horizontal
+ * anchor for the mobile cover-crop (see the schema). Single source of truth so
+ * the editor's focal-point control can't light up for a hero that ignores it.
+ * V2 Cinematic implements it today; the latent same-crop on the V3 cover heroes
+ * (Grand Luxe et al.) is a deliberate follow-up, so they stay false until each
+ * renderer is wired.
+ */
+export function templateSupportsHeroFocalX(templateId: string): boolean {
+  return templateId === "wedding_v2";
+}
+
+/**
  * Curated couple-photo frame shapes for a template's hero, or undefined when
  * the template has no couple photo. The first option is the template's
  * default. V3 templates carry `couplePhotoFrameOptions` on their definition;
