@@ -61,6 +61,10 @@ export const GRAND_LUXE: TemplateDefinition = {
   // (lighter grade, drift off, top-anchored crop (heads never clip)).
   supportsHeroBackgroundTreatment: true,
 
+  // Single full-bleed cover hero — implements the horizontal focal anchor so a
+  // one-sided motif survives the mobile crop (luxeDrift disabled off-center).
+  supportsHeroFocalX: true,
+
   motionPreset: {
     revealType: "mask-reveal",
     duration: 700,

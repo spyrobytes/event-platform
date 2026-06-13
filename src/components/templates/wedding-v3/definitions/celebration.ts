@@ -25,6 +25,12 @@ export const CELEBRATION: TemplateDefinition = {
     "Multi-event schedules",
   ],
 
+  // The collage-mosaic hero renders a SINGLE full-bleed cover image (the
+  // "mosaic" is the content-styling language, not a multi-image background),
+  // so it honors the horizontal focal anchor — a one-sided motif survives the
+  // mobile crop. (No portrait treatment: its centered composition skips that.)
+  supportsHeroFocalX: true,
+
   heroRenderer: "collage-mosaic",
   navRenderer: "utility-forward",
   galleryRenderer: "scrapbook-collage",
