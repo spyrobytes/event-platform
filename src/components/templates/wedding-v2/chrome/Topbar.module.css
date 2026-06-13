@@ -12,12 +12,10 @@
   /* Light frosted glass even before scroll so nav is readable over hero image */
   background: var(--lux-panel-soft, var(--glass-bg, rgba(248, 245, 240, 0.55)));
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .scrolled {
   background: var(--lux-panel-soft, var(--glass-bg-scrolled, rgba(248, 245, 240, 0.92)));
   backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border-bottom-color: var(--lux-line, var(--border, #e8e1d6));
   box-shadow: 0 1px 12px rgba(30, 27, 23, 0.04);
 }

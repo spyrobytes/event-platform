@@ -113,7 +113,6 @@
 .glassCard {
   background: color-mix(in srgb, var(--surface, #ffffff) 55%, transparent);
   backdrop-filter: blur(20px) saturate(1.2);
-  -webkit-backdrop-filter: blur(20px) saturate(1.2);
   border: 1px solid color-mix(in srgb, var(--border, #e8e1d6) 60%, transparent);
   border-radius: var(--r-lg, 24px);
   padding: clamp(16px, 2vw, 24px);
