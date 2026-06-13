@@ -20,6 +20,12 @@ describe("templateSupportsHeroFocalX", () => {
   });
 
   it("stays off for templates without a single full-bleed cover hero", () => {
+    // wedding_garden_house is a REAL V3 definition that leaves the flag unset —
+    // it exercises the gate's `?? false` real-V3-unset path (not just the
+    // undefined-definition short-circuit that v1/party/bogus hit), so a future
+    // refactor that defaulted unset V3 flags to true would fail here instead of
+    // silently lighting the control on a hero with no [data-focal] CSS rules.
+    expect(templateSupportsHeroFocalX("wedding_garden_house")).toBe(false);
     expect(templateSupportsHeroFocalX("wedding_v1")).toBe(false);
     expect(templateSupportsHeroFocalX("party_v1")).toBe(false);
     expect(templateSupportsHeroFocalX("bogus_template")).toBe(false);

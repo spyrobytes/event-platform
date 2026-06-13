@@ -89,24 +89,25 @@
    the overflowing axis: vertical on desktop (X is a no-op, whole motif shows),
    horizontal on tall phones (this bites). Y stays `center`/`top` from the rules
    above so the base + portrait vertical framing is untouched — the combined
-   portrait+focal selectors below outrank both single-class rules. luxeDrift is
-   disabled off-center: its scale grows from the center origin and would drift
-   the anchored edge back out of frame (same reason portrait kills it). */
+   portrait+focal selectors below outrank both single-class rules.
+   `transform-origin` follows the anchor so luxeDrift's zoom grows FROM the
+   pinned edge instead of the center — the motif stays in frame through the
+   drift (a center-origin zoom would magnify the anchored edge back out). The
+   drift itself stays on, on every viewport, so the backdrop keeps breathing in
+   sync with the coupled `.couplePhoto` drift (which shares luxeDrift). */
 .bgImage[data-focal="left"] img {
   object-position: left center;
+  transform-origin: left center;
 }
 .bgImage[data-focal="right"] img {
   object-position: right center;
+  transform-origin: right center;
 }
 .bgImage.bgPortrait[data-focal="left"] img {
   object-position: left top;
 }
 .bgImage.bgPortrait[data-focal="right"] img {
   object-position: right top;
-}
-.bgImage[data-focal="left"] img,
-.bgImage[data-focal="right"] img {
-  animation: none;
 }
 
 /* ===== COUPLE PHOTO — top-left portrait =====
