@@ -84,6 +84,13 @@ export function CinematicHero({
   // and the floating couple photo is skipped to keep the hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
+  // Horizontal focal point for the cover-crop. Only bites on phones (the
+  // landscape image overflows horizontally there); a no-op on desktop. Keeps a
+  // one-sided motif (e.g. a floral border) in frame instead of cropping it off.
+  // CSS owns the per-side object-position + drift-off; the Y axis stays driven
+  // by the treatment class so portrait's top-anchor is untouched.
+  const focalX = config.backgroundFocalX ?? "center";
+
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
   const frame =
@@ -127,6 +134,7 @@ export function CinematicHero({
       {heroAsset?.publicUrl ? (
         <div
           className={cn(styles.heroMedia, isPortraitBackdrop && styles.heroMediaPortrait)}
+          data-focal={focalX}
           aria-hidden="true"
         >
           <img

@@ -54,6 +54,7 @@ import {
   templateSupportsSocialLinks,
   templateSupportsPrelude,
   templateSupportsHeroBackgroundTreatment,
+  templateSupportsHeroFocalX,
   getCouplePhotoFrameOptions,
 } from "@/components/templates";
 import {
@@ -1623,6 +1624,41 @@ export default function PageEditorPage() {
                       is the subject (e.g. a couple photo as the background).
                     </>
                   )}
+                </p>
+              </div>
+            );
+          })()}
+
+          {/* Background focal point — which side of the hero image stays in
+              frame when it crops to a tall strip on phones. Gated on the
+              template honoring backgroundFocalX (templateSupportsHeroFocalX)
+              and a hero image being set (the control does nothing without one).
+              A no-op on desktop, where the image already fills horizontally. */}
+          {templateSupportsHeroFocalX(templateId) && config.hero.heroImageAssetId && (() => {
+            const focalX = config.hero.backgroundFocalX ?? "center";
+            return (
+              <div className="space-y-2 pt-4 border-t">
+                <Label>Background Focal Point</Label>
+                <p className="text-xs text-muted-foreground">
+                  On phones the hero image crops to a tall strip. Choose the side
+                  your image&rsquo;s artwork sits on so florals or borders stay in
+                  frame.
+                </p>
+                <SegmentedRadioGroup
+                  ariaLabel="Hero background focal point"
+                  options={[
+                    { value: "left" as const, label: "Left" },
+                    { value: "center" as const, label: "Center" },
+                    { value: "right" as const, label: "Right" },
+                  ]}
+                  value={focalX}
+                  onChange={(value) => updateHero({ backgroundFocalX: value })}
+                  disabled={saving}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {focalX === "center"
+                    ? "Center keeps the middle of the image — best for full-bleed photos with the subject centered."
+                    : `The ${focalX} edge is pinned on phones; the opposite edge crops away. Pick the side with your decorative artwork.`}
                 </p>
               </div>
             );

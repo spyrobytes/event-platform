@@ -61,6 +61,34 @@
   will-change: auto;
 }
 
+/* Horizontal focal point (hero.backgroundFocalX = left | right) — anchors the
+   cover-crop to one side. `object-position`'s anchor only acts on the
+   overflowing axis: on desktop the landscape image overflows vertically, so X
+   is a no-op and the whole motif already shows; on tall phones it overflows
+   horizontally, so this pins the chosen side and keeps a one-sided motif in
+   frame instead of cropping it to the empty middle. Ken Burns is disabled
+   off-center — its scale grows from the center origin and would drift the
+   anchored edge back out of frame (same reason the portrait treatment kills
+   drift). Center is the unset default and needs no override. The Y axis is left
+   to the rules above so the portrait top-anchor still composes. */
+.heroMedia[data-focal="left"] img {
+  object-position: left 30%;
+}
+.heroMedia[data-focal="right"] img {
+  object-position: right 30%;
+}
+.heroMedia.heroMediaPortrait[data-focal="left"] img {
+  object-position: left top;
+}
+.heroMedia.heroMediaPortrait[data-focal="right"] img {
+  object-position: right top;
+}
+.heroMedia[data-focal="left"] img,
+.heroMedia[data-focal="right"] img {
+  animation: none;
+  will-change: auto;
+}
+
 /* Complex gradient overlay fading to bg color (parameterized for dark variants) */
 .heroMedia::after {
   content: "";
