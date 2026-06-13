@@ -297,7 +297,6 @@
 .floatCard {
   background: var(--lux-hero-glass, rgba(255, 255, 255, 0.72));
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--lux-hero-line, rgba(255, 255, 255, 0.85));
   border-radius: var(--r-lg, 24px);
   padding: 24px;

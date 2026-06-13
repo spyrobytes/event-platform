@@ -121,7 +121,6 @@
   z-index: 200;
   background: rgba(30, 27, 23, 0.7);
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
   width: 40px;
