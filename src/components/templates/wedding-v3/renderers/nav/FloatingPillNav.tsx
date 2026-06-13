@@ -20,6 +20,7 @@ export function FloatingPillNav({
   sections,
   overflow = [],
   homeHref = "#top",
+  mobileNavExpression,
 }: NavRendererProps) {
   const [visible, setVisible] = useState(false);
 
@@ -213,10 +214,10 @@ export function FloatingPillNav({
         is visible immediately on mobile. Pinned top-right at all times. */}
     <MobileNavMenu
       className="gl-nav-mobile-menu"
-      // Velvet veil: full-screen night takeover with the monogram as the
-      // centerpiece — Grand Luxe's curated menu expression (black-tie
-      // formality wants a moment, not a utility drawer).
-      expression="veil"
+      // Velvet veil, curated by the definition (GRAND_LUXE declares
+      // mobileNavExpression — black-tie formality wants a moment, not a
+      // utility drawer).
+      expression={mobileNavExpression}
       brand={displayMonogram}
       items={[...navSections, ...overflow].map((s) => ({
         id: s.id,

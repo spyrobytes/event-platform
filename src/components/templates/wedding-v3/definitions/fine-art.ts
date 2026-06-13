@@ -21,6 +21,9 @@ export const FINE_ART: TemplateDefinition = {
 
   heroRenderer: "centered-invitation",
   navRenderer: "centered-decorator",
+  // Invitation sheet — a centered stationery card over the blurred page.
+  // The template is invitation-inspired; its menu IS an invitation card.
+  mobileNavExpression: "sheet",
   galleryRenderer: "framed-fine-art",
   scheduleRenderer: "invitation-card",
   storyRenderer: "chapter-cards",

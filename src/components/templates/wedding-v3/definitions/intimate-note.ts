@@ -22,6 +22,9 @@ export const INTIMATE_NOTE: TemplateDefinition = {
   // Renderer selections
   heroRenderer: "typographic",
   navRenderer: "light-minimal",
+  // Invitation sheet — a small note card over the hushed, blurred page
+  // suits the template's quiet, personal register.
+  mobileNavExpression: "sheet",
   galleryRenderer: "compact-strip",
   scheduleRenderer: "concise-essentials",
   storyRenderer: "letter-narrative",

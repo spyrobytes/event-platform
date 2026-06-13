@@ -1,2 +1,6 @@
-export { MobileNavMenu, type MobileNavItem } from "./MobileNavMenu";
+export {
+  MobileNavMenu,
+  type MobileNavItem,
+  type MobileNavExpression,
+} from "./MobileNavMenu";
 export { FloatingMobileNavMenu } from "./FloatingMobileNavMenu";

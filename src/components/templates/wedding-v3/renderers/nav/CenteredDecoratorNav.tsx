@@ -18,6 +18,7 @@ export function CenteredDecoratorNav({
   sections,
   overflow = [],
   homeHref = "#top",
+  mobileNavExpression,
 }: NavRendererProps) {
   const navSections = sections;
   const linkBaseStyle: React.CSSProperties = {
@@ -167,6 +168,10 @@ export function CenteredDecoratorNav({
         {/* Mobile menu (centered link group is CSS-hidden at ≤768px). */}
         <MobileNavMenu
           className="fine-art-mobile-menu"
+          // Invitation sheet, curated by the definition (FINE_ART declares
+          // mobileNavExpression — the template is invitation-inspired; its
+          // menu IS an invitation card).
+          expression={mobileNavExpression}
           brand={displayMonogram}
           items={[...navSections, ...overflow].map((s) => ({
             id: s.id,

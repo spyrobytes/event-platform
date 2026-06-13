@@ -9,6 +9,7 @@
 
 import type { ComponentType } from "react";
 import type { MediaAsset } from "@prisma/client";
+import type { MobileNavExpression } from "@/components/templates/shared/MobileNavMenu";
 import type {
   HeroConfig,
   DetailsSection,
@@ -292,6 +293,10 @@ export type NavRendererProps = {
   hasHeroImage?: boolean;
   /** On sub-pages, links the logo back to the landing page instead of #top. */
   homeHref?: string;
+  /** Visual expression of the shared mobile menu, declared by the template's
+   *  definition (mobileNavExpression). Renderers forward it verbatim to
+   *  MobileNavMenu; omitted = the shared drawer default. */
+  mobileNavExpression?: MobileNavExpression;
 };
 
 /** Footer props */
@@ -366,6 +371,20 @@ export type TemplateDefinition = {
   // --- Renderer selections ---
   heroRenderer: HeroRendererId;
   navRenderer: NavRendererId;
+  /**
+   * Visual expression of the shared mobile menu (drawer | veil | sheet).
+   * Curated per template — the definition is the source of truth and the
+   * nav renderer just forwards it (the same "definition declares, renderer
+   * obeys" contract as the section renderers). Omitted = drawer default.
+   *
+   * "sheet" constraint: the sheet's frosted backdrop sits at z-index 100 to
+   * recede the page; any fixed/sticky chrome above z 100 (e.g. ScrollProgress
+   * at z 150 — enabled by chromeKit.scrollProgress) would float sharp over the
+   * frost and break the composition. Only enroll "sheet" on a template whose
+   * chrome stays at/below z 100, or raise the backdrop+panel first (see the
+   * sheet .backdrop block in MobileNavMenu.module.css).
+   */
+  mobileNavExpression?: MobileNavExpression;
   galleryRenderer: GalleryRendererId;
   scheduleRenderer: ScheduleRendererId;
   storyRenderer: StoryRendererId;
