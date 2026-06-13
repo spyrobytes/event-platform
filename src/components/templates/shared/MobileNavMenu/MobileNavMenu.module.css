@@ -37,11 +37,18 @@
   inset: 0;
   z-index: 90;
   background: rgba(18, 12, 10, 0.46);
-  /* Standard property ONLY — hand-writing the -webkit- prefix alongside
-     it makes Lightning CSS (Next's CSS-module pipeline) drop BOTH
-     declarations from the emitted CSS (verified against the served
-     stylesheet; standard-only declarations survive and the pipeline
-     owns prefix generation from its browser targets). */
+  /* Standard property ONLY — do NOT hand-write the -webkit- prefix here.
+     The prod build's Lightning CSS pass GENERATES -webkit-backdrop-filter
+     from this single standard declaration off Next's browser targets, so
+     the emitted CSS carries BOTH and the blur works on old iOS Safari
+     (<18, needs the prefix) and modern Firefox/Chrome alike. Verified in a
+     production build: this rule ships `-webkit-backdrop-filter:blur(4px);
+     backdrop-filter:blur(4px)`. Hand-writing the pair instead triggers a
+     Lightning dedup that keeps only the LAST of the two and drops the
+     other (GlassHeader.module.css authors both and ships webkit-only,
+     silently breaking its blur on modern Firefox). The dev server skips
+     this generation pass, so only the standard property shows in dev —
+     that's expected, not a bug. */
   backdrop-filter: blur(4px);
   animation: mnmFadeIn 240ms ease;
 }
@@ -429,7 +436,17 @@
    to read as laid ON the page, so the sheet's backdrop outranks the
    hosts' fixed nav bars (z 100). The panel is a later sibling at the
    same z, so it paints above the backdrop. Blur is deeper than the
-   drawer's: the frost IS the composition here, not a dimmer. */
+   drawer's: the frost IS the composition here, not a dimmer.
+
+   CONSTRAINT for enrolling new templates on the sheet expression: any
+   fixed/sticky page chrome with z-index > 100 floats sharp ABOVE this
+   frost and breaks the composition. The two enrolled templates are safe
+   because both set chromeKit.scrollProgress: false (ScrollProgress is the
+   one piece of V3 chrome above this, at z 150). Before enrolling a
+   template that turns on higher-z chrome, raise BOTH this backdrop and
+   the panel above it (they must stay equal — the panel has no explicit
+   z-index and relies on same-z DOM order). Mirrored on the
+   mobileNavExpression doc in wedding-v3/types.ts. */
 .root[data-expression="sheet"] .backdrop {
   z-index: 100;
   background: rgba(28, 22, 18, 0.4);
@@ -450,6 +467,14 @@
   width: min(400px, calc(100vw - 2 * var(--mnm-sheet-gutter)));
   height: fit-content;
   max-height: calc(100svh - 2 * var(--mnm-sheet-gutter));
+  /* The list (min-height:0 + overflow-y:auto) absorbs the shrink and
+     scrolls when content maxes the card out. This clip is the safety net
+     for the pathological case the list can't cover — a tall header (long
+     wrapping brand) plus the CTA together exceeding max-height on a short
+     landscape viewport: .header/.ctaArea are flex items with the default
+     min-height:auto, so they can't shrink below their content and would
+     otherwise spill below the card, over the frost. */
+  overflow: hidden;
   padding: clamp(24px, 6.5vw, 32px) clamp(20px, 5.5vw, 28px)
     clamp(20px, 5.5vw, 26px);
   background: var(--mnm-sheet-paper);

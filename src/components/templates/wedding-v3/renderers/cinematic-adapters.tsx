@@ -86,6 +86,10 @@ export function CinematicNavAdapter(props: NavRendererProps) {
       sections={props.sections}
       accentColor={props.accentColor}
       homeHref={props.homeHref}
+      // Forward the definition's curated expression so this fallback nav
+      // renderer doesn't silently downgrade it. Undefined falls through to
+      // Topbar's "veil" default.
+      mobileNavExpression={props.mobileNavExpression}
     />
   );
 }

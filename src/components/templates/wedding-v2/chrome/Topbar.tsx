@@ -3,7 +3,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { ShareButton } from "@/components/features/ShareButton";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
-import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
+import {
+  MobileNavMenu,
+  type MobileNavExpression,
+} from "@/components/templates/shared/MobileNavMenu";
 import styles from "./Topbar.module.css";
 
 type NavSection = {
@@ -26,6 +29,11 @@ type TopbarProps = {
   overflow?: NavSection[];
   accentColor?: string;
   homeHref?: string;
+  /** Mobile menu expression. Defaults to "veil" (V2 Cinematic's curated
+   *  look); the V3 CinematicNavAdapter forwards the definition's
+   *  mobileNavExpression here so a V3 template using this topbar can pick a
+   *  different expression instead of being silently locked to veil. */
+  mobileNavExpression?: MobileNavExpression;
   /** When true, renders a ShareButton (navigator.share + clipboard fallback)
    *  in the actions slot. Caller is responsible for gating on visibility —
    *  we only render the button when this is true AND a shareUrl is provided.
@@ -53,6 +61,7 @@ export function Topbar({
   sections = [],
   overflow = [],
   homeHref,
+  mobileNavExpression = "veil",
   canShare = false,
   shareTitle,
   shareUrl,
@@ -160,11 +169,12 @@ export function Topbar({
           {(sections.length > 0 || overflow.length > 0) && (
             <MobileNavMenu
               className={styles.navToggle}
-              // Full-screen veil, themed by V2's section themes via the
-              // --mnm-veil-* hooks (menuVars in WeddingTemplateV2): Cream is
-              // a light veil with dark ink, Midnight a slate one — the
-              // cinematic counterpart to Grand Luxe's night veil.
-              expression="veil"
+              // Defaults to the full-screen veil, themed by V2's section
+              // themes via the --mnm-veil-* hooks (menuVars in
+              // WeddingTemplateV2): Cream is a light veil with dark ink,
+              // Midnight a slate one — the cinematic counterpart to Grand
+              // Luxe's night veil. The V3 cinematic adapter can override.
+              expression={mobileNavExpression}
               // Monogram-first, like Grand Luxe: the veil's brand is
               // display-scale serif with flanking hairlines, and full couple
               // names wrap to two lines at ≤425px (user sweep). Single

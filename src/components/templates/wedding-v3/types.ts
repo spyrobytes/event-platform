@@ -376,6 +376,13 @@ export type TemplateDefinition = {
    * Curated per template — the definition is the source of truth and the
    * nav renderer just forwards it (the same "definition declares, renderer
    * obeys" contract as the section renderers). Omitted = drawer default.
+   *
+   * "sheet" constraint: the sheet's frosted backdrop sits at z-index 100 to
+   * recede the page; any fixed/sticky chrome above z 100 (e.g. ScrollProgress
+   * at z 150 — enabled by chromeKit.scrollProgress) would float sharp over the
+   * frost and break the composition. Only enroll "sheet" on a template whose
+   * chrome stays at/below z 100, or raise the backdrop+panel first (see the
+   * sheet .backdrop block in MobileNavMenu.module.css).
    */
   mobileNavExpression?: MobileNavExpression;
   galleryRenderer: GalleryRendererId;
