@@ -44,6 +44,17 @@
   100% { transform: scale(1.06) translate(-0.5%, -0.8%); }
 }
 
+/* Focal variant of the drift: same scale + vertical pan, but NO horizontal
+   translate. Paired with transform-origin:<side> center on the focal rules
+   below, this keeps a one-sided motif pinned on tall phones (where the X axis
+   overflows) — the base kenBurns' -0.5% X pan would nudge the anchored edge off
+   screen even with the zoom growing from that edge. The scale(1.06) overscans
+   far more than the -0.8% Y pan, so the box still fully covers vertically. */
+@keyframes kenBurnsFocal {
+  0%   { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.06) translateY(-0.8%); }
+}
+
 /* Portrait background treatment (hero.backgroundTreatment = "portrait") —
    the background IS the subject: a couple photo with no layered portrait.
    Top-anchored so heads can never crop: with object-fit cover the anchor
@@ -66,25 +77,37 @@
    overflowing axis: on desktop the landscape image overflows vertically, so X
    is a no-op and the whole motif already shows; on tall phones it overflows
    horizontally, so this pins the chosen side and keeps a one-sided motif in
-   frame instead of cropping it to the empty middle. Ken Burns is disabled
-   off-center — its scale grows from the center origin and would drift the
-   anchored edge back out of frame (same reason the portrait treatment kills
-   drift). Center is the unset default and needs no override. The Y axis is left
-   to the rules above so the portrait top-anchor still composes. */
+   frame instead of cropping it to the empty middle. The drift stays ALIVE
+   (matching Grand Luxe): `transform-origin` follows the anchor so the zoom grows
+   FROM the pinned edge instead of the center — the motif stays in frame through
+   the drift, and the motion survives on every viewport (on desktop the X-anchor
+   is inert, so this is just the signature Ken Burns, uncut, where killing it was
+   a needless regression). It runs kenBurnsFocal, which drops the base keyframe's
+   -0.5% horizontal pan — that pan would nudge the pinned edge off a tall phone
+   even with an edge origin. Center is the unset default and needs no override.
+   The Y axis is left to the rules above so the portrait top-anchor still
+   composes. */
 .heroMedia[data-focal="left"] img {
   object-position: left 30%;
+  transform-origin: left center;
+  animation-name: kenBurnsFocal;
 }
 .heroMedia[data-focal="right"] img {
   object-position: right 30%;
+  transform-origin: right center;
+  animation-name: kenBurnsFocal;
 }
+/* Portrait + focal: a couple-photo background must never drift (a correct
+   framing can't be allowed to wander), so keep the top-anchored crop AND
+   override the focal drift back to none. Two classes + the attr outrank the
+   single-class focal rules above, so this wins regardless of source order. */
 .heroMedia.heroMediaPortrait[data-focal="left"] img {
   object-position: left top;
+  animation: none;
+  will-change: auto;
 }
 .heroMedia.heroMediaPortrait[data-focal="right"] img {
   object-position: right top;
-}
-.heroMedia[data-focal="left"] img,
-.heroMedia[data-focal="right"] img {
   animation: none;
   will-change: auto;
 }
