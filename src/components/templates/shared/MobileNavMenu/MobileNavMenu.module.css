@@ -419,7 +419,10 @@
    same subtle scale it arrived on — a touch quicker than the entrance, as
    exits should be. */
 .root[data-expression="veil"][data-state="closing"] .panel {
-  animation: mnmVeilOut 400ms cubic-bezier(0.4, 0, 0.9, 0.35) both;
+  /* ease-out, not an ease-in: the fade must be visible from the first frame.
+     An back-loaded curve crams the whole opacity drop into the last ~15% and
+     reads as an abrupt snap rather than a fold. */
+  animation: mnmVeilOut 480ms ease-out both;
 }
 /* !important defeats the per-item inline animation-delay (the entrance
    stagger). Without it each item would wait out its 200ms+ entrance delay
@@ -427,7 +430,7 @@
    the items recede together instead. */
 .root[data-expression="veil"][data-state="closing"] .item,
 .root[data-expression="veil"][data-state="closing"] .cta {
-  animation: mnmItemOut 200ms cubic-bezier(0.4, 0, 0.9, 0.35) both !important;
+  animation: mnmItemOut 280ms ease-out both !important;
 }
 
 /* ===== SHEET — centered stationery card (Fine Art Romance, Intimate Note) ===== */
@@ -687,8 +690,9 @@
   }
 }
 
-/* Exit mirrors mnmVeilIn: fade back out on the same subtle zoom. `both`
-   holds opacity 0 at the end so the panel can't flash back before unmount. */
+/* Exit mirrors mnmVeilIn: fade back out on a slightly deeper zoom than the
+   entrance (1.05 vs 1.03) so the motion actually registers. `both` holds
+   opacity 0 at the end so the panel can't flash back before unmount. */
 @keyframes mnmVeilOut {
   from {
     opacity: 1;
@@ -696,11 +700,12 @@
   }
   to {
     opacity: 0;
-    transform: scale(1.03);
+    transform: scale(1.05);
   }
 }
 
-/* Exit mirror of mnmItemIn — sink + fade instead of rise + fade. */
+/* Exit mirror of mnmItemIn — sink + fade instead of rise + fade, with a
+   touch more travel than the entrance so the recede reads. */
 @keyframes mnmItemOut {
   from {
     opacity: 1;
@@ -708,7 +713,7 @@
   }
   to {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(14px);
   }
 }
 

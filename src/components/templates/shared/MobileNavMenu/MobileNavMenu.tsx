@@ -52,7 +52,7 @@ const EXPRESSIONS: Record<
   { coversTrigger: boolean; hasBackdrop: boolean; exitMs: number }
 > = {
   drawer: { coversTrigger: false, hasBackdrop: true, exitMs: 0 },
-  veil: { coversTrigger: true, hasBackdrop: false, exitMs: 440 },
+  veil: { coversTrigger: true, hasBackdrop: false, exitMs: 520 },
   sheet: { coversTrigger: true, hasBackdrop: true, exitMs: 0 },
 };
 
