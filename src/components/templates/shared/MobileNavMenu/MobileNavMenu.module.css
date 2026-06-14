@@ -411,6 +411,25 @@
   transform: translateY(-1px);
 }
 
+/* ----- Veil fold-out (reverse-mirror of the entrance) -----
+   The host JS keeps the portal mounted for EXPRESSIONS.veil.exitMs and
+   stamps [data-state="closing"] on .root; the extra attribute out-specifies
+   the entrance rules, so the panel/items swap mnmVeilIn/mnmItemIn for the
+   *Out keyframes. Items recede first, then the veil eases back out on the
+   same subtle scale it arrived on — a touch quicker than the entrance, as
+   exits should be. */
+.root[data-expression="veil"][data-state="closing"] .panel {
+  animation: mnmVeilOut 400ms cubic-bezier(0.4, 0, 0.9, 0.35) both;
+}
+/* !important defeats the per-item inline animation-delay (the entrance
+   stagger). Without it each item would wait out its 200ms+ entrance delay
+   before fading — outlasting exitMs and getting clipped at unmount. On exit
+   the items recede together instead. */
+.root[data-expression="veil"][data-state="closing"] .item,
+.root[data-expression="veil"][data-state="closing"] .cta {
+  animation: mnmItemOut 200ms cubic-bezier(0.4, 0, 0.9, 0.35) both !important;
+}
+
 /* ===== SHEET — centered stationery card (Fine Art Romance, Intimate Note) ===== */
 
 .root[data-expression="sheet"] {
@@ -668,6 +687,31 @@
   }
 }
 
+/* Exit mirrors mnmVeilIn: fade back out on the same subtle zoom. `both`
+   holds opacity 0 at the end so the panel can't flash back before unmount. */
+@keyframes mnmVeilOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}
+
+/* Exit mirror of mnmItemIn — sink + fade instead of rise + fade. */
+@keyframes mnmItemOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -675,6 +719,16 @@
   .panel,
   .item,
   .cta {
+    animation: none !important;
+  }
+
+  /* Defence-in-depth for the fold-out: the host JS already skips the
+     `closing` phase under reduced motion (instant unmount), but if
+     matchMedia is unavailable and it can't, these out-specify the
+     !important exit rules so the menu still vanishes without motion. */
+  .root[data-expression="veil"][data-state="closing"] .panel,
+  .root[data-expression="veil"][data-state="closing"] .item,
+  .root[data-expression="veil"][data-state="closing"] .cta {
     animation: none !important;
   }
 

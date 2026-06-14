@@ -39,14 +39,21 @@ export type MobileNavExpression = "drawer" | "veil" | "sheet";
  *  - hasBackdrop: paints the click-to-close backdrop behind the panel.
  *    Expressions whose panel covers the viewport skip it — there is no
  *    "outside" to click, and it saves a full-screen blur layer on mobile.
+ *  - exitMs: duration of the fold-out exit. 0 = unmount instantly (the
+ *    original behavior). Non-zero keeps the portal mounted in a `closing`
+ *    phase (data-state="closing") so the CSS exit keyframes can play, then
+ *    JS unmounts. MUST equal/slightly exceed the longest exit keyframe in
+ *    the module. Only IN-PAGE closes (✕, Escape, resize) animate;
+ *    navigation / BFCache closes always tear down synchronously, and you'd
+ *    never see an exit on those anyway (the page is leaving).
  */
 const EXPRESSIONS: Record<
   MobileNavExpression,
-  { coversTrigger: boolean; hasBackdrop: boolean }
+  { coversTrigger: boolean; hasBackdrop: boolean; exitMs: number }
 > = {
-  drawer: { coversTrigger: false, hasBackdrop: true },
-  veil: { coversTrigger: true, hasBackdrop: false },
-  sheet: { coversTrigger: true, hasBackdrop: true },
+  drawer: { coversTrigger: false, hasBackdrop: true, exitMs: 0 },
+  veil: { coversTrigger: true, hasBackdrop: false, exitMs: 440 },
+  sheet: { coversTrigger: true, hasBackdrop: true, exitMs: 0 },
 };
 
 /**
@@ -175,6 +182,11 @@ export function MobileNavMenu({
   expression = "drawer",
 }: MobileNavMenuProps) {
   const [open, setOpen] = useState(false);
+  // `closing` is the fold-out phase: the portal stays mounted (rendered on
+  // `open || closing`) while the CSS exit keyframes play, then JS unmounts.
+  // `open` stays true throughout the exit, so openRef — and the BFCache guard
+  // that reads it — keeps seeing a live menu (invariant: closing ⟹ open).
+  const [closing, setClosing] = useState(false);
   const [themeVars, setThemeVars] = useState<React.CSSProperties>({});
   const drawerId = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -182,6 +194,7 @@ export function MobileNavMenu({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousOverflowRef = useRef<string>("");
   const openRef = useRef(false);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // setOpen wrapper that also mirrors the resolved value into openRef
   // from INSIDE the updater. The conventional pattern is a separate
@@ -206,19 +219,47 @@ export function MobileNavMenu({
     });
   }, []);
 
-  const close = useCallback(() => {
-    setOpenState(false);
-    // Return focus to the hamburger trigger so keyboard users land
-    // back where they invoked the drawer. Deferred a frame: in
-    // covering expressions (veil, sheet) the trigger wrapper is
-    // visibility:hidden until the close re-render commits, and
-    // focus() on a hidden element silently no-ops. Skipped automatically when the trigger is gone (e.g.
-    // resized past desktop breakpoint, or hidden by CSS in templates
-    // with a desktop nav).
+  // Return focus to the hamburger trigger so keyboard users land back where
+  // they invoked the menu. Deferred a frame: in covering expressions (veil,
+  // sheet) the trigger wrapper is visibility:hidden until the unmount commits,
+  // and focus() on a hidden element silently no-ops. Skipped automatically
+  // when the trigger is gone (resized past desktop breakpoint, or hidden by
+  // CSS in templates with a desktop nav).
+  const restoreTriggerFocus = useCallback(() => {
     requestAnimationFrame(() => {
       triggerRef.current?.focus();
     });
-  }, [setOpenState]);
+  }, []);
+
+  // In-page close (✕, Escape, resize). Unlike the navigation/BFCache path,
+  // this one can afford an exit animation. For expressions with exitMs > 0
+  // (the veil) and no reduced-motion preference, it enters the `closing`
+  // phase and defers the unmount until the fold-out finishes; otherwise it
+  // unmounts instantly, exactly as before.
+  const close = useCallback(() => {
+    // Already folding out — ignore repeat requests (Escape/resize can fire
+    // again mid-exit) so we never stack timers.
+    if (closing) return;
+
+    const { exitMs } = EXPRESSIONS[expression];
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (!exitMs || reduceMotion) {
+      setOpenState(false);
+      restoreTriggerFocus();
+      return;
+    }
+
+    setClosing(true);
+    exitTimerRef.current = setTimeout(() => {
+      exitTimerRef.current = null;
+      setClosing(false);
+      setOpenState(false);
+      restoreTriggerFocus();
+    }, exitMs);
+  }, [closing, expression, setOpenState, restoreTriggerFocus]);
 
   /**
    * Synchronous-commit close path for browser navigation and BFCache
@@ -251,7 +292,18 @@ export function MobileNavMenu({
     // we can't trust React's cleanup to land before snapshotting.
     releaseScrollLock(previousOverflowRef.current);
 
+    // Abandon any in-flight fold-out: a queued exit timer would unmount a
+    // frame from now, leaving the still-mounted portal in the BFCache
+    // snapshot. Clear it and tear `closing` down in the same synchronous
+    // flush as `open`, or the portal (rendered on `open || closing`) would
+    // survive the flush.
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+
     flushSync(() => {
+      setClosing(false);
       setOpenState(false);
     });
   }, [setOpenState]);
@@ -277,6 +329,14 @@ export function MobileNavMenu({
       releaseScrollLock(previousOverflowRef.current);
     };
   }, [open]);
+
+  // Clear a pending fold-out timer if the component unmounts mid-exit, so its
+  // deferred setState can't fire on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, []);
 
   // BFCache survival. The cached snapshot must not be taken with
   // overflow:hidden pinned, and a restored snapshot must clear any
@@ -380,7 +440,9 @@ export function MobileNavMenu({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          ...(open && EXPRESSIONS[expression].coversTrigger
+          // Stay hidden through the fold-out too (open || closing), or the
+          // hamburger would pop back in behind the still-visible veil.
+          ...((open || closing) && EXPRESSIONS[expression].coversTrigger
             ? { visibility: "hidden" as const, pointerEvents: "none" as const }
             : {}),
         }}
@@ -421,8 +483,16 @@ export function MobileNavMenu({
         </button>
       </div>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div className={styles.root} data-expression={expression} style={themeVars}>
+      {(open || closing) && typeof document !== "undefined" && createPortal(
+        <div
+          className={styles.root}
+          data-expression={expression}
+          // "closing" swaps the entrance keyframes for the exit ones (the
+          // extra attribute also out-specifies them). The JS keeps this
+          // mounted for EXPRESSIONS[expression].exitMs, then unmounts.
+          data-state={closing ? "closing" : "open"}
+          style={themeVars}
+        >
           {/* Backdrop (click-to-close). Portaled to body so it escapes any
               transformed/filtered/contained ancestor (e.g. the Grand Luxe
               floating pill has `transform: translateX(-50%)` on its <nav>,
