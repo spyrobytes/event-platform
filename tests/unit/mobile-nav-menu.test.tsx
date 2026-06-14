@@ -146,6 +146,15 @@ describe("MobileNavMenu veil fold-out exit", () => {
     expect(screen.getByLabelText("Mobile navigation")).toBeInTheDocument();
     expect(portalRoot().getAttribute("data-state")).toBe("closing");
 
+    // Reverse cascade: the last element to arrive (the bottom RSVP cta) is the
+    // first to leave (delay 0), the top item leaves last (one stagger step).
+    expect(screen.getByRole("link", { name: "RSVP" }).style.animationDelay).toBe(
+      "0ms",
+    );
+    expect(
+      screen.getByRole("link", { name: "Details" }).style.animationDelay,
+    ).toBe("45ms");
+
     act(() => {
       vi.advanceTimersByTime(700);
     });

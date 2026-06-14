@@ -426,14 +426,20 @@
      perceptible the whole way through. */
   animation: mnmVeilOut 600ms ease-in-out both;
 }
-/* !important defeats the per-item inline animation-delay (the entrance
-   stagger). Without it each item would wait out its 200ms+ entrance delay
-   before fading — outlasting exitMs and getting clipped at unmount. On exit
-   the items recede together, finishing before the veil so the content leaves
-   first and the veil dissolves after — the entrance's two beats, reversed. */
+/* Items recede in a REVERSE cascade — the last to arrive is the first to
+   leave (itemMotionDelay sets the per-element animation-delay inline when
+   closing). Longhands here, NOT the `animation` shorthand: the shorthand
+   would reset animation-delay to 0 and flatten the cascade, whereas omitting
+   it lets the inline reverse delay win (no !important needed — the inline
+   value IS the exit delay now, not the entrance one to override). The cascade
+   finishes within the panel's dissolve, mirroring the entrance's overlap of
+   item stagger over the panel settle. */
 .root[data-expression="veil"][data-state="closing"] .item,
 .root[data-expression="veil"][data-state="closing"] .cta {
-  animation: mnmItemOut 360ms ease-in-out both !important;
+  animation-name: mnmItemOut;
+  animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
 }
 
 /* ===== SHEET — centered stationery card (Fine Art Romance, Intimate Note) ===== */

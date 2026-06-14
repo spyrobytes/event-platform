@@ -131,15 +131,42 @@ function releaseScrollLock(previous: string) {
   }
 }
 
+/** The reverse exit cascade compresses into this window (ms) so even a long
+ *  menu finishes leaving within the panel's dissolve — keeps exitMs static
+ *  regardless of item count. */
+const EXIT_CASCADE_WINDOW_MS = 240;
+const ITEM_STAGGER_MS = 45;
+
 /**
- * Entrance stagger for the Nth element in the menu (items first, then CTAs
- * continue the count). Base delay is 0 for the drawer; the veil sets
- * --mnm-item-base-delay so its items wait for the panel to settle. The
- * rhythm itself (--motion-stagger) is the template's own.
+ * Per-element animation delay, indexed in render order (items first, then CTAs
+ * continue the count).
+ *
+ * ENTRANCE: forward stagger — element 0 first, each waiting
+ * --mnm-item-base-delay (the veil holds for the panel to settle) plus
+ * index * --motion-stagger (the template's rhythm).
+ *
+ * EXIT (closing): the REVERSE cascade — the LAST element leaves FIRST, so the
+ * menu peels away in the mirror image of how it arrived. The per-step gap
+ * shrinks for long menus (capped so the whole cascade fits
+ * EXIT_CASCADE_WINDOW_MS), then the panel dissolves over it. Computed in JS,
+ * not CSS, because the reverse needs the total count and the count-aware
+ * compression.
  */
-function itemEntranceDelay(index: number): React.CSSProperties {
+function itemMotionDelay(
+  seqIndex: number,
+  total: number,
+  closing: boolean,
+): React.CSSProperties {
+  if (closing) {
+    const stagger = Math.min(
+      ITEM_STAGGER_MS,
+      EXIT_CASCADE_WINDOW_MS / Math.max(1, total - 1),
+    );
+    const fromEnd = total - 1 - seqIndex;
+    return { animationDelay: `${Math.round(fromEnd * stagger)}ms` };
+  }
   return {
-    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${index} * var(--motion-stagger, 45ms))`,
+    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${seqIndex} * var(--motion-stagger, ${ITEM_STAGGER_MS}ms))`,
   };
 }
 
@@ -543,7 +570,7 @@ export function MobileNavMenu({
                   href={item.href}
                   onClick={onItemClick}
                   className={styles.item}
-                  style={itemEntranceDelay(i)}
+                  style={itemMotionDelay(i, items.length, closing)}
                 >
                   <span>{item.label}</span>
                 </a>
@@ -558,8 +585,9 @@ export function MobileNavMenu({
                     href={item.href}
                     onClick={onItemClick}
                     className={styles.cta}
-                    // CTAs continue the stagger after the last regular item.
-                    style={itemEntranceDelay(nonCtaItems.length + i)}
+                    // CTAs continue the stagger after the last regular item, so
+                    // on exit (reverse cascade) the bottom CTA leaves first.
+                    style={itemMotionDelay(nonCtaItems.length + i, items.length, closing)}
                   >
                     {item.label}
                   </a>
