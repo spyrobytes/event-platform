@@ -34,9 +34,14 @@
   animation: luxeDrift 25s ease-in-out infinite alternate;
 }
 
+/* Slow, dreamy "cloud drift". Kept deliberately slow (25s, set on the
+   animation) for the luxe, breathing feel — the lever for NOTICEABILITY is
+   travel, not speed, so the zoom range carries it. On the dark brightness(0.45)
+   grade a subtle 5% range read as static; 12% reads clearly while staying soft.
+   Scale-only (no pan) so the focal transform-origin pin below stays exact. */
 @keyframes luxeDrift {
   0%   { transform: scale(1); }
-  100% { transform: scale(1.05); }
+  100% { transform: scale(1.12); }
 }
 
 .bgFallback {
