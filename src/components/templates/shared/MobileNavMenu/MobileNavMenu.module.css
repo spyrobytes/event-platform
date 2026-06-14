@@ -411,6 +411,40 @@
   transform: translateY(-1px);
 }
 
+/* ----- Veil fold-out (reverse-mirror of the entrance) -----
+   The host JS keeps the portal mounted for EXPRESSIONS.veil.exitMs and
+   stamps [data-state="closing"] on .root; the extra attribute out-specifies
+   the entrance rules, so the panel/items swap mnmVeilIn/mnmItemIn for the
+   *Out keyframes. Items recede first, then the veil eases back out on the
+   same subtle scale it arrived on — a touch quicker than the entrance, as
+   exits should be. */
+.root[data-expression="veil"][data-state="closing"] .panel {
+  /* ease-in-out at a leisurely duration to match the entrance's pace. NOT
+     back-loaded (crams the fade into the last frames → an abrupt snap) and
+     NOT front-loaded/ease-out (dumps most of the fade in the first ~150ms →
+     reads as a fast curve): a balanced curve keeps the dissolve gradual and
+     perceptible the whole way through. */
+  /* Duration comes from --mnm-veil-exit-dur (injected by the host from
+     VEIL_PANEL_EXIT_MS) so the JS unmount timer and this fade share one source
+     of truth; the 600ms literal is only a fallback. */
+  animation: mnmVeilOut var(--mnm-veil-exit-dur, 600ms) ease-in-out both;
+}
+/* Items recede in a REVERSE cascade — the last to arrive is the first to
+   leave (itemMotionDelay sets the per-element animation-delay inline when
+   closing). Longhands here, NOT the `animation` shorthand: the shorthand
+   would reset animation-delay to 0 and flatten the cascade, whereas omitting
+   it lets the inline reverse delay win (no !important needed — the inline
+   value IS the exit delay now, not the entrance one to override). The cascade
+   finishes within the panel's dissolve, mirroring the entrance's overlap of
+   item stagger over the panel settle. */
+.root[data-expression="veil"][data-state="closing"] .item,
+.root[data-expression="veil"][data-state="closing"] .cta {
+  animation-name: mnmItemOut;
+  animation-duration: 300ms;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+
 /* ===== SHEET — centered stationery card (Fine Art Romance, Intimate Note) ===== */
 
 .root[data-expression="sheet"] {
@@ -668,6 +702,33 @@
   }
 }
 
+/* Exit mirrors mnmVeilIn: fade back out on a slightly deeper zoom than the
+   entrance (1.05 vs 1.03) so the motion actually registers. `both` holds
+   opacity 0 at the end so the panel can't flash back before unmount. */
+@keyframes mnmVeilOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+
+/* Exit mirror of mnmItemIn — sink + fade instead of rise + fade, with a
+   touch more travel than the entrance so the recede reads. */
+@keyframes mnmItemOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -675,6 +736,16 @@
   .panel,
   .item,
   .cta {
+    animation: none !important;
+  }
+
+  /* Defence-in-depth for the fold-out: the host JS already skips the
+     `closing` phase under reduced motion (instant unmount), but if
+     matchMedia is unavailable and it can't, these out-specify the
+     !important exit rules so the menu still vanishes without motion. */
+  .root[data-expression="veil"][data-state="closing"] .panel,
+  .root[data-expression="veil"][data-state="closing"] .item,
+  .root[data-expression="veil"][data-state="closing"] .cta {
     animation: none !important;
   }
 

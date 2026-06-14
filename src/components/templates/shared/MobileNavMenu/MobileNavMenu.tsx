@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
+import { getReducedMotionPreference } from "@/hooks";
 import styles from "./MobileNavMenu.module.css";
 
 /**
@@ -39,14 +40,34 @@ export type MobileNavExpression = "drawer" | "veil" | "sheet";
  *  - hasBackdrop: paints the click-to-close backdrop behind the panel.
  *    Expressions whose panel covers the viewport skip it — there is no
  *    "outside" to click, and it saves a full-screen blur layer on mobile.
+ *  - exitMs: how long to keep the portal mounted in the `closing` phase
+ *    (data-state="closing") before JS unmounts, so the CSS exit keyframes can
+ *    play. 0 = unmount instantly (the original behavior). For the veil it's
+ *    DERIVED from VEIL_PANEL_EXIT_MS (the single source of truth for the
+ *    fold-out duration — see below), so the unmount can never cut the CSS fade
+ *    short. Only IN-PAGE closes (✕, Escape, resize) animate; navigation /
+ *    BFCache closes always tear down synchronously, and you'd never see an exit
+ *    on those anyway (the page is leaving).
  */
+// Single source of truth for the veil fold-out duration. The CSS panel exit
+// (mnmVeilOut) reads it via the injected --mnm-veil-exit-dur custom property,
+// and exitMs (when to unmount) is derived from it + a small buffer — so the
+// duration lives in ONE place and a retune can't desync the JS timer from the
+// CSS animation.
+const VEIL_PANEL_EXIT_MS = 600;
+const VEIL_EXIT_UNMOUNT_BUFFER_MS = 40;
+
 const EXPRESSIONS: Record<
   MobileNavExpression,
-  { coversTrigger: boolean; hasBackdrop: boolean }
+  { coversTrigger: boolean; hasBackdrop: boolean; exitMs: number }
 > = {
-  drawer: { coversTrigger: false, hasBackdrop: true },
-  veil: { coversTrigger: true, hasBackdrop: false },
-  sheet: { coversTrigger: true, hasBackdrop: true },
+  drawer: { coversTrigger: false, hasBackdrop: true, exitMs: 0 },
+  veil: {
+    coversTrigger: true,
+    hasBackdrop: false,
+    exitMs: VEIL_PANEL_EXIT_MS + VEIL_EXIT_UNMOUNT_BUFFER_MS,
+  },
+  sheet: { coversTrigger: true, hasBackdrop: true, exitMs: 0 },
 };
 
 /**
@@ -124,15 +145,52 @@ function releaseScrollLock(previous: string) {
   }
 }
 
+/** The reverse exit cascade compresses into this window (ms) so even a long
+ *  menu finishes leaving within the panel's dissolve — keeps exitMs static
+ *  regardless of item count. */
+const EXIT_CASCADE_WINDOW_MS = 240;
+/** Fallback per-step gap (ms) when a template doesn't define --motion-stagger
+ *  (drawer/sheet, or an un-customized template). Matches the entrance's own
+ *  `var(--motion-stagger, 45ms)` fallback so the two stay in lockstep. */
+const ITEM_STAGGER_MS = 45;
+
+/** Read the template's own --motion-stagger (e.g. "100ms") off the captured
+ *  theme vars, so the EXIT cascade uses the SAME per-step rhythm the entrance
+ *  does instead of a hardcoded constant. Values are authored in ms (see
+ *  theme-packs/tokens.ts); parseFloat drops the unit. Falls back to
+ *  ITEM_STAGGER_MS when unset. */
+function resolveStaggerMs(themeVars: React.CSSProperties): number {
+  const raw = (themeVars as Record<string, string>)["--motion-stagger"];
+  const ms = raw ? parseFloat(raw) : NaN;
+  return Number.isFinite(ms) && ms > 0 ? ms : ITEM_STAGGER_MS;
+}
+
 /**
- * Entrance stagger for the Nth element in the menu (items first, then CTAs
- * continue the count). Base delay is 0 for the drawer; the veil sets
- * --mnm-item-base-delay so its items wait for the panel to settle. The
- * rhythm itself (--motion-stagger) is the template's own.
+ * Per-element animation delay, indexed in render order (items first, then CTAs
+ * continue the count).
+ *
+ * ENTRANCE: forward stagger — element 0 first, each waiting
+ * --mnm-item-base-delay (the veil holds for the panel to settle) plus
+ * index * --motion-stagger (the template's rhythm).
+ *
+ * EXIT (closing): the REVERSE cascade — the LAST element leaves FIRST, so the
+ * menu peels away in the mirror image of how it arrived, at the template's own
+ * --motion-stagger rhythm (passed in as `exitStaggerMs`, already compressed for
+ * long menus to fit EXIT_CASCADE_WINDOW_MS). Computed in JS, not CSS, because
+ * the reverse needs the total count and the count-aware compression.
  */
-function itemEntranceDelay(index: number): React.CSSProperties {
+function itemMotionDelay(
+  seqIndex: number,
+  total: number,
+  closing: boolean,
+  exitStaggerMs: number,
+): React.CSSProperties {
+  if (closing) {
+    const fromEnd = total - 1 - seqIndex;
+    return { animationDelay: `${Math.round(fromEnd * exitStaggerMs)}ms` };
+  }
   return {
-    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${index} * var(--motion-stagger, 45ms))`,
+    animationDelay: `calc(var(--mnm-item-base-delay, 0ms) + ${seqIndex} * var(--motion-stagger, ${ITEM_STAGGER_MS}ms))`,
   };
 }
 
@@ -175,6 +233,11 @@ export function MobileNavMenu({
   expression = "drawer",
 }: MobileNavMenuProps) {
   const [open, setOpen] = useState(false);
+  // `closing` is the fold-out phase: the portal stays mounted (rendered on
+  // `open || closing`) while the CSS exit keyframes play, then JS unmounts.
+  // `open` stays true throughout the exit, so openRef — and the BFCache guard
+  // that reads it — keeps seeing a live menu (invariant: closing ⟹ open).
+  const [closing, setClosing] = useState(false);
   const [themeVars, setThemeVars] = useState<React.CSSProperties>({});
   const drawerId = useId();
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -182,6 +245,7 @@ export function MobileNavMenu({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousOverflowRef = useRef<string>("");
   const openRef = useRef(false);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // setOpen wrapper that also mirrors the resolved value into openRef
   // from INSIDE the updater. The conventional pattern is a separate
@@ -206,19 +270,44 @@ export function MobileNavMenu({
     });
   }, []);
 
-  const close = useCallback(() => {
-    setOpenState(false);
-    // Return focus to the hamburger trigger so keyboard users land
-    // back where they invoked the drawer. Deferred a frame: in
-    // covering expressions (veil, sheet) the trigger wrapper is
-    // visibility:hidden until the close re-render commits, and
-    // focus() on a hidden element silently no-ops. Skipped automatically when the trigger is gone (e.g.
-    // resized past desktop breakpoint, or hidden by CSS in templates
-    // with a desktop nav).
+  // Return focus to the hamburger trigger so keyboard users land back where
+  // they invoked the menu. Deferred a frame: in covering expressions (veil,
+  // sheet) the trigger wrapper is visibility:hidden until the unmount commits,
+  // and focus() on a hidden element silently no-ops. Skipped automatically
+  // when the trigger is gone (resized past desktop breakpoint, or hidden by
+  // CSS in templates with a desktop nav).
+  const restoreTriggerFocus = useCallback(() => {
     requestAnimationFrame(() => {
       triggerRef.current?.focus();
     });
-  }, [setOpenState]);
+  }, []);
+
+  // In-page close (✕, Escape, resize). Unlike the navigation/BFCache path,
+  // this one can afford an exit animation. For expressions with exitMs > 0
+  // (the veil) and no reduced-motion preference, it enters the `closing`
+  // phase and defers the unmount until the fold-out finishes; otherwise it
+  // unmounts instantly, exactly as before.
+  const close = useCallback(() => {
+    // Already folding out — ignore repeat requests (Escape/resize can fire
+    // again mid-exit) so we never stack timers.
+    if (closing) return;
+
+    const { exitMs } = EXPRESSIONS[expression];
+
+    if (!exitMs || getReducedMotionPreference()) {
+      setOpenState(false);
+      restoreTriggerFocus();
+      return;
+    }
+
+    setClosing(true);
+    exitTimerRef.current = setTimeout(() => {
+      exitTimerRef.current = null;
+      setClosing(false);
+      setOpenState(false);
+      restoreTriggerFocus();
+    }, exitMs);
+  }, [closing, expression, setOpenState, restoreTriggerFocus]);
 
   /**
    * Synchronous-commit close path for browser navigation and BFCache
@@ -251,7 +340,18 @@ export function MobileNavMenu({
     // we can't trust React's cleanup to land before snapshotting.
     releaseScrollLock(previousOverflowRef.current);
 
+    // Abandon any in-flight fold-out: a queued exit timer would unmount a
+    // frame from now, leaving the still-mounted portal in the BFCache
+    // snapshot. Clear it and tear `closing` down in the same synchronous
+    // flush as `open`, or the portal (rendered on `open || closing`) would
+    // survive the flush.
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+
     flushSync(() => {
+      setClosing(false);
       setOpenState(false);
     });
   }, [setOpenState]);
@@ -277,6 +377,14 @@ export function MobileNavMenu({
       releaseScrollLock(previousOverflowRef.current);
     };
   }, [open]);
+
+  // Clear a pending fold-out timer if the component unmounts mid-exit, so its
+  // deferred setState can't fire on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, []);
 
   // BFCache survival. The cached snapshot must not be taken with
   // overflow:hidden pinned, and a restored snapshot must clear any
@@ -368,6 +476,14 @@ export function MobileNavMenu({
   const nonCtaItems = items.filter((i) => !i.isCta);
   const ctaItems = items.filter((i) => i.isCta);
 
+  // Exit cascade step: the template's own --motion-stagger (the entrance's
+  // rhythm), compressed so even a long menu's reverse cascade still finishes
+  // inside the panel's dissolve. Computed once per render, not per item.
+  const exitStagger = Math.min(
+    resolveStaggerMs(themeVars),
+    EXIT_CASCADE_WINDOW_MS / Math.max(1, items.length - 1),
+  );
+
   return (
     <>
       <div
@@ -380,7 +496,9 @@ export function MobileNavMenu({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          ...(open && EXPRESSIONS[expression].coversTrigger
+          // Stay hidden through the fold-out too (open || closing), or the
+          // hamburger would pop back in behind the still-visible veil.
+          ...((open || closing) && EXPRESSIONS[expression].coversTrigger
             ? { visibility: "hidden" as const, pointerEvents: "none" as const }
             : {}),
         }}
@@ -421,8 +539,24 @@ export function MobileNavMenu({
         </button>
       </div>
 
-      {open && typeof document !== "undefined" && createPortal(
-        <div className={styles.root} data-expression={expression} style={themeVars}>
+      {(open || closing) && typeof document !== "undefined" && createPortal(
+        <div
+          className={styles.root}
+          data-expression={expression}
+          // "closing" swaps the entrance keyframes for the exit ones (the
+          // extra attribute also out-specifies them). The JS keeps this
+          // mounted for EXPRESSIONS[expression].exitMs, then unmounts.
+          data-state={closing ? "closing" : "open"}
+          // Inject the veil fold-out duration so the CSS mnmVeilOut reads it
+          // from --mnm-veil-exit-dur — one source of truth shared with the
+          // exitMs unmount timer (harmless on drawer/sheet, which don't use it).
+          style={
+            {
+              ...themeVars,
+              "--mnm-veil-exit-dur": `${VEIL_PANEL_EXIT_MS}ms`,
+            } as React.CSSProperties
+          }
+        >
           {/* Backdrop (click-to-close). Portaled to body so it escapes any
               transformed/filtered/contained ancestor (e.g. the Grand Luxe
               floating pill has `transform: translateX(-50%)` on its <nav>,
@@ -473,7 +607,7 @@ export function MobileNavMenu({
                   href={item.href}
                   onClick={onItemClick}
                   className={styles.item}
-                  style={itemEntranceDelay(i)}
+                  style={itemMotionDelay(i, items.length, closing, exitStagger)}
                 >
                   <span>{item.label}</span>
                 </a>
@@ -488,8 +622,14 @@ export function MobileNavMenu({
                     href={item.href}
                     onClick={onItemClick}
                     className={styles.cta}
-                    // CTAs continue the stagger after the last regular item.
-                    style={itemEntranceDelay(nonCtaItems.length + i)}
+                    // CTAs continue the stagger after the last regular item, so
+                    // on exit (reverse cascade) the bottom CTA leaves first.
+                    style={itemMotionDelay(
+                      nonCtaItems.length + i,
+                      items.length,
+                      closing,
+                      exitStagger,
+                    )}
                   >
                     {item.label}
                   </a>

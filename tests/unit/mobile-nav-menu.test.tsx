@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
 
 const items = [
@@ -117,5 +117,116 @@ describe("MobileNavMenu BFCache cleanup", () => {
 
     expect(screen.queryByLabelText("Mobile navigation")).not.toBeInTheDocument();
     expect(document.body.style.overflow).toBe("");
+  });
+});
+
+describe("MobileNavMenu veil fold-out exit", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** The panel's own ✕ — scoped within the dialog so it never collides
+   *  with the (hidden) trigger, which shares the "Close menu" name once open. */
+  function panelCloseButton() {
+    return within(screen.getByLabelText("Mobile navigation")).getByRole(
+      "button",
+      { name: /close menu/i },
+    );
+  }
+
+  it("keeps the veil mounted during the closing phase, then unmounts after exitMs", () => {
+    vi.useFakeTimers();
+    renderMenu("veil");
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    expect(portalRoot().getAttribute("data-state")).toBe("open");
+
+    fireEvent.click(panelCloseButton());
+
+    // Still mounted, now folding out — the exit keyframes get their frames.
+    expect(screen.getByLabelText("Mobile navigation")).toBeInTheDocument();
+    expect(portalRoot().getAttribute("data-state")).toBe("closing");
+
+    // Reverse cascade: the last element to arrive (the bottom RSVP cta) is the
+    // first to leave (delay 0), the top item leaves last (one stagger step).
+    expect(screen.getByRole("link", { name: "RSVP" }).style.animationDelay).toBe(
+      "0ms",
+    );
+    expect(
+      screen.getByRole("link", { name: "Details" }).style.animationDelay,
+    ).toBe("45ms");
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+
+    expect(screen.queryByLabelText("Mobile navigation")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("does NOT animate navigation closes — a veil link tap unmounts synchronously", () => {
+    vi.useFakeTimers();
+    renderMenu("veil");
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    expect(screen.getByLabelText("Mobile navigation")).toBeInTheDocument();
+
+    // No timer advance: the BFCache path must tear down in the same tick,
+    // never via the closing phase.
+    fireEvent.click(screen.getByRole("link", { name: "RSVP" }));
+
+    expect(screen.queryByLabelText("Mobile navigation")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("skips the closing phase under prefers-reduced-motion (instant unmount)", () => {
+    const original = window.matchMedia;
+    window.matchMedia = vi
+      .fn()
+      .mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
+    try {
+      renderMenu("veil");
+      fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+      expect(screen.getByLabelText("Mobile navigation")).toBeInTheDocument();
+
+      // No closing phase, no timer — gone immediately.
+      fireEvent.click(panelCloseButton());
+
+      expect(
+        screen.queryByLabelText("Mobile navigation"),
+      ).not.toBeInTheDocument();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
+  it("compresses the reverse cascade for long menus so it stays within the dissolve window", () => {
+    const many = Array.from({ length: 7 }, (_, i) => ({
+      id: `s${i}`,
+      label: `Section ${i}`,
+      href: `#s${i}`,
+    }));
+    render(<MobileNavMenu brand="Demo" items={many} expression="veil" />);
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    fireEvent.click(panelCloseButton());
+
+    // 7 items, no --motion-stagger in this bare render → fallback 45ms base, but
+    // the count-aware cap 240/(7-1)=40ms engages (40 < 45). Top item leaves last
+    // at 6*40=240ms (the window cap), bottom leaves first at 0ms — so the whole
+    // cascade fits the panel's dissolve regardless of count.
+    const delays = screen
+      .getAllByRole("link")
+      .map((l) => parseFloat(l.style.animationDelay));
+    expect(Math.max(...delays)).toBe(240);
+    expect(Math.min(...delays)).toBe(0);
+  });
+
+  it("injects --mnm-veil-exit-dur so the CSS fade and the unmount timer share one duration", () => {
+    renderMenu("veil");
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+
+    // The CSS mnmVeilOut reads this; exitMs is derived from the same constant,
+    // so a retune can't desync the JS unmount from the CSS fade.
+    expect(
+      portalRoot().style.getPropertyValue("--mnm-veil-exit-dur"),
+    ).toBe("600ms");
   });
 });

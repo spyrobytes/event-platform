@@ -68,5 +68,10 @@ export function useReducedMotion(): boolean {
  */
 export function getReducedMotionPreference(): boolean {
   if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Optional chain: jsdom (and very old browsers) have no matchMedia. The `?.`
+  // short-circuits the whole chain to undefined, and `?? false` keeps this a
+  // never-throw boolean for any call site.
+  return (
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+  );
 }
