@@ -424,7 +424,10 @@
      NOT front-loaded/ease-out (dumps most of the fade in the first ~150ms →
      reads as a fast curve): a balanced curve keeps the dissolve gradual and
      perceptible the whole way through. */
-  animation: mnmVeilOut 600ms ease-in-out both;
+  /* Duration comes from --mnm-veil-exit-dur (injected by the host from
+     VEIL_PANEL_EXIT_MS) so the JS unmount timer and this fade share one source
+     of truth; the 600ms literal is only a fallback. */
+  animation: mnmVeilOut var(--mnm-veil-exit-dur, 600ms) ease-in-out both;
 }
 /* Items recede in a REVERSE cascade — the last to arrive is the first to
    leave (itemMotionDelay sets the per-element animation-delay inline when

@@ -197,4 +197,36 @@ describe("MobileNavMenu veil fold-out exit", () => {
       window.matchMedia = original;
     }
   });
+
+  it("compresses the reverse cascade for long menus so it stays within the dissolve window", () => {
+    const many = Array.from({ length: 7 }, (_, i) => ({
+      id: `s${i}`,
+      label: `Section ${i}`,
+      href: `#s${i}`,
+    }));
+    render(<MobileNavMenu brand="Demo" items={many} expression="veil" />);
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    fireEvent.click(panelCloseButton());
+
+    // 7 items, no --motion-stagger in this bare render → fallback 45ms base, but
+    // the count-aware cap 240/(7-1)=40ms engages (40 < 45). Top item leaves last
+    // at 6*40=240ms (the window cap), bottom leaves first at 0ms — so the whole
+    // cascade fits the panel's dissolve regardless of count.
+    const delays = screen
+      .getAllByRole("link")
+      .map((l) => parseFloat(l.style.animationDelay));
+    expect(Math.max(...delays)).toBe(240);
+    expect(Math.min(...delays)).toBe(0);
+  });
+
+  it("injects --mnm-veil-exit-dur so the CSS fade and the unmount timer share one duration", () => {
+    renderMenu("veil");
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+
+    // The CSS mnmVeilOut reads this; exitMs is derived from the same constant,
+    // so a retune can't desync the JS unmount from the CSS fade.
+    expect(
+      portalRoot().style.getPropertyValue("--mnm-veil-exit-dur"),
+    ).toBe("600ms");
+  });
 });
