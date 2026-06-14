@@ -147,7 +147,7 @@ describe("MobileNavMenu veil fold-out exit", () => {
     expect(portalRoot().getAttribute("data-state")).toBe("closing");
 
     act(() => {
-      vi.advanceTimersByTime(600);
+      vi.advanceTimersByTime(700);
     });
 
     expect(screen.queryByLabelText("Mobile navigation")).not.toBeInTheDocument();

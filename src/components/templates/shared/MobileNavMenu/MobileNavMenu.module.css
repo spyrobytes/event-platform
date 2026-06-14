@@ -419,18 +419,21 @@
    same subtle scale it arrived on — a touch quicker than the entrance, as
    exits should be. */
 .root[data-expression="veil"][data-state="closing"] .panel {
-  /* ease-out, not an ease-in: the fade must be visible from the first frame.
-     An back-loaded curve crams the whole opacity drop into the last ~15% and
-     reads as an abrupt snap rather than a fold. */
-  animation: mnmVeilOut 480ms ease-out both;
+  /* ease-in-out at a leisurely duration to match the entrance's pace. NOT
+     back-loaded (crams the fade into the last frames → an abrupt snap) and
+     NOT front-loaded/ease-out (dumps most of the fade in the first ~150ms →
+     reads as a fast curve): a balanced curve keeps the dissolve gradual and
+     perceptible the whole way through. */
+  animation: mnmVeilOut 600ms ease-in-out both;
 }
 /* !important defeats the per-item inline animation-delay (the entrance
    stagger). Without it each item would wait out its 200ms+ entrance delay
    before fading — outlasting exitMs and getting clipped at unmount. On exit
-   the items recede together instead. */
+   the items recede together, finishing before the veil so the content leaves
+   first and the veil dissolves after — the entrance's two beats, reversed. */
 .root[data-expression="veil"][data-state="closing"] .item,
 .root[data-expression="veil"][data-state="closing"] .cta {
-  animation: mnmItemOut 280ms ease-out both !important;
+  animation: mnmItemOut 360ms ease-in-out both !important;
 }
 
 /* ===== SHEET — centered stationery card (Fine Art Romance, Intimate Note) ===== */
