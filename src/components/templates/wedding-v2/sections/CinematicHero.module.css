@@ -613,7 +613,13 @@
     transform: none;
     animation: none;
   }
-  .heroMedia img {
+  /* `.heroMedia[data-focal] img` must be listed explicitly: the focal rules
+     set animation-name at (0,2,1) specificity, which outranks a bare
+     `.heroMedia img` (0,1,1) — without this a focal-set hero would keep
+     drifting under reduced motion. Equal specificity here + later source order
+     wins, so both focal sides resolve to none. */
+  .heroMedia img,
+  .heroMedia[data-focal] img {
     animation: none;
   }
   .floatCard {
