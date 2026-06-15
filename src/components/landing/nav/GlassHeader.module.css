@@ -12,13 +12,20 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* After scroll (or while the curtain is open): denser glass for readability */
+/* After scroll: denser glass for readability on light sections */
 .capsuleScrolled {
   background: rgba(255, 255, 255, 0.90);
   border: 1px solid rgba(0, 0, 0, 0.10);
   box-shadow:
     0 12px 34px rgba(0, 0, 0, 0.10),
     0 1px 0 rgba(255, 255, 255, 0.60) inset;
+}
+
+/* While the veil is open: dissolve the pill so the logo + X float on the veil */
+.capsuleVeil {
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
 }
 
 /* Nav link with animated underline (desktop hover + phone quick-link) */
@@ -45,17 +52,107 @@
 }
 
 /* ============================================================
-   Frosted curtain — mobile menu expression
+   Frosted veil — fullscreen mobile menu expression
    ============================================================ */
 
-/* Motion personality, shared by the panel + item cascade. */
-.curtain {
+/* The dark frosted surface: a near-opaque charcoal→night gradient with a faint
+   brand sheen top and bottom. Opacity-only animation so the blur stays valid
+   (a transform on this layer would disable backdrop-filter). */
+.veilSurface {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(20px) saturate(120%);
+  background:
+    radial-gradient(130% 80% at 50% -12%, rgba(34, 197, 94, 0.16), transparent 58%),
+    radial-gradient(120% 70% at 50% 112%, rgba(34, 197, 94, 0.10), transparent 55%),
+    linear-gradient(180deg, rgba(15, 19, 26, 0.94), rgba(8, 10, 14, 0.97));
+  animation: fxrSurfaceIn 320ms ease both;
+}
+
+.veilSurface[data-state="closing"] {
+  animation: fxrSurfaceOut 420ms ease both;
+}
+
+@keyframes fxrSurfaceIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fxrSurfaceOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Fullscreen content layer (the dialog). Holds the motion personality tokens
+   that the item cascade inherits. */
+.veil {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 5.5rem 1.5rem 2rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   --fxr-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --fxr-ease-out: cubic-bezier(0.4, 0, 1, 1);
-  --fxr-accent: #22c55e;
   --fxr-base: 150ms; /* settle time before items begin revealing */
   --fxr-step: 52ms; /* per-item entrance stagger */
   --fxr-step-exit: 34ms; /* per-item exit stagger (reverse cascade) */
+}
+
+/* Vertically centered, but auto-margins collapse when content is tall so the
+   top items never clip on short screens. */
+.veilInner {
+  margin: auto;
+  width: 100%;
+  max-width: 24rem;
+  display: flex;
+  flex-direction: column;
+  animation: fxrVeilIn 460ms var(--fxr-ease) both;
+}
+
+.veil[data-state="closing"] .veilInner {
+  animation: fxrVeilOut 420ms var(--fxr-ease-out) both;
+}
+
+@keyframes fxrVeilIn {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fxrVeilOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+.veilNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.veilFooter {
+  margin-top: 1.75rem;
 }
 
 /* Hamburger ↔ X morph on the trigger */
@@ -97,74 +194,6 @@
   transform: translateY(-6px) rotate(-45deg);
 }
 
-/* Frosted blur veil behind the panel */
-.backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(12, 16, 22, 0.42);
-  backdrop-filter: blur(8px) saturate(115%);
-  animation: fxrBackdropIn 320ms ease both;
-}
-
-.backdrop[data-state="closing"] {
-  animation: fxrBackdropOut 360ms ease both;
-}
-
-@keyframes fxrBackdropIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fxrBackdropOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-/* The curtain panel — a frosted glass sheet that unfurls from the header */
-.curtain {
-  border-radius: 24px;
-  backdrop-filter: blur(18px);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.20);
-  transform-origin: top center;
-  animation: fxrCurtainIn 460ms var(--fxr-ease) both;
-}
-
-.curtain[data-state="closing"] {
-  animation: fxrCurtainOut 420ms var(--fxr-ease-out) both;
-}
-
-@keyframes fxrCurtainIn {
-  from {
-    opacity: 0;
-    transform: translateY(-14px) scaleY(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes fxrCurtainOut {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-10px) scaleY(0.96);
-  }
-}
-
 /* Staggered item cascade (links + CTA share the entrance/exit) */
 .menuItem,
 .menuCta {
@@ -174,8 +203,8 @@
   );
 }
 
-.curtain[data-state="closing"] .menuItem,
-.curtain[data-state="closing"] .menuCta {
+.veil[data-state="closing"] .menuItem,
+.veil[data-state="closing"] .menuCta {
   animation: fxrItemOut 240ms var(--fxr-ease-out) both;
   /* Reverse cascade: last item to arrive is first to leave */
   animation-delay: calc(var(--fxr-i-rev, 0) * var(--fxr-step-exit, 34ms));
@@ -203,67 +232,22 @@
   }
 }
 
-/* Brand accent that draws in as each link cascades — revives the signature
-   underline on touch, where the desktop :hover state never fires. */
-.menuItem::after {
-  content: "";
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 7px;
-  height: 2px;
-  border-radius: 1px;
-  background: linear-gradient(90deg, var(--fxr-accent), rgba(34, 197, 94, 0.12));
-  transform: scaleX(0);
-  transform-origin: left;
-  animation: fxrAccentIn 520ms var(--fxr-ease) both;
-  animation-delay: calc(
-    var(--fxr-base, 150ms) + var(--fxr-i, 0) * var(--fxr-step, 52ms) + 140ms
-  );
-}
-
-.curtain[data-state="closing"] .menuItem::after {
-  animation: none;
-  opacity: 0;
-}
-
-@keyframes fxrAccentIn {
-  from {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-  60% {
-    opacity: 1;
-  }
-  to {
-    opacity: 0.85;
-    transform: scaleX(1);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .backdrop,
-  .curtain,
+  .veilSurface,
+  .veilInner,
   .menuItem,
-  .menuCta,
-  .menuItem::after {
+  .menuCta {
     animation: none !important;
   }
 
   /* Defense-in-depth: kill the closing keyframes too if JS misses the cue */
-  .curtain[data-state="closing"] .menuItem,
-  .curtain[data-state="closing"] .menuCta,
-  .curtain[data-state="closing"] .menuItem::after {
+  .veil[data-state="closing"] .veilInner,
+  .veil[data-state="closing"] .menuItem,
+  .veil[data-state="closing"] .menuCta {
     animation: none !important;
   }
 
   .bars span {
     transition: none !important;
-  }
-
-  /* Show the accent statically rather than animating it in */
-  .menuItem::after {
-    transform: scaleX(1);
-    opacity: 0.55;
   }
 }

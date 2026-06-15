@@ -27,12 +27,12 @@ const DEFAULT_LINKS: NavLink[] = [
   { label: "Mission", href: "#mission" },
 ];
 
-// Frosted-curtain exit timing: the panel fold-up duration plus a small buffer
-// so React only unmounts after the animation has visibly finished. CSS reads
-// the same fold-up duration via the keyframes below — keep them in sync.
-const CURTAIN_EXIT_MS = 420;
+// Frosted-veil exit timing: the dissolve duration plus a small buffer so React
+// only unmounts after the animation has visibly finished. CSS reads the same
+// dissolve duration via the keyframes below — keep them in sync.
+const VEIL_EXIT_MS = 420;
 const EXIT_UNMOUNT_BUFFER_MS = 40;
-const CURTAIN_EXIT_TOTAL_MS = CURTAIN_EXIT_MS + EXIT_UNMOUNT_BUFFER_MS;
+const VEIL_EXIT_TOTAL_MS = VEIL_EXIT_MS + EXIT_UNMOUNT_BUFFER_MS;
 
 // Tailwind `md` breakpoint — the full desktop nav takes over at/above this.
 const DESKTOP_BREAKPOINT_PX = 768;
@@ -89,7 +89,7 @@ export function GlassHeader({
       closeTimerRef.current = setTimeout(() => {
         setClosing(false);
         closeTimerRef.current = null;
-      }, CURTAIN_EXIT_TOTAL_MS);
+      }, VEIL_EXIT_TOTAL_MS);
     },
     [clearCloseTimer]
   );
@@ -183,9 +183,9 @@ export function GlassHeader({
   // Clear any pending exit timer on unmount.
   useEffect(() => clearCloseTimer, [clearCloseTimer]);
 
-  // Opening the curtain flips the floating capsule to its light glass so the
-  // pill and the panel below read as one cohesive frosted surface.
-  const lightChrome = scrolled || rendered;
+  // While the dark veil is up the capsule goes transparent with white chrome so
+  // the logo + morphing X float on the veil; otherwise it tracks scroll state.
+  const lightChrome = scrolled && !rendered;
   const textClass = lightChrome ? "text-black" : "text-white";
   const mutedTextClass = lightChrome ? "text-black/85" : "text-white/85";
 
@@ -200,7 +200,10 @@ export function GlassHeader({
   );
 
   const dataState = closing ? "closing" : "open";
-  const itemCount = links.length + 1; // links + CTA share the cascade
+  // The capsule already carries the "Discover Events" shortcut, so drop it from
+  // the veil list to avoid the duplicate.
+  const menuLinks = links.filter((l) => l.href !== discover.href);
+  const itemCount = menuLinks.length + 1; // links + CTA share the cascade
 
   return (
     <>
@@ -209,7 +212,11 @@ export function GlassHeader({
           <header
             className={[
               styles.capsule,
-              lightChrome ? styles.capsuleScrolled : styles.capsuleTop,
+              rendered
+                ? styles.capsuleVeil
+                : scrolled
+                  ? styles.capsuleScrolled
+                  : styles.capsuleTop,
               "px-4 py-3",
             ].join(" ")}
           >
@@ -313,62 +320,60 @@ export function GlassHeader({
       {rendered && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className={styles.backdrop}
+            className={styles.veilSurface}
             data-state={dataState}
             aria-hidden="true"
           />
-          <div className="absolute inset-x-0 top-[4.75rem]">
-            <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-              <div
-                ref={panelRef}
-                id={menuId}
-                role="dialog"
-                aria-modal="true"
-                aria-label="Site menu"
-                data-state={dataState}
-                className={[styles.curtain, "p-3"].join(" ")}
-              >
-                <nav className="grid gap-1">
-                  {links.map((l, i) => (
-                    <Link
-                      key={l.href}
-                      href={l.href}
-                      style={
-                        {
-                          "--fxr-i": i,
-                          "--fxr-i-rev": itemCount - 1 - i,
-                        } as React.CSSProperties
-                      }
-                      className={[
-                        styles.menuItem,
-                        "relative rounded-2xl px-4 py-3 text-sm font-medium text-black hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2",
-                      ].join(" ")}
-                      onClick={(e) => handleNavLinkClick(e, l.href)}
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
-                </nav>
-
-                <div className="mt-3">
+          <div
+            ref={panelRef}
+            id={menuId}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site menu"
+            data-state={dataState}
+            className={styles.veil}
+          >
+            <div className={styles.veilInner}>
+              <nav className={styles.veilNav}>
+                {menuLinks.map((l, i) => (
                   <Link
-                    href={cta.href}
+                    key={l.href}
+                    href={l.href}
                     style={
                       {
-                        "--fxr-i": links.length,
-                        "--fxr-i-rev": 0,
+                        "--fxr-i": i,
+                        "--fxr-i-rev": itemCount - 1 - i,
                       } as React.CSSProperties
                     }
                     className={[
-                      styles.menuCta,
-                      linkStyles.ctaButton,
-                      "inline-flex w-full items-center justify-center rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2",
+                      styles.menuItem,
+                      "block rounded-2xl px-4 py-3 text-center text-2xl font-semibold tracking-tight text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-transparent",
                     ].join(" ")}
-                    onClick={() => closeMenu(false)}
+                    onClick={(e) => handleNavLinkClick(e, l.href)}
                   >
-                    {cta.label}
+                    {l.label}
                   </Link>
-                </div>
+                ))}
+              </nav>
+
+              <div className={styles.veilFooter}>
+                <Link
+                  href={cta.href}
+                  style={
+                    {
+                      "--fxr-i": menuLinks.length,
+                      "--fxr-i-rev": 0,
+                    } as React.CSSProperties
+                  }
+                  className={[
+                    styles.menuCta,
+                    linkStyles.ctaButton,
+                    "inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3.5 text-base font-semibold text-black focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-transparent",
+                  ].join(" ")}
+                  onClick={() => closeMenu(false)}
+                >
+                  {cta.label}
+                </Link>
               </div>
             </div>
           </div>
