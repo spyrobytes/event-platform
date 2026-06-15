@@ -167,16 +167,15 @@ export function GlassHeader({
     };
   }, [rendered]);
 
-  // Move focus into the panel on open (deferred a frame so it has laid out).
+  // Move focus into the dialog itself on open (deferred a frame so it has laid
+  // out). Focusing the container — not the first link — lets screen readers
+  // announce the dialog and avoids a :focus ring on the first item for pointer
+  // users; keyboard users still Tab through the trapped focusables from here.
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
     if (!panel) return;
-    const id = window.requestAnimationFrame(() => {
-      panel
-        .querySelector<HTMLElement>("a[href], button:not([disabled])")
-        ?.focus();
-    });
+    const id = window.requestAnimationFrame(() => panel.focus());
     return () => window.cancelAnimationFrame(id);
   }, [open]);
 
@@ -331,7 +330,8 @@ export function GlassHeader({
             aria-modal="true"
             aria-label="Site menu"
             data-state={dataState}
-            className={styles.veil}
+            tabIndex={-1}
+            className={[styles.veil, "focus:outline-none"].join(" ")}
           >
             <div className={styles.veilInner}>
               <nav className={styles.veilNav}>
