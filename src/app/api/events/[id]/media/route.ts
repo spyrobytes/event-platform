@@ -445,6 +445,15 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         }
       }
 
+      // If this asset is any event's cover, clear the cover pair so
+      // coverImageUrl doesn't drift to a now-deleted storage object (the FK
+      // would SetNull on delete, but coverImageUrl would be left stale). Done
+      // before the delete so the still-set coverMediaAssetId matches (#211).
+      await tx.event.updateMany({
+        where: { coverMediaAssetId: assetId },
+        data: { coverImageUrl: null, coverMediaAssetId: null },
+      });
+
       await tx.mediaAsset.delete({ where: { id: assetId } });
     });
 
