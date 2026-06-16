@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { hashToken } from "@/lib/tokens";
 import { TEMPLATES } from "@/components/templates";
 import { lenientValidateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
+import { MEDIA_ASSET_SELECT } from "@/lib/event-page-loader";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -43,14 +44,7 @@ async function getEventByPreviewToken(token: string) {
       templateId: true,
       previewTokenExpiresAt: true,
       mediaAssets: {
-        select: {
-          id: true,
-          kind: true,
-          publicUrl: true,
-          width: true,
-          height: true,
-          alt: true,
-        },
+        select: { ...MEDIA_ASSET_SELECT },
       },
     },
   });
