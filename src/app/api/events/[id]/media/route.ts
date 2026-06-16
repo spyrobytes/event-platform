@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import { verifyAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -11,8 +11,10 @@ import {
 } from "@/lib/media-validation";
 import {
   uploadFile,
+  deleteFile,
   BUCKETS,
   getEventAssetPath,
+  getRenditionPath,
   ensureBucket,
 } from "@/lib/supabase-storage";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -163,47 +165,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return errorResponse("Failed to upload file", 500);
     }
 
-    // 9b. Generate responsive renditions (HERO only — Tier 2 / issue #211).
-    // Downscales of the stored original, uploaded as "{timestamp}_w{width}.webp"
-    // alongside it; the original serves the top of the ladder. We record only
-    // the widths that actually uploaded so the loader never references a missing
-    // rendition. Best-effort: a failed rendition is dropped, not fatal (the
-    // original already succeeded, and the loader falls back to a larger size).
-    let renditionWidths: number[] = [];
-    if (kind === "HERO") {
-      const renditions = await generateRenditions(
-        optimized.buffer,
-        RESPONSIVE_RENDITION_WIDTHS
-      );
-      const results = await Promise.all(
-        renditions.map(async ({ width, buffer: renditionBuffer }) => {
-          const renditionPath = getEventAssetPath(
-            eventId,
-            pathType,
-            `${timestamp}_w${width}.webp`
-          );
-          const result = await uploadFile(
-            BUCKETS.eventAssets,
-            renditionPath,
-            renditionBuffer,
-            {
-              contentType: "image/webp",
-              cacheControl: "public, max-age=31536000",
-            }
-          );
-          if ("error" in result) {
-            console.error(`Rendition upload failed (w=${width}):`, result.error);
-            return null;
-          }
-          return width;
-        })
-      );
-      renditionWidths = results
-        .filter((w): w is number => w !== null)
-        .sort((a, b) => a - b);
-    }
-
-    // 10. Create database record
+    // 10. Create database record. renditionWidths starts empty (DB default);
+    // the background job below fills it in for HERO uploads.
     const asset = await db.mediaAsset.create({
       data: {
         eventId,
@@ -219,9 +182,66 @@ export async function POST(request: NextRequest, context: RouteContext) {
         height: optimized.height,
         alt,
         blurDataUrl,
-        renditionWidths,
       },
     });
+
+    // 10b. Generate responsive renditions AFTER the response is flushed (HERO
+    // only — Tier 2 / issue #211). They're non-fatal and not needed immediately
+    // (the loader falls back to the original until they land), so the uploader
+    // doesn't wait. Record the widths that actually uploaded so the loader never
+    // references a missing rendition.
+    if (kind === "HERO") {
+      after(async () => {
+        try {
+          const renditions = await generateRenditions(
+            optimized.buffer,
+            RESPONSIVE_RENDITION_WIDTHS
+          );
+          const results = await Promise.all(
+            renditions.map(async ({ width, buffer: renditionBuffer }) => {
+              const result = await uploadFile(
+                BUCKETS.eventAssets,
+                getRenditionPath(storagePath, width),
+                renditionBuffer,
+                {
+                  contentType: "image/webp",
+                  cacheControl: "public, max-age=31536000",
+                }
+              );
+              if ("error" in result) {
+                console.error(`Rendition upload failed (w=${width}):`, result.error);
+                return null;
+              }
+              return width;
+            })
+          );
+          const renditionWidths = results
+            .filter((w): w is number => w !== null)
+            .sort((a, b) => a - b);
+          if (renditionWidths.length === 0) return;
+
+          try {
+            await db.mediaAsset.update({
+              where: { id: asset.id },
+              data: { renditionWidths },
+            });
+          } catch {
+            // The asset was deleted while renditions were generating; remove the
+            // renditions we just uploaded so they don't orphan in storage.
+            await Promise.all(
+              renditionWidths.map((w) =>
+                deleteFile(
+                  BUCKETS.eventAssets,
+                  getRenditionPath(storagePath, w)
+                ).catch(() => {})
+              )
+            );
+          }
+        } catch (err) {
+          console.error("Rendition generation failed:", err);
+        }
+      });
+    }
 
     // Revalidate public page if event is published
     const event = await db.event.findUnique({
@@ -430,10 +450,28 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     // 6. Delete from storage (best effort — outside the transaction because
     //    it's a separate system and failure shouldn't roll back the DB work).
-    const { deleteFile } = await import("@/lib/supabase-storage");
-    await deleteFile(asset.bucket, asset.path).catch((err) => {
-      console.error("Failed to delete file from storage:", err);
-    });
+    //    For HERO assets we also remove the responsive rendition siblings. We
+    //    try the union of the recorded widths and the current ladder so cleanup
+    //    is robust to a ladder change since upload, or to the background
+    //    rendition job not having recorded its widths yet (#211). Missing files
+    //    no-op.
+    const renditionWidths =
+      asset.kind === "HERO"
+        ? Array.from(
+            new Set([...asset.renditionWidths, ...RESPONSIVE_RENDITION_WIDTHS])
+          )
+        : [];
+    const pathsToDelete = [
+      asset.path,
+      ...renditionWidths.map((w) => getRenditionPath(asset.path, w)),
+    ];
+    await Promise.all(
+      pathsToDelete.map((p) =>
+        deleteFile(asset.bucket, p).catch((err) => {
+          console.error(`Failed to delete file from storage (${p}):`, err);
+        })
+      )
+    );
 
     // Revalidate public page if event is published
     const eventForReval = await db.event.findUnique({

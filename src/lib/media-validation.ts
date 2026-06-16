@@ -146,11 +146,12 @@ export async function generateThumbnail(
  * Produces one rendition per requested width that is strictly smaller than the
  * source width (no upscaling — a larger requested width is skipped because the
  * stored original already serves it). Returns the actual encoded width of each
- * rendition (sharp may differ by a pixel after aspect-ratio rounding), so
- * callers persist exactly what was produced.
+ * rendition so callers persist exactly what was produced and can reconstruct
+ * the stored filename.
  *
- * Widths are matched against the source's intrinsic width, so callers should
- * pass the ORIGINAL (pre-optimize) buffer for best quality. See issue #211.
+ * The media route passes the already-optimized (WebP, HERO-capped) buffer:
+ * downscaling it is cheaper than re-decoding the raw upload and keeps the
+ * ladder consistent with the stored original that serves the top. See #211.
  */
 export async function generateRenditions(
   buffer: Buffer,
