@@ -6,17 +6,16 @@
  * and never hits next/image's `/_next/image` route — `remotePatterns`
  * validation does NOT enforce a runtime throw in this codebase.
  *
- * The supabase-loader is a passthrough: it returns `src` unchanged (we serve
- * the already-sharp-optimized stored object rather than paying for Supabase's
- * `/render/image/` transform endpoint — see supabase-loader.ts for why). That
- * means it returns the same URL at every srcset width, producing a degenerate
- * srcset of identical URLs for *any* image.
+ * The supabase-loader selects a stored rendition only when `src` carries the
+ * `?rw=` marker (added by EventImage for assets that have renditions); any other
+ * `src` is returned unchanged. So an undecorated URL yields the same URL at
+ * every srcset width — a degenerate srcset of identical URLs.
  *
- * To avoid emitting N identical srcset entries, callers should pass
- * `unoptimized={!isAllowedImageHost(url)}` to `<Image>` for external/unknown
- * hosts (`unoptimized=true` suppresses srcset generation, rendering a single
- * direct request). Supabase-hosted URLs are still served directly by the
- * passthrough loader — the browser fetches the one stored object.
+ * To avoid emitting N identical srcset entries for images that have NO
+ * renditions, callers should pass `unoptimized={!isAllowedImageHost(url)}` to
+ * `<Image>` for external/unknown hosts (`unoptimized=true` suppresses srcset
+ * generation, rendering a single direct request). Decorated Supabase URLs do
+ * produce a real, useful srcset of distinct stored renditions.
  */
 
 let cachedSupabaseHost: string | undefined;
