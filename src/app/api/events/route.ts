@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
           venueName: true,
           city: true,
           coverImageUrl: true,
+          coverMediaAsset: { select: { renditionWidths: true } },
           status: true,
           visibility: true,
           createdAt: true,

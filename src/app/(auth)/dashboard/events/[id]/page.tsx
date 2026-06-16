@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { EventImage } from "@/components/media/EventImage";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { formatEventDateTimeLong } from "@/lib/utils";
@@ -30,6 +30,7 @@ type EventDetail = {
   city?: string | null;
   country?: string | null;
   coverImageUrl?: string | null;
+  coverMediaAsset?: { renditionWidths: number[] } | null;
   status: EventStatus;
   visibility: EventVisibility;
   maxAttendees?: number | null;
@@ -315,13 +316,14 @@ export default function EventDetailPage() {
 
       {event.coverImageUrl && (
         <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg">
-          <Image
+          <EventImage
             src={event.coverImageUrl}
             alt={event.title}
             fill
             sizes="(max-width: 768px) 100vw, 800px"
             className="object-contain"
             priority
+            renditionWidths={event.coverMediaAsset?.renditionWidths}
           />
         </div>
       )}

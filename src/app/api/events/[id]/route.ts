@@ -38,6 +38,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const event = await db.event.findUnique({
       where: { id },
       include: {
+        coverMediaAsset: { select: { renditionWidths: true } },
         creator: {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },

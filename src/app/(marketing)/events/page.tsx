@@ -47,6 +47,7 @@ const DISCOVERY_SELECT = {
   venueName: true,
   city: true,
   coverImageUrl: true,
+  coverMediaAsset: { select: { renditionWidths: true } },
   _count: { select: { rsvps: { where: { response: "YES" as const } } } },
 } as const;
 

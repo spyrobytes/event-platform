@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { EventImage } from "@/components/media/EventImage";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn, formatEventTime } from "@/lib/utils";
 import styles from "./DiscoveryEventCard.module.css";
@@ -14,6 +14,7 @@ export type DiscoveryEventCardData = {
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
+  coverMediaAsset?: { renditionWidths: number[] } | null;
   _count?: { rsvps: number };
 };
 
@@ -49,12 +50,13 @@ export function DiscoveryEventCard({
     >
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-3">
         {event.coverImageUrl ? (
-          <Image
+          <EventImage
             src={event.coverImageUrl}
             alt={event.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-contain transition-transform duration-500 group-hover:scale-[1.03]"
+            renditionWidths={event.coverMediaAsset?.renditionWidths}
           />
         ) : (
           <div

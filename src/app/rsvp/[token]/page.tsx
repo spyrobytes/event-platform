@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import Image from "next/image";
+import { EventImage } from "@/components/media/EventImage";
 import type { Metadata } from "next";
 import { RSVPForm } from "@/components/features";
 import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
@@ -35,6 +35,7 @@ async function getInviteByToken(token: string) {
           city: true,
           country: true,
           coverImageUrl: true,
+          coverMediaAsset: { select: { renditionWidths: true } },
           status: true,
           rsvpDeadline: true,
           pageConfig: true,
@@ -260,13 +261,14 @@ export default async function RSVPPage({ params }: PageProps) {
       {/* Event Header */}
       {event.coverImageUrl && (
         <div className="relative h-64 w-full">
-          <Image
+          <EventImage
             src={event.coverImageUrl}
             alt={event.title}
             fill
             sizes="100vw"
             className="object-cover"
             priority
+            renditionWidths={event.coverMediaAsset?.renditionWidths}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent" />
         </div>
