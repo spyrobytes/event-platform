@@ -5,6 +5,7 @@ import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { generateUniqueSlug } from "@/lib/utils";
 import { NotFoundError } from "@/lib/errors";
+import { resolveCoverMediaAssetId } from "@/lib/cover-media-asset";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -90,6 +91,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
         longitude: originalEvent.longitude,
         visibility: originalEvent.visibility,
         coverImageUrl: originalEvent.coverImageUrl,
+        // Link to the same MediaAsset as the original cover so the copy reuses
+        // its responsive renditions (issue #211).
+        coverMediaAssetId: await resolveCoverMediaAssetId(
+          originalEvent.coverImageUrl
+        ),
         maxAttendees: originalEvent.maxAttendees,
         templateId: originalEvent.templateId,
         themePreset: originalEvent.themePreset,

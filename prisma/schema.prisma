@@ -119,6 +119,11 @@ model Event {
   status     EventStatus     @default(DRAFT)
 
   coverImageUrl String? @map("cover_image_url")
+  // FK to the MediaAsset behind coverImageUrl when the cover is an uploaded
+  // asset (null for pasted external URLs). Resolved server-side from
+  // coverImageUrl on save (see resolveCoverMediaAssetId). Lets render sites read
+  // the cover's responsive renditionWidths via a join. See issue #211 (Tier 2).
+  coverMediaAssetId String? @map("cover_media_asset_id")
   maxAttendees  Int?    @map("max_attendees")
 
   // RSVP settings
@@ -162,7 +167,8 @@ model Event {
   creator          User               @relation(fields: [creatorId], references: [id])
   invites          Invite[]
   rsvps            RSVP[]
-  mediaAssets      MediaAsset[]
+  mediaAssets      MediaAsset[]       @relation("EventMediaAssets")
+  coverMediaAsset  MediaAsset?        @relation("EventCoverAsset", fields: [coverMediaAssetId], references: [id], onDelete: SetNull)
   pageVersions     EventPageVersion[]
   invitationConfig InvitationConfig?
   registryClaims   RegistryClaim[]
@@ -532,7 +538,8 @@ model MediaAsset {
   renditionWidths Int[]  @default([]) @map("rendition_widths")
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event           Event          @relation("EventMediaAssets", fields: [eventId], references: [id], onDelete: Cascade)
+  coverForEvents  Event[]        @relation("EventCoverAsset")
   galleryCoverFor EventGallery[] @relation("GalleryCoverAsset")
 
   @@index([eventId, kind])

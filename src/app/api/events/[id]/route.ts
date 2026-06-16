@@ -7,6 +7,7 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { updateEventSchema } from "@/schemas/event";
 import { NotFoundError } from "@/lib/errors";
 import { revalidateEventPage } from "@/lib/revalidation";
+import { resolveCoverMediaAssetId } from "@/lib/cover-media-asset";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -91,6 +92,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // transaction below applies the new slug only after the history row exists.
     const { slug: requestedSlug, ...restData } = data;
 
+    // When the cover changes, re-resolve its MediaAsset link so render sites can
+    // read the cover's responsive renditionWidths (issue #211). undefined =
+    // cover not in this update (leave the FK untouched); "" / external URL -> null.
+    const coverMediaAssetId =
+      restData.coverImageUrl !== undefined
+        ? await resolveCoverMediaAssetId(restData.coverImageUrl)
+        : undefined;
+
     let renameInfo: { from: string; to: string } | null = null;
     if (requestedSlug !== undefined) {
       const current = await db.event.findUnique({
@@ -166,6 +175,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           where: { id },
           data: {
             ...restData,
+            ...(coverMediaAssetId !== undefined ? { coverMediaAssetId } : {}),
             ...(renameInfo ? { slug: renameInfo.to } : {}),
           },
           select: {
