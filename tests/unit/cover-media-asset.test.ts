@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Prisma } from "@prisma/client";
 
 const dbMock = {
   mediaAsset: { findFirst: vi.fn() },
 };
 vi.mock("@/lib/db", () => ({ db: dbMock }));
 
-const { resolveCoverMediaAssetId, coverMediaAssetUpdate } = await import(
-  "@/lib/cover-media-asset"
-);
+const { resolveCoverMediaAssetId, coverMediaAssetUpdate, clearEventCoversForAssets } =
+  await import("@/lib/cover-media-asset");
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -69,6 +69,29 @@ describe("coverMediaAssetUpdate (update-handler contract)", () => {
     dbMock.mediaAsset.findFirst.mockResolvedValue(null);
     expect(await coverMediaAssetUpdate(EVENT, "https://external.com/x.jpg")).toEqual({
       coverMediaAssetId: null,
+    });
+  });
+});
+
+describe("clearEventCoversForAssets", () => {
+  function makeTx() {
+    const updateMany = vi.fn();
+    const tx = { event: { updateMany } } as unknown as Prisma.TransactionClient;
+    return { tx, updateMany };
+  }
+
+  it("does nothing for an empty asset list (no query)", async () => {
+    const { tx, updateMany } = makeTx();
+    await clearEventCoversForAssets(tx, []);
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it("clears the cover pair on events referencing any of the assets", async () => {
+    const { tx, updateMany } = makeTx();
+    await clearEventCoversForAssets(tx, ["a1", "a2"]);
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { coverMediaAssetId: { in: ["a1", "a2"] } },
+      data: { coverImageUrl: null, coverMediaAssetId: null },
     });
   });
 });

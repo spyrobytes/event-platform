@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 /**
  * Resolves the `MediaAsset` behind an event's cover URL, scoped to that event.
@@ -41,4 +42,23 @@ export async function coverMediaAssetUpdate(
 ): Promise<{ coverMediaAssetId?: string | null }> {
   if (coverImageUrl === undefined) return {};
   return { coverMediaAssetId: await resolveCoverMediaAssetId(eventId, coverImageUrl) };
+}
+
+/**
+ * Clears the cover pair (`coverImageUrl` + `coverMediaAssetId`) on every event
+ * whose cover is one of the given assets. Call this BEFORE those assets are
+ * deleted — directly (media DELETE route) or via cascade when their event is
+ * deleted — so a referencing event's `coverImageUrl` doesn't drift to a deleted
+ * storage object (the FK alone would SetNull but leave the URL stale). Runs in
+ * the caller's transaction. See issue #211 (Tier 2).
+ */
+export async function clearEventCoversForAssets(
+  tx: Prisma.TransactionClient,
+  assetIds: string[]
+): Promise<void> {
+  if (assetIds.length === 0) return;
+  await tx.event.updateMany({
+    where: { coverMediaAssetId: { in: assetIds } },
+    data: { coverImageUrl: null, coverMediaAssetId: null },
+  });
 }

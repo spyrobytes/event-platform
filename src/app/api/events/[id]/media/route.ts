@@ -22,6 +22,7 @@ import { MEDIA_TAGS, deriveKindFromTags, type MediaTag } from "@/lib/media-tags"
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
 import { validateAndMigrate } from "@/lib/config-migrations";
 import { revalidateEventPage } from "@/lib/revalidation";
+import { clearEventCoversForAssets } from "@/lib/cover-media-asset";
 import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 import {
   HERO_DISPLAY_MAX_DIMENSION,
@@ -445,14 +446,13 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         }
       }
 
-      // If this asset is any event's cover, clear the cover pair so
-      // coverImageUrl doesn't drift to a now-deleted storage object (the FK
-      // would SetNull on delete, but coverImageUrl would be left stale). Done
-      // before the delete so the still-set coverMediaAssetId matches (#211).
-      await tx.event.updateMany({
-        where: { coverMediaAssetId: assetId },
-        data: { coverImageUrl: null, coverMediaAssetId: null },
-      });
+      // If this (HERO) asset is any event's cover, clear the cover pair so
+      // coverImageUrl doesn't drift to a now-deleted storage object. Done before
+      // the delete so the still-set coverMediaAssetId matches. Only HERO assets
+      // are ever a cover, so gallery deletes skip this query (#211).
+      if (asset.kind === "HERO") {
+        await clearEventCoversForAssets(tx, [assetId]);
+      }
 
       await tx.mediaAsset.delete({ where: { id: assetId } });
     });
