@@ -20,6 +20,16 @@ export const IMAGE_CONSTRAINTS = {
   maxAssetsPerEvent: PAGE_CONFIG_LIMITS.maxAssetsPerEvent,
 } as const;
 
+/**
+ * Stored-dimension cap for HERO covers. These are display-only (no lightbox
+ * zoom), so we downscale them to a sane web maximum at ingestion instead of the
+ * 4000px validation ceiling — serving the full original to every device is pure
+ * bandwidth waste now that the image loader is a passthrough (no on-the-fly
+ * resizing). Galleries keep the 4000px ceiling for lightbox zoom.
+ * See issue #211 (Tier 2, phase 2a).
+ */
+export const HERO_DISPLAY_MAX_DIMENSION = 2048;
+
 export const mimeTypeSchema = z.enum(ALLOWED_MIME_TYPES);
 export type AllowedMimeType = z.infer<typeof mimeTypeSchema>;
 
