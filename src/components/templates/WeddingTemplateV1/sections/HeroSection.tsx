@@ -36,6 +36,7 @@ export function HeroSection({ config, heroAsset, primaryColor }: HeroSectionProp
           sizes="100vw"
           className="object-cover"
           blurDataURL={heroAsset.blurDataUrl}
+          renditionWidths={heroAsset.renditionWidths}
         />
       ) : (
         <div

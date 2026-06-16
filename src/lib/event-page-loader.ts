@@ -9,6 +9,26 @@ import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { AccessLevel } from "@/lib/guest-access";
 
 /**
+ * Prisma select fragment for the media-asset fields the event-page TEMPLATES
+ * render (hero + couple photos via EventImage). Spread into the `mediaAssets`
+ * select of EVERY surface that renders those templates — the published page
+ * (here), the organizer preview (`/preview/[token]`), and the editor's
+ * page-config route — so a new asset field (e.g. `renditionWidths`, #217) lands
+ * on all of them at once instead of silently drifting onto one surface. Mirrors
+ * `COVER_ASSET_SELECT` in cover-media-asset.ts.
+ */
+export const MEDIA_ASSET_SELECT = {
+  id: true,
+  kind: true,
+  publicUrl: true,
+  width: true,
+  height: true,
+  alt: true,
+  blurDataUrl: true,
+  renditionWidths: true,
+} as const;
+
+/**
  * Shared loader for the public `/e/[slug]` surface and its sub-routes
  * (e.g. `/e/[slug]/registry`). Extracting this keeps behavior identical
  * across surfaces — every new sub-route must enforce the same
@@ -41,15 +61,7 @@ export async function getEventBySlug(slug: string, tk: string | undefined) {
       creator: { select: { name: true } },
       organization: { select: { name: true } },
       mediaAssets: {
-        select: {
-          id: true,
-          kind: true,
-          publicUrl: true,
-          width: true,
-          height: true,
-          alt: true,
-          blurDataUrl: true,
-        },
+        select: { ...MEDIA_ASSET_SELECT },
       },
     },
   });

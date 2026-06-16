@@ -61,6 +61,7 @@ export function CenteredInvitationHero({
             sizes="100vw"
             priority
             blurDataURL={heroAsset.blurDataUrl}
+            renditionWidths={heroAsset.renditionWidths}
           />
         </div>
       ) : (

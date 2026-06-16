@@ -158,6 +158,7 @@ export function ArchFramedHero({
                 sizes="100vw"
                 priority
                 blurDataURL={heroAsset.blurDataUrl}
+                renditionWidths={heroAsset.renditionWidths}
               />
             ) : (
               <div className={styles.archFallback} aria-hidden="true" />

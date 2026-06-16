@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { verifyEventOwnership, canModifyPageConfig, assertCanMutate } from "@/lib/authorization";
+import { MEDIA_ASSET_SELECT } from "@/lib/event-page-loader";
 import {
   successResponse,
   handleApiError,
@@ -94,15 +95,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         templateId: true,
         publishedAt: true,
         mediaAssets: {
-          select: {
-            id: true,
-            kind: true,
-            tags: true,
-            publicUrl: true,
-            width: true,
-            height: true,
-            alt: true,
-          },
+          select: { ...MEDIA_ASSET_SELECT, tags: true },
         },
       },
     });
