@@ -144,6 +144,7 @@ export function CollageMosaicHero({
             sizes="100vw"
             priority
             blurDataURL={heroAsset!.blurDataUrl}
+            renditionWidths={heroAsset!.renditionWidths}
           />
         </div>
       ) : (
@@ -176,6 +177,7 @@ export function CollageMosaicHero({
               // at 1250px; the svh term can only shrink the render).
               sizes="(max-width: 640px) 62vw, (max-width: 1250px) 450px, 560px"
               priority
+              renditionWidths={couplePhotoAsset!.renditionWidths}
             />
           </CouplePhotoFrame>
         </>
@@ -209,6 +211,7 @@ export function CollageMosaicHero({
               sizes="100vw"
               priority
               blurDataURL={couplePhotoAsset!.blurDataUrl}
+              renditionWidths={couplePhotoAsset!.renditionWidths}
             />
           </CouplePhotoFrame>
         )}

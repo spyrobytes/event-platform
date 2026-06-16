@@ -49,6 +49,10 @@ export async function getEventBySlug(slug: string, tk: string | undefined) {
           height: true,
           alt: true,
           blurDataUrl: true,
+          // Tier 2 responsive renditions for the published hero (#217). HERO
+          // assets carry a populated ladder (post-backfill); gallery assets stay
+          // `[]` (no gallery renditions yet) → EventImage passes through.
+          renditionWidths: true,
         },
       },
     },

@@ -111,6 +111,7 @@ export function FullscreenDramaticHero({
             sizes="100vw"
             priority
             blurDataURL={heroAsset.blurDataUrl}
+            renditionWidths={heroAsset.renditionWidths}
           />
         </div>
       ) : (
@@ -139,6 +140,7 @@ export function FullscreenDramaticHero({
             // ~360px-rendered image (review-measured 4-15x pixel over-fetch).
             sizes="(max-width: 640px) 42vw, (max-width: 1500px) 30vw, 450px"
             priority
+            renditionWidths={couplePhotoAsset!.renditionWidths}
           />
         </CouplePhotoFrame>
       )}
@@ -163,6 +165,7 @@ export function FullscreenDramaticHero({
             sizes="100vw"
             priority
             blurDataURL={couplePhotoAsset.blurDataUrl}
+            renditionWidths={couplePhotoAsset.renditionWidths}
           />
           {/* Rendered as a child (not ::after on the wrapper) so it is
               clipped by the active frame shape — the heart's clip lives on

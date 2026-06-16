@@ -69,6 +69,7 @@ export function AsymmetricHero({
             sizes="100vw"
             priority
             blurDataURL={heroAsset.blurDataUrl}
+            renditionWidths={heroAsset.renditionWidths}
           />
         ) : (
           <div className={styles.imageFallback} aria-hidden="true" />
