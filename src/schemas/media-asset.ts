@@ -30,6 +30,15 @@ export const IMAGE_CONSTRAINTS = {
  */
 export const HERO_DISPLAY_MAX_DIMENSION = 2048;
 
+/**
+ * Responsive rendition ladder (widths in px), aligned to next/image defaults.
+ * At ingestion we store a WebP at each of these widths that is strictly smaller
+ * than the optimized original (no upscaling); the original (HERO ≤ 2048,
+ * gallery ≤ 4000) serves the top of the ladder. The image loader maps a
+ * requested width to the nearest stored rendition. See issue #211 (Tier 2).
+ */
+export const RESPONSIVE_RENDITION_WIDTHS = [384, 640, 828, 1200] as const;
+
 export const mimeTypeSchema = z.enum(ALLOWED_MIME_TYPES);
 export type AllowedMimeType = z.infer<typeof mimeTypeSchema>;
 
