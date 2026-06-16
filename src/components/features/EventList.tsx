@@ -1,4 +1,5 @@
 import { EventCard } from "./EventCard";
+import type { EventCoverAsset } from "@/components/media/EventImage";
 import { cn } from "@/lib/utils";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
@@ -15,6 +16,7 @@ type EventListData = {
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
+  coverMediaAsset?: EventCoverAsset;
   status: EventStatus;
   visibility: EventVisibility;
   _count?: {

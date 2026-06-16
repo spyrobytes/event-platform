@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { EventList } from "@/components/features";
+import type { EventCoverAsset } from "@/components/media/EventImage";
 import { Button } from "@/components/ui/button";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
@@ -20,6 +21,7 @@ type EventData = {
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
+  coverMediaAsset?: EventCoverAsset;
   status: EventStatus;
   visibility: EventVisibility;
   _count?: {

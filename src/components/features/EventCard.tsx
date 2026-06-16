@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { EventImage, type EventCoverAsset } from "@/components/media/EventImage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatEventDateTimeMedium } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ type EventCardData = {
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
+  coverMediaAsset?: EventCoverAsset;
   status: EventStatus;
   visibility: EventVisibility;
   _count?: {
@@ -57,12 +58,13 @@ export function EventCard({
     <Card className={cn("overflow-hidden transition-shadow hover:shadow-md", className)}>
       {event.coverImageUrl && (
         <div className="relative aspect-video w-full overflow-hidden">
-          <Image
+          <EventImage
             src={event.coverImageUrl}
             alt={event.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-contain"
+            renditionWidths={event.coverMediaAsset?.renditionWidths}
           />
         </div>
       )}

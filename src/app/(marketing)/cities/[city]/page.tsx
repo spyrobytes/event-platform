@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { COVER_ASSET_SELECT } from "@/lib/cover-media-asset";
 import { EventList } from "@/components/features";
 import type { Metadata } from "next";
 
@@ -32,6 +33,7 @@ async function getCityEvents(citySlug: string) {
       venueName: true,
       city: true,
       coverImageUrl: true,
+      ...COVER_ASSET_SELECT,
       status: true,
       visibility: true,
       _count: {

@@ -5,6 +5,7 @@ import { assertCanMutate } from "@/lib/authorization";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { createEventSchema, eventQuerySchema } from "@/schemas/event";
 import { generateUniqueSlug } from "@/lib/utils";
+import { COVER_ASSET_SELECT } from "@/lib/cover-media-asset";
 
 /**
  * GET /api/events
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
           venueName: true,
           city: true,
           coverImageUrl: true,
+          ...COVER_ASSET_SELECT,
           status: true,
           visibility: true,
           createdAt: true,

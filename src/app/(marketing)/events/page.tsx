@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { COVER_ASSET_SELECT } from "@/lib/cover-media-asset";
 import { EventFilters } from "@/components/features/EventFilters";
 import {
   DiscoveryHero,
@@ -47,6 +48,7 @@ const DISCOVERY_SELECT = {
   venueName: true,
   city: true,
   coverImageUrl: true,
+  ...COVER_ASSET_SELECT,
   _count: { select: { rsvps: { where: { response: "YES" as const } } } },
 } as const;
 
