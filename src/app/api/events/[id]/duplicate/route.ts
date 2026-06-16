@@ -55,6 +55,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         longitude: true,
         visibility: true,
         coverImageUrl: true,
+        coverMediaAssetId: true,
         maxAttendees: true,
         templateId: true,
         themePreset: true,
@@ -90,6 +91,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
         longitude: originalEvent.longitude,
         visibility: originalEvent.visibility,
         coverImageUrl: originalEvent.coverImageUrl,
+        // Reuse the original's cover->asset link directly (the copy shares the
+        // original's cover image), so the copy gets the same responsive
+        // renditions without re-deriving it by URL (issue #211).
+        coverMediaAssetId: originalEvent.coverMediaAssetId,
         maxAttendees: originalEvent.maxAttendees,
         templateId: originalEvent.templateId,
         themePreset: originalEvent.themePreset,

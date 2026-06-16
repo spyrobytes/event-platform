@@ -7,6 +7,10 @@ import { successResponse, handleApiError, errorResponse } from "@/lib/api-respon
 import { updateEventSchema } from "@/schemas/event";
 import { NotFoundError } from "@/lib/errors";
 import { revalidateEventPage } from "@/lib/revalidation";
+import {
+  coverMediaAssetUpdate,
+  clearEventCoversForAssets,
+} from "@/lib/cover-media-asset";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -91,6 +95,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // transaction below applies the new slug only after the history row exists.
     const { slug: requestedSlug, ...restData } = data;
 
+    // When the cover changes, re-resolve its MediaAsset link so render sites can
+    // read the cover's responsive renditionWidths (issue #211). Resolved before
+    // the transaction since it's a read; spread into the update below.
+    const coverPatch = await coverMediaAssetUpdate(id, restData.coverImageUrl);
+
     let renameInfo: { from: string; to: string } | null = null;
     if (requestedSlug !== undefined) {
       const current = await db.event.findUnique({
@@ -166,6 +175,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           where: { id },
           data: {
             ...restData,
+            ...coverPatch,
             ...(renameInfo ? { slug: renameInfo.to } : {}),
           },
           select: {
@@ -234,7 +244,22 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     await requireEventOwner(id, user.id);
     assertCanMutate(user);
 
-    await db.event.delete({ where: { id } });
+    await db.$transaction(async (tx) => {
+      // Before the event (and its cascade-deleted assets) goes away, clear the
+      // cover on any OTHER event that reuses one of this event's HERO assets as
+      // its cover (e.g. a duplicate), so its coverImageUrl doesn't drift to
+      // deleted storage. Only HERO assets are ever a cover (#211).
+      const heroAssets = await tx.mediaAsset.findMany({
+        where: { eventId: id, kind: "HERO" },
+        select: { id: true },
+      });
+      await clearEventCoversForAssets(
+        tx,
+        heroAssets.map((a) => a.id)
+      );
+
+      await tx.event.delete({ where: { id } });
+    });
 
     return successResponse({ success: true });
   } catch (error) {

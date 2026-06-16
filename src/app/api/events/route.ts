@@ -105,6 +105,9 @@ export async function POST(request: NextRequest) {
         status: "DRAFT",
         // Default to wedding template if not specified
         templateId: data.templateId || "wedding_v1",
+        // No coverMediaAssetId on create: a brand-new event has no uploaded
+        // assets yet (uploads need an existing event id), so the cover can't be
+        // its own asset. It links on the first update once the asset exists.
       },
       select: {
         id: true,
