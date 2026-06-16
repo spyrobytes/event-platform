@@ -16,6 +16,7 @@ import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
 import { validateAndMigrate } from "@/lib/config-migrations";
 import { revalidateEventPage } from "@/lib/revalidation";
 import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
+import { HERO_DISPLAY_MAX_DIMENSION } from "@/schemas/media-asset";
 
 const deleteAssetSchema = z.object({
   assetId: z.string().min(1),
@@ -113,8 +114,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return errorResponse(validation.error || "Invalid image", 400);
     }
 
-    // 6. Optimize image (convert to WebP, resize if needed)
-    const optimized = await optimizeImage(buffer);
+    // 6. Optimize image (convert to WebP, resize if needed). HERO covers are
+    // display-only, so cap them at HERO_DISPLAY_MAX_DIMENSION rather than the
+    // 4000px ceiling; galleries keep the default for lightbox zoom (issue #211).
+    const optimized = await optimizeImage(
+      buffer,
+      kind === "HERO"
+        ? {
+            maxWidth: HERO_DISPLAY_MAX_DIMENSION,
+            maxHeight: HERO_DISPLAY_MAX_DIMENSION,
+          }
+        : {}
+    );
 
     // 6b. Generate blur placeholder for lazy-loading
     const blurDataUrl = await generateBlurDataUrl(optimized.buffer);
