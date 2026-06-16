@@ -1,15 +1,27 @@
 /**
- * Custom Next.js image loader for Supabase Storage transforms.
+ * Next.js image loader for Supabase Storage — PASSTHROUGH.
  *
- * Converts public object URLs to the Supabase image render endpoint,
- * which resizes on-the-fly and caches at the edge. This avoids routing
- * all image optimization through Vercel's pipeline.
+ * Returns the stored object URL unchanged. We deliberately do NOT rewrite to
+ * Supabase's `/storage/v1/render/image/` transform endpoint.
  *
- * Expects `src` to be a full Supabase public URL, e.g.:
- *   https://xxx.supabase.co/storage/v1/object/public/event-assets/...
+ * Why:
+ *  - Images are already optimized to WebP and sized by the sharp ingestion
+ *    pipeline (see media-validation.ts `optimizeImage` and gallery-worker.ts),
+ *    so on-the-fly transforms are redundant — we'd pay to re-transform images
+ *    we already processed.
+ *  - Supabase bills image transformations per *origin image* (100/cycle on Pro).
+ *    With a spend cap enabled, exceeding that quota *disables* the render
+ *    endpoint for the rest of the cycle, which breaks every image routed
+ *    through it. Serving straight from `/storage/v1/object/public/...` is plain
+ *    object-storage egress — not gated by the transformation quota or spend cap.
  *
- * In development, returns the src unchanged since local Supabase
- * may not support the image transform endpoint.
+ * This loader is the single chokepoint for next/image optimization, so keeping
+ * it a passthrough cannot be bypassed by per-component `unoptimized={false}`
+ * props (which opt Supabase images back into the loader).
+ *
+ * Follow-up (Tier 2): upgrade this to select the nearest *stored* rendition by
+ * width — a pure string swap against ingestion-generated sizes, still with no
+ * transform call — to restore responsive images without consuming quota.
  */
 
 type ImageLoaderParams = {
@@ -18,27 +30,7 @@ type ImageLoaderParams = {
   quality?: number;
 };
 
-export default function supabaseImageLoader({
-  src,
-  width,
-  quality,
-}: ImageLoaderParams): string {
-  // In dev, skip transforms — local Supabase may not support them
-  if (process.env.NODE_ENV === "development") {
-    return src;
-  }
-
-  const q = quality ?? 75;
-
-  // Convert object URL to render/image URL for on-the-fly transforms
-  if (src.includes("/storage/v1/object/public/")) {
-    const transformUrl = src.replace(
-      "/storage/v1/object/public/",
-      "/storage/v1/render/image/public/"
-    );
-    return `${transformUrl}?width=${width}&quality=${q}&resize=contain`;
-  }
-
-  // Fallback: return src as-is if it doesn't match the expected pattern
+export default function supabaseImageLoader({ src }: ImageLoaderParams): string {
+  // Serve the already-optimized stored object directly. No render endpoint.
   return src;
 }

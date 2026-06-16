@@ -4,18 +4,19 @@
  * next.config.ts configures `loader: "custom"` pointing at
  * src/lib/images/supabase-loader.ts, so `<Image>` calls the loader directly
  * and never hits next/image's `/_next/image` route — `remotePatterns`
- * validation does NOT enforce a runtime throw in this codebase. What matters
- * is whether the loader can usefully transform the URL.
+ * validation does NOT enforce a runtime throw in this codebase.
  *
- * The supabase-loader only transforms URLs under `/storage/v1/object/public/`
- * (rewriting them to the Supabase image-render endpoint for AVIF/WebP
- * delivery). For any other URL — external hosts, signed Supabase URLs,
- * already-transformed render URLs — the loader returns `src` unchanged at
- * every srcset width, producing a degenerate srcset of identical URLs.
+ * The supabase-loader is a passthrough: it returns `src` unchanged (we serve
+ * the already-sharp-optimized stored object rather than paying for Supabase's
+ * `/render/image/` transform endpoint — see supabase-loader.ts for why). That
+ * means it returns the same URL at every srcset width, producing a degenerate
+ * srcset of identical URLs for *any* image.
  *
- * To avoid that, callers should pass `unoptimized={!isAllowedImageHost(url)}`
- * to `<Image>`. `unoptimized=true` suppresses srcset generation entirely, so
- * external URLs render as a single direct request instead of N identical ones.
+ * To avoid emitting N identical srcset entries, callers should pass
+ * `unoptimized={!isAllowedImageHost(url)}` to `<Image>` for external/unknown
+ * hosts (`unoptimized=true` suppresses srcset generation, rendering a single
+ * direct request). Supabase-hosted URLs are still served directly by the
+ * passthrough loader — the browser fetches the one stored object.
  */
 
 let cachedSupabaseHost: string | undefined;
