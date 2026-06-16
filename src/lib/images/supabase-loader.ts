@@ -1,30 +1,26 @@
 /**
- * Next.js image loader for Supabase Storage — PASSTHROUGH.
+ * Next.js image loader for Supabase Storage.
  *
- * Returns the stored object URL unchanged. We deliberately do NOT rewrite to
- * Supabase's `/storage/v1/render/image/` transform endpoint.
- *
- * Why:
+ * Selects the nearest *stored* responsive rendition for the requested width — a
+ * pure string swap, never an on-the-fly transform. We deliberately do NOT route
+ * through Supabase's `/storage/v1/render/image/` endpoint:
  *  - Images are already optimized to WebP and sized by the sharp ingestion
- *    pipeline (see media-validation.ts `optimizeImage` and gallery-worker.ts),
- *    so on-the-fly transforms are redundant — we'd pay to re-transform images
- *    we already processed.
- *  - Supabase bills image transformations per *origin image* (100/cycle on Pro).
- *    With a spend cap enabled, exceeding that quota *disables* the render
- *    endpoint for the rest of the cycle, which breaks every image routed
- *    through it. Serving straight from `/storage/v1/object/public/...` is plain
- *    object-storage egress — not gated by the transformation quota or spend cap.
+ *    pipeline (media-validation.ts `optimizeImage` / `generateRenditions`), so
+ *    transforms are redundant.
+ *  - Supabase bills transformations per *origin image* (100/cycle on Pro); with
+ *    a spend cap, exceeding the quota *disables* the render endpoint and breaks
+ *    every image routed through it. Serving from `/storage/v1/object/public/...`
+ *    is plain object-storage egress, not gated by the quota or spend cap.
  *
- * Either next/image path now avoids transforms regardless of the per-component
- * `unoptimized` prop: images with `unoptimized={false}` route through this
- * passthrough (served as-is), and images with `unoptimized={true}` skip the
- * loader and serve `src` directly. Neither value can route an image back
- * through the `/render/image/` transform endpoint.
- *
- * Follow-up (Tier 2): upgrade this to select the nearest *stored* rendition by
- * width — a pure string swap against ingestion-generated sizes, still with no
- * transform call — to restore responsive images without consuming quota.
+ * The selection itself lives in the client-safe `rendition` module. A `src`
+ * carrying the `?rw=` marker (added by EventImage for assets that have stored
+ * renditions) is mapped to the nearest rung; any `src` WITHOUT the marker —
+ * un-backfilled assets, non-HERO assets, external images — is returned
+ * unchanged (passthrough). So this is purely additive: nothing changes for
+ * existing, undecorated images.
  */
+
+import { resolveRenditionUrl } from "@/lib/images/rendition";
 
 type ImageLoaderParams = {
   src: string;
@@ -32,7 +28,9 @@ type ImageLoaderParams = {
   quality?: number;
 };
 
-export default function supabaseImageLoader({ src }: ImageLoaderParams): string {
-  // Serve the already-optimized stored object directly. No render endpoint.
-  return src;
+export default function supabaseImageLoader({
+  src,
+  width,
+}: ImageLoaderParams): string {
+  return resolveRenditionUrl(src, width);
 }

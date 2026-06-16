@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { insertRenditionWidth } from "@/lib/images/rendition";
 
 // Bucket names
 export const BUCKETS = {
@@ -128,12 +129,13 @@ export function getEventAssetPath(
 
 /**
  * Storage path for a responsive rendition sibling of an original asset, e.g.
- * "evt/hero/123.webp" + 640 -> "evt/hero/123_w640.webp". The single source of
- * truth for the rendition naming convention, shared by ingestion (upload) and
- * deletion (cleanup) so they never drift. See issue #211 (Tier 2).
+ * "evt/hero/123.webp" + 640 -> "evt/hero/123_w640.webp". Used by ingestion
+ * (upload) and deletion (cleanup); delegates to the shared rendition helper so
+ * the server path convention and the client loader URL convention can't drift.
+ * See issue #211 (Tier 2).
  */
 export function getRenditionPath(originalPath: string, width: number): string {
-  return originalPath.replace(/\.webp$/i, `_w${width}.webp`);
+  return insertRenditionWidth(originalPath, width);
 }
 
 /**
