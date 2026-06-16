@@ -15,9 +15,11 @@
  *    through it. Serving straight from `/storage/v1/object/public/...` is plain
  *    object-storage egress — not gated by the transformation quota or spend cap.
  *
- * This loader is the single chokepoint for next/image optimization, so keeping
- * it a passthrough cannot be bypassed by per-component `unoptimized={false}`
- * props (which opt Supabase images back into the loader).
+ * Either next/image path now avoids transforms regardless of the per-component
+ * `unoptimized` prop: images with `unoptimized={false}` route through this
+ * passthrough (served as-is), and images with `unoptimized={true}` skip the
+ * loader and serve `src` directly. Neither value can route an image back
+ * through the `/render/image/` transform endpoint.
  *
  * Follow-up (Tier 2): upgrade this to select the nearest *stored* rendition by
  * width — a pure string swap against ingestion-generated sizes, still with no

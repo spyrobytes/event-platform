@@ -35,8 +35,9 @@ function getSupabaseHost(): string | null {
 
 /**
  * Returns true if the URL's hostname matches the configured Supabase host
- * (NEXT_PUBLIC_SUPABASE_URL), meaning the custom supabase-loader can
- * transform it for AVIF/WebP delivery.
+ * (NEXT_PUBLIC_SUPABASE_URL). Such URLs are served directly by the passthrough
+ * supabase-loader (the already-sharp-optimized stored object), so the browser
+ * fetches a single stored file rather than N transformed renditions.
  *
  * Returns false for malformed URLs, relative paths, data URIs, missing env,
  * and any host outside the configured Supabase project. Callers should set
