@@ -2,6 +2,13 @@ import Image, { type ImageProps } from "next/image";
 import supabaseImageLoader from "@/lib/images/supabase-loader";
 import { withRenditionWidths } from "@/lib/images/rendition";
 
+/**
+ * An event's cover responsive data, as selected by COVER_ASSET_SELECT
+ * (src/lib/cover-media-asset.ts). Passed to EventImage via `renditionWidths`.
+ * Shared so the card data types can't drift apart. See issue #211 (Tier 2).
+ */
+export type EventCoverAsset = { renditionWidths: number[] } | null;
+
 type EventImageProps = Omit<ImageProps, "loader" | "placeholder" | "blurDataURL"> & {
   blurDataURL?: string | null;
   /**

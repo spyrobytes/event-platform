@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { EventImage } from "@/components/media/EventImage";
+import { EventImage, type EventCoverAsset } from "@/components/media/EventImage";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { formatEventDateTimeLong } from "@/lib/utils";
@@ -30,7 +30,7 @@ type EventDetail = {
   city?: string | null;
   country?: string | null;
   coverImageUrl?: string | null;
-  coverMediaAsset?: { renditionWidths: number[] } | null;
+  coverMediaAsset?: EventCoverAsset;
   status: EventStatus;
   visibility: EventVisibility;
   maxAttendees?: number | null;

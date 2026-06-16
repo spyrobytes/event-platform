@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EventImage } from "@/components/media/EventImage";
+import { EventImage, type EventCoverAsset } from "@/components/media/EventImage";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn, formatEventTime } from "@/lib/utils";
 import styles from "./DiscoveryEventCard.module.css";
@@ -14,7 +14,7 @@ export type DiscoveryEventCardData = {
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
-  coverMediaAsset?: { renditionWidths: number[] } | null;
+  coverMediaAsset?: EventCoverAsset;
   _count?: { rsvps: number };
 };
 

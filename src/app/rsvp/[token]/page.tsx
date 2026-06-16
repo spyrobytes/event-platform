@@ -5,6 +5,7 @@ import { RSVPForm } from "@/components/features";
 import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
 import { hashToken } from "@/lib/tokens";
 import { db } from "@/lib/db";
+import { COVER_ASSET_SELECT } from "@/lib/cover-media-asset";
 import { loadAndMigrateConfig } from "@/lib/event-page-loader";
 import { isWeddingTemplate } from "@/lib/section-nav-defaults";
 import { formatEventDateLong, formatEventTime } from "@/lib/utils";
@@ -35,7 +36,7 @@ async function getInviteByToken(token: string) {
           city: true,
           country: true,
           coverImageUrl: true,
-          coverMediaAsset: { select: { renditionWidths: true } },
+          ...COVER_ASSET_SELECT,
           status: true,
           rsvpDeadline: true,
           pageConfig: true,

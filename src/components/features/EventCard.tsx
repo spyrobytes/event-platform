@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EventImage } from "@/components/media/EventImage";
+import { EventImage, type EventCoverAsset } from "@/components/media/EventImage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn, formatEventDateTimeMedium } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ type EventCardData = {
   venueName?: string | null;
   city?: string | null;
   coverImageUrl?: string | null;
-  coverMediaAsset?: { renditionWidths: number[] } | null;
+  coverMediaAsset?: EventCoverAsset;
   status: EventStatus;
   visibility: EventVisibility;
   _count?: {

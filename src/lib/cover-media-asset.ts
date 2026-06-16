@@ -2,6 +2,16 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
 /**
+ * Prisma select fragment for an event's cover responsive data. Spread into the
+ * select/include of ANY query whose result feeds a cover render site (a
+ * component using EventImage), so the join can't be forgotten (the cities page
+ * once was). Pairs with the `EventCoverAsset` type. See issue #211 (Tier 2).
+ */
+export const COVER_ASSET_SELECT = {
+  coverMediaAsset: { select: { renditionWidths: true } },
+} as const;
+
+/**
  * Resolves the `MediaAsset` behind an event's cover URL, scoped to that event.
  *
  * `Event.coverImageUrl` is a denormalized string that may be an uploaded

@@ -10,6 +10,7 @@ import { revalidateEventPage } from "@/lib/revalidation";
 import {
   coverMediaAssetUpdate,
   clearEventCoversForAssets,
+  COVER_ASSET_SELECT,
 } from "@/lib/cover-media-asset";
 
 type RouteContext = {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const event = await db.event.findUnique({
       where: { id },
       include: {
-        coverMediaAsset: { select: { renditionWidths: true } },
+        ...COVER_ASSET_SELECT,
         creator: {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
