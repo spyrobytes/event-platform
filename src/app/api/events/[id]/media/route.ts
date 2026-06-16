@@ -3,7 +3,12 @@ import { z } from "zod";
 import { verifyAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canUploadMedia, assertCanMutate } from "@/lib/authorization";
-import { validateUploadedImage, optimizeImage, generateBlurDataUrl } from "@/lib/media-validation";
+import {
+  validateUploadedImage,
+  optimizeImage,
+  generateBlurDataUrl,
+  generateRenditions,
+} from "@/lib/media-validation";
 import {
   uploadFile,
   BUCKETS,
@@ -16,7 +21,10 @@ import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
 import { validateAndMigrate } from "@/lib/config-migrations";
 import { revalidateEventPage } from "@/lib/revalidation";
 import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
-import { HERO_DISPLAY_MAX_DIMENSION } from "@/schemas/media-asset";
+import {
+  HERO_DISPLAY_MAX_DIMENSION,
+  RESPONSIVE_RENDITION_WIDTHS,
+} from "@/schemas/media-asset";
 
 const deleteAssetSchema = z.object({
   assetId: z.string().min(1),
@@ -155,6 +163,46 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return errorResponse("Failed to upload file", 500);
     }
 
+    // 9b. Generate responsive renditions (HERO only — Tier 2 / issue #211).
+    // Downscales of the stored original, uploaded as "{timestamp}_w{width}.webp"
+    // alongside it; the original serves the top of the ladder. We record only
+    // the widths that actually uploaded so the loader never references a missing
+    // rendition. Best-effort: a failed rendition is dropped, not fatal (the
+    // original already succeeded, and the loader falls back to a larger size).
+    let renditionWidths: number[] = [];
+    if (kind === "HERO") {
+      const renditions = await generateRenditions(
+        optimized.buffer,
+        RESPONSIVE_RENDITION_WIDTHS
+      );
+      const results = await Promise.all(
+        renditions.map(async ({ width, buffer: renditionBuffer }) => {
+          const renditionPath = getEventAssetPath(
+            eventId,
+            pathType,
+            `${timestamp}_w${width}.webp`
+          );
+          const result = await uploadFile(
+            BUCKETS.eventAssets,
+            renditionPath,
+            renditionBuffer,
+            {
+              contentType: "image/webp",
+              cacheControl: "public, max-age=31536000",
+            }
+          );
+          if ("error" in result) {
+            console.error(`Rendition upload failed (w=${width}):`, result.error);
+            return null;
+          }
+          return width;
+        })
+      );
+      renditionWidths = results
+        .filter((w): w is number => w !== null)
+        .sort((a, b) => a - b);
+    }
+
     // 10. Create database record
     const asset = await db.mediaAsset.create({
       data: {
@@ -171,6 +219,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         height: optimized.height,
         alt,
         blurDataUrl,
+        renditionWidths,
       },
     });
 

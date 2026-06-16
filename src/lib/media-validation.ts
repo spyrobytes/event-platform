@@ -141,6 +141,40 @@ export async function generateThumbnail(
 }
 
 /**
+ * Generates responsive WebP renditions from a source image buffer.
+ *
+ * Produces one rendition per requested width that is strictly smaller than the
+ * source width (no upscaling — a larger requested width is skipped because the
+ * stored original already serves it). Returns the actual encoded width of each
+ * rendition (sharp may differ by a pixel after aspect-ratio rounding), so
+ * callers persist exactly what was produced.
+ *
+ * Widths are matched against the source's intrinsic width, so callers should
+ * pass the ORIGINAL (pre-optimize) buffer for best quality. See issue #211.
+ */
+export async function generateRenditions(
+  buffer: Buffer,
+  widths: readonly number[],
+  quality = 80
+): Promise<Array<{ width: number; buffer: Buffer }>> {
+  const sourceWidth = (await sharp(buffer).metadata()).width ?? 0;
+
+  const renditions = await Promise.all(
+    widths
+      .filter((w) => w < sourceWidth)
+      .map(async (w) => {
+        const out = await sharp(buffer)
+          .resize(w, undefined, { fit: "inside", withoutEnlargement: true })
+          .webp({ quality })
+          .toBuffer({ resolveWithObject: true });
+        return { width: out.info.width, buffer: out.data };
+      })
+  );
+
+  return renditions;
+}
+
+/**
  * Generates a tiny blur placeholder (data URI) for use with next/image placeholder="blur".
  * Resizes to ~10px wide and encodes as base64 WebP.
  */

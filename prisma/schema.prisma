@@ -525,6 +525,11 @@ model MediaAsset {
   height      Int?
   alt         String    @default("")
   blurDataUrl String?   @map("blur_data_url")
+  // Widths (px) of responsive renditions generated at ingestion and stored next
+  // to the original at "{path-without-ext}_w{width}.webp". Empty = no renditions
+  // (pre-Tier-2 / non-HERO asset); the image loader then falls back to the
+  // original. See issue #211 (Tier 2).
+  renditionWidths Int[]  @default([]) @map("rendition_widths")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
