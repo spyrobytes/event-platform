@@ -377,7 +377,10 @@
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 800px) {
+/* 3-col -> 2-col at 1024px (not 800): the fixed-height back face can't fit the
+   400-char compact bio cap in a narrow 3-col card. See ScrapbookWeddingParty
+   and WeddingPartyEditor (BIO_MAX_COMPACT). */
+@media (max-width: 1024px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
 }
 

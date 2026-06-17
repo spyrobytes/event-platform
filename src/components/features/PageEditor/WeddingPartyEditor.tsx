@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { PAGE_CONFIG_LIMITS, type WeddingPartySection, type PartyMember, type PartySide, type WeddingPartyDisplayStyle } from "@/schemas/event-page";
+import { PAGE_CONFIG_LIMITS, PARTY_BIO_CINEMATIC_MAX, PARTY_BIO_COMPACT_MAX, type WeddingPartySection, type PartyMember, type PartySide, type WeddingPartyDisplayStyle } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -32,12 +32,15 @@ type WeddingPartyEditorProps = {
   defaultStyle?: WeddingPartyDisplayStyle;
 };
 
-// Per-display-style bio caps. The elastic Cinematic layout grows with the bio;
-// the flip-card styles (Scrapbook/Gilded/Couture) are height-limited, so they
-// keep the original compact cap. partyMemberSchema.bio .max() in
-// src/schemas/event-page.ts is the absolute ceiling (= the Cinematic cap).
-const BIO_MAX_CINEMATIC = 600;
-const BIO_MAX_COMPACT = 300;
+// Per-display-style bio caps (defined + enforced in src/schemas/event-page.ts).
+// The elastic Cinematic layout grows with the bio; the flip-card styles
+// (Scrapbook/Gilded/Couture) have a fixed-height back face (derived from the 4:5
+// photo), so a bio that overflows it is clipped. The compact cap is the measured
+// no-clip ceiling for the narrowest 3-col card, which is why those renderers move
+// the 3-col -> 2-col breakpoint to 1024px (see their .module.css): at the
+// narrowest 3-col width (~1025px) all three fit it with ~90+ chars of margin.
+const BIO_MAX_CINEMATIC = PARTY_BIO_CINEMATIC_MAX;
+const BIO_MAX_COMPACT = PARTY_BIO_COMPACT_MAX;
 
 /**
  * Editor for Wedding Party section
@@ -101,7 +104,7 @@ export function WeddingPartyEditor({
   const activeStyle =
     data.displayStyle ?? defaultStyle ?? styleOptions?.[0]?.value;
   // Cinematic grows with the bio (600 cap); the flip-card styles are
-  // height-limited, so they keep the compact 300 cap.
+  // height-limited, so they keep the compact 400 cap.
   const bioMax =
     activeStyle === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
   // Surface the "use Cinematic for long bios" nudge only when the template

@@ -8,6 +8,9 @@ import {
   heroSchema,
   storySectionDataSchema,
   partyMemberSchema,
+  weddingPartySectionDataSchema,
+  PARTY_BIO_CINEMATIC_MAX,
+  PARTY_BIO_COMPACT_MAX,
   travelStaySectionDataSchema,
   eventPageConfigV1Schema,
 } from "@/schemas/event-page";
@@ -375,6 +378,72 @@ describe("partyMemberSchema - side field", () => {
       side: "neither",
     };
     expect(partyMemberSchema.safeParse(invalid).success).toBe(false);
+  });
+});
+
+// =============================================================================
+// WEDDING PARTY SECTION — per-display-style bio cap (server-side refine)
+// =============================================================================
+
+describe("weddingPartySectionDataSchema - per-style bio cap", () => {
+  const member = (bioLen: number) => ({
+    name: "Jane Doe",
+    role: "Bridesmaid",
+    bio: "x".repeat(bioLen),
+  });
+  const section = (displayStyle: string | undefined, bioLen: number) => ({
+    heading: "The Wedding Party",
+    members: [member(bioLen)],
+    ...(displayStyle ? { displayStyle } : {}),
+  });
+
+  it("allows a long bio (up to the ceiling) on explicit Cinematic", () => {
+    const result = weddingPartySectionDataSchema.safeParse(
+      section("cinematic", PARTY_BIO_CINEMATIC_MAX),
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a bio over the ceiling even on Cinematic", () => {
+    const result = weddingPartySectionDataSchema.safeParse(
+      section("cinematic", PARTY_BIO_CINEMATIC_MAX + 1),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it("allows the compact cap on the flip-card styles", () => {
+    for (const style of ["scrapbook", "gilded", "couture"]) {
+      const result = weddingPartySectionDataSchema.safeParse(
+        section(style, PARTY_BIO_COMPACT_MAX),
+      );
+      expect(result.success, `${style} @ compact cap`).toBe(true);
+    }
+  });
+
+  it("rejects a bio over the compact cap on the flip-card styles", () => {
+    for (const style of ["scrapbook", "gilded", "couture"]) {
+      const result = weddingPartySectionDataSchema.safeParse(
+        section(style, PARTY_BIO_COMPACT_MAX + 1),
+      );
+      expect(result.success, `${style} over compact cap`).toBe(false);
+    }
+  });
+
+  it("treats an unset displayStyle as compact-capped (editor pins long bios to Cinematic first)", () => {
+    expect(
+      weddingPartySectionDataSchema.safeParse(section(undefined, PARTY_BIO_COMPACT_MAX)).success,
+    ).toBe(true);
+    expect(
+      weddingPartySectionDataSchema.safeParse(section(undefined, PARTY_BIO_COMPACT_MAX + 1)).success,
+    ).toBe(false);
+  });
+
+  it("points the issue at the offending member's bio", () => {
+    const result = weddingPartySectionDataSchema.safeParse(section("scrapbook", PARTY_BIO_COMPACT_MAX + 50));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].path).toEqual(["members", 0, "bio"]);
+    }
   });
 });
 
