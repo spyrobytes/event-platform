@@ -11,6 +11,7 @@ import {
 } from "../../shared/CouplePhotoFrame/frame-options";
 import { WEDDING_V2_COUPLE_PHOTO_FRAME_OPTIONS } from "../couple-photo-frame-options";
 import { cn, resolveRsvpDeadlineDisplay } from "@/lib/utils";
+import { buildRenditionSrcSet } from "@/lib/images/rendition";
 import styles from "./CinematicHero.module.css";
 
 type ScheduleCard = { day: string; info: string };
@@ -139,6 +140,12 @@ export function CinematicHero({
         >
           <img
             src={heroAsset.publicUrl}
+            srcSet={buildRenditionSrcSet(
+              heroAsset.publicUrl,
+              heroAsset.renditionWidths,
+              heroAsset.width
+            )}
+            sizes="100vw"
             alt=""
             loading="eager"
           />
@@ -166,6 +173,12 @@ export function CinematicHero({
         <CouplePhotoFrame frame="cutout" className={styles.photoCutout}>
           <img
             src={couplePhotoAsset!.publicUrl!}
+            srcSet={buildRenditionSrcSet(
+              couplePhotoAsset!.publicUrl!,
+              couplePhotoAsset!.renditionWidths,
+              couplePhotoAsset!.width
+            )}
+            sizes="(max-width: 640px) 42vw, (max-width: 1407px) 32vw, 450px"
             alt={coupleNames || ""}
             loading="eager"
           />
@@ -186,6 +199,12 @@ export function CinematicHero({
             >
               <img
                 src={couplePhotoAsset!.publicUrl!}
+                srcSet={buildRenditionSrcSet(
+                  couplePhotoAsset!.publicUrl!,
+                  couplePhotoAsset!.renditionWidths,
+                  couplePhotoAsset!.width
+                )}
+                sizes="(max-width: 640px) 110px, 160px"
                 alt={coupleNames || ""}
                 loading="eager"
               />
