@@ -66,3 +66,30 @@ export function resolveRenditionUrl(src: string, requestedWidth: number): string
   const rung = widths.find((w) => w >= requestedWidth);
   return rung === undefined ? base : insertRenditionWidth(base, rung);
 }
+
+/**
+ * Builds a real `srcSet` of stored rendition rungs for a RAW `<img>` that can't
+ * go through next/image + the loader — e.g. the V2 cinematic hero, whose
+ * cover/Ken Burns/focal/cutout CSS must stay exactly as hand-tuned. Each entry
+ * points at a stored `{base}_w{w}.webp` sibling (passthrough — never the
+ * transform endpoint), with the original appended at its intrinsic width as the
+ * top rung so large / high-DPR viewports still get full quality (renditions cap
+ * below the original). Returns `undefined` when there are no renditions, so the
+ * caller omits the attribute and the `<img>` serves `src` unchanged (matching
+ * EventImage's passthrough). Pair with an accurate `sizes` to avoid over-fetch.
+ */
+export function buildRenditionSrcSet(
+  baseUrl: string,
+  widths: readonly number[],
+  originalWidth?: number | null
+): string | undefined {
+  if (widths.length === 0) return undefined;
+  const sorted = [...widths].sort((a, b) => a - b);
+  const entries = sorted.map((w) => `${insertRenditionWidth(baseUrl, w)} ${w}w`);
+  // Append the stored original at its width as the top rung (renditions only
+  // exist for widths strictly below the source, so it's always the largest).
+  if (originalWidth && originalWidth > sorted[sorted.length - 1]) {
+    entries.push(`${baseUrl} ${originalWidth}w`);
+  }
+  return entries.join(", ");
+}

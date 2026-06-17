@@ -4,6 +4,7 @@ import {
   insertRenditionWidth,
   withRenditionWidths,
   resolveRenditionUrl,
+  buildRenditionSrcSet,
 } from "@/lib/images/rendition";
 
 const ORIGIN = "https://x.supabase.co/storage/v1/object/public/event-assets/e/1/123.webp";
@@ -85,5 +86,47 @@ describe("resolveRenditionUrl", () => {
     for (const w of [16, 640, 3840]) {
       expect(resolveRenditionUrl(decorated, w)).not.toContain("/render/image/");
     }
+  });
+});
+
+describe("buildRenditionSrcSet", () => {
+  it("returns undefined when there are no renditions (caller omits srcSet → passthrough)", () => {
+    expect(buildRenditionSrcSet(ORIGIN, [], 1920)).toBeUndefined();
+  });
+
+  it("builds a w-descriptor set of stored rungs plus the original at its width", () => {
+    expect(buildRenditionSrcSet(ORIGIN, [384, 640, 828, 1200], 1920)).toBe(
+      [
+        `${insertRenditionWidth(ORIGIN, 384)} 384w`,
+        `${insertRenditionWidth(ORIGIN, 640)} 640w`,
+        `${insertRenditionWidth(ORIGIN, 828)} 828w`,
+        `${insertRenditionWidth(ORIGIN, 1200)} 1200w`,
+        `${ORIGIN} 1920w`,
+      ].join(", ")
+    );
+  });
+
+  it("omits the original rung when its width is unknown", () => {
+    expect(buildRenditionSrcSet(ORIGIN, [384, 640], null)).toBe(
+      `${insertRenditionWidth(ORIGIN, 384)} 384w, ${insertRenditionWidth(ORIGIN, 640)} 640w`
+    );
+  });
+
+  it("does not append the original when it is not wider than the top rung", () => {
+    expect(buildRenditionSrcSet(ORIGIN, [384, 640], 640)).toBe(
+      `${insertRenditionWidth(ORIGIN, 384)} 384w, ${insertRenditionWidth(ORIGIN, 640)} 640w`
+    );
+  });
+
+  it("sorts unordered widths before building the set", () => {
+    expect(buildRenditionSrcSet(ORIGIN, [640, 384], 1000)).toBe(
+      `${insertRenditionWidth(ORIGIN, 384)} 384w, ${insertRenditionWidth(ORIGIN, 640)} 640w, ${ORIGIN} 1000w`
+    );
+  });
+
+  it("never emits the /render/image/ transform endpoint", () => {
+    expect(buildRenditionSrcSet(ORIGIN, [384, 640, 1200], 1920)).not.toContain(
+      "/render/image/"
+    );
   });
 });
