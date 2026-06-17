@@ -24,7 +24,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-muted/30">
       <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-4">
+        <div className="grid gap-8 text-center md:grid-cols-4 md:text-left">
           <div>
             <Link href="/" className="inline-block">
               <Logo variant="full" />
