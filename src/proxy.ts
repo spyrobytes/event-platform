@@ -43,22 +43,19 @@ export function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/api/auth/")) {
     rateLimitConfig = RATE_LIMITS.auth;
     rateLimitKey = "auth";
-  } else if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
-    rateLimitConfig = RATE_LIMITS.login;
-    rateLimitKey = "login";
   } else if (pathname.startsWith("/e/") && request.nextUrl.searchParams.has("tk")) {
     // Rate limit token validation on event pages to prevent enumeration
     rateLimitConfig = RATE_LIMITS.tokenValidation;
     rateLimitKey = "token";
   }
 
-  // Only rate limit API routes, auth pages, and token-bearing event pages
-  if (
-    !pathname.startsWith("/api") &&
-    !pathname.startsWith("/login") &&
-    !pathname.startsWith("/signup") &&
-    rateLimitKey !== "token"
-  ) {
+  // Only rate limit API routes and token-bearing event pages. The /login and
+  // /signup PAGES are intentionally NOT limited: auth is client-side Firebase
+  // (no server POST here), so a per-IP GET limit only throttled legitimate page
+  // loads + Next <Link> prefetches (PublicNav prefetches both site-wide) and
+  // protected nothing — Firebase enforces its own brute-force throttle and the
+  // server auth surface (/api/auth/*) keeps its own bucket.
+  if (!pathname.startsWith("/api") && rateLimitKey !== "token") {
     return NextResponse.next();
   }
 
