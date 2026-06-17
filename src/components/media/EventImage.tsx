@@ -1,5 +1,4 @@
 import Image, { type ImageProps } from "next/image";
-import supabaseImageLoader from "@/lib/images/supabase-loader";
 import { withRenditionWidths } from "@/lib/images/rendition";
 
 /**
@@ -45,8 +44,11 @@ export function EventImage({
       : src;
 
   return (
+    // No `loader` prop: next.config's `images.loaderFile` wires
+    // supabaseImageLoader globally. Passing it here would serialize a function
+    // across the server/client boundary and crash RSC render when EventImage is
+    // used in a Server Component (e.g. the /events featured grid).
     <Image
-      loader={supabaseImageLoader}
       src={decoratedSrc}
       {...(blurDataURL
         ? { placeholder: "blur" as const, blurDataURL }
