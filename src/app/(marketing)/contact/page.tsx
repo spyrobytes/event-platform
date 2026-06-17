@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Contact",
   description: "Get in touch with the EventFXr team.",
+  // Thin placeholder — keep out of search until real content lands.
+  robots: { index: false, follow: true },
 };
 
 export default function ContactPage() {

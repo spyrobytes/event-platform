@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "EventFXr terms of service.",
+  // Under review — keep out of search until the real terms are published.
+  robots: { index: false, follow: true },
 };
 
 export default function TermsPage() {

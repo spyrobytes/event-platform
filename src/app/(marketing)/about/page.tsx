@@ -5,6 +5,8 @@ export const metadata: Metadata = {
   title: "About",
   description:
     "About EventFXr — create, discover, and manage events with invitations, RSVPs, and a beautiful public page for every event.",
+  // Thin placeholder — keep out of search until real content lands.
+  robots: { index: false, follow: true },
 };
 
 export default function AboutPage() {
