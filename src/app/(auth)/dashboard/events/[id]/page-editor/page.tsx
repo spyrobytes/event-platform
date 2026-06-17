@@ -84,7 +84,17 @@ import type {
   ChromeConfig,
   SocialLink,
   Prelude,
+  WeddingPartyDisplayStyle,
 } from "@/schemas/event-page";
+
+// V2 exposes its own per-section party style toggle (Cinematic ↔ Scrapbook),
+// independent of the V3 templates' `weddingPartyStyleOptions`. Cinematic restores
+// V2's original elastic arch-card party (grows with the bio); Scrapbook is the
+// height-limited flip card.
+const V2_WEDDING_PARTY_STYLE_OPTIONS: { value: WeddingPartyDisplayStyle; label: string }[] = [
+  { value: "cinematic", label: "Cinematic" },
+  { value: "scrapbook", label: "Scrapbook" },
+];
 
 const GENERIC_SECTIONS: Section["type"][] = [
   "details", "schedule", "faq", "gallery", "rsvp", "speakers", "sponsors", "map", "livestream",
@@ -2277,9 +2287,22 @@ export default function PageEditorPage() {
                 data={section.data}
                 assets={pageData?.assets || []}
                 onChange={(data) => updateSectionData(index, data)}
-                styleOptions={getV3Definition(templateId)?.weddingPartyStyleOptions?.map(
-                  (o) => ({ value: o.value, label: o.label }),
-                )}
+                styleOptions={
+                  templateId === "wedding_v2"
+                    ? V2_WEDDING_PARTY_STYLE_OPTIONS
+                    : getV3Definition(templateId)?.weddingPartyStyleOptions?.map(
+                        (o) => ({ value: o.value, label: o.label }),
+                      )
+                }
+                defaultStyle={
+                  templateId === "wedding_v2" && config
+                    ? (config.theme.displayStyle ??
+                        mapVariantToSelection(config.variantId).displayStyle) ===
+                      "scrapbook"
+                      ? "scrapbook"
+                      : "cinematic"
+                    : undefined
+                }
               />
             )}
             {section.type === "attire" && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,18 @@ type WeddingPartyEditorProps = {
    *  Cinematic vs Scrapbook). When present (>1), a style toggle is shown; the
    *  first option is the default. Omitted for templates with a fixed renderer. */
   styleOptions?: { value: WeddingPartyDisplayStyle; label: string }[];
+  /** The style the section renders when `data.displayStyle` is unset, so the
+   *  editor's active state + bio cap mirror the renderer (V2's default depends
+   *  on the page's Standard/Scrapbook display mode). */
+  defaultStyle?: WeddingPartyDisplayStyle;
 };
+
+// Per-display-style bio caps. The elastic Cinematic layout grows with the bio;
+// the flip-card styles (Scrapbook/Gilded/Couture) are height-limited, so they
+// keep the original compact cap. partyMemberSchema.bio .max() in
+// src/schemas/event-page.ts is the absolute ceiling (= the Cinematic cap).
+const BIO_MAX_CINEMATIC = 600;
+const BIO_MAX_COMPACT = 300;
 
 /**
  * Editor for Wedding Party section
@@ -38,6 +49,7 @@ export function WeddingPartyEditor({
   onChange,
   maxMembers = PAGE_CONFIG_LIMITS.maxPartyMembers,
   styleOptions,
+  defaultStyle,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   // Party member photos: portraits only. Couple photos live under the "couple"
@@ -86,7 +98,61 @@ export function WeddingPartyEditor({
     [data, members, onChange]
   );
 
-  const activeStyle = data.displayStyle ?? styleOptions?.[0]?.value;
+  const activeStyle =
+    data.displayStyle ?? defaultStyle ?? styleOptions?.[0]?.value;
+  // Cinematic grows with the bio (600 cap); the flip-card styles are
+  // height-limited, so they keep the compact 300 cap.
+  const bioMax =
+    activeStyle === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
+  // Surface the "use Cinematic for long bios" nudge only when the template
+  // actually offers a Cinematic option that isn't already selected.
+  const hasCinematicOption =
+    styleOptions?.some((o) => o.value === "cinematic") ?? false;
+  const showLongBioNudge = hasCinematicOption && activeStyle !== "cinematic";
+
+  // Switching to a height-limited (flip-card) style while a bio exceeds its
+  // compact cap would clip that bio on the published card. Disallow the switch
+  // and surface an inline error until the offending bios are trimmed, so the
+  // section can't be left in a state the chosen layout can't render.
+  const [pendingStyle, setPendingStyle] = useState<{
+    value: WeddingPartyDisplayStyle;
+    label: string;
+  } | null>(null);
+  const pendingOverCount = pendingStyle
+    ? members.filter((m) => (m.bio?.length ?? 0) > BIO_MAX_COMPACT).length
+    : 0;
+  const selectStyle = (opt: {
+    value: WeddingPartyDisplayStyle;
+    label: string;
+  }) => {
+    const cap =
+      opt.value === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
+    const over = members.filter((m) => (m.bio?.length ?? 0) > cap).length;
+    if (over > 0) {
+      setPendingStyle(opt);
+      return;
+    }
+    setPendingStyle(null);
+    onChange({ ...data, displayStyle: opt.value });
+  };
+
+  // Writing a bio past the compact cap commits the party to Cinematic (the only
+  // layout that can show it) so a later page-level Display Style flip can't
+  // strand it on a flip card. Only pins when the party is rendering Cinematic
+  // by default (no explicit style chosen yet).
+  const handleBioChange = (index: number, value: string) => {
+    const newMembers = [...members];
+    newMembers[index] = { ...newMembers[index], bio: value };
+    const next: WeddingPartySection["data"] = { ...data, members: newMembers };
+    if (
+      value.length > BIO_MAX_COMPACT &&
+      !data.displayStyle &&
+      activeStyle === "cinematic"
+    ) {
+      next.displayStyle = "cinematic";
+    }
+    onChange(next);
+  };
 
   return (
     <div className="space-y-4">
@@ -106,7 +172,7 @@ export function WeddingPartyEditor({
                   type="button"
                   role="radio"
                   aria-checked={isActive}
-                  onClick={() => onChange({ ...data, displayStyle: opt.value })}
+                  onClick={() => selectStyle(opt)}
                   className={cn(
                     "flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -123,6 +189,24 @@ export function WeddingPartyEditor({
           <p className="text-xs text-muted-foreground">
             How the wedding party section is displayed on your page.
           </p>
+          {showLongBioNudge && (
+            <p className="rounded-md border-l-2 border-accent/60 bg-accent/5 px-3 py-2 text-xs text-muted-foreground">
+              Tip: long member bios display in full on the Cinematic layout; the
+              Scrapbook card keeps them short.
+            </p>
+          )}
+          {pendingStyle && pendingOverCount > 0 && (
+            <p
+              role="alert"
+              className="rounded-md border-l-2 border-destructive bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              Can&rsquo;t switch to {pendingStyle.label}: {pendingOverCount}{" "}
+              {pendingOverCount === 1 ? "bio exceeds" : "bios exceed"} the{" "}
+              {BIO_MAX_COMPACT}-character limit for that layout. Trim{" "}
+              {pendingOverCount === 1 ? "it" : "them"} (flagged below), then
+              select {pendingStyle.label} again.
+            </p>
+          )}
         </div>
       )}
 
@@ -262,13 +346,26 @@ export function WeddingPartyEditor({
                     <Textarea
                       id={`member-bio-${index}`}
                       value={member.bio || ""}
-                      onChange={(e) =>
-                        updateMember(index, { bio: e.target.value })
-                      }
+                      onChange={(e) => handleBioChange(index, e.target.value)}
                       placeholder="A short bio about this person and your relationship..."
                       rows={2}
-                      maxLength={300}
+                      maxLength={bioMax}
                     />
+                    <p
+                      className={cn(
+                        "text-right text-xs tabular-nums",
+                        pendingStyle && (member.bio?.length ?? 0) > BIO_MAX_COMPACT
+                          ? "text-destructive"
+                          : (member.bio?.length ?? 0) > bioMax
+                            ? "text-amber-600"
+                            : "text-muted-foreground",
+                      )}
+                    >
+                      {member.bio?.length ?? 0}/
+                      {pendingStyle && (member.bio?.length ?? 0) > BIO_MAX_COMPACT
+                        ? BIO_MAX_COMPACT
+                        : bioMax}
+                    </p>
                   </div>
 
                   {/* Photo Selection */}
