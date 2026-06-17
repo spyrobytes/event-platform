@@ -136,6 +136,24 @@ export function WeddingPartyEditor({
     onChange({ ...data, displayStyle: opt.value });
   };
 
+  // Writing a bio past the compact cap commits the party to Cinematic (the only
+  // layout that can show it) so a later page-level Display Style flip can't
+  // strand it on a flip card. Only pins when the party is rendering Cinematic
+  // by default (no explicit style chosen yet).
+  const handleBioChange = (index: number, value: string) => {
+    const newMembers = [...members];
+    newMembers[index] = { ...newMembers[index], bio: value };
+    const next: WeddingPartySection["data"] = { ...data, members: newMembers };
+    if (
+      value.length > BIO_MAX_COMPACT &&
+      !data.displayStyle &&
+      activeStyle === "cinematic"
+    ) {
+      next.displayStyle = "cinematic";
+    }
+    onChange(next);
+  };
+
   return (
     <div className="space-y-4">
       {styleOptions && styleOptions.length > 1 && (
@@ -328,9 +346,7 @@ export function WeddingPartyEditor({
                     <Textarea
                       id={`member-bio-${index}`}
                       value={member.bio || ""}
-                      onChange={(e) =>
-                        updateMember(index, { bio: e.target.value })
-                      }
+                      onChange={(e) => handleBioChange(index, e.target.value)}
                       placeholder="A short bio about this person and your relationship..."
                       rows={2}
                       maxLength={bioMax}
