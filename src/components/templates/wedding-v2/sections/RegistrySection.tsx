@@ -461,6 +461,9 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                       </p>
                     )}
 
+                    {/* The organizer's custom contribution message (the `note`
+                        field) overrides the default line while the fund is open;
+                        a closed fund always shows the "no longer accepting" copy. */}
                     <p style={{
                       color: "var(--stone, #a69e93)",
                       fontSize: ".8rem",
@@ -469,20 +472,12 @@ export function RegistrySection({ data, assets, eventId, eventSlug, claims, canC
                     }}>
                       {isClaimed
                         ? "This fund is no longer accepting contributions."
-                        : hasLink
-                          ? "Any amount is appreciated. Tap Contribute to send a gift."
-                          : "Any amount is appreciated. Reach out to the couple to contribute."}
+                        : item.note
+                          ? item.note
+                          : hasLink
+                            ? "Any amount is appreciated. Tap Contribute to send a gift."
+                            : "Any amount is appreciated. Reach out to the couple to contribute."}
                     </p>
-
-                    {item.note && (
-                      <p style={{
-                        fontSize: ".82rem",
-                        color: "var(--stone, #a69e93)",
-                        fontStyle: "italic",
-                      }}>
-                        {item.note}
-                      </p>
-                    )}
                   </div>
 
                   {hasLink && !isClaimed && (

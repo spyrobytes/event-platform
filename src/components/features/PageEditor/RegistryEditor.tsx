@@ -140,6 +140,12 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
               : "https://registry-url.com";
           const amountPlaceholder =
             itemType === "fund" ? "Goal: $5,000 (optional)" : "$250 (optional)";
+          // For funds the `note` field doubles as the contribution message and
+          // overrides the default "Any amount is appreciated…" line on the page.
+          const notePlaceholder =
+            itemType === "fund"
+              ? "e.g., Send an Interac e-transfer to maria@email.com (answer: love) — overrides the default text"
+              : "Note, e.g., Ships internationally (optional)";
           const invalidUrl =
             !!item.url &&
             (() => {
@@ -250,12 +256,19 @@ export function RegistryEditor({ data, assets, onChange }: RegistryEditorProps) 
                     placeholder="Brief description (optional)"
                     maxLength={200}
                   />
-                  <Input
-                    value={item.note || ""}
-                    onChange={(e) => updateItem(index, { note: e.target.value || undefined })}
-                    placeholder="Note, e.g., Ships internationally (optional)"
-                    maxLength={200}
-                  />
+                  <div className="space-y-1">
+                    {itemType === "fund" && (
+                      <Label className="text-xs text-muted-foreground">
+                        Contribution message (optional)
+                      </Label>
+                    )}
+                    <Input
+                      value={item.note || ""}
+                      onChange={(e) => updateItem(index, { note: e.target.value || undefined })}
+                      placeholder={notePlaceholder}
+                      maxLength={200}
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <div className="flex-1 space-y-1">
                       <Label className="text-xs text-muted-foreground">
