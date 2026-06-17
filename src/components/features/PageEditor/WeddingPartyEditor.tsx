@@ -26,7 +26,18 @@ type WeddingPartyEditorProps = {
    *  Cinematic vs Scrapbook). When present (>1), a style toggle is shown; the
    *  first option is the default. Omitted for templates with a fixed renderer. */
   styleOptions?: { value: WeddingPartyDisplayStyle; label: string }[];
+  /** The style the section renders when `data.displayStyle` is unset, so the
+   *  editor's active state + bio cap mirror the renderer (V2's default depends
+   *  on the page's Standard/Scrapbook display mode). */
+  defaultStyle?: WeddingPartyDisplayStyle;
 };
+
+// Per-display-style bio caps. The elastic Cinematic layout grows with the bio;
+// the flip-card styles (Scrapbook/Gilded/Couture) are height-limited, so they
+// keep the original compact cap. partyMemberSchema.bio .max() in
+// src/schemas/event-page.ts is the absolute ceiling (= the Cinematic cap).
+const BIO_MAX_CINEMATIC = 600;
+const BIO_MAX_COMPACT = 300;
 
 /**
  * Editor for Wedding Party section
@@ -38,6 +49,7 @@ export function WeddingPartyEditor({
   onChange,
   maxMembers = PAGE_CONFIG_LIMITS.maxPartyMembers,
   styleOptions,
+  defaultStyle,
 }: WeddingPartyEditorProps) {
   const members = data.members || [];
   // Party member photos: portraits only. Couple photos live under the "couple"
@@ -86,7 +98,17 @@ export function WeddingPartyEditor({
     [data, members, onChange]
   );
 
-  const activeStyle = data.displayStyle ?? styleOptions?.[0]?.value;
+  const activeStyle =
+    data.displayStyle ?? defaultStyle ?? styleOptions?.[0]?.value;
+  // Cinematic grows with the bio (600 cap); the flip-card styles are
+  // height-limited, so they keep the compact 300 cap.
+  const bioMax =
+    activeStyle === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
+  // Surface the "use Cinematic for long bios" nudge only when the template
+  // actually offers a Cinematic option that isn't already selected.
+  const hasCinematicOption =
+    styleOptions?.some((o) => o.value === "cinematic") ?? false;
+  const showLongBioNudge = hasCinematicOption && activeStyle !== "cinematic";
 
   return (
     <div className="space-y-4">
@@ -123,6 +145,12 @@ export function WeddingPartyEditor({
           <p className="text-xs text-muted-foreground">
             How the wedding party section is displayed on your page.
           </p>
+          {showLongBioNudge && (
+            <p className="rounded-md border-l-2 border-accent/60 bg-accent/5 px-3 py-2 text-xs text-muted-foreground">
+              Tip: long member bios display in full on the Cinematic layout; the
+              Scrapbook card keeps them short.
+            </p>
+          )}
         </div>
       )}
 
@@ -267,8 +295,18 @@ export function WeddingPartyEditor({
                       }
                       placeholder="A short bio about this person and your relationship..."
                       rows={2}
-                      maxLength={300}
+                      maxLength={bioMax}
                     />
+                    <p
+                      className={cn(
+                        "text-right text-xs tabular-nums",
+                        (member.bio?.length ?? 0) > bioMax
+                          ? "text-amber-600"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {member.bio?.length ?? 0}/{bioMax}
+                    </p>
                   </div>
 
                   {/* Photo Selection */}

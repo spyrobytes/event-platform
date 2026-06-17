@@ -474,7 +474,13 @@ export function WeddingTemplateV2({
       }
 
       case "weddingParty": {
-        const PartyComp = isScrapbook ? ScrapbookWeddingParty : WeddingPartyV2;
+        // The party renderer is selectable per-section via `data.displayStyle`
+        // (V2 offers Cinematic ↔ Scrapbook), independent of the page-wide
+        // displayStyle. Unset falls back to the page style for backward compat;
+        // gilded/couture (Grand-Luxe-only) resolve to cinematic here.
+        const partyStyle = section.data.displayStyle;
+        const partyIsScrapbook = partyStyle ? partyStyle === "scrapbook" : isScrapbook;
+        const PartyComp = partyIsScrapbook ? ScrapbookWeddingParty : WeddingPartyV2;
         // `themed` opts the party into the `--lux-*` section theme. V2 Cinematic
         // wants it; the same renderers stay PLAIN under Grand Luxe (which mounts
         // them without this prop) — see the party CSS header notes.

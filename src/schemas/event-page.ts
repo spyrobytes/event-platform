@@ -523,7 +523,7 @@ export const partySideSchema = z.enum(["bride", "groom", "other"]);
 export const partyMemberSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
   role: z.string().min(1, "Role is required").max(50, "Role must be 50 characters or less"),
-  bio: z.string().max(300, "Bio must be 300 characters or less").optional(),
+  bio: z.string().max(600, "Bio must be 600 characters or less").optional(),
   imageAssetId: z.string().cuid().optional(),
   // V2 explicit side assignment
   side: partySideSchema.optional(),
