@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,6 +110,32 @@ export function WeddingPartyEditor({
     styleOptions?.some((o) => o.value === "cinematic") ?? false;
   const showLongBioNudge = hasCinematicOption && activeStyle !== "cinematic";
 
+  // Switching to a height-limited (flip-card) style while a bio exceeds its
+  // compact cap would clip that bio on the published card. Disallow the switch
+  // and surface an inline error until the offending bios are trimmed, so the
+  // section can't be left in a state the chosen layout can't render.
+  const [pendingStyle, setPendingStyle] = useState<{
+    value: WeddingPartyDisplayStyle;
+    label: string;
+  } | null>(null);
+  const pendingOverCount = pendingStyle
+    ? members.filter((m) => (m.bio?.length ?? 0) > BIO_MAX_COMPACT).length
+    : 0;
+  const selectStyle = (opt: {
+    value: WeddingPartyDisplayStyle;
+    label: string;
+  }) => {
+    const cap =
+      opt.value === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
+    const over = members.filter((m) => (m.bio?.length ?? 0) > cap).length;
+    if (over > 0) {
+      setPendingStyle(opt);
+      return;
+    }
+    setPendingStyle(null);
+    onChange({ ...data, displayStyle: opt.value });
+  };
+
   return (
     <div className="space-y-4">
       {styleOptions && styleOptions.length > 1 && (
@@ -128,7 +154,7 @@ export function WeddingPartyEditor({
                   type="button"
                   role="radio"
                   aria-checked={isActive}
-                  onClick={() => onChange({ ...data, displayStyle: opt.value })}
+                  onClick={() => selectStyle(opt)}
                   className={cn(
                     "flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -149,6 +175,18 @@ export function WeddingPartyEditor({
             <p className="rounded-md border-l-2 border-accent/60 bg-accent/5 px-3 py-2 text-xs text-muted-foreground">
               Tip: long member bios display in full on the Cinematic layout; the
               Scrapbook card keeps them short.
+            </p>
+          )}
+          {pendingStyle && pendingOverCount > 0 && (
+            <p
+              role="alert"
+              className="rounded-md border-l-2 border-destructive bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              Can&rsquo;t switch to {pendingStyle.label}: {pendingOverCount}{" "}
+              {pendingOverCount === 1 ? "bio exceeds" : "bios exceed"} the{" "}
+              {BIO_MAX_COMPACT}-character limit for that layout. Trim{" "}
+              {pendingOverCount === 1 ? "it" : "them"} (flagged below), then
+              select {pendingStyle.label} again.
             </p>
           )}
         </div>
@@ -300,12 +338,17 @@ export function WeddingPartyEditor({
                     <p
                       className={cn(
                         "text-right text-xs tabular-nums",
-                        (member.bio?.length ?? 0) > bioMax
-                          ? "text-amber-600"
-                          : "text-muted-foreground",
+                        pendingStyle && (member.bio?.length ?? 0) > BIO_MAX_COMPACT
+                          ? "text-destructive"
+                          : (member.bio?.length ?? 0) > bioMax
+                            ? "text-amber-600"
+                            : "text-muted-foreground",
                       )}
                     >
-                      {member.bio?.length ?? 0}/{bioMax}
+                      {member.bio?.length ?? 0}/
+                      {pendingStyle && (member.bio?.length ?? 0) > BIO_MAX_COMPACT
+                        ? BIO_MAX_COMPACT
+                        : bioMax}
                     </p>
                   </div>
 
