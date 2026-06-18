@@ -304,6 +304,16 @@
   line-height: 1.7;
   margin-top: 4px;
   max-width: 32ch;
+  /* Safety net for the fixed-height back face (no scroll): a bio that overflows
+     it — e.g. a non-Latin paste, ~400 CJK chars ≈ 20+ lines vs ≈11 for Latin, or
+     a min-font-size a11y setting — would otherwise hard-clip mid-line. Clamp to
+     14 lines so it degrades to an ellipsis. A valid ≤400-char Latin bio is ≤11
+     lines (measured), so this never truncates normal content. Bio cap lives in
+     WeddingPartyEditor / event-page.ts (resolvePartyBioCap). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 14;
+  overflow: hidden;
 }
 
 /* Decorative accent line on back */
