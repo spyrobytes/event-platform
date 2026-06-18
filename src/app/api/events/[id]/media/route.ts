@@ -7,16 +7,18 @@ import {
   validateUploadedImage,
   optimizeImage,
   generateBlurDataUrl,
-  generateRenditions,
 } from "@/lib/media-validation";
 import {
   uploadFile,
   deleteFile,
   BUCKETS,
   getEventAssetPath,
-  getRenditionPath,
   ensureBucket,
 } from "@/lib/supabase-storage";
+import {
+  uploadRenditions,
+  renditionSiblingPaths,
+} from "@/lib/images/rendition-storage";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { MEDIA_TAGS, deriveKindFromTags, type MediaTag } from "@/lib/media-tags";
 import { stripAssetRefsFromConfig } from "@/lib/media-asset-refs";
@@ -196,47 +198,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // uploaded so the loader never references a missing rendition.
     after(async () => {
       try {
-        const renditions = await generateRenditions(
-          optimized.buffer,
-          RESPONSIVE_RENDITION_WIDTHS
-        );
-        const results = await Promise.all(
-          renditions.map(async ({ width, buffer: renditionBuffer }) => {
-            const result = await uploadFile(
-              BUCKETS.eventAssets,
-              getRenditionPath(storagePath, width),
-              renditionBuffer,
-              {
-                contentType: "image/webp",
-                cacheControl: "public, max-age=31536000",
-              }
-            );
-            if ("error" in result) {
-              console.error(`Rendition upload failed (w=${width}):`, result.error);
-              return null;
-            }
-            return width;
-          })
-        );
-        const renditionWidths = results
-          .filter((w): w is number => w !== null)
-          .sort((a, b) => a - b);
-        if (renditionWidths.length === 0) return;
+        const { uploadedWidths } = await uploadRenditions({
+          bucket: BUCKETS.eventAssets,
+          basePath: storagePath,
+          buffer: optimized.buffer,
+          widths: RESPONSIVE_RENDITION_WIDTHS,
+        });
+        if (uploadedWidths.length === 0) return;
 
         try {
           await db.mediaAsset.update({
             where: { id: asset.id },
-            data: { renditionWidths },
+            data: { renditionWidths: uploadedWidths },
           });
         } catch {
           // The asset was deleted while renditions were generating; remove the
           // renditions we just uploaded so they don't orphan in storage.
           await Promise.all(
-            renditionWidths.map((w) =>
-              deleteFile(
-                BUCKETS.eventAssets,
-                getRenditionPath(storagePath, w)
-              ).catch(() => {})
+            renditionSiblingPaths(storagePath, uploadedWidths).map((p) =>
+              deleteFile(BUCKETS.eventAssets, p).catch(() => {})
             )
           );
         }
@@ -466,12 +446,13 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     //    recorded widths and the current ladder so cleanup is robust to a ladder
     //    change since upload, or to the background rendition job not having
     //    recorded its widths yet (#211). Missing files no-op.
-    const renditionWidths = Array.from(
-      new Set([...asset.renditionWidths, ...RESPONSIVE_RENDITION_WIDTHS])
-    );
+    const renditionWidthSet = new Set([
+      ...asset.renditionWidths,
+      ...RESPONSIVE_RENDITION_WIDTHS,
+    ]);
     const pathsToDelete = [
       asset.path,
-      ...renditionWidths.map((w) => getRenditionPath(asset.path, w)),
+      ...renditionSiblingPaths(asset.path, renditionWidthSet),
     ];
     await Promise.all(
       pathsToDelete.map((p) =>
