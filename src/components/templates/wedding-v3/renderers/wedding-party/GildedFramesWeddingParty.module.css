@@ -310,12 +310,13 @@
   line-height: 1.7;
   margin: 0;
   max-width: 32ch;
-  /* Clamp to 14 lines so a bio that overflows the fixed-height back face (e.g. a
-     non-Latin paste) degrades to an ellipsis instead of a mid-line clip. A valid
-     ≤400-char Latin bio is ≤11 lines. See ScrapbookWeddingParty for the rationale. */
+  /* Clamp to 12 lines so a bio with far more lines than the cap anticipates (e.g.
+     a non-Latin paste) degrades to an ellipsis instead of a mid-line clip; 12 fits
+     the narrowest back face so the ellipsis stays visible. A valid ≤400-char Latin
+     bio is ≤11 lines. See ScrapbookWeddingParty for the rationale. */
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 14;
+  -webkit-line-clamp: 12;
   overflow: hidden;
 }
 
