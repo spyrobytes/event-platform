@@ -9,6 +9,7 @@ import {
   storySectionDataSchema,
   partyMemberSchema,
   weddingPartySectionDataSchema,
+  resolvePartyBioCap,
   PARTY_BIO_CINEMATIC_MAX,
   PARTY_BIO_COMPACT_MAX,
   travelStaySectionDataSchema,
@@ -429,13 +430,25 @@ describe("weddingPartySectionDataSchema - per-style bio cap", () => {
     }
   });
 
-  it("treats an unset displayStyle as compact-capped (editor pins long bios to Cinematic first)", () => {
+  it("treats an unset displayStyle as Cinematic-capable (it can render Cinematic via the page fallback)", () => {
+    // Unset is permissive at the schema layer — it can render Cinematic on a
+    // standard-mode page, so capping it short would false-reject valid content.
+    // The editor applies the precise per-page cap on input; the schema enforces
+    // only the absolute ceiling for unset.
     expect(
-      weddingPartySectionDataSchema.safeParse(section(undefined, PARTY_BIO_COMPACT_MAX)).success,
+      weddingPartySectionDataSchema.safeParse(section(undefined, PARTY_BIO_CINEMATIC_MAX)).success,
     ).toBe(true);
     expect(
-      weddingPartySectionDataSchema.safeParse(section(undefined, PARTY_BIO_COMPACT_MAX + 1)).success,
+      weddingPartySectionDataSchema.safeParse(section(undefined, PARTY_BIO_CINEMATIC_MAX + 1)).success,
     ).toBe(false);
+  });
+
+  it("resolvePartyBioCap maps flip styles to the compact cap and cinematic/unset to the ceiling", () => {
+    expect(resolvePartyBioCap("scrapbook")).toBe(PARTY_BIO_COMPACT_MAX);
+    expect(resolvePartyBioCap("gilded")).toBe(PARTY_BIO_COMPACT_MAX);
+    expect(resolvePartyBioCap("couture")).toBe(PARTY_BIO_COMPACT_MAX);
+    expect(resolvePartyBioCap("cinematic")).toBe(PARTY_BIO_CINEMATIC_MAX);
+    expect(resolvePartyBioCap(undefined)).toBe(PARTY_BIO_CINEMATIC_MAX);
   });
 
   it("points the issue at the offending member's bio", () => {
