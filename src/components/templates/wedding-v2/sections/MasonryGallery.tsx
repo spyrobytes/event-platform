@@ -27,6 +27,7 @@ type ResolvedItem = {
   blurDataUrl: string | null;
   width: number | null;
   height: number | null;
+  renditionWidths?: readonly number[] | null;
 };
 
 /** Grid span class cycling pattern for masonry mode */
@@ -75,6 +76,7 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
             blurDataUrl: asset?.blurDataUrl ?? null,
             width: asset.width,
             height: asset.height,
+            renditionWidths: asset.renditionWidths,
           };
         })
         .filter(Boolean) as ResolvedItem[],
@@ -244,7 +246,7 @@ function GalleryItem({
   showCaption,
   onOpen,
 }: {
-  item: { url: string; alt: string; caption?: string; title?: string; blurDataUrl?: string | null };
+  item: { url: string; alt: string; caption?: string; title?: string; blurDataUrl?: string | null; renditionWidths?: readonly number[] | null };
   index: number;
   spanClass?: string;
   showCaption: boolean;
@@ -294,6 +296,7 @@ function GalleryItem({
         sizes="(max-width: 700px) 100vw, 50vw"
         loading={index > 2 ? "lazy" : undefined}
         blurDataURL={item.blurDataUrl}
+        renditionWidths={item.renditionWidths}
       />
       {showCaption && captionText && (
         <div className={styles.overlay}>
@@ -438,6 +441,7 @@ function Lightbox({
           height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
           sizes="(max-width: 768px) 100vw, 80vw"
           blurDataURL={item.blurDataUrl}
+          renditionWidths={item.renditionWidths}
         />
         {captionText && (
           <div className={styles.lightboxCaption}>{captionText}</div>
@@ -600,6 +604,7 @@ function Slideshow({
               sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
               priority={i === 0}
               blurDataURL={img.blurDataUrl}
+              renditionWidths={img.renditionWidths}
             />
           </div>
         ))}
@@ -778,6 +783,7 @@ function Carousel({
                 sizes="(max-width: 700px) 75vw, 420px"
                 loading={i > 2 ? "lazy" : undefined}
                 blurDataURL={item.blurDataUrl}
+                renditionWidths={item.renditionWidths}
               />
               {showCaptions && captionText && (
                 <div className={styles.carouselCaption}>

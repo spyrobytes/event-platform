@@ -66,6 +66,7 @@ export function WeddingPartySection({
               fill
               sizes="128px"
               blurDataURL={asset.blurDataUrl}
+              renditionWidths={asset.renditionWidths}
               className="object-cover"
             />
           ) : (

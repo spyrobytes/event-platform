@@ -98,6 +98,7 @@ export function ChapterCards({
                         fill
                         sizes="80px"
                         blurDataURL={img.blurDataUrl}
+                        renditionWidths={img.renditionWidths}
                         style={{ objectFit: "cover", objectPosition: "center 25%" }}
                       />
                     </div>
@@ -167,6 +168,7 @@ export function ChapterCards({
                   fill
                   sizes="(max-width: 768px) 100vw, 580px"
                   blurDataURL={mainImage.blurDataUrl}
+                  renditionWidths={mainImage.renditionWidths}
                   style={{ objectFit: "cover", objectPosition: "center 25%" }}
                 />
               </div>

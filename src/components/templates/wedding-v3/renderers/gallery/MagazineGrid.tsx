@@ -31,7 +31,7 @@ export function MagazineGrid({
       .map((item) => {
         const asset = assets.find((a) => a.id === item.assetId);
         if (!asset?.publicUrl) return null;
-        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl };
+        return { ...item, url: asset.publicUrl, blurDataUrl: asset.blurDataUrl, renditionWidths: asset.renditionWidths };
       })
       .filter(Boolean) as Array<{
         assetId: string;
@@ -39,6 +39,7 @@ export function MagazineGrid({
         title?: string;
         url: string;
         blurDataUrl?: string | null;
+        renditionWidths?: readonly number[] | null;
       }>;
   }, [normalized.items, assets]);
 
@@ -118,6 +119,7 @@ export function MagazineGrid({
               sizes="(max-width: 768px) 100vw, 50vw"
               className={styles.featuredImg}
               blurDataURL={current?.blurDataUrl}
+              renditionWidths={current?.renditionWidths}
             />
           </div>
         </div>
@@ -140,6 +142,7 @@ export function MagazineGrid({
                 fill
                 sizes="(max-width: 768px) 33vw, 25vw"
                 blurDataURL={item.blurDataUrl}
+                renditionWidths={item.renditionWidths}
               />
             </button>
           ))}

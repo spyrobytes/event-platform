@@ -65,6 +65,7 @@ export function WeddingPartyV2({ data, assets, themed = false }: WeddingPartyV2P
                 sizes="(max-width: 500px) 100vw, (max-width: 800px) 50vw, 33vw"
                 loading="lazy"
                 blurDataURL={imageBlur}
+                renditionWidths={imageAsset?.renditionWidths}
                 className={styles.photo}
               />
             ) : (

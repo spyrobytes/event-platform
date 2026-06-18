@@ -61,6 +61,7 @@ export function StorySection({ data, assets, primaryColor }: StorySectionProps) 
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
                   blurDataURL={imageAsset?.blurDataUrl}
+                  renditionWidths={imageAsset?.renditionWidths}
                   className="object-cover"
                 />
               ) : (

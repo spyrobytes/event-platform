@@ -36,6 +36,7 @@ export function CinematicSlider({
           blurDataUrl: asset.blurDataUrl,
           width: asset.width,
           height: asset.height,
+          renditionWidths: asset.renditionWidths,
         };
       })
       .filter(Boolean) as ResolvedGalleryItem[];
@@ -232,6 +233,7 @@ export function CinematicSlider({
                 className={styles.slideImg}
                 draggable={false}
                 blurDataURL={item.blurDataUrl}
+                renditionWidths={item.renditionWidths}
               />
               {(item.caption || item.title) && (
                 <div className={styles.caption}>
@@ -309,6 +311,7 @@ export function CinematicSlider({
                 height={current.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
                 sizes="(max-width: 768px) 100vw, 80vw"
                 blurDataURL={current.blurDataUrl}
+                renditionWidths={current.renditionWidths}
                 className={styles.lbImage}
               />
               {current.caption && (
