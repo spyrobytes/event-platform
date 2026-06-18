@@ -126,8 +126,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // 6. Optimize image (convert to WebP, resize if needed). HERO covers are
-    // display-only, so cap them at HERO_DISPLAY_MAX_DIMENSION rather than the
-    // 4000px ceiling; galleries keep the default for lightbox zoom (issue #211).
+    // display-only, so cap them at HERO_DISPLAY_MAX_DIMENSION. Galleries keep the
+    // full 4000px ceiling: they feed a lightbox, and what saves bandwidth is the
+    // responsive ladder generated below (small rungs served to small viewports),
+    // NOT a smaller original — so we keep the original full-res, non-destructively
+    // (issue #211).
     const optimized = await optimizeImage(
       buffer,
       kind === "HERO"
@@ -167,7 +170,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     // 10. Create database record. renditionWidths starts empty (DB default);
-    // the background job below fills it in for HERO uploads.
+    // the background job below fills it in.
     const asset = await db.mediaAsset.create({
       data: {
         eventId,
@@ -186,63 +189,61 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
     });
 
-    // 10b. Generate responsive renditions AFTER the response is flushed (HERO
-    // only — Tier 2 / issue #211). They're non-fatal and not needed immediately
-    // (the loader falls back to the original until they land), so the uploader
-    // doesn't wait. Record the widths that actually uploaded so the loader never
-    // references a missing rendition.
-    if (kind === "HERO") {
-      after(async () => {
-        try {
-          const renditions = await generateRenditions(
-            optimized.buffer,
-            RESPONSIVE_RENDITION_WIDTHS
-          );
-          const results = await Promise.all(
-            renditions.map(async ({ width, buffer: renditionBuffer }) => {
-              const result = await uploadFile(
-                BUCKETS.eventAssets,
-                getRenditionPath(storagePath, width),
-                renditionBuffer,
-                {
-                  contentType: "image/webp",
-                  cacheControl: "public, max-age=31536000",
-                }
-              );
-              if ("error" in result) {
-                console.error(`Rendition upload failed (w=${width}):`, result.error);
-                return null;
+    // 10b. Generate responsive renditions AFTER the response is flushed (Tier 2
+    // / issue #211 — for both HERO covers and galleries). They're non-fatal and
+    // not needed immediately (the loader falls back to the original until they
+    // land), so the uploader doesn't wait. Record the widths that actually
+    // uploaded so the loader never references a missing rendition.
+    after(async () => {
+      try {
+        const renditions = await generateRenditions(
+          optimized.buffer,
+          RESPONSIVE_RENDITION_WIDTHS
+        );
+        const results = await Promise.all(
+          renditions.map(async ({ width, buffer: renditionBuffer }) => {
+            const result = await uploadFile(
+              BUCKETS.eventAssets,
+              getRenditionPath(storagePath, width),
+              renditionBuffer,
+              {
+                contentType: "image/webp",
+                cacheControl: "public, max-age=31536000",
               }
-              return width;
-            })
-          );
-          const renditionWidths = results
-            .filter((w): w is number => w !== null)
-            .sort((a, b) => a - b);
-          if (renditionWidths.length === 0) return;
-
-          try {
-            await db.mediaAsset.update({
-              where: { id: asset.id },
-              data: { renditionWidths },
-            });
-          } catch {
-            // The asset was deleted while renditions were generating; remove the
-            // renditions we just uploaded so they don't orphan in storage.
-            await Promise.all(
-              renditionWidths.map((w) =>
-                deleteFile(
-                  BUCKETS.eventAssets,
-                  getRenditionPath(storagePath, w)
-                ).catch(() => {})
-              )
             );
-          }
-        } catch (err) {
-          console.error("Rendition generation failed:", err);
+            if ("error" in result) {
+              console.error(`Rendition upload failed (w=${width}):`, result.error);
+              return null;
+            }
+            return width;
+          })
+        );
+        const renditionWidths = results
+          .filter((w): w is number => w !== null)
+          .sort((a, b) => a - b);
+        if (renditionWidths.length === 0) return;
+
+        try {
+          await db.mediaAsset.update({
+            where: { id: asset.id },
+            data: { renditionWidths },
+          });
+        } catch {
+          // The asset was deleted while renditions were generating; remove the
+          // renditions we just uploaded so they don't orphan in storage.
+          await Promise.all(
+            renditionWidths.map((w) =>
+              deleteFile(
+                BUCKETS.eventAssets,
+                getRenditionPath(storagePath, w)
+              ).catch(() => {})
+            )
+          );
         }
-      });
-    }
+      } catch (err) {
+        console.error("Rendition generation failed:", err);
+      }
+    });
 
     // Revalidate public page if event is published
     const event = await db.event.findUnique({
@@ -459,17 +460,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     // 6. Delete from storage (best effort — outside the transaction because
     //    it's a separate system and failure shouldn't roll back the DB work).
-    //    For HERO assets we also remove the responsive rendition siblings. We
-    //    try the union of the recorded widths and the current ladder so cleanup
-    //    is robust to a ladder change since upload, or to the background
-    //    rendition job not having recorded its widths yet (#211). Missing files
-    //    no-op.
-    const renditionWidths =
-      asset.kind === "HERO"
-        ? Array.from(
-            new Set([...asset.renditionWidths, ...RESPONSIVE_RENDITION_WIDTHS])
-          )
-        : [];
+    //    We also remove the responsive rendition siblings (every asset gets a
+    //    ladder now — HERO covers and galleries alike). We try the union of the
+    //    recorded widths and the current ladder so cleanup is robust to a ladder
+    //    change since upload, or to the background rendition job not having
+    //    recorded its widths yet (#211). Missing files no-op.
+    const renditionWidths = Array.from(
+      new Set([...asset.renditionWidths, ...RESPONSIVE_RENDITION_WIDTHS])
+    );
     const pathsToDelete = [
       asset.path,
       ...renditionWidths.map((w) => getRenditionPath(asset.path, w)),
