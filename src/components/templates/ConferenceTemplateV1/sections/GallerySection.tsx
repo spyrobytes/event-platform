@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SectionWrapper, SectionTitle } from "../../shared";
 import { EventImage } from "@/components/media/EventImage";
+import { buildRenditionSrcSet } from "@/lib/images/rendition";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection as GallerySectionType } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
@@ -249,6 +250,7 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
             sizes="(max-width: 768px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             blurDataURL={item.asset.blurDataUrl}
+            renditionWidths={item.asset.renditionWidths}
           />
           <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/30">
             {showCaptions && (item.caption || item.title) ? (
@@ -325,6 +327,7 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
               sizes="(max-width: 700px) 75vw, 420px"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               blurDataURL={item.asset.blurDataUrl}
+              renditionWidths={item.asset.renditionWidths}
             />
             <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
             {showCaptions && (item.caption || item.title) && (
@@ -368,6 +371,7 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
             sizes="(max-width: 768px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             blurDataURL={item.asset.blurDataUrl}
+            renditionWidths={item.asset.renditionWidths}
           />
           <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/20" />
           {showCaptions && (item.caption || item.title) && (
@@ -403,6 +407,7 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
             sizes="(max-width: 700px) 100vw, (max-width: 1200px) 80vw, 1140px"
             className="object-contain"
             blurDataURL={currentSlideItem?.asset.blurDataUrl}
+            renditionWidths={currentSlideItem?.asset.renditionWidths}
           />
         </div>
 
@@ -497,6 +502,12 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
             >
               <img
                 src={item.asset.publicUrl || ""}
+                srcSet={buildRenditionSrcSet(
+                  item.asset.publicUrl || "",
+                  item.asset.renditionWidths,
+                  item.asset.width
+                )}
+                sizes="80px"
                 alt=""
                 className="h-full w-full object-cover"
               />
@@ -604,6 +615,12 @@ export function GallerySection({ data, assets, primaryColor }: GallerySectionPro
           >
             <img
               src={currentItem.asset.publicUrl || ""}
+              srcSet={buildRenditionSrcSet(
+                currentItem.asset.publicUrl || "",
+                currentItem.asset.renditionWidths,
+                currentItem.asset.width
+              )}
+              sizes="(max-width: 1138px) 90vw, 1024px"
               alt={currentItem.asset.alt || currentItem.title || `Gallery image ${lightboxIndex + 1}`}
               className="max-h-[70vh] max-w-full object-contain"
             />
