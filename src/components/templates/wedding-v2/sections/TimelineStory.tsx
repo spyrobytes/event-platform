@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import type { MediaAsset } from "@prisma/client";
 import type { Milestone } from "@/schemas/event-page";
+import { buildRenditionSrcSet } from "@/lib/images/rendition";
 import styles from "./TimelineStory.module.css";
 
 type TimelineStoryProps = {
@@ -42,13 +43,17 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
   const kickerRef = useRef<HTMLParagraphElement>(null);
   const reachedRef = useRef<Set<number>>(new Set());
 
-  const getAssetUrl = (assetId?: string): string | null => {
-    if (!assetId) return null;
-    const asset = assets.find((a) => a.id === assetId);
-    return asset?.publicUrl || null;
-  };
-
-  const storyPhotoUrl = getAssetUrl(imageAssetId);
+  const storyPhotoAsset = imageAssetId
+    ? assets.find((a) => a.id === imageAssetId) ?? null
+    : null;
+  const storyPhotoUrl = storyPhotoAsset?.publicUrl || null;
+  const storyPhotoSrcSet = storyPhotoAsset
+    ? buildRenditionSrcSet(
+        storyPhotoAsset.publicUrl ?? "",
+        storyPhotoAsset.renditionWidths,
+        storyPhotoAsset.width
+      )
+    : undefined;
   const kickerText = "Our Story";
   const showKicker = kickerText.toLowerCase() !== heading.toLowerCase();
   const hasMilestones = milestones.length > 0;
@@ -228,6 +233,8 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
               <div className={styles.splitPhoto}>
                 <img
                   src={storyPhotoUrl}
+                  srcSet={storyPhotoSrcSet}
+                  sizes="(max-width: 700px) 90vw, 540px"
                   alt="Our story"
                   loading="lazy"
                 />
@@ -386,6 +393,8 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
             <div className={styles.stickyPhoto}>
               <img
                 src={storyPhotoUrl}
+                srcSet={storyPhotoSrcSet}
+                sizes="(max-width: 700px) 90vw, 540px"
                 alt="Couple photo"
                 loading="lazy"
               />
