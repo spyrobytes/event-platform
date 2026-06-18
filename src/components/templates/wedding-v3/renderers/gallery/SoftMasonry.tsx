@@ -37,6 +37,7 @@ export function SoftMasonry({
           blurDataUrl: asset.blurDataUrl,
           width: asset.width,
           height: asset.height,
+          renditionWidths: asset.renditionWidths,
         };
       })
       .filter(Boolean) as ResolvedGalleryItem[];
@@ -111,6 +112,7 @@ export function SoftMasonry({
                   sizes="(max-width: 768px) 50vw, 33vw"
                   className={styles.frameImg}
                   blurDataURL={item.blurDataUrl}
+                  renditionWidths={item.renditionWidths}
                 />
               </div>
               {(item.caption || item.title) && (
@@ -174,6 +176,7 @@ export function SoftMasonry({
                 sizes="(max-width: 768px) 100vw, 80vw"
                 blurDataURL={current.blurDataUrl}
                 className={styles.lbImage}
+                renditionWidths={current.renditionWidths}
               />
               {current.caption && (
                 <p className={styles.lbCaption}>{current.caption}</p>

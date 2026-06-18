@@ -38,6 +38,7 @@ export function FramedFineArt({
           blurDataUrl: asset.blurDataUrl,
           width: asset.width,
           height: asset.height,
+          renditionWidths: asset.renditionWidths,
         };
       })
       .filter(Boolean) as ResolvedGalleryItem[];
@@ -109,6 +110,7 @@ export function FramedFineArt({
                   fill
                   sizes="(max-width: 768px) 50vw, 33vw"
                   blurDataURL={item.blurDataUrl}
+                  renditionWidths={item.renditionWidths}
                 />
               </div>
               {(item.caption || item.title) && (
@@ -150,6 +152,7 @@ export function FramedFineArt({
                 sizes="(max-width: 768px) 100vw, 80vw"
                 blurDataURL={current.blurDataUrl}
                 className={styles.lbImage}
+                renditionWidths={current.renditionWidths}
               />
               {current.caption && (
                 <p className={styles.lbCaption}>{current.caption}</p>

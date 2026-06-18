@@ -54,6 +54,7 @@ export function EditorialBlocks({
                       fill
                       sizes="(max-width: 768px) 100vw, 50vw"
                       blurDataURL={milestoneImage.blurDataUrl}
+                      renditionWidths={milestoneImage.renditionWidths}
                     />
                   ) : (
                     <div
@@ -98,6 +99,7 @@ export function EditorialBlocks({
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
                   blurDataURL={mainImage.blurDataUrl}
+                  renditionWidths={mainImage.renditionWidths}
                 />
               </div>
             )}

@@ -73,6 +73,7 @@ export function MilestoneMosaic({
                         fill
                         sizes="(max-width: 768px) 100vw, 280px"
                         blurDataURL={img.blurDataUrl}
+                        renditionWidths={img.renditionWidths}
                         style={{ objectFit: "cover", objectPosition: "center 25%" }}
                       />
                     </div>
@@ -121,6 +122,7 @@ export function MilestoneMosaic({
                   fill
                   sizes="(max-width: 768px) 100vw, 620px"
                   blurDataURL={mainImage.blurDataUrl}
+                  renditionWidths={mainImage.renditionWidths}
                   style={{ objectFit: "cover", objectPosition: "center 25%" }}
                 />
               </div>

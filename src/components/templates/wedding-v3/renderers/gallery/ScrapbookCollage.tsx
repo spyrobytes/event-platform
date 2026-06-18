@@ -41,6 +41,7 @@ export function ScrapbookCollage({
           blurDataUrl: asset.blurDataUrl,
           width: asset.width,
           height: asset.height,
+          renditionWidths: asset.renditionWidths,
         };
       })
       .filter(Boolean) as ResolvedGalleryItem[];
@@ -162,6 +163,7 @@ export function ScrapbookCollage({
                     sizes="(max-width: 768px) 50vw, 33vw"
                     style={{ objectFit: "cover", objectPosition: "center 25%" }}
                     blurDataURL={item.blurDataUrl}
+                    renditionWidths={item.renditionWidths}
                   />
                 </div>
                 {(item.caption || item.title) && (
@@ -397,6 +399,7 @@ function ScrapbookLightbox({
           height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
           sizes="(max-width: 768px) 100vw, 1000px"
           blurDataURL={item.blurDataUrl}
+          renditionWidths={item.renditionWidths}
           style={{
             display: "block",
             width: "100%",

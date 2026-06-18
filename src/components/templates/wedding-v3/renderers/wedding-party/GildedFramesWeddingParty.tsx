@@ -95,6 +95,7 @@ function FlipCard({
                 fill
                 sizes="(max-width: 1024px) 50vw, 320px"
                 blurDataURL={asset.blurDataUrl}
+                renditionWidths={asset.renditionWidths}
                 className={styles.photo}
               />
             ) : (

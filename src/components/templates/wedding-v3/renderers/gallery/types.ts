@@ -13,4 +13,5 @@ export type ResolvedGalleryItem = {
   blurDataUrl?: string | null;
   width: number | null;
   height: number | null;
+  renditionWidths?: readonly number[] | null;
 };

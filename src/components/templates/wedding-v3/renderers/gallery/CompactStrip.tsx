@@ -35,6 +35,7 @@ export function CompactStrip({
           blurDataUrl: asset.blurDataUrl,
           width: asset.width,
           height: asset.height,
+          renditionWidths: asset.renditionWidths,
         };
       })
       .filter(Boolean) as ResolvedGalleryItem[];
@@ -93,6 +94,7 @@ export function CompactStrip({
                 fill
                 sizes="(max-width: 768px) 33vw, 25vw"
                 blurDataURL={item.blurDataUrl}
+                renditionWidths={item.renditionWidths}
               />
             </button>
           ))}
@@ -125,6 +127,7 @@ export function CompactStrip({
                 sizes="(max-width: 768px) 100vw, 80vw"
                 blurDataURL={current.blurDataUrl}
                 className={styles.lbImage}
+                renditionWidths={current.renditionWidths}
               />
               {current.caption && (
                 <p className={styles.lbCaption}>{current.caption}</p>
