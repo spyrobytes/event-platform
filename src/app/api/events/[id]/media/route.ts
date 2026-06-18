@@ -447,13 +447,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         }
       }
 
-      // If this (HERO) asset is any event's cover, clear the cover pair so
+      // If this asset is any event's cover, clear the cover pair so
       // coverImageUrl doesn't drift to a now-deleted storage object. Done before
-      // the delete so the still-set coverMediaAssetId matches. Only HERO assets
-      // are ever a cover, so gallery deletes skip this query (#211).
-      if (asset.kind === "HERO") {
-        await clearEventCoversForAssets(tx, [assetId]);
-      }
+      // the delete so the still-set coverMediaAssetId matches. A GALLERY asset
+      // can be a cover too — CoverImagePicker lists every kind and
+      // resolveCoverMediaAssetId has no kind filter — and the FK's SetNull alone
+      // would leave coverImageUrl stale, so this runs for every kind. It no-ops
+      // when the asset isn't a cover (the updateMany WHERE matches nothing) (#211).
+      await clearEventCoversForAssets(tx, [assetId]);
 
       await tx.mediaAsset.delete({ where: { id: assetId } });
     });
