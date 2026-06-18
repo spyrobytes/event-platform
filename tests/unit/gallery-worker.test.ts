@@ -161,6 +161,20 @@ describe("processItem — happy path", () => {
       expect(result.data.mimeType).toBe("image/webp");
     }
   });
+
+  it("caps the lightbox large image at 2560px longest edge", async () => {
+    // The worker must pass an explicit 2560 cap to optimizeImage rather than
+    // letting it default to the 4000 max-dimension. This keeps mobile
+    // lightboxes from over-fetching a ~4000px file while still covering the
+    // Slideshow layout's full-bleed retina target. The actual resize is
+    // covered by optimize-image.test.ts; here we assert the worker threads
+    // the cap through.
+    await processItem(makeItem(), gallery, event);
+    expect(optimizeImageMock).toHaveBeenCalledWith(expect.any(Buffer), {
+      maxWidth: 2560,
+      maxHeight: 2560,
+    });
+  });
 });
 
 describe("processItem — error classification", () => {

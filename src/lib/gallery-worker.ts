@@ -52,6 +52,14 @@ import type { Prisma } from "@prisma/client";
 const LARGE_IMAGE_PATH_SUFFIX = "large.webp";
 const THUMBNAIL_PATH_SUFFIX = "thumb.webp";
 const THUMBNAIL_DIMENSION = 400;
+// Longest-edge cap for the lightbox/slideshow `large.webp`. 2560 covers the
+// Slideshow layout's full-bleed retina target (~1140px CSS → 2280 device px;
+// see SlideshowLayout) with margin, while still shaving ~2.4× the pixels off
+// the prior 4000 default — a big cut to mobile over-fetch (a phone can't show
+// past ~2560 anyway). The trade is some deep desktop pinch-zoom depth —
+// accepted; see the post-event gallery image-pipeline plan. A per-viewport
+// rendition ladder (the full-par path) is intentionally NOT taken here.
+const LARGE_IMAGE_MAX_DIMENSION = 2560;
 
 type ClaimedItem = {
   id: string;
@@ -242,7 +250,10 @@ async function processItem(
   let width: number;
   let height: number;
   try {
-    const optimized = await optimizeImage(buffer);
+    const optimized = await optimizeImage(buffer, {
+      maxWidth: LARGE_IMAGE_MAX_DIMENSION,
+      maxHeight: LARGE_IMAGE_MAX_DIMENSION,
+    });
     largeBuffer = optimized.buffer;
     width = optimized.width;
     height = optimized.height;
