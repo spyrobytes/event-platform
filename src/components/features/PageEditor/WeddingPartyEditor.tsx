@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { PAGE_CONFIG_LIMITS, type WeddingPartySection, type PartyMember, type PartySide, type WeddingPartyDisplayStyle } from "@/schemas/event-page";
+import { PAGE_CONFIG_LIMITS, PARTY_BIO_COMPACT_MAX, resolvePartyBioCap, type WeddingPartySection, type PartyMember, type PartySide, type WeddingPartyDisplayStyle } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -32,12 +32,14 @@ type WeddingPartyEditorProps = {
   defaultStyle?: WeddingPartyDisplayStyle;
 };
 
-// Per-display-style bio caps. The elastic Cinematic layout grows with the bio;
-// the flip-card styles (Scrapbook/Gilded/Couture) are height-limited, so they
-// keep the original compact cap. partyMemberSchema.bio .max() in
-// src/schemas/event-page.ts is the absolute ceiling (= the Cinematic cap).
-const BIO_MAX_CINEMATIC = 600;
-const BIO_MAX_COMPACT = 300;
+// Bio caps are resolved per display style via resolvePartyBioCap (single source
+// of truth in src/schemas/event-page.ts, also enforced there server-side). The
+// elastic Cinematic layout grows with the bio; the flip-card styles
+// (Scrapbook/Gilded/Couture) have a fixed-height back face (derived from the 4:5
+// photo), so a bio that overflows it is clipped. The compact cap is the measured
+// no-clip ceiling for the narrowest 3-col card, which is why those renderers move
+// the 3-col -> 2-col breakpoint to 1024px (see their .module.css): at the
+// narrowest 3-col width (~1025px) all three fit it with ~90+ chars of margin.
 
 /**
  * Editor for Wedding Party section
@@ -100,10 +102,12 @@ export function WeddingPartyEditor({
 
   const activeStyle =
     data.displayStyle ?? defaultStyle ?? styleOptions?.[0]?.value;
-  // Cinematic grows with the bio (600 cap); the flip-card styles are
-  // height-limited, so they keep the compact 300 cap.
-  const bioMax =
-    activeStyle === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
+  // Cinematic grows with the bio (ceiling cap); the flip-card styles are
+  // height-limited, so they keep the compact cap. When the style is unknown
+  // (no picker and no default), fall back to the conservative compact cap.
+  const bioMax = activeStyle
+    ? resolvePartyBioCap(activeStyle)
+    : PARTY_BIO_COMPACT_MAX;
   // Surface the "use Cinematic for long bios" nudge only when the template
   // actually offers a Cinematic option that isn't already selected.
   const hasCinematicOption =
@@ -119,14 +123,13 @@ export function WeddingPartyEditor({
     label: string;
   } | null>(null);
   const pendingOverCount = pendingStyle
-    ? members.filter((m) => (m.bio?.length ?? 0) > BIO_MAX_COMPACT).length
+    ? members.filter((m) => (m.bio?.length ?? 0) > PARTY_BIO_COMPACT_MAX).length
     : 0;
   const selectStyle = (opt: {
     value: WeddingPartyDisplayStyle;
     label: string;
   }) => {
-    const cap =
-      opt.value === "cinematic" ? BIO_MAX_CINEMATIC : BIO_MAX_COMPACT;
+    const cap = resolvePartyBioCap(opt.value);
     const over = members.filter((m) => (m.bio?.length ?? 0) > cap).length;
     if (over > 0) {
       setPendingStyle(opt);
@@ -145,7 +148,7 @@ export function WeddingPartyEditor({
     newMembers[index] = { ...newMembers[index], bio: value };
     const next: WeddingPartySection["data"] = { ...data, members: newMembers };
     if (
-      value.length > BIO_MAX_COMPACT &&
+      value.length > PARTY_BIO_COMPACT_MAX &&
       !data.displayStyle &&
       activeStyle === "cinematic"
     ) {
@@ -202,7 +205,7 @@ export function WeddingPartyEditor({
             >
               Can&rsquo;t switch to {pendingStyle.label}: {pendingOverCount}{" "}
               {pendingOverCount === 1 ? "bio exceeds" : "bios exceed"} the{" "}
-              {BIO_MAX_COMPACT}-character limit for that layout. Trim{" "}
+              {PARTY_BIO_COMPACT_MAX}-character limit for that layout. Trim{" "}
               {pendingOverCount === 1 ? "it" : "them"} (flagged below), then
               select {pendingStyle.label} again.
             </p>
@@ -354,7 +357,7 @@ export function WeddingPartyEditor({
                     <p
                       className={cn(
                         "text-right text-xs tabular-nums",
-                        pendingStyle && (member.bio?.length ?? 0) > BIO_MAX_COMPACT
+                        pendingStyle && (member.bio?.length ?? 0) > PARTY_BIO_COMPACT_MAX
                           ? "text-destructive"
                           : (member.bio?.length ?? 0) > bioMax
                             ? "text-amber-600"
@@ -362,8 +365,8 @@ export function WeddingPartyEditor({
                       )}
                     >
                       {member.bio?.length ?? 0}/
-                      {pendingStyle && (member.bio?.length ?? 0) > BIO_MAX_COMPACT
-                        ? BIO_MAX_COMPACT
+                      {pendingStyle && (member.bio?.length ?? 0) > PARTY_BIO_COMPACT_MAX
+                        ? PARTY_BIO_COMPACT_MAX
                         : bioMax}
                     </p>
                   </div>

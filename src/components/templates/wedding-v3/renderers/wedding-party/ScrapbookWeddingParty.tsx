@@ -89,7 +89,7 @@ function FlipCard({
                 src={asset.publicUrl}
                 alt={member.name}
                 fill
-                sizes="(max-width: 768px) 50vw, 280px"
+                sizes="(max-width: 1024px) 50vw, 320px"
                 blurDataURL={asset.blurDataUrl}
                 className={styles.photo}
               />

@@ -147,8 +147,11 @@
   outline: none;
 }
 
+/* 280px (was 260) to match Gilded/Couture and fit the 400-char compact bio cap.
+   The special row is a fixed width the 1024px grid breakpoint can't widen, and a
+   260px card clipped a 400-char bio by ~14px; 280px clears it with margin. */
 .specialCardOuter {
-  width: 260px;
+  width: 280px;
   max-width: 100%;
 }
 
@@ -350,7 +353,12 @@
 }
 
 /* ===== Responsive ===== */
-@media (max-width: 800px) {
+/* 3-col -> 2-col at 1024px (not 800): the flip card's back face is a fixed
+   height derived from the 4:5 photo, so a narrow 3-col card can't fit the
+   400-char compact bio cap without clipping. Holding 2 columns up to 1024px
+   keeps cards wide enough — at the narrowest 3-col width (~1025px) a 400-char
+   bio clears with margin. Cap lives in WeddingPartyEditor (BIO_MAX_COMPACT). */
+@media (max-width: 1024px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);
   }

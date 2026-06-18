@@ -520,10 +520,22 @@ export const travelStaySectionSchema = z.object({
 // Wedding Party Section - Bridal party
 export const partySideSchema = z.enum(["bride", "groom", "other"]);
 
+// Wedding-party bio caps — single source of truth (WeddingPartyEditor imports
+// these; the weddingPartySectionDataSchema refine below enforces them server-side).
+// The flip-card styles (scrapbook/gilded/couture) have a fixed-height back face
+// derived from the 4:5 photo, so their bios are capped short; the elastic
+// Cinematic layout grows with the text and carries the higher cap, which is also
+// the absolute ceiling stored on partyMemberSchema.bio.
+export const PARTY_BIO_CINEMATIC_MAX = 600;
+export const PARTY_BIO_COMPACT_MAX = 400;
+
 export const partyMemberSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
   role: z.string().min(1, "Role is required").max(50, "Role must be 50 characters or less"),
-  bio: z.string().max(600, "Bio must be 600 characters or less").optional(),
+  bio: z
+    .string()
+    .max(PARTY_BIO_CINEMATIC_MAX, `Bio must be ${PARTY_BIO_CINEMATIC_MAX} characters or less`)
+    .optional(),
   imageAssetId: z.string().cuid().optional(),
   // V2 explicit side assignment
   side: partySideSchema.optional(),
@@ -537,12 +549,60 @@ export const partyMemberSchema = z.object({
 export const weddingPartyDisplayStyleSchema = z.enum(["cinematic", "scrapbook", "gilded", "couture"]);
 export type WeddingPartyDisplayStyle = z.infer<typeof weddingPartyDisplayStyleSchema>;
 
-export const weddingPartySectionDataSchema = z.object({
-  heading: z.string().max(80, "Heading must be 80 characters or less").default("The Wedding Party"),
-  description: z.string().max(300, "Description must be 300 characters or less").optional(),
-  members: z.array(partyMemberSchema).max(30, "Maximum 30 party members allowed"),
-  displayStyle: weddingPartyDisplayStyleSchema.optional(),
-});
+/**
+ * Bio character cap for a wedding-party display style. The height-limited
+ * flip-card styles (scrapbook/gilded/couture) get the compact cap; Cinematic —
+ * and an *unset* style — get the taller ceiling.
+ *
+ * Unset maps to the ceiling on purpose. At the schema layer we can't see V2's
+ * page-level fallback: an unset section renders Cinematic on a standard-mode
+ * page (where a 401–600 bio displays fine) and a flip card on a scrapbook-mode
+ * page. Capping unset at the compact value would false-reject the former, so we
+ * use the permissive cap here. The editor passes its already-resolved
+ * `activeStyle` (which folds in the page mode), so it still enforces the precise
+ * per-page cap on input; this is the server-side backstop.
+ *
+ * Residual: an import that writes an *unset* section with a >compact bio onto a
+ * scrapbook-mode page would render clipped. The editor never produces that (it
+ * caps such sections at the compact value on input); closing it server-side
+ * needs the page theme, deferred.
+ */
+export function resolvePartyBioCap(displayStyle?: WeddingPartyDisplayStyle): number {
+  return displayStyle === "scrapbook" ||
+    displayStyle === "gilded" ||
+    displayStyle === "couture"
+    ? PARTY_BIO_COMPACT_MAX
+    : PARTY_BIO_CINEMATIC_MAX;
+}
+
+export const weddingPartySectionDataSchema = z
+  .object({
+    heading: z.string().max(80, "Heading must be 80 characters or less").default("The Wedding Party"),
+    description: z.string().max(300, "Description must be 300 characters or less").optional(),
+    members: z.array(partyMemberSchema).max(30, "Maximum 30 party members allowed"),
+    displayStyle: weddingPartyDisplayStyleSchema.optional(),
+  })
+  // Enforce the per-style bio cap server-side — the editor caps it client-side,
+  // but a direct page-config write or import could store a long bio on a
+  // height-limited flip card and clip it on the published page. The cap comes
+  // from resolvePartyBioCap: explicit flip styles (scrapbook/gilded/couture) get
+  // the compact cap; Cinematic and unset get the ceiling (see the resolver for
+  // why unset is permissive). This closes the explicit-flip + long-bio path that
+  // bypassed the editor.
+  .superRefine((data, ctx) => {
+    const cap = resolvePartyBioCap(data.displayStyle);
+    data.members.forEach((member, i) => {
+      if ((member.bio?.length ?? 0) > cap) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: data.displayStyle
+            ? `Bio must be ${cap} characters or less for the ${data.displayStyle} wedding-party layout`
+            : `Bio must be ${cap} characters or less`,
+          path: ["members", i, "bio"],
+        });
+      }
+    });
+  });
 
 export const weddingPartySectionSchema = z.object({
   type: z.literal("weddingParty"),
