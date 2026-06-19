@@ -234,7 +234,9 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
                 <img
                   src={storyPhotoUrl}
                   srcSet={storyPhotoSrcSet}
-                  sizes="(max-width: 700px) 90vw, 540px"
+                  // ≤700px the photo is capped at 400px (.splitPhoto max-width);
+                  // cap the declared width so retina phones don't over-fetch.
+                  sizes="(max-width: 700px) min(90vw, 400px), 540px"
                   alt="Our story"
                   loading="lazy"
                 />
@@ -394,7 +396,10 @@ export function TimelineStory({ data, assets }: TimelineStoryProps) {
               <img
                 src={storyPhotoUrl}
                 srcSet={storyPhotoSrcSet}
-                sizes="(max-width: 700px) 90vw, 540px"
+                // Sticky photo lives in a fixed 380px grid column on desktop and
+                // caps at 400px once the grid collapses (≤960px) — match both so
+                // the browser never fetches a rung wider than it renders.
+                sizes="(max-width: 960px) min(90vw, 400px), 380px"
                 alt="Couple photo"
                 loading="lazy"
               />

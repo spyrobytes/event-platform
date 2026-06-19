@@ -36,8 +36,15 @@ export const HERO_DISPLAY_MAX_DIMENSION = 2048;
  * than the optimized original (no upscaling); the original (HERO ≤ 2048,
  * gallery ≤ 4000) serves the top of the ladder. The image loader maps a
  * requested width to the nearest stored rendition. See issue #211 (Tier 2).
+ *
+ * The 2048 rung is the gallery mid-rung: without it the ladder topped out at
+ * 1200, so a desktop/retina lightbox requesting ~2048px jumped straight to the
+ * ≤4000px gallery original — a ~4× over-fetch. It's a no-op for HERO covers
+ * (capped at HERO_DISPLAY_MAX_DIMENSION = 2048, so 2048 is never strictly
+ * smaller than the source and no rung is generated). The 4000px gallery
+ * original is intentionally kept for crisp lightbox pinch-zoom above 2048.
  */
-export const RESPONSIVE_RENDITION_WIDTHS = [384, 640, 828, 1200] as const;
+export const RESPONSIVE_RENDITION_WIDTHS = [384, 640, 828, 1200, 2048] as const;
 
 export const mimeTypeSchema = z.enum(ALLOWED_MIME_TYPES);
 export type AllowedMimeType = z.infer<typeof mimeTypeSchema>;
