@@ -201,5 +201,24 @@ export function getSectionThemeVariables(theme: SectionTheme): Record<string, st
     vars["--lux-hero-accent"] = accent;
   }
 
+  // --- "Powered by EventFXr" footer badge scrim ---
+  // The brand mark is a FIXED two-tone logo (green + magenta) that never
+  // recolors per theme. On a DARK panel it clears ~6-8:1 unaided, and the
+  // default cream theme (which emits no tokens at all) sits at the ~2:1 we
+  // already ship. But on a LIGHT/mid panel the magenta is luminance-identical
+  // to the field (~1.05:1 on cerulean) and the green ~1.27:1 — effectively
+  // invisible. So a light panel — and any future one — gets a small dark chip
+  // behind the badge: the mark pops on the dark plate (~6-7:1), and the
+  // "Powered by" label, which the ramp above turned DARK for the light field,
+  // flips back to light via --lux-credit-ink so it doesn't sink into the plate.
+  // Dark panels and the default theme emit none of these, so BrandCredit's
+  // var() fallbacks (transparent / currentColor / 0) keep them byte-identical.
+  if (isLight) {
+    vars["--lux-credit-scrim"] = "rgba(18, 28, 36, 0.82)";
+    vars["--lux-credit-ink"] = "rgba(255, 255, 255, 0.82)";
+    vars["--lux-credit-border"] = "1px solid rgba(255, 255, 255, 0.14)";
+    vars["--lux-credit-pad"] = "5px 12px";
+  }
+
   return vars;
 }
