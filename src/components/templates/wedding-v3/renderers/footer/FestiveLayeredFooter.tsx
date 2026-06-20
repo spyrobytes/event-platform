@@ -8,6 +8,7 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { BrandCredit } from "@/components/brand";
 import { SocialIconRow } from "../../../shared";
 
 export function FestiveLayeredFooter({
@@ -118,9 +119,7 @@ export function FestiveLayeredFooter({
           style={{ marginBottom: "clamp(20px, 2.5vw, 28px)" }}
         />
 
-        <p style={{ fontFamily: "var(--sans)", fontSize: "0.65rem", color: "var(--text-3, #a69e93)" }}>
-          Powered by Events Fixer
-        </p>
+        <BrandCredit style={{ fontFamily: "var(--sans)", fontSize: "0.65rem", color: "var(--text-3, #a69e93)" }} />
       </div>
     </footer>
   );

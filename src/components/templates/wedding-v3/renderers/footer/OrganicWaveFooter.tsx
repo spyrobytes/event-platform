@@ -8,6 +8,7 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { BrandCredit } from "@/components/brand";
 
 export function OrganicWaveFooter({
   monogram,
@@ -124,9 +125,7 @@ export function OrganicWaveFooter({
             </nav>
           )}
 
-          <p style={{ fontFamily: "var(--sans)", fontSize: "0.65rem", color: "var(--text-2, #786f65)" }}>
-            Powered by Events Fixer
-          </p>
+          <BrandCredit style={{ fontFamily: "var(--sans)", fontSize: "0.65rem", color: "var(--text-2, #786f65)" }} />
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import type { SocialLink } from "@/schemas/event-page";
+import { BrandCredit } from "@/components/brand";
 import { SocialIconRow } from "../shared";
 
 type NavSection = {
@@ -154,15 +155,7 @@ export function WeddingV2Footer({
             color: "var(--lux-ink-faint, var(--stone, #a69e93))",
           }}
         >
-          Made with{" "}
-          <a
-            href="https://eventfxr.com"
-            style={{ color: "var(--lux-accent, var(--accent, #7a8c72))", textDecoration: "none" }}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            EventFXr
-          </a>
+          <BrandCredit style={{ fontSize: ".82rem", color: "var(--lux-ink-faint, var(--stone, #a69e93))" }} />
         </div>
       </div>
     </footer>

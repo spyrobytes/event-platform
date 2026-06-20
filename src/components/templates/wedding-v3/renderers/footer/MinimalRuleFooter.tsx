@@ -9,6 +9,7 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { BrandCredit } from "@/components/brand";
 import styles from "./MinimalRuleFooter.module.css";
 
 export function MinimalRuleFooter({
@@ -49,7 +50,7 @@ export function MinimalRuleFooter({
         )}
 
         {/* Credit line */}
-        <p className={styles.credit}>Powered by Events Fixer</p>
+        <BrandCredit className={styles.credit} />
       </div>
     </footer>
   );
