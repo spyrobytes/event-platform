@@ -5,6 +5,7 @@ import { ForbiddenError } from "@/lib/errors";
 import { errorResponse } from "@/lib/api-response";
 import { assertCanMutate } from "@/lib/authorization";
 import { recordAdminAudit, ADMIN_AUDIT_ACTION } from "@/lib/audit";
+import { getClientIp } from "@/lib/request-ip";
 import type { ImpersonationGrant, User } from "@prisma/client";
 
 /**
@@ -17,6 +18,23 @@ export const ACT_AS_HEADER = "x-act-as";
 
 /** How long an act-as grant stays valid after it's created. */
 export const IMPERSONATION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * A grant is "active" while it hasn't been ended and hasn't expired. The
+ * resolver (validating a fetched grant) and the GET endpoint (querying the
+ * admin's active grants) share this one definition so they can't drift.
+ */
+export function isGrantActive(
+  grant: Pick<ImpersonationGrant, "endedAt" | "expiresAt">,
+  now: number = Date.now(),
+): boolean {
+  return grant.endedAt === null && grant.expiresAt.getTime() > now;
+}
+
+/** Prisma where-fragment selecting grants that `isGrantActive` would accept. */
+export function activeGrantWhere() {
+  return { endedAt: null, expiresAt: { gt: new Date() } };
+}
 
 /**
  * Thrown when an `X-Act-As` header is present but the grant it names is
@@ -37,9 +55,9 @@ export type EffectiveUserContext = {
   actor: User;
   /** Who to AUTHORIZE as — the organizer when acting-as, else the actor. */
   effective: User;
-  /** The grant backing an act-as session; null on a normal (non-act-as) request. */
+  /** The grant backing an act-as session; null on a normal (non-act-as) request.
+   *  `grant !== null` is the single "are we acting-as?" signal. */
   grant: ImpersonationGrant | null;
-  impersonating: boolean;
 };
 
 /**
@@ -65,7 +83,7 @@ export async function resolveEffectiveUser(
 
   const grantId = request.headers.get(ACT_AS_HEADER);
   if (!grantId) {
-    return { actor, effective: actor, grant: null, impersonating: false };
+    return { actor, effective: actor, grant: null };
   }
 
   // A grant is being claimed from here on — every failure is a hard 403.
@@ -78,8 +96,7 @@ export async function resolveEffectiveUser(
     !grant ||
     grant.adminUserId !== actor.id ||
     grant.eventId !== eventId ||
-    grant.endedAt !== null ||
-    grant.expiresAt.getTime() <= Date.now()
+    !isGrantActive(grant)
   ) {
     throw new ImpersonationError(
       "Act-as grant is invalid, expired, ended, or scoped to a different event",
@@ -93,7 +110,7 @@ export async function resolveEffectiveUser(
     throw new ImpersonationError("Act-as target organizer is unavailable");
   }
 
-  return { actor, effective, grant, impersonating: true };
+  return { actor, effective, grant };
 }
 
 /**
@@ -120,16 +137,16 @@ export async function requireEffectiveMutator(
   return ctx;
 }
 
-/** Best-effort client metadata for the audit trail. */
+/** Best-effort client metadata for the audit trail. Shares getClientIp with the
+ *  rate limiter so the audit IP and the rate-limit key agree. */
 export function requestMeta(request: NextRequest): {
-  ip: string | null;
+  ip: string;
   userAgent: string | null;
 } {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    null;
-  return { ip, userAgent: request.headers.get("user-agent") };
+  return {
+    ip: getClientIp(request),
+    userAgent: request.headers.get("user-agent"),
+  };
 }
 
 /**

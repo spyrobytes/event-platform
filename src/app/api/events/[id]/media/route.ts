@@ -2,12 +2,12 @@ import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { canUploadMedia } from "@/lib/authorization";
+import { handleApiError } from "@/lib/api-response";
 import {
   resolveEffectiveUser,
   requireEffectiveMutator,
   auditImpersonatedEdit,
 } from "@/lib/impersonation";
-import { AppError } from "@/lib/errors";
 import {
   validateUploadedImage,
   optimizeImage,
@@ -257,11 +257,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       201
     );
   } catch (error) {
-    if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode, error.code);
-    }
-    console.error("Media upload error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }
 
@@ -305,11 +301,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return successResponse({ assets });
   } catch (error) {
-    if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode, error.code);
-    }
-    console.error("Media list error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }
 
@@ -370,14 +362,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     return successResponse(updated);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse("Invalid request body", 400);
-    }
-    if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode, error.code);
-    }
-    console.error("Media patch error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }
 
@@ -492,10 +477,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return successResponse({ deleted: true });
   } catch (error) {
-    if (error instanceof AppError) {
-      return errorResponse(error.message, error.statusCode, error.code);
-    }
-    console.error("Media delete error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }

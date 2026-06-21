@@ -127,24 +127,10 @@ export const RATE_LIMITS = {
   waitlist: { limit: 5, windowSeconds: 86400 },
 } as const;
 
-/**
- * Get client IP from request headers
- */
-export function getClientIp(request: Request): string {
-  // Try various headers that might contain the real IP
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) {
-    return realIp;
-  }
-
-  // Fallback to a default (useful for development)
-  return "127.0.0.1";
-}
+// Client-IP parsing lives in request-ip.ts (dependency-free) so the audit trail
+// can share it without importing this Upstash-heavy module. Re-exported here for
+// existing callers that import getClientIp from "@/lib/rate-limit".
+export { getClientIp } from "./request-ip";
 
 // ---------------------------------------------------------------------------
 // Upstash Redis–backed limiter (multi-instance coordination)

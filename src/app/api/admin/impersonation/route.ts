@@ -4,7 +4,11 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-auth";
 import { verifyEventOwnership } from "@/lib/authorization";
 import { recordAdminAudit, ADMIN_AUDIT_ACTION } from "@/lib/audit";
-import { IMPERSONATION_TTL_MS, requestMeta } from "@/lib/impersonation";
+import {
+  IMPERSONATION_TTL_MS,
+  requestMeta,
+  activeGrantWhere,
+} from "@/lib/impersonation";
 import {
   successResponse,
   errorResponse,
@@ -172,8 +176,7 @@ export async function GET(request: NextRequest) {
     const grants = await db.impersonationGrant.findMany({
       where: {
         adminUserId: admin.id,
-        endedAt: null,
-        expiresAt: { gt: new Date() },
+        ...activeGrantWhere(),
       },
       orderBy: { createdAt: "desc" },
       select: {

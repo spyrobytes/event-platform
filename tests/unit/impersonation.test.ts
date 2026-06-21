@@ -62,7 +62,6 @@ describe("resolveEffectiveUser", () => {
       actor: organizer,
       effective: organizer,
       grant: null,
-      impersonating: false,
     });
     expect(grantFindUnique).not.toHaveBeenCalled();
   });
@@ -73,7 +72,6 @@ describe("resolveEffectiveUser", () => {
     userFindUnique.mockResolvedValue(organizer);
 
     const ctx = await resolveEffectiveUser(req({ [ACT_AS_HEADER]: "grant_1" }), "evt_1");
-    expect(ctx?.impersonating).toBe(true);
     expect(ctx?.actor).toBe(admin);
     expect(ctx?.effective).toBe(organizer);
     expect(ctx?.grant?.id).toBe("grant_1");
@@ -119,7 +117,7 @@ describe("auditImpersonatedEdit", () => {
 
   it("no-ops when not impersonating (no grant)", async () => {
     await auditImpersonatedEdit(
-      { actor: admin, effective: admin, grant: null, impersonating: false } as never,
+      { actor: admin, effective: admin, grant: null } as never,
       req(),
       "evt_1",
       { route: "page-config.PUT" },
@@ -133,7 +131,6 @@ describe("auditImpersonatedEdit", () => {
         actor: admin,
         effective: organizer,
         grant: validGrant(),
-        impersonating: true,
       } as never,
       req({ "user-agent": "jest" }),
       "evt_1",
