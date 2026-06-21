@@ -93,6 +93,11 @@ export default function AdminEventsPage() {
         eventId: actAsTarget.id,
         reason: actAsReason.trim(),
       });
+      // Close the modal + clear the in-flight flag before navigating, so a
+      // stalled/aborted client transition can't strand it on a disabled
+      // "Starting…" with both buttons locked.
+      setActAsStarting(false);
+      setActAsTarget(null);
       // Land in the organizer's page editor — its fetches now carry X-Act-As.
       router.push(`/dashboard/events/${actAsTarget.id}/page-editor`);
     } catch (e) {

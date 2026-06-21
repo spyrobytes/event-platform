@@ -33,6 +33,11 @@ type ImpersonationContextValue = {
   /** End the active grant and clear it. Best-effort on the server side. */
   exitActAs: () => Promise<void>;
   /**
+   * Clear the local grant WITHOUT a server round-trip — for when the server has
+   * already invalidated it (a 403 with code IMPERSONATION_INVALID).
+   */
+  clearGrant: () => void;
+  /**
    * The `X-Act-As` header to merge into an editing request — but ONLY when the
    * active grant is for `eventId` and hasn't expired. Returns `{}` otherwise, so
    * editing call-sites can spread it unconditionally and a normal organizer (or
@@ -44,6 +49,22 @@ type ImpersonationContextValue = {
 const ImpersonationContext = createContext<ImpersonationContextValue | null>(null);
 
 const STORAGE_KEY = "efx_act_as_grant";
+
+/** Error code the server returns when an act-as grant is no longer valid. */
+export const IMPERSONATION_INVALID_CODE = "IMPERSONATION_INVALID";
+
+/**
+ * True when a failed editing response means the act-as grant is dead
+ * (expired / ended / forged). The cue for a call-site to clearGrant() and tell
+ * the admin their session ended, rather than surfacing a generic error.
+ */
+export function isImpersonationInvalid(body: unknown): boolean {
+  return (
+    !!body &&
+    typeof body === "object" &&
+    (body as { code?: unknown }).code === IMPERSONATION_INVALID_CODE
+  );
+}
 
 /** Read + validate a persisted grant; drops it if malformed or expired. */
 function readStoredGrant(): ActiveGrant | null {
@@ -111,7 +132,7 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(input),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      if (!res.ok || !body?.data?.grantId) {
         throw new Error(body?.error || "Could not start editing on behalf.");
       }
       const next: ActiveGrant = {
@@ -145,23 +166,30 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
     }
   }, [grant, getIdToken]);
 
-  const actAsHeaders = useCallback(
-    (eventId: string): Record<string, string> => {
-      if (
-        grant &&
-        grant.eventId === eventId &&
-        new Date(grant.expiresAt).getTime() > Date.now()
-      ) {
-        return { "x-act-as": grant.grantId };
-      }
-      return {};
-    },
-    [grant],
-  );
+  // Clear the local grant WITHOUT calling the server — for when the server has
+  // already invalidated it (403 IMPERSONATION_INVALID: expired / ended / forged).
+  const clearGrant = useCallback(() => {
+    setGrant(null);
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  // Reads the persisted grant at call time instead of closing over `grant`
+  // state, so its identity is STABLE across grant transitions. Editing effects
+  // that list it in their deps therefore don't re-run (and re-fetch) when a
+  // grant is restored, cleared, or expires — and on a reload the header is
+  // available synchronously from sessionStorage, before React restores the
+  // banner state, so the first fetch already carries it (no double-fetch race).
+  const actAsHeaders = useCallback((eventId: string): Record<string, string> => {
+    const active = readStoredGrant();
+    if (active && active.eventId === eventId) {
+      return { "x-act-as": active.grantId };
+    }
+    return {};
+  }, []);
 
   return (
     <ImpersonationContext.Provider
-      value={{ grant, startActAs, exitActAs, actAsHeaders }}
+      value={{ grant, startActAs, exitActAs, clearGrant, actAsHeaders }}
     >
       {children}
     </ImpersonationContext.Provider>

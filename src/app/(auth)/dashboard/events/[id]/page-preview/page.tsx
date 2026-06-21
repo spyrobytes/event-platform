@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import { useImpersonation } from "@/components/providers/ImpersonationProvider";
+import { useImpersonation, isImpersonationInvalid } from "@/components/providers/ImpersonationProvider";
 import { Button } from "@/components/ui/button";
 import { getTemplate, type TemporalData } from "@/components/templates";
 import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
@@ -29,7 +29,7 @@ type PageConfigResponse = {
 export default function PagePreviewPage() {
   const params = useParams<{ id: string }>();
   const { getIdToken } = useAuthContext();
-  const { actAsHeaders } = useImpersonation();
+  const { actAsHeaders, clearGrant } = useImpersonation();
   const [pageData, setPageData] = useState<PageConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +59,13 @@ export default function PagePreviewPage() {
         );
 
         if (!configResponse.ok) {
+          const body = await configResponse.json().catch(() => ({}));
+          if (isImpersonationInvalid(body)) {
+            clearGrant();
+            throw new Error(
+              "Your editing session ended. Return to admin tools and start a new one.",
+            );
+          }
           throw new Error("Failed to fetch page configuration");
         }
 
@@ -66,7 +73,10 @@ export default function PagePreviewPage() {
         // The page-config response carries the event fields the preview needs
         // (slug + temporal), so it works under act-as on this one honored route
         // — no separate /api/events/[id] GET (event details) required.
-        const eventInfo = configData.data.event ?? {};
+        const eventInfo = configData.data.event;
+        if (!eventInfo) {
+          throw new Error("Failed to load preview (missing event data)");
+        }
 
         setPageData(configData.data);
         setEventSlug(eventInfo.slug ?? null);
@@ -85,7 +95,7 @@ export default function PagePreviewPage() {
     }
 
     fetchPageConfig();
-  }, [params.id, getIdToken, actAsHeaders]);
+  }, [params.id, getIdToken, actAsHeaders, clearGrant]);
 
   const handlePublish = async () => {
     if (isPublishing) return;

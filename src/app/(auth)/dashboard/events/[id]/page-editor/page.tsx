@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
-import { useImpersonation } from "@/components/providers/ImpersonationProvider";
+import { useImpersonation, isImpersonationInvalid } from "@/components/providers/ImpersonationProvider";
 import { useIntersectionObserver, useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -200,7 +200,7 @@ export default function PageEditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { getIdToken } = useAuthContext();
-  const { actAsHeaders } = useImpersonation();
+  const { actAsHeaders, clearGrant } = useImpersonation();
   const [pageData, setPageData] = useState<PageConfigResponse | null>(null);
   const [config, setConfig] = useState<EventPageConfigV1 | null>(null);
   const [droppedSections, setDroppedSections] = useState<DroppedSection[]>([]);
@@ -252,6 +252,13 @@ export default function PageEditorPage() {
         });
 
         if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          if (isImpersonationInvalid(body)) {
+            clearGrant();
+            throw new Error(
+              "Your editing session ended. Return to admin tools and start a new one.",
+            );
+          }
           throw new Error("Failed to fetch page configuration");
         }
 
@@ -268,7 +275,7 @@ export default function PageEditorPage() {
     }
 
     fetchPageConfig();
-  }, [params.id, getIdToken, actAsHeaders]);
+  }, [params.id, getIdToken, actAsHeaders, clearGrant]);
 
   const handleTemplateChange = useCallback((newTemplateId: string) => {
     if (config) {
@@ -726,6 +733,12 @@ export default function PageEditorPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (isImpersonationInvalid(errorData)) {
+          clearGrant();
+          throw new Error(
+            "Your editing session ended before this save — your changes weren't saved. Restart from admin tools to continue.",
+          );
+        }
         throw new Error(errorData.error || "Failed to save configuration");
       }
 
