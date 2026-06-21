@@ -1,8 +1,13 @@
 import { NextRequest, after } from "next/server";
 import { z } from "zod";
-import { verifyAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canUploadMedia, assertCanMutate } from "@/lib/authorization";
+import { canUploadMedia } from "@/lib/authorization";
+import { handleApiError } from "@/lib/api-response";
+import {
+  resolveEffectiveUser,
+  requireEffectiveMutator,
+  auditImpersonatedEdit,
+} from "@/lib/impersonation";
 import {
   validateUploadedImage,
   optimizeImage,
@@ -62,17 +67,13 @@ type RouteContext = {
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    // 1. Authenticate
-    const user = await verifyAuth(request);
-    if (!user) {
-      return errorResponse("Unauthorized", 401);
-    }
-
     const { id: eventId } = await context.params;
-    assertCanMutate(user);
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
     // 2. Check upload permissions (includes ownership verification)
-    const uploadCheck = await canUploadMedia(eventId, user.id);
+    const uploadCheck = await canUploadMedia(eventId, effective.id);
     if (!uploadCheck.allowed) {
       return errorResponse(uploadCheck.reason || "Upload not allowed", 403);
     }
@@ -176,7 +177,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const asset = await db.mediaAsset.create({
       data: {
         eventId,
-        ownerUserId: user.id,
+        // The asset belongs to the organizer's media library, even when an
+        // admin uploads it while acting-as (actor === effective when not). The
+        // audit log below records who actually performed the upload.
+        ownerUserId: effective.id,
         kind,
         tags,
         bucket: BUCKETS.eventAssets,
@@ -225,6 +229,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     });
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "media.POST",
+      assetId: asset.id,
+      kind,
+    });
+
     // Revalidate public page if event is published
     const event = await db.event.findUnique({
       where: { id: eventId },
@@ -247,8 +257,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       201
     );
   } catch (error) {
-    console.error("Media upload error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }
 
@@ -258,16 +267,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    // 1. Authenticate
-    const user = await verifyAuth(request);
-    if (!user) {
+    const { id: eventId } = await context.params;
+    const ctx = await resolveEffectiveUser(request, eventId);
+    if (!ctx) {
       return errorResponse("Unauthorized", 401);
     }
 
-    const { id: eventId } = await context.params;
-
     // 2. Verify user can access event assets
-    const uploadCheck = await canUploadMedia(eventId, user.id);
+    const uploadCheck = await canUploadMedia(eventId, ctx.effective.id);
     if (!uploadCheck.allowed && uploadCheck.reason?.includes("permission")) {
       return errorResponse("Event not found or access denied", 404);
     }
@@ -294,8 +301,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return successResponse({ assets });
   } catch (error) {
-    console.error("Media list error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }
 
@@ -306,17 +312,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    // 1. Authenticate
-    const user = await verifyAuth(request);
-    if (!user) {
-      return errorResponse("Unauthorized", 401);
-    }
-
     const { id: eventId } = await context.params;
-    assertCanMutate(user);
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
     // 2. Verify user can modify event assets
-    const uploadCheck = await canUploadMedia(eventId, user.id);
+    const uploadCheck = await canUploadMedia(eventId, effective.id);
     if (!uploadCheck.allowed) {
       return errorResponse(uploadCheck.reason || "Not allowed", 403);
     }
@@ -353,13 +355,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       },
     });
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "media.PATCH",
+      assetId,
+    });
+
     return successResponse(updated);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse("Invalid request body", 400);
-    }
-    console.error("Media patch error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }
 
@@ -370,17 +373,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
  */
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    // 1. Authenticate
-    const user = await verifyAuth(request);
-    if (!user) {
-      return errorResponse("Unauthorized", 401);
-    }
-
     const { id: eventId } = await context.params;
-    assertCanMutate(user);
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
     // 2. Verify user can modify event assets
-    const uploadCheck = await canUploadMedia(eventId, user.id);
+    const uploadCheck = await canUploadMedia(eventId, effective.id);
     if (!uploadCheck.allowed && uploadCheck.reason?.includes("permission")) {
       return errorResponse("Event not found or access denied", 404);
     }
@@ -462,6 +461,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       )
     );
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "media.DELETE",
+      assetId,
+    });
+
     // Revalidate public page if event is published
     const eventForReval = await db.event.findUnique({
       where: { id: eventId },
@@ -473,7 +477,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return successResponse({ deleted: true });
   } catch (error) {
-    console.error("Media delete error:", error);
-    return errorResponse("Internal server error", 500);
+    return handleApiError(error);
   }
 }

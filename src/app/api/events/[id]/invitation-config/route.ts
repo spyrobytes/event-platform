@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { verifyAuth } from "@/lib/auth";
-import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
+import { requireEventOwner } from "@/lib/authorization";
+import {
+  resolveEffectiveUser,
+  requireEffectiveMutator,
+  auditImpersonatedEdit,
+} from "@/lib/impersonation";
 import {
   successResponse,
   handleApiError,
@@ -22,13 +26,13 @@ type RouteContext = {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
-    const user = await verifyAuth(request);
+    const ctx = await resolveEffectiveUser(request, eventId);
 
-    if (!user) {
+    if (!ctx) {
       return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    await requireEventOwner(eventId, user.id);
+    await requireEventOwner(eventId, ctx.effective.id);
 
     // Fetch invitation config
     const config = await db.invitationConfig.findUnique({
@@ -49,14 +53,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
-    const user = await verifyAuth(request);
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
-    if (!user) {
-      return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
-    }
-
-    await requireEventOwner(eventId, user.id);
-    assertCanMutate(user);
+    await requireEventOwner(eventId, effective.id);
 
     // Verify event exists
     const event = await db.event.findUnique({
@@ -121,6 +122,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       update: configFields,
     });
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "invitation-config.PUT",
+      template: data.template,
+    });
+
     return successResponse(config);
   } catch (error) {
     return handleApiError(error);
@@ -134,14 +140,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
-    const user = await verifyAuth(request);
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
-    if (!user) {
-      return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
-    }
-
-    await requireEventOwner(eventId, user.id);
-    assertCanMutate(user);
+    await requireEventOwner(eventId, effective.id);
 
     // Check if config exists
     const existing = await db.invitationConfig.findUnique({
@@ -155,6 +158,10 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     await db.invitationConfig.delete({
       where: { eventId },
+    });
+
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "invitation-config.DELETE",
     });
 
     return successResponse({ success: true });
