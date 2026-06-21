@@ -89,8 +89,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
       where: { id: eventId },
       select: {
         title: true,
+        slug: true,
         startAt: true,
+        endAt: true,
         timezone: true,
+        rsvpDeadline: true,
         venueName: true,
         address: true,
         city: true,
@@ -147,14 +150,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
       isPublished: !!fullEvent.publishedAt,
       publishedAt: fullEvent.publishedAt,
       assets: fullEvent.mediaAssets,
-      // Surfaced so the page editor can prefill new map sections from the
-      // Event row (Phase 2 D2 — prefill-only, one-way, on first add).
+      // Event-row fields consumers need alongside the config: the editor prefills
+      // new map sections from venue/address (Phase 2 D2), and the page preview
+      // reads slug (public link) + dates (countdown) from here — so the preview
+      // stays on this one act-as-honored route instead of a separate event GET.
       event: {
+        slug: fullEvent.slug,
         venueName: fullEvent.venueName,
         address: fullEvent.address,
         city: fullEvent.city,
         country: fullEvent.country,
         timezone: fullEvent.timezone,
+        startAt: fullEvent.startAt,
+        endAt: fullEvent.endAt,
+        rsvpDeadline: fullEvent.rsvpDeadline,
       },
     });
   } catch (error) {
