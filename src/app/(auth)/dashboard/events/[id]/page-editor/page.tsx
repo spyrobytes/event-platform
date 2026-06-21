@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useImpersonation } from "@/components/providers/ImpersonationProvider";
 import { useIntersectionObserver, useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -199,6 +200,7 @@ export default function PageEditorPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { getIdToken } = useAuthContext();
+  const { actAsHeaders } = useImpersonation();
   const [pageData, setPageData] = useState<PageConfigResponse | null>(null);
   const [config, setConfig] = useState<EventPageConfigV1 | null>(null);
   const [droppedSections, setDroppedSections] = useState<DroppedSection[]>([]);
@@ -243,7 +245,10 @@ export default function PageEditorPage() {
         }
 
         const response = await fetch(`/api/events/${params.id}/page-config`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...actAsHeaders(params.id),
+          },
         });
 
         if (!response.ok) {
@@ -263,7 +268,7 @@ export default function PageEditorPage() {
     }
 
     fetchPageConfig();
-  }, [params.id, getIdToken]);
+  }, [params.id, getIdToken, actAsHeaders]);
 
   const handleTemplateChange = useCallback((newTemplateId: string) => {
     if (config) {
@@ -711,6 +716,7 @@ export default function PageEditorPage() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...actAsHeaders(params.id),
         },
         body: JSON.stringify({
           config,
@@ -761,6 +767,7 @@ export default function PageEditorPage() {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...actAsHeaders(params.id),
           },
           body: JSON.stringify({
             config,
@@ -782,7 +789,7 @@ export default function PageEditorPage() {
         setSaving(false);
       }
     },
-    [config, saving, hasChanges, getIdToken, params.id, templateId]
+    [config, saving, hasChanges, getIdToken, params.id, templateId, actAsHeaders]
   );
 
   // Preview navigation gates on dirty state — same pattern as the invitation

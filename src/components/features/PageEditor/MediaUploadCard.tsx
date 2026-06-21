@@ -20,6 +20,7 @@ import {
   MEDIA_TAG_HINTS,
   type MediaTag,
 } from "@/lib/media-tags";
+import { useImpersonation } from "@/components/providers/ImpersonationProvider";
 
 type Asset = {
   id: string;
@@ -54,6 +55,7 @@ export function MediaUploadCard({
   maxAssets = PAGE_CONFIG_LIMITS.maxAssetsPerEvent,
 }: MediaUploadCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { actAsHeaders } = useImpersonation();
   const [selectedTags, setSelectedTags] = useState<MediaTag[]>(["gallery"]);
   const [altText, setAltText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -109,6 +111,7 @@ export function MediaUploadCard({
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...actAsHeaders(eventId),
         },
         body: JSON.stringify({ assetId: editingAssetId, tags: editingTags }),
       });
@@ -131,7 +134,7 @@ export function MediaUploadCard({
     } finally {
       setSavingEdit(false);
     }
-  }, [editingAssetId, editingTags, eventId, getIdToken, onAssetUpdated]);
+  }, [editingAssetId, editingTags, eventId, getIdToken, onAssetUpdated, actAsHeaders]);
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -194,7 +197,7 @@ export function MediaUploadCard({
 
       const response = await fetch(`/api/events/${eventId}/media`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, ...actAsHeaders(eventId) },
         body: formData,
       });
 
@@ -228,7 +231,7 @@ export function MediaUploadCard({
     } finally {
       setUploading(false);
     }
-  }, [selectedFile, altText, selectedTags, eventId, getIdToken, onAssetUploaded]);
+  }, [selectedFile, altText, selectedTags, eventId, getIdToken, onAssetUploaded, actAsHeaders]);
 
   const handleDelete = useCallback(
     async (assetId: string) => {
@@ -247,6 +250,7 @@ export function MediaUploadCard({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            ...actAsHeaders(eventId),
           },
           body: JSON.stringify({ assetId }),
         });
@@ -263,7 +267,7 @@ export function MediaUploadCard({
         setDeleting(null);
       }
     },
-    [eventId, getIdToken, onAssetDeleted]
+    [eventId, getIdToken, onAssetDeleted, actAsHeaders]
   );
 
   return (
