@@ -1,8 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { verifyEventOwnership, canModifyPageConfig, assertCanMutate } from "@/lib/authorization";
-import { resolveEffectiveUser, auditImpersonatedEdit } from "@/lib/impersonation";
+import { verifyEventOwnership, canModifyPageConfig, assertCanPublish } from "@/lib/authorization";
+import {
+  resolveEffectiveUser,
+  requireEffectiveMutator,
+  auditImpersonatedEdit,
+} from "@/lib/impersonation";
 import { MEDIA_ASSET_SELECT } from "@/lib/event-page-loader";
 import {
   successResponse,
@@ -166,13 +170,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
 
-    const ctx = await resolveEffectiveUser(request, eventId);
-    if (!ctx) {
-      return errorResponse("Unauthorized", 401);
-    }
-    const { actor, effective } = ctx;
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
-    assertCanMutate(effective);
     const canModify = await canModifyPageConfig(eventId, effective.id);
     if (!canModify) {
       return errorResponse("Event not found or access denied", 403);
@@ -259,9 +260,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         eventId,
         pageConfig: configToStore,
         configVersion: validatedConfig.schemaVersion,
-        // Honest attribution: the real actor — the admin when acting-as, else
-        // the organizer themselves (actor === effective when not impersonating).
-        createdBy: actor.id,
+        // Attribute the version to the ORGANIZER (effective). Version history is
+        // organizer-facing (versions/route.ts resolves createdBy → name/email),
+        // so recording the admin here would leak staff PII to the customer. The
+        // admin actor is captured in the immutable audit log instead, below.
+        createdBy: effective.id,
       },
     });
     await pruneOldVersions(eventId);
@@ -279,15 +282,17 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       },
     });
 
-    // Revalidate public page if published
-    if (updatedEvent.publishedAt) {
-      await revalidateEventPage(updatedEvent.slug);
-    }
-
+    // Record the act-as edit BEFORE the best-effort revalidate, so a transient
+    // revalidation failure can't drop the audit row for a committed mutation.
     await auditImpersonatedEdit(ctx, request, eventId, {
       route: "page-config.PUT",
       templateChanged: !!templateId,
     });
+
+    // Revalidate public page if published
+    if (updatedEvent.publishedAt) {
+      await revalidateEventPage(updatedEvent.slug);
+    }
 
     return successResponse({ updated: true });
   } catch (error) {
@@ -304,13 +309,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
 
-    const ctx = await resolveEffectiveUser(request, eventId);
-    if (!ctx) {
-      return errorResponse("Unauthorized", 401);
-    }
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
     const { effective } = ctx;
 
-    assertCanMutate(effective);
     const hasAccess = await verifyEventOwnership(eventId, effective.id);
     if (!hasAccess) {
       return errorResponse("Event not found or access denied", 404);
@@ -320,6 +322,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { action } = pageConfigActionSchema.parse(body);
 
     if (action === "publish") {
+      // Publishing is gated stricter than editing: an UNDER_REVIEW organizer may
+      // edit drafts but not push them live. assertCanPublish adds the
+      // UNDER_REVIEW check on top of the SUSPENDED check the mutator already ran
+      // — and it applies to an admin acting-as such an organizer too.
+      assertCanPublish(effective);
+
       // Verify config is valid before publishing
       const fullEvent = await db.event.findUnique({
         where: { id: eventId },
@@ -381,13 +389,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
 
-      // Revalidate the public page
-      await revalidateEventPage(fullEvent.slug);
-
       await auditImpersonatedEdit(ctx, request, eventId, {
         route: "page-config.POST",
         action: "publish",
       });
+
+      // Revalidate the public page
+      await revalidateEventPage(fullEvent.slug);
 
       return successResponse({ published: true, publishedAt: new Date() });
     } else if (action === "unpublish") {
@@ -404,15 +412,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
 
-      // Revalidate to clear the cached page
-      if (event) {
-        await revalidateEventPage(event.slug);
-      }
-
       await auditImpersonatedEdit(ctx, request, eventId, {
         route: "page-config.POST",
         action: "unpublish",
       });
+
+      // Revalidate to clear the cached page
+      if (event) {
+        await revalidateEventPage(event.slug);
+      }
 
       return successResponse({ published: false });
     }

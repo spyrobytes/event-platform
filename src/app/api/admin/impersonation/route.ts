@@ -118,16 +118,17 @@ export async function DELETE(request: NextRequest) {
     if (!grant || grant.adminUserId !== admin.id) {
       return errorResponse("Grant not found", 404);
     }
-    if (grant.endedAt) {
-      return successResponse({ ended: true, alreadyEnded: true });
-    }
-
     const { ip, userAgent } = requestMeta(request);
-    await db.$transaction(async (tx) => {
-      await tx.impersonationGrant.update({
-        where: { id: grantId },
+    const ended = await db.$transaction(async (tx) => {
+      // Atomic transition: the conditional `endedAt: null` means only the
+      // request that actually flips null→now writes the IMPERSONATION_END row.
+      // Postgres row-locks the update, so a double-clicked Exit (two concurrent
+      // DELETEs, or a retry) can't produce duplicate end-audit entries.
+      const result = await tx.impersonationGrant.updateMany({
+        where: { id: grantId, endedAt: null },
         data: { endedAt: new Date() },
       });
+      if (result.count === 0) return false; // already ended by a prior/concurrent call
       await recordAdminAudit(
         {
           actorUserId: admin.id,
@@ -141,9 +142,10 @@ export async function DELETE(request: NextRequest) {
         },
         tx,
       );
+      return true;
     });
 
-    return successResponse({ ended: true });
+    return successResponse({ ended: true, alreadyEnded: !ended });
   } catch (error) {
     return handleApiError(error);
   }

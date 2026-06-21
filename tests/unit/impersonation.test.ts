@@ -16,6 +16,7 @@ vi.mock("@/lib/db", () => ({ db: dbMock }));
 
 const {
   resolveEffectiveUser,
+  requireEffectiveMutator,
   auditImpersonatedEdit,
   ACT_AS_HEADER,
   ImpersonationError,
@@ -146,6 +147,33 @@ describe("auditImpersonatedEdit", () => {
       targetUserId: "org_1",
       eventId: "evt_1",
       grantId: "grant_1",
+    });
+  });
+});
+
+describe("requireEffectiveMutator", () => {
+  beforeEach(() => {
+    verifyAuthMock.mockReset();
+  });
+
+  it("returns a 401 Response when unauthenticated", async () => {
+    verifyAuthMock.mockResolvedValue(null);
+    const r = await requireEffectiveMutator(req(), "evt_1");
+    expect(r).toBeInstanceOf(Response);
+    expect((r as Response).status).toBe(401);
+  });
+
+  it("returns the context for an active, non-suspended user", async () => {
+    verifyAuthMock.mockResolvedValue(organizer);
+    const r = await requireEffectiveMutator(req(), "evt_1");
+    expect(r).not.toBeInstanceOf(Response);
+    expect((r as { effective: typeof organizer }).effective).toBe(organizer);
+  });
+
+  it("throws a 403 when the effective user is SUSPENDED", async () => {
+    verifyAuthMock.mockResolvedValue({ ...organizer, status: "SUSPENDED" });
+    await expect(requireEffectiveMutator(req(), "evt_1")).rejects.toMatchObject({
+      statusCode: 403,
     });
   });
 });

@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { ForbiddenError } from "@/lib/errors";
+import { errorResponse } from "@/lib/api-response";
+import { assertCanMutate } from "@/lib/authorization";
 import { recordAdminAudit, ADMIN_AUDIT_ACTION } from "@/lib/audit";
 import type { ImpersonationGrant, User } from "@prisma/client";
 
@@ -92,6 +94,30 @@ export async function resolveEffectiveUser(
   }
 
   return { actor, effective, grant, impersonating: true };
+}
+
+/**
+ * Gate for an act-as MUTATION route. Consolidates the resolve → 401 →
+ * suspend-check ceremony so every editing handler shares one chokepoint
+ * (mirrors `requireAdmin`'s `User | Response` shape).
+ *
+ * Returns the EffectiveUserContext on success, or a Response the caller must
+ * return as-is (401, unauthenticated). THROWS for the 403 cases — an invalid
+ * act-as header (ImpersonationError) or a SUSPENDED effective user
+ * (AccountSuspendedError) — both caught by the route's handleApiError / AppError
+ * catch. The caller still runs its own ownership check (which helper varies).
+ *
+ * Reads (GET) call `resolveEffectiveUser` directly — they don't mutate, so they
+ * skip the suspend gate.
+ */
+export async function requireEffectiveMutator(
+  request: NextRequest,
+  eventId: string,
+): Promise<EffectiveUserContext | Response> {
+  const ctx = await resolveEffectiveUser(request, eventId);
+  if (!ctx) return errorResponse("Unauthorized", 401);
+  assertCanMutate(ctx.effective);
+  return ctx;
 }
 
 /** Best-effort client metadata for the audit trail. */

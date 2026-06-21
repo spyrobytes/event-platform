@@ -1,8 +1,12 @@
 import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { canUploadMedia, assertCanMutate } from "@/lib/authorization";
-import { resolveEffectiveUser, auditImpersonatedEdit } from "@/lib/impersonation";
+import { canUploadMedia } from "@/lib/authorization";
+import {
+  resolveEffectiveUser,
+  requireEffectiveMutator,
+  auditImpersonatedEdit,
+} from "@/lib/impersonation";
 import { AppError } from "@/lib/errors";
 import {
   validateUploadedImage,
@@ -64,12 +68,9 @@ type RouteContext = {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
-    const ctx = await resolveEffectiveUser(request, eventId);
-    if (!ctx) {
-      return errorResponse("Unauthorized", 401);
-    }
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
     const { effective } = ctx;
-    assertCanMutate(effective);
 
     // 2. Check upload permissions (includes ownership verification)
     const uploadCheck = await canUploadMedia(eventId, effective.id);
@@ -228,6 +229,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     });
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "media.POST",
+      assetId: asset.id,
+      kind,
+    });
+
     // Revalidate public page if event is published
     const event = await db.event.findUnique({
       where: { id: eventId },
@@ -236,12 +243,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (event?.status === "PUBLISHED") {
       await revalidateEventPage(event.slug);
     }
-
-    await auditImpersonatedEdit(ctx, request, eventId, {
-      route: "media.POST",
-      assetId: asset.id,
-      kind,
-    });
 
     return successResponse(
       {
@@ -320,12 +321,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
-    const ctx = await resolveEffectiveUser(request, eventId);
-    if (!ctx) {
-      return errorResponse("Unauthorized", 401);
-    }
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
     const { effective } = ctx;
-    assertCanMutate(effective);
 
     // 2. Verify user can modify event assets
     const uploadCheck = await canUploadMedia(eventId, effective.id);
@@ -391,12 +389,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { id: eventId } = await context.params;
-    const ctx = await resolveEffectiveUser(request, eventId);
-    if (!ctx) {
-      return errorResponse("Unauthorized", 401);
-    }
+    const ctx = await requireEffectiveMutator(request, eventId);
+    if (ctx instanceof Response) return ctx;
     const { effective } = ctx;
-    assertCanMutate(effective);
 
     // 2. Verify user can modify event assets
     const uploadCheck = await canUploadMedia(eventId, effective.id);
@@ -481,6 +476,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       )
     );
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "media.DELETE",
+      assetId,
+    });
+
     // Revalidate public page if event is published
     const eventForReval = await db.event.findUnique({
       where: { id: eventId },
@@ -489,11 +489,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     if (eventForReval?.status === "PUBLISHED") {
       await revalidateEventPage(eventForReval.slug);
     }
-
-    await auditImpersonatedEdit(ctx, request, eventId, {
-      route: "media.DELETE",
-      assetId,
-    });
 
     return successResponse({ deleted: true });
   } catch (error) {
