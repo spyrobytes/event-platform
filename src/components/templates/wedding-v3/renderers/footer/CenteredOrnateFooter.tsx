@@ -9,6 +9,7 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { BrandCredit } from "@/components/brand";
 
 export function CenteredOrnateFooter({
   monogram,
@@ -135,15 +136,13 @@ export function CenteredOrnateFooter({
           </nav>
         )}
 
-        <p
+        <BrandCredit
           style={{
             fontFamily: "var(--sans)",
             fontSize: "0.65rem",
-            color: "rgba(255, 255, 255, 0.25)",
+            color: "rgba(255, 255, 255, 0.55)",
           }}
-        >
-          Powered by Events Fixer
-        </p>
+        />
       </div>
 
       {/* Hover styles for footer links */}

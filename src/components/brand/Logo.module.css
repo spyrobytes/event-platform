@@ -26,3 +26,13 @@
   animation: fadeIn 0.5s ease-out forwards;
   animation-delay: 0.3s;
 }
+
+/* Static (non-animated) wordmark — same brand colors, no entrance fade.
+   Used for footer/credit contexts where the logo sits below the fold. */
+.eventPartStatic {
+  color: #22c55e;
+}
+
+.fxrPartStatic {
+  color: #f755f5;
+}

@@ -8,6 +8,7 @@
  */
 
 import type { FooterRendererProps } from "../../types";
+import { BrandCredit } from "@/components/brand";
 import { SocialIconRow } from "../../../shared";
 
 export function DramaticDarkFooter({
@@ -72,9 +73,7 @@ export function DramaticDarkFooter({
           style={{ marginBottom: "clamp(20px, 2.5vw, 28px)" }}
         />
 
-        <p style={{ fontFamily: "var(--sans)", fontSize: "0.62rem", color: "var(--lux-ink-faint, rgba(255,255,255,0.2))" }}>
-          Powered by Events Fixer
-        </p>
+        <BrandCredit style={{ fontFamily: "var(--sans)", fontSize: "0.62rem", color: "var(--lux-ink-soft, rgba(255,255,255,0.55))" }} />
       </div>
 
       {/* Hover styles for footer links */}
