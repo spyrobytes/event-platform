@@ -47,11 +47,16 @@ export type RecordAdminAuditInput = {
  * whether an audit-write failure should abort the underlying action. For
  * security-relevant events (e.g. starting an impersonation grant) it should:
  * no audit, no action.
+ *
+ * Pass a transaction `client` to make the audit atomic with its action — e.g.
+ * `db.$transaction(tx => { ...mutate; recordAdminAudit(input, tx) })` so the
+ * grant and its start/stop log row commit together (both or neither).
  */
 export async function recordAdminAudit(
   input: RecordAdminAuditInput,
+  client: Prisma.TransactionClient = db,
 ): Promise<void> {
-  await db.adminAuditLog.create({
+  await client.adminAuditLog.create({
     data: {
       actorUserId: input.actorUserId,
       actorEmail: input.actorEmail ?? null,

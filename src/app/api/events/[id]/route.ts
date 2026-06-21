@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
+import { resolveEffectiveUser, auditImpersonatedEdit } from "@/lib/impersonation";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { updateEventSchema } from "@/schemas/event";
 import { NotFoundError } from "@/lib/errors";
@@ -80,14 +81,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = await verifyAuth(request);
+    const ctx = await resolveEffectiveUser(request, id);
 
-    if (!user) {
+    if (!ctx) {
       return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
     }
+    const { effective } = ctx;
 
-    await requireEventOwner(id, user.id);
-    assertCanMutate(user);
+    await requireEventOwner(id, effective.id);
+    assertCanMutate(effective);
 
     const body = await request.json();
     const data = updateEventSchema.parse(body);
@@ -223,6 +225,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         revalidateEventPage(renameInfo.to),
       ]);
     }
+
+    await auditImpersonatedEdit(ctx, request, id, {
+      route: "events.PATCH",
+      renamed: !!renameInfo,
+    });
 
     return successResponse(event);
   } catch (error) {

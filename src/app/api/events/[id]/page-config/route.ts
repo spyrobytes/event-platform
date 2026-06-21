@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { verifyAuth } from "@/lib/auth";
 import { verifyEventOwnership, canModifyPageConfig, assertCanMutate } from "@/lib/authorization";
+import { resolveEffectiveUser, auditImpersonatedEdit } from "@/lib/impersonation";
 import { MEDIA_ASSET_SELECT } from "@/lib/event-page-loader";
 import {
   successResponse,
@@ -68,14 +68,14 @@ type RouteContext = {
  */
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const user = await verifyAuth(request);
-    if (!user) {
+    const { id: eventId } = await context.params;
+
+    const ctx = await resolveEffectiveUser(request, eventId);
+    if (!ctx) {
       return errorResponse("Unauthorized", 401);
     }
 
-    const { id: eventId } = await context.params;
-
-    const hasAccess = await verifyEventOwnership(eventId, user.id);
+    const hasAccess = await verifyEventOwnership(eventId, ctx.effective.id);
     if (!hasAccess) {
       return errorResponse("Event not found or access denied", 404);
     }
@@ -164,15 +164,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
  */
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const user = await verifyAuth(request);
-    if (!user) {
-      return errorResponse("Unauthorized", 401);
-    }
-
     const { id: eventId } = await context.params;
 
-    assertCanMutate(user);
-    const canModify = await canModifyPageConfig(eventId, user.id);
+    const ctx = await resolveEffectiveUser(request, eventId);
+    if (!ctx) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const { actor, effective } = ctx;
+
+    assertCanMutate(effective);
+    const canModify = await canModifyPageConfig(eventId, effective.id);
     if (!canModify) {
       return errorResponse("Event not found or access denied", 403);
     }
@@ -258,7 +259,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         eventId,
         pageConfig: configToStore,
         configVersion: validatedConfig.schemaVersion,
-        createdBy: user.id,
+        // Honest attribution: the real actor — the admin when acting-as, else
+        // the organizer themselves (actor === effective when not impersonating).
+        createdBy: actor.id,
       },
     });
     await pruneOldVersions(eventId);
@@ -281,6 +284,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       await revalidateEventPage(updatedEvent.slug);
     }
 
+    await auditImpersonatedEdit(ctx, request, eventId, {
+      route: "page-config.PUT",
+      templateChanged: !!templateId,
+    });
+
     return successResponse({ updated: true });
   } catch (error) {
     return handleApiError(error);
@@ -294,15 +302,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
  */
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const user = await verifyAuth(request);
-    if (!user) {
-      return errorResponse("Unauthorized", 401);
-    }
-
     const { id: eventId } = await context.params;
 
-    assertCanMutate(user);
-    const hasAccess = await verifyEventOwnership(eventId, user.id);
+    const ctx = await resolveEffectiveUser(request, eventId);
+    if (!ctx) {
+      return errorResponse("Unauthorized", 401);
+    }
+    const { effective } = ctx;
+
+    assertCanMutate(effective);
+    const hasAccess = await verifyEventOwnership(eventId, effective.id);
     if (!hasAccess) {
       return errorResponse("Event not found or access denied", 404);
     }
@@ -375,6 +384,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       // Revalidate the public page
       await revalidateEventPage(fullEvent.slug);
 
+      await auditImpersonatedEdit(ctx, request, eventId, {
+        route: "page-config.POST",
+        action: "publish",
+      });
+
       return successResponse({ published: true, publishedAt: new Date() });
     } else if (action === "unpublish") {
       // Get slug before unpublishing for revalidation
@@ -394,6 +408,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (event) {
         await revalidateEventPage(event.slug);
       }
+
+      await auditImpersonatedEdit(ctx, request, eventId, {
+        route: "page-config.POST",
+        action: "unpublish",
+      });
 
       return successResponse({ published: false });
     }
