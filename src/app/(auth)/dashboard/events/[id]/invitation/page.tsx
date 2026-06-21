@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import { useImpersonation } from "@/components/providers/ImpersonationProvider";
 import { useUnsavedChangesGuard } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,12 @@ const TEXT_DIRECTION_OPTIONS: { value: TextDirection; label: string }[] = [
 export default function InvitationConfigPage() {
   const params = useParams<{ id: string }>();
   const { getIdToken } = useAuthContext();
+  const { grant } = useImpersonation();
+  // Act-as stopgap: this editor isn't wired for impersonation yet (its event GET
+  // and ImageAssetPicker uploads aren't act-as-honored), so block it cleanly
+  // while a grant is active for this event rather than letting the admin hit a
+  // confusing 404. Full wiring is a tracked follow-up.
+  const blockedByActAs = !!grant && grant.eventId === params.id;
 
   const [event, setEvent] = useState<EventBasic | null>(null);
   const [config, setConfig] = useState<InvitationConfig | null>(null);
@@ -163,6 +170,12 @@ export default function InvitationConfigPage() {
   // Fetch event and config
   useEffect(() => {
     async function fetchData() {
+      // Don't attempt the (non-act-as-honored) event GET while acting on behalf
+      // of an organizer — the render gate shows a notice instead.
+      if (blockedByActAs) {
+        setLoading(false);
+        return;
+      }
       try {
         const token = await getIdToken();
         if (!token) {
@@ -250,7 +263,7 @@ export default function InvitationConfigPage() {
     }
 
     fetchData();
-  }, [params.id, getIdToken]);
+  }, [params.id, getIdToken, blockedByActAs]);
 
   // Mark form as dirty when any value changes
   const handleFieldChange = useCallback(
@@ -450,6 +463,26 @@ export default function InvitationConfigPage() {
   };
 
   const supports = (field: TemplateField) => templateSupportsField(template, field);
+
+  if (blockedByActAs) {
+    return (
+      <div className="space-y-4">
+        <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-6 text-center">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+            Invitation editing isn&apos;t available while editing on behalf of an
+            organizer yet.
+          </p>
+          <p className="text-sm text-amber-800/80 dark:text-amber-300/80">
+            Use the page editor for template changes, or exit the act-as session
+            to edit invitations directly.
+          </p>
+        </div>
+        <Link href={`/dashboard/events/${params.id}/page-editor`}>
+          <Button variant="outline">Back to page editor</Button>
+        </Link>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
