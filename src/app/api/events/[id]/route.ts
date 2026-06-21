@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
-import { requireEffectiveMutator, auditImpersonatedEdit } from "@/lib/impersonation";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { updateEventSchema } from "@/schemas/event";
 import { NotFoundError } from "@/lib/errors";
@@ -81,11 +80,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const ctx = await requireEffectiveMutator(request, id);
-    if (ctx instanceof Response) return ctx;
-    const { effective } = ctx;
+    const user = await verifyAuth(request);
 
-    await requireEventOwner(id, effective.id);
+    if (!user) {
+      return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
+    }
+
+    await requireEventOwner(id, user.id);
+    assertCanMutate(user);
 
     const body = await request.json();
     const data = updateEventSchema.parse(body);
@@ -211,13 +213,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
       throw err;
     }
-
-    // Record the act-as edit before the best-effort revalidate (below), so a
-    // transient revalidation failure can't drop the audit for a committed edit.
-    await auditImpersonatedEdit(ctx, request, id, {
-      route: "events.PATCH",
-      renamed: !!renameInfo,
-    });
 
     if (renameInfo) {
       // Bust any cached responses for the old + new path. The /e routes are

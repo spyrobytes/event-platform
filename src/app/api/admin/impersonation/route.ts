@@ -49,6 +49,15 @@ export async function POST(request: NextRequest) {
     if (target.status === "BANNED") {
       return errorResponse("Target organizer is banned", 403);
     }
+    if (target.status === "SUSPENDED") {
+      // A SUSPENDED organizer is write-frozen by moderation — every edit route
+      // would 403 via assertCanMutate anyway. Reject up front so we never hand
+      // back a dead-end grant; lift the suspension first to act on their behalf.
+      return errorResponse(
+        "Target organizer is suspended — lift the suspension before acting on their behalf",
+        403,
+      );
+    }
 
     // The grant must be scoped to an event the target actually owns — otherwise
     // acting-as would resolve to a user who can't edit it anyway, and it would
