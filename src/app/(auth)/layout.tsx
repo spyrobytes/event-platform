@@ -78,10 +78,28 @@ function DashboardNav() {
 function ActingAsBanner() {
   const { grant, exitActAs } = useImpersonation();
   const router = useRouter();
+  // Tick once a second so the remaining-time display counts down live. `now`
+  // only affects output while a grant is active (which is post-mount, client
+  // only — the banner renders null during SSR/hydration), so seeding it from
+  // Date.now() can't cause a hydration mismatch.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!grant) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [grant]);
 
   if (!grant) return null;
 
   const who = grant.target.name?.trim() || grant.target.email;
+  const remainingSec = Math.max(
+    0,
+    Math.ceil((new Date(grant.expiresAt).getTime() - now) / 1000),
+  );
+  const mm = Math.floor(remainingSec / 60);
+  const ss = String(remainingSec % 60).padStart(2, "0");
+
   const handleExit = async () => {
     await exitActAs();
     router.push("/efx-ctrl/events");
@@ -91,6 +109,10 @@ function ActingAsBanner() {
   return (
     <div className="flex items-center justify-center gap-2 border-b bg-foreground px-4 py-2 text-center text-sm text-background">
       <span className="font-medium">Editing on behalf of {who}</span>
+      <span aria-hidden="true">·</span>
+      <span className="tabular-nums opacity-80">
+        {mm}:{ss} left
+      </span>
       <span aria-hidden="true">·</span>
       <button
         type="button"
