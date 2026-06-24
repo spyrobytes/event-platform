@@ -12,6 +12,24 @@ import {
 import type { AnimationLevel } from "@/components/templates/wedding/variants/types";
 
 /**
+ * Cap on the per-section stagger steps. The reveal delay is `index * staggerDelay`,
+ * which grows unbounded — a late section (the wedding party is the usual case)
+ * would sit blank for ~1s before its fade even starts, reading as "a noticeable
+ * delay before the content appears" when the section is revealed while already in
+ * view (e.g. after a resize).
+ *
+ * Capping bounds that dead-blank: it keeps a short stagger between the first few
+ * sections and gives everything past the cap the same (small) delay. Sections are
+ * each tall and reveal individually as they're scrolled to, so the only visible
+ * effect of the shared tail delay is for the rare case where several past-the-cap
+ * sections enter in the same frame (e.g. a short page) — they fade together
+ * instead of rippling, an acceptable trade for never sitting blank ~1s. (Note
+ * index 0 is the first section BELOW the hero, which renders outside this map, so
+ * there is no at-load above-the-fold cascade to preserve.)
+ */
+const MAX_STAGGER_STEPS = 3;
+
+/**
  * V3 Motion preset — describes the animation personality of a template.
  * Optional: when provided, overrides animationLevel/staggerDelay with
  * richer motion configuration.
@@ -112,7 +130,7 @@ export function AnimationProvider({
       if (!enableStagger || effectiveAnimationLevel === "none") {
         return 0;
       }
-      return index * staggerDelay;
+      return Math.min(index, MAX_STAGGER_STEPS) * staggerDelay;
     },
     [enableStagger, staggerDelay, effectiveAnimationLevel]
   );

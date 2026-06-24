@@ -8,6 +8,28 @@ import { useSectionNavRef, useHasSectionNav } from "../SectionNav";
 import type { AnimationLevel } from "@/components/templates/wedding/variants/types";
 import styles from "./animations.module.css";
 
+/**
+ * Scroll-reveal viewport config (shared by AnimatedSection + AnimatedWrapper).
+ *
+ * We intentionally do NOT use a fractional area threshold (e.g. 0.15). With a
+ * single non-zero threshold, `IntersectionObserver.isIntersecting` only flips
+ * true once that *fraction of the element's own area* is on screen — so a section
+ * taller than ~1/threshold viewports (≈6.7× at 0.15) can never reach it and stays
+ * stuck at `opacity:0` (the wedding party with a large roster is the usual victim:
+ * it renders empty on desktop and only "appears" on a resize that re-fires the
+ * observer). Triggering as soon as ANY part enters is height-independent — short
+ * and very tall sections both reveal reliably.
+ *
+ * rootMargin is "0px" (no shrink) ON PURPOSE: a negative bottom margin would
+ * carve out a dead strip at the bottom of the viewport, and a short section that
+ * can come to rest entirely inside it (e.g. a brief final section that can't be
+ * scrolled past) would never intersect — re-creating the very blank-section bug
+ * this fix removes, just relocated to short trailing sections. Revealing at the
+ * edge is correct here: the entrance still animates as the section scrolls up.
+ */
+const REVEAL_THRESHOLD = 0;
+const REVEAL_ROOT_MARGIN = "0px";
+
 type AnimatedSectionProps = {
   children: React.ReactNode;
   /** Unique section ID for navigation and tracking */
@@ -24,7 +46,11 @@ type AnimatedSectionProps = {
   triggerOnce?: boolean;
   /** Whether to stagger children animations */
   staggerChildren?: boolean;
-  /** Intersection threshold for triggering animation (default: 0.15) */
+  /**
+   * Intersection threshold for triggering animation. Defaults to 0 (reveal as
+   * soon as the element enters, paired with REVEAL_ROOT_MARGIN) — see the
+   * REVEAL_THRESHOLD note for why a fractional threshold breaks tall sections.
+   */
   threshold?: number;
   /** Delay before animation starts in ms (overrides context stagger if provided) */
   delay?: number;
@@ -121,7 +147,7 @@ export function AnimatedSection({
   ariaLabel,
   triggerOnce = true,
   staggerChildren = false,
-  threshold = 0.15,
+  threshold = REVEAL_THRESHOLD,
   delay: propDelay,
   sectionIndex,
   style,
@@ -142,6 +168,7 @@ export function AnimatedSection({
   // Use standalone intersection observer
   const { ref, hasBeenVisible, isVisible } = useIntersectionObserver({
     threshold,
+    rootMargin: REVEAL_ROOT_MARGIN,
     triggerOnce,
     enabled: animationLevel !== "none",
   });
@@ -244,7 +271,11 @@ type AnimatedWrapperProps = {
   sectionIndex?: number;
   /** Delay before animation starts in ms */
   delay?: number;
-  /** Intersection threshold for triggering animation (default: 0.15) */
+  /**
+   * Intersection threshold for triggering animation. Defaults to 0 (reveal as
+   * soon as the element enters, paired with REVEAL_ROOT_MARGIN) — see the
+   * REVEAL_THRESHOLD note for why a fractional threshold breaks tall sections.
+   */
   threshold?: number;
   /** Additional CSS classes */
   className?: string;
@@ -266,7 +297,7 @@ export function AnimatedWrapper({
   animationLevel: propAnimationLevel,
   sectionIndex,
   delay: propDelay,
-  threshold = 0.15,
+  threshold = REVEAL_THRESHOLD,
   className,
   navId,
   navLabel,
@@ -292,6 +323,7 @@ export function AnimatedWrapper({
   // Use standalone intersection observer
   const { ref: observerRef, hasBeenVisible } = useIntersectionObserver({
     threshold,
+    rootMargin: REVEAL_ROOT_MARGIN,
     triggerOnce: true,
     enabled: animationLevel !== "none",
   });
