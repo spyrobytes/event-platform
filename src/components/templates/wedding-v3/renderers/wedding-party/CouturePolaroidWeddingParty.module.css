@@ -127,6 +127,13 @@
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.65s cubic-bezier(0.34, 1.4, 0.5, 1);
+  /* Retain the flip layers on the compositor. With backface-visibility:hidden the
+     first flip rotates the front away and the GPU frees its backing store (most
+     readily for the widest 2-col cards); the flip back then re-rasters with one
+     transparent frame — the front momentarily shows the section background before
+     the photo repaints. Promoting the rotating subtree keeps the backing store so
+     the very first round-trip is as clean as the rest. */
+  will-change: transform;
 }
 
 .cardOuter.flipped .cardInner { transform: rotateY(180deg); }
