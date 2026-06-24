@@ -159,12 +159,9 @@
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* Retain the flip layers on the compositor. With backface-visibility:hidden the
-     first flip rotates the front away and the GPU frees its backing store (most
-     readily for the widest 2-col cards); the flip back then re-rasters with one
-     transparent frame — the front momentarily shows the section background before
-     the photo repaints. Promoting the rotating subtree keeps the backing store so
-     the very first round-trip is as clean as the rest. */
+  /* Retain the flip subtree's layer (pairs with .front backface-visibility:visible)
+     so the front's backing store survives the first flip — fixes the one-frame
+     blank on first flip-back, worst on the widest 2-col cards. */
   will-change: transform;
 }
 
@@ -187,6 +184,12 @@
 
 /* ===== Front face — scrapbook photo ===== */
 .front {
+  /* Override .face: keep the front backface-VISIBLE so its layer isn't culled and
+     re-rastered blank on the first flip back to front. The back face keeps
+     backface-visibility:hidden and, being opaque + later in DOM, fully covers the
+     front while flipped, so the (now-rendered) front never shows through. */
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   background: var(--surface, #ffffff);
   padding: clamp(8px, 1.5vw, 14px);
   padding-bottom: clamp(32px, 4vw, 44px);
