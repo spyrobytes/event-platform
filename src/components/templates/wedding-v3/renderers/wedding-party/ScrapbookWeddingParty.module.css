@@ -277,7 +277,25 @@
   position: absolute;
   inset: 0;
   transform: rotateY(180deg);
-  background: var(--cream-on-card, var(--cream, #f5ede0));
+  /* Keep the back's compositor layer resident BEFORE the first flip. The back is
+     backface-VISIBILITY:hidden and faces away at rest, so the GPU culls it and
+     never allocates its backing store. On the FIRST flip TO the back — worst on
+     the tall 1-col mobile card (largest layer, most memory pressure) — it then
+     rasters a frame late; and since #238 made the FRONT backface-VISIBLE (so it's
+     now always painted, mirrored, during a flip), that one-frame gap let the
+     mirrored front bleed through as a flicker. The immune Gilded/Couture backs
+     never flicker because #239 gave them an image-backed opaque composite (a
+     materialized, retained layer); their flat-solid-color sibling here was the
+     only one left culled-and-flat. So mirror that profile: an image-backed paint
+     (a visual no-op — the cream is already opaque) plus will-change to keep the
+     layer resident. GPU-only — does not reproduce headless/in dev; verify on a
+     real device. */
+  background-color: var(--cream-on-card, var(--cream, #f5ede0));
+  background-image: linear-gradient(
+    var(--cream-on-card, var(--cream, #f5ede0)),
+    var(--cream-on-card, var(--cream, #f5ede0))
+  );
+  will-change: transform;
   padding: clamp(24px, 3vw, 36px) clamp(16px, 2vw, 28px);
   box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.08),
