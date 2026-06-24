@@ -275,6 +275,13 @@
   position: absolute;
   inset: 0;
   transform: rotateY(180deg);
+  /* Opaque back so the now-backface-VISIBLE front (see .front) can't bleed through
+     on THEMED sections, where --gf-card is the near-transparent --lux-card wash
+     (rgba ~6%). The wash composited over an opaque --gf-band (--lux-panel) base
+     reads identically but fully covers the front. On the Light default --gf-card
+     is the opaque --surface, so this stays a no-op there. */
+  background-color: var(--gf-band);
+  background-image: linear-gradient(var(--gf-card), var(--gf-card));
   padding: clamp(26px, 3vw, 38px) clamp(20px, 2.2vw, 30px);
   display: flex;
   flex-direction: column;
