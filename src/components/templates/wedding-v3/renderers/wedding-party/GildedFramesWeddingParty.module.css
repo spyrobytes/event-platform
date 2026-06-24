@@ -126,6 +126,10 @@
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  /* Retain the flip subtree's layer (pairs with .front backface-visibility:visible)
+     so the front's backing store survives the first flip — fixes the one-frame
+     blank on first flip-back, worst on the widest 2-col cards. */
+  will-change: transform;
 }
 
 .cardOuter.flipped .cardInner { transform: rotateY(180deg); }
@@ -148,6 +152,12 @@
 
 /* ===== Front — framed portrait + placard ===== */
 .front {
+  /* Override .face: keep the front backface-VISIBLE so its layer isn't culled and
+     re-rastered blank on the first flip back to front. The back face keeps
+     backface-visibility:hidden and, being opaque + later in DOM, fully covers the
+     front while flipped, so the (now-rendered) front never shows through. */
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   position: relative;
   padding: clamp(12px, 1.4vw, 18px);
   padding-bottom: clamp(20px, 2.4vw, 28px);
