@@ -17,12 +17,18 @@ import styles from "./animations.module.css";
  * taller than ~1/threshold viewports (≈6.7× at 0.15) can never reach it and stays
  * stuck at `opacity:0` (the wedding party with a large roster is the usual victim:
  * it renders empty on desktop and only "appears" on a resize that re-fires the
- * observer). Instead we trigger as soon as ANY part enters, with a -10% bottom
- * margin so the reveal fires a touch after the top edge crosses into view. This
- * is height-independent: short and very tall sections both reveal reliably.
+ * observer). Triggering as soon as ANY part enters is height-independent — short
+ * and very tall sections both reveal reliably.
+ *
+ * rootMargin is "0px" (no shrink) ON PURPOSE: a negative bottom margin would
+ * carve out a dead strip at the bottom of the viewport, and a short section that
+ * can come to rest entirely inside it (e.g. a brief final section that can't be
+ * scrolled past) would never intersect — re-creating the very blank-section bug
+ * this fix removes, just relocated to short trailing sections. Revealing at the
+ * edge is correct here: the entrance still animates as the section scrolls up.
  */
 const REVEAL_THRESHOLD = 0;
-const REVEAL_ROOT_MARGIN = "0px 0px -10% 0px";
+const REVEAL_ROOT_MARGIN = "0px";
 
 type AnimatedSectionProps = {
   children: React.ReactNode;
