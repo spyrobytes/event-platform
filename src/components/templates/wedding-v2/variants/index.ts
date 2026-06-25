@@ -74,6 +74,33 @@ export function getV2Variant(id: string): V2VariantConfig {
   return V2_VARIANTS[id as V2VariantId] || V2_VARIANTS[DEFAULT_V2_VARIANT_ID];
 }
 
+/**
+ * Resolve a V2 event's structural display style. Explicit `theme.displayStyle`
+ * wins; otherwise a LEGACY scrapbook variant (one whose gallery/party renderer
+ * is "scrapbook") maps to "scrapbook". Shared by the renderer
+ * (WeddingTemplateV2) and the page editor so the two can't drift on what counts
+ * as scrapbook.
+ */
+export function resolveV2DisplayStyle(
+  displayStyle: "standard" | "scrapbook" | null | undefined,
+  variantId: string | null | undefined,
+): "standard" | "scrapbook" {
+  if (displayStyle) return displayStyle;
+  const variant = variantId ? getV2Variant(variantId) : null;
+  const legacyScrapbook =
+    variant?.galleryRenderer === "scrapbook" ||
+    variant?.weddingPartyRenderer === "scrapbook";
+  return legacyScrapbook ? "scrapbook" : "standard";
+}
+
+/** True when a V2 event resolves to the scrapbook display style. */
+export function isV2Scrapbook(
+  displayStyle: "standard" | "scrapbook" | null | undefined,
+  variantId: string | null | undefined,
+): boolean {
+  return resolveV2DisplayStyle(displayStyle, variantId) === "scrapbook";
+}
+
 export function getAllV2Variants(): V2VariantConfig[] {
   return Object.values(V2_VARIANTS);
 }

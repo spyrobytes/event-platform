@@ -53,7 +53,7 @@ import type { ApprovedWishDTO } from "../index";
 
 // V2 tokens + variants + footer + global styles
 import { getV2CSSVariables, getV2GlassVariables, getV2FontUrl, v2TokensToInline } from "./tokens";
-import { getV2Variant } from "./variants";
+import { getV2Variant, resolveV2DisplayStyle } from "./variants";
 import type { V2BotanicalVariant } from "./variants";
 import { getV2SectionTheme } from "./section-themes";
 import { getSectionThemeVariables } from "../wedding-v3/theme-packs/section-themes";
@@ -172,11 +172,8 @@ export function WeddingTemplateV2({
   // Display style (structural; color is owned by sectionThemeId). Explicit
   // theme.displayStyle wins; otherwise a legacy scrapbook variant maps to
   // "scrapbook". Drives the gallery/party renderers, scrapbook chrome + font.
-  const isLegacyScrapbookVariant =
-    variant?.galleryRenderer === "scrapbook" ||
-    variant?.weddingPartyRenderer === "scrapbook";
-  const displayStyle: "standard" | "scrapbook" =
-    theme.displayStyle ?? (isLegacyScrapbookVariant ? "scrapbook" : "standard");
+  // Shared resolver so the page editor agrees on what counts as scrapbook.
+  const displayStyle = resolveV2DisplayStyle(theme.displayStyle, variantId);
   const isScrapbook = displayStyle === "scrapbook";
 
   // Font pair: legacy variant wins; else scrapbook forces its serif pairing.

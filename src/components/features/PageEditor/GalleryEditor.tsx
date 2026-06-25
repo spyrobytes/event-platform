@@ -184,64 +184,64 @@ export function GalleryEditor({
 
           {honorsDisplayMode && (
             <>
-          {/* Display Mode */}
-          <div className="space-y-2">
-            <Label htmlFor="display-mode">Display Mode</Label>
-            <Select
-              id="display-mode"
-              value={data.displayMode || "grid"}
-              onChange={(e) =>
-                onChange({
-                  ...data,
-                  displayMode: e.target.value as "grid" | "carousel" | "masonry" | "slideshow",
-                })
-              }
-            >
-              <option value="grid">Grid</option>
-              <option value="carousel">Carousel</option>
-              <option value="masonry">Masonry</option>
-              <option value="slideshow">Slideshow</option>
-            </Select>
-          </div>
+              {/* Display Mode */}
+              <div className="space-y-2">
+                <Label htmlFor="display-mode">Display Mode</Label>
+                <Select
+                  id="display-mode"
+                  value={data.displayMode || "grid"}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      displayMode: e.target.value as "grid" | "carousel" | "masonry" | "slideshow",
+                    })
+                  }
+                >
+                  <option value="grid">Grid</option>
+                  <option value="carousel">Carousel</option>
+                  <option value="masonry">Masonry</option>
+                  <option value="slideshow">Slideshow</option>
+                </Select>
+              </div>
 
-          {/* Transition Effect */}
-          <div className="space-y-2">
-            <Label htmlFor="transition">Transition Effect</Label>
-            <Select
-              id="transition"
-              value={data.transition || "fade"}
-              onChange={(e) =>
-                onChange({
-                  ...data,
-                  transition: e.target.value as "fade" | "slide" | "zoom" | "flip",
-                })
-              }
-            >
-              <option value="fade">Fade</option>
-              <option value="slide">Slide</option>
-              <option value="zoom">Zoom</option>
-              <option value="flip">Flip</option>
-            </Select>
-          </div>
+              {/* Transition Effect */}
+              <div className="space-y-2">
+                <Label htmlFor="transition">Transition Effect</Label>
+                <Select
+                  id="transition"
+                  value={data.transition || "fade"}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      transition: e.target.value as "fade" | "slide" | "zoom" | "flip",
+                    })
+                  }
+                >
+                  <option value="fade">Fade</option>
+                  <option value="slide">Slide</option>
+                  <option value="zoom">Zoom</option>
+                  <option value="flip">Flip</option>
+                </Select>
+              </div>
 
-          {/* Auto-play Interval */}
-          <div className="space-y-2">
-            <Label htmlFor="autoplay-interval">Auto-play Interval (seconds)</Label>
-            <Input
-              id="autoplay-interval"
-              type="number"
-              min={2}
-              max={15}
-              value={data.autoPlayInterval || 5}
-              onChange={(e) =>
-                onChange({
-                  ...data,
-                  autoPlayInterval: Math.min(15, Math.max(2, parseInt(e.target.value) || 5)),
-                })
-              }
-              disabled={!data.autoPlay}
-            />
-          </div>
+              {/* Auto-play Interval */}
+              <div className="space-y-2">
+                <Label htmlFor="autoplay-interval">Auto-play Interval (seconds)</Label>
+                <Input
+                  id="autoplay-interval"
+                  type="number"
+                  min={2}
+                  max={15}
+                  value={data.autoPlayInterval || 5}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      autoPlayInterval: Math.min(15, Math.max(2, parseInt(e.target.value) || 5)),
+                    })
+                  }
+                  disabled={!data.autoPlay}
+                />
+              </div>
             </>
           )}
         </div>

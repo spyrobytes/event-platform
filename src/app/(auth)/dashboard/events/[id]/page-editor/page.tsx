@@ -44,7 +44,7 @@ import {
   type PageEditorNavBadge,
   type PageEditorNavGroup,
 } from "@/components/features";
-import { getV2Variant } from "@/components/templates/wedding-v2/variants";
+import { getV2Variant, isV2Scrapbook } from "@/components/templates/wedding-v2/variants";
 import { getV3Definition } from "@/components/templates/wedding-v3";
 import {
   V2_SECTION_THEMES,
@@ -2258,7 +2258,7 @@ export default function PageEditorPage() {
                 templateId={templateId}
                 isScrapbook={
                   templateId === "wedding_v2" &&
-                  config.theme.displayStyle === "scrapbook"
+                  isV2Scrapbook(config.theme.displayStyle, config.variantId)
                 }
               />
             )}
