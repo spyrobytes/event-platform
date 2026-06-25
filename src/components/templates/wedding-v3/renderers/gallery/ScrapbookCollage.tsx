@@ -16,6 +16,8 @@ import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
 
@@ -274,6 +276,18 @@ function ScrapbookLightbox({
     return () => dialog.removeEventListener("keydown", handleFocusTrap);
   }, []);
 
+  // Swipe / drag navigation (mouse + touch + pen). The hook owns the imperative
+  // translate on the stage; arrows + keyboard stay the keyboard/AT path.
+  const reducedMotion = useReducedMotion();
+  const { contentRef, handlers, isDragging, didDragRef } =
+    useSwipeNavigation<HTMLDivElement>({
+      onPrev,
+      onNext,
+      enabled: items.length > 1,
+      reducedMotion,
+      wrap: true,
+    });
+
   const item = items[index];
   const captionText = item.caption || item.title;
 
@@ -295,6 +309,12 @@ function ScrapbookLightbox({
         justifyContent: "center",
       }}
       onClick={(e) => {
+        // A drag that ends over the backdrop must not also close the lightbox.
+        // Ref-based (not state) to dodge pointerup → click → setState batching.
+        if (didDragRef.current) {
+          didDragRef.current = false;
+          return;
+        }
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -379,8 +399,10 @@ function ScrapbookLightbox({
         </svg>
       </button>
 
-      {/* Stage */}
+      {/* Stage — the single element the swipe gesture translates */}
       <div
+        ref={contentRef}
+        {...handlers}
         style={{
           maxWidth: "min(1000px, calc(100% - 48px))",
           maxHeight: "calc(100svh - 80px)",
@@ -390,6 +412,15 @@ function ScrapbookLightbox({
           boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
           border: "1px solid rgba(255,255,255,0.06)",
           position: "relative",
+          // Browser-level gesture contract: we own horizontal, browser keeps
+          // vertical scroll + pinch-zoom. will-change pre-materializes the layer
+          // so the FIRST drag doesn't jank promoting it (cf. flip-card #238/#239).
+          touchAction: "pan-y pinch-zoom",
+          willChange: "transform",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          cursor:
+            items.length > 1 ? (isDragging ? "grabbing" : "grab") : "default",
         }}
       >
         <EventImage
@@ -400,6 +431,7 @@ function ScrapbookLightbox({
           sizes="(max-width: 768px) 100vw, 1000px"
           blurDataURL={item.blurDataUrl}
           renditionWidths={item.renditionWidths}
+          draggable={false}
           style={{
             display: "block",
             width: "100%",
@@ -427,6 +459,9 @@ function ScrapbookLightbox({
         )}
       </div>
 
+      {/* Prime ±1 so a swipe/arrow commit shows the neighbour instantly */}
+      <AdjacentPreloads items={items} index={index} />
+
       {/* Counter */}
       <div
         style={{
@@ -441,6 +476,67 @@ function ScrapbookLightbox({
       >
         {index + 1} / {items.length}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AdjacentPreloads — prime the ±1 neighbours of the open lightbox
+// ---------------------------------------------------------------------------
+
+/**
+ * Off-screen EventImage stubs for the items adjacent to `index`, so a swipe (or
+ * arrow) commit shows the neighbour with no decode gap. `loading="eager"` forces
+ * the fetch despite the 1×1 off-screen box, and the matching `sizes` primes the
+ * same rendition the visible stage will request. Scoped to ±1 only — never the
+ * whole gallery — to keep network pressure low on image-heavy pages.
+ */
+function AdjacentPreloads({
+  items,
+  index,
+}: {
+  items: ResolvedGalleryItem[];
+  index: number;
+}) {
+  if (items.length < 2) return null;
+  const prev = items[(index - 1 + items.length) % items.length];
+  const next = items[(index + 1) % items.length];
+  const current = items[index];
+  const seen = new Set<string>();
+  const adjacent: ResolvedGalleryItem[] = [];
+  for (const candidate of [prev, next]) {
+    const key = candidate.assetId || candidate.url;
+    if (candidate !== current && !seen.has(key)) {
+      seen.add(key);
+      adjacent.push(candidate);
+    }
+  }
+
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        top: -9999,
+        left: -9999,
+        width: 1,
+        height: 1,
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}
+    >
+      {adjacent.map((it, i) => (
+        <EventImage
+          key={it.assetId || i}
+          src={it.url}
+          alt=""
+          width={1}
+          height={1}
+          sizes="(max-width: 768px) 100vw, 1000px"
+          renditionWidths={it.renditionWidths}
+          loading="eager"
+        />
+      ))}
     </div>
   );
 }
