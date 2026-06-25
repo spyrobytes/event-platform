@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { flushSync } from "react-dom";
 import type {
   HTMLAttributes,
   PointerEvent as ReactPointerEvent,
@@ -26,10 +25,11 @@ import type {
  *     keyboard/button nav on `!isDraggingRef.current` so an external nav can't
  *     leave the stage mid-translated.
  *
- * Commit is an INSTANT cut (flushSync-navigate, then reset to center) — no
- * deferred-transition nav window, so live keyboard/buttons can't double-advance
- * and there's no wrong-image flash. The richer slide-out/in choreography is a
- * deferred follow-up. Only the under-threshold snap-back is animated.
+ * Commit navigates and then springs the drag offset back to center: the
+ * consumer's single persistent image swaps src in place (holding the previous
+ * frame until the new one decodes — the same smooth path the arrows use) while
+ * the photo glides home. No flushSync, no separate slide panes — both of those
+ * cost smoothness on real hardware. Only the snap-back is animated.
  *
  * GPU note: set `will-change: transform` on the content element while the
  * surface is open so its compositor layer is resident BEFORE the first drag —
@@ -378,17 +378,17 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
         return;
       }
 
-      // Instant-cut commit: flushSync so the new src is in the DOM before we
-      // reset the transform — no deferred nav window (can't double-advance),
-      // and no one-frame flash of the outgoing photo.
-      flushSync(() => {
-        if (result === "prev") opts.onPrev();
-        else opts.onNext();
-      });
-      resetStylesImmediate();
-      phaseRef.current = "idle";
+      // Commit: navigate, then spring the drag offset back to center. The
+      // lightbox's single persistent <EventImage> swaps src in place and holds
+      // the previous frame until the new one decodes (the same smooth path the
+      // arrows use), while snapBack glides the photo home. No flushSync (its
+      // synchronous re-render stalled the release frame) and no separate slide
+      // panes (those lost the frame-holding and decode-hitched mid-slide).
+      if (result === "prev") opts.onPrev();
+      else opts.onNext();
+      snapBack();
     },
-    [endGesture, resetStylesImmediate, safeReleaseCapture, snapBack],
+    [endGesture, safeReleaseCapture, snapBack],
   );
 
   // Cancellation (browser-cancelled gesture or lost capture): snap back. Both
