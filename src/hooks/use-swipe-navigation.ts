@@ -21,9 +21,9 @@ import type {
  *     so a drag doesn't double as a dismiss. RE-ARM it: reset to false on a fresh
  *     pointerdown ANYWHERE (incl. the backdrop), else a stale true swallows the
  *     next genuine close tap.
- *   - `isDraggingRef` — true while a pointer is held on the surface; gate live
- *     keyboard/button nav on `!isDraggingRef.current` so an external nav can't
- *     leave the stage mid-translated.
+ *   - `isBusyRef` — true while a gesture OR its settle animation is in flight;
+ *     gate live keyboard/button nav on `!isBusyRef.current` so an external nav
+ *     can't fire mid-transition (dropping a fast swipe, or swapping src mid-glide).
  *
  * Commit navigates and then springs the drag offset back to center: the
  * consumer's single persistent image swaps src in place (holding the previous
@@ -138,8 +138,9 @@ export type SwipeHandlers<T extends HTMLElement = HTMLDivElement> = Pick<
 export type UseSwipeNavigationResult<T extends HTMLElement = HTMLDivElement> = {
   contentRef: RefObject<T | null>;
   handlers: SwipeHandlers<T>;
-  /** True while a pointer is held on the surface. Read in keyboard/button nav. */
-  isDraggingRef: RefObject<boolean>;
+  /** True while a gesture OR its settle animation is in flight. Gate external
+   *  (keyboard / button) nav on this so it can't fire mid-transition. */
+  isBusyRef: RefObject<boolean>;
   /** True after a >6px move; read in a backdrop close handler. Re-arm on press. */
   didDragRef: RefObject<boolean>;
 };
@@ -170,8 +171,16 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   const lastTRef = useRef(0);
   const velocityRef = useRef(0);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isDraggingRef = useRef(false);
+  const isBusyRef = useRef(false);
   const didDragRef = useRef(false);
+
+  // Phase + its "busy" mirror, kept in lockstep. isBusyRef (read by the consumer)
+  // is true for BOTH "dragging" and "snapping-back", so a committed swipe's
+  // ~220ms glide window also blocks external keyboard/button nav.
+  const setPhase = useCallback((p: SwipePhase) => {
+    phaseRef.current = p;
+    isBusyRef.current = p !== "idle";
+  }, []);
 
   // --- DOM write helpers (imperative; bypass React during the gesture) ---
   const applyTransform = useCallback((x: number) => {
@@ -212,15 +221,15 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     }
   }, []);
 
-  // Finalize the snap-back transition (the only animated path now that commit
-  // is an instant cut). Driven by transitionend with a fallback timer.
+  // Finalize the snap-back transition (used by both a committed swipe and an
+  // under-threshold release). Driven by transitionend with a fallback timer.
   const finishSnapBack = useCallback(() => {
     clearFallback();
     if (phaseRef.current === "snapping-back") {
       resetStylesImmediate();
-      phaseRef.current = "idle";
+      setPhase("idle");
     }
-  }, [clearFallback, resetStylesImmediate]);
+  }, [clearFallback, resetStylesImmediate, setPhase]);
 
   const armFallback = useCallback(
     (ms: number) => {
@@ -233,27 +242,31 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     [clearFallback, finishSnapBack],
   );
 
-  // Spring the card back to center (under-threshold release, or any cancel).
+  // Spring the card to center. Runs on an under-threshold release, on any
+  // cancel, AND on a committed swipe (after navigating) so the new photo glides
+  // home. Holds phase in "snapping-back" until it settles, which keeps isBusyRef
+  // true so external nav stays gated through the glide.
   const snapBack = useCallback(() => {
     if (optsRef.current.reducedMotion) {
       resetStylesImmediate();
-      phaseRef.current = "idle";
+      setPhase("idle");
       return;
     }
     const el = contentRef.current;
-    phaseRef.current = "snapping-back";
+    setPhase("snapping-back");
     if (el) {
       el.style.transition = SNAP_TRANSITION;
       el.style.transform = "translate3d(0, 0, 0)";
       el.style.opacity = "1";
     }
     armFallback(SNAP_MS);
-  }, [armFallback, resetStylesImmediate]);
+  }, [armFallback, resetStylesImmediate, setPhase]);
 
   const endGesture = useCallback(() => {
+    // Note: the "busy" state follows the phase (set by callers via setPhase
+    // right after this), so endGesture deliberately doesn't touch it.
     pointerIdRef.current = null;
     axisRef.current = "none";
-    isDraggingRef.current = false;
     setRestCursor();
   }, [setRestCursor]);
 
@@ -263,7 +276,14 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     if (!opts.enabled) return;
     if (!e.isPrimary || e.button !== 0) return; // primary pointer / left button
     if (pointerIdRef.current !== null) return; // a pointer is already active
-    if (phaseRef.current !== "idle") return; // mid snap-back
+    // Interrupt an in-flight snap-back so fast back-to-back swipes register: the
+    // committed photo is already swapped, so jump it to center and start fresh.
+    if (phaseRef.current === "snapping-back") {
+      clearFallback();
+      resetStylesImmediate();
+      setPhase("idle");
+    }
+    if (phaseRef.current !== "idle") return;
 
     pointerIdRef.current = e.pointerId;
     startXRef.current = e.clientX;
@@ -274,8 +294,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     velocityRef.current = 0;
     axisRef.current = "none";
     didDragRef.current = false;
-    isDraggingRef.current = true;
-    phaseRef.current = "dragging";
+    setPhase("dragging");
 
     // Fall back to viewport width (not 1) so a not-yet-laid-out stage can't make
     // the opacity-falloff denominator tiny and snap the photo dark on a 1px drag.
@@ -293,7 +312,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       el.style.transition = "none";
       el.style.cursor = "grabbing";
     }
-  }, []);
+  }, [clearFallback, resetStylesImmediate, setPhase]);
 
   const onPointerMove = useCallback(
     (e: ReactPointerEvent<T>) => {
@@ -313,7 +332,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
         if (axis === "vertical") {
           // Let the browser scroll / pinch; bow out of this gesture entirely.
           axisRef.current = "vertical";
-          phaseRef.current = "idle";
+          setPhase("idle");
           safeReleaseCapture(e);
           endGesture();
           return;
@@ -333,7 +352,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
 
       if (!optsRef.current.reducedMotion) applyTransform(dx);
     },
-    [applyTransform, endGesture, safeReleaseCapture],
+    [applyTransform, endGesture, safeReleaseCapture, setPhase],
   );
 
   const settle = useCallback(
@@ -353,7 +372,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       safeReleaseCapture(e);
 
       if (!wasHorizontal) {
-        phaseRef.current = "idle";
+        setPhase("idle");
         return;
       }
 
@@ -373,22 +392,20 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
         ((result === "prev" && opts.canPrev === false) ||
           (result === "next" && opts.canNext === false));
 
-      if (result === "none" || blocked) {
-        snapBack();
-        return;
+      // Commit (past threshold and not blocked): navigate — the lightbox's
+      // single persistent <EventImage> swaps src in place and holds the previous
+      // frame until the new one decodes (the smooth path the arrows use). A
+      // no-op / blocked release skips the nav. Either way snapBack springs the
+      // photo home; it holds isBusyRef set through the glide so an arrow or
+      // button press can't swap src mid-animation. No flushSync, no slide panes —
+      // both cost smoothness on real hardware.
+      if (result !== "none" && !blocked) {
+        if (result === "prev") opts.onPrev();
+        else opts.onNext();
       }
-
-      // Commit: navigate, then spring the drag offset back to center. The
-      // lightbox's single persistent <EventImage> swaps src in place and holds
-      // the previous frame until the new one decodes (the same smooth path the
-      // arrows use), while snapBack glides the photo home. No flushSync (its
-      // synchronous re-render stalled the release frame) and no separate slide
-      // panes (those lost the frame-holding and decode-hitched mid-slide).
-      if (result === "prev") opts.onPrev();
-      else opts.onNext();
       snapBack();
     },
-    [endGesture, safeReleaseCapture, snapBack],
+    [endGesture, safeReleaseCapture, snapBack, setPhase],
   );
 
   // Cancellation (browser-cancelled gesture or lost capture): snap back. Both
@@ -443,5 +460,5 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     [onPointerDown, onPointerMove, settle, cancelGesture],
   );
 
-  return { contentRef, handlers, isDraggingRef, didDragRef };
+  return { contentRef, handlers, isBusyRef, didDragRef };
 }

@@ -272,7 +272,7 @@ function ScrapbookLightbox({
   // Swipe / drag navigation (mouse + touch + pen). The hook owns the imperative
   // translate AND cursor on the stage; arrows + keyboard remain the AT path.
   const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, isDraggingRef, didDragRef } =
+  const { contentRef, handlers, isBusyRef, didDragRef } =
     useSwipeNavigation<HTMLDivElement>({
       onPrev,
       onNext,
@@ -281,22 +281,22 @@ function ScrapbookLightbox({
       wrap: true,
     });
 
-  // Esc closes; arrows navigate — but not mid-drag (an external nav would leave
-  // the stage half-translated). Lives here (not the section) so it can read the
-  // hook's live drag state via isDraggingRef.
+  // Esc closes; arrows navigate — but not while a swipe gesture or its settle
+  // glide is in flight (an external nav would swap src mid-animation). Lives here
+  // (not the section) so it can read the hook's busy state via isBusyRef.
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
         return;
       }
-      if (isDraggingRef.current) return;
+      if (isBusyRef.current) return;
       if (e.key === "ArrowRight") onNext();
       else if (e.key === "ArrowLeft") onPrev();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose, onNext, onPrev, isDraggingRef]);
+  }, [onClose, onNext, onPrev, isBusyRef]);
 
   const item = items[index];
   const captionText = item.caption || item.title;
@@ -363,7 +363,11 @@ function ScrapbookLightbox({
 
       {/* Prev */}
       <button
-        onClick={onPrev}
+        onClick={() => {
+          // Ignore clicks during a gesture / settle glide so we don't swap src
+          // mid-animation (matches the keyboard gate above).
+          if (!isBusyRef.current) onPrev();
+        }}
         aria-label="Previous image"
         style={{
           position: "fixed",
@@ -390,7 +394,9 @@ function ScrapbookLightbox({
 
       {/* Next */}
       <button
-        onClick={onNext}
+        onClick={() => {
+          if (!isBusyRef.current) onNext();
+        }}
         aria-label="Next image"
         style={{
           position: "fixed",
