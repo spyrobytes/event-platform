@@ -55,3 +55,12 @@ export { useAnimationComplete } from "./use-animation-complete";
 
 // Unsaved-changes guard for editor pages
 export { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+
+// Pointer-driven swipe / drag navigation (lightboxes)
+export {
+  useSwipeNavigation,
+  lockAxis,
+  resolveSwipe,
+  type UseSwipeNavigationOptions,
+  type UseSwipeNavigationResult,
+} from "./use-swipe-navigation";
