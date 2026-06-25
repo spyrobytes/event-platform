@@ -2256,6 +2256,10 @@ export default function PageEditorPage() {
                 assets={pageData?.assets || []}
                 onChange={(data) => updateSectionData(index, data)}
                 templateId={templateId}
+                isScrapbook={
+                  templateId === "wedding_v2" &&
+                  config.theme.displayStyle === "scrapbook"
+                }
               />
             )}
             {section.type === "rsvp" && (
