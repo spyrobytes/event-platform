@@ -29,6 +29,11 @@ describe("lockAxis", () => {
     expect(lockAxis(20, 30)).toBe("vertical");
   });
 
+  it("breaks an exact 45-degree tie toward horizontal (the owned axis)", () => {
+    expect(lockAxis(20, 20)).toBe("horizontal");
+    expect(lockAxis(-15, 15)).toBe("horizontal");
+  });
+
   it("honours a custom lock radius", () => {
     expect(lockAxis(6, 0, 20)).toBe("none");
     expect(lockAxis(30, 0, 20)).toBe("horizontal");
@@ -68,6 +73,18 @@ describe("resolveSwipe", () => {
   it("tie-breaks direction by velocity when dx is exactly 0", () => {
     expect(resolveSwipe({ dx: 0, width: W, velocity: -0.9 })).toBe("next");
     expect(resolveSwipe({ dx: 0, width: W, velocity: 0.9 })).toBe("prev");
+  });
+
+  it("follows flick velocity even when the finger drifts the other way at release", () => {
+    // Fast flick LEFT (intends next), but dx drifts +5px at release. Distance is
+    // not met, so direction follows velocity — not the residual dx sign.
+    expect(resolveSwipe({ dx: 5, width: W, velocity: -0.9 })).toBe("next");
+    expect(resolveSwipe({ dx: -5, width: W, velocity: 0.9 })).toBe("prev");
+  });
+
+  it("trusts dx (not velocity) once the deliberate distance is met", () => {
+    // Long right drag with a small opposite-sign velocity wobble → still prev.
+    expect(resolveSwipe({ dx: 100, width: W, velocity: -0.2 })).toBe("prev");
   });
 
   it("respects custom thresholds", () => {

@@ -75,22 +75,15 @@ export function ScrapbookCollage({
     );
   }, [itemCount]);
 
-  // Keyboard + body scroll lock
+  // Body scroll lock while the lightbox is open. (Keyboard nav — Esc / arrows —
+  // lives in ScrapbookLightbox so it can gate arrows on the swipe drag state.)
   useEffect(() => {
     if (!isLightboxOpen) return;
     document.body.style.overflow = "hidden";
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowRight") showNext();
-      if (e.key === "ArrowLeft") showPrev();
-    };
-    document.addEventListener("keydown", handleKey);
     return () => {
       document.body.style.overflow = "";
-      document.removeEventListener("keydown", handleKey);
     };
-  }, [isLightboxOpen, closeLightbox, showNext, showPrev]);
+  }, [isLightboxOpen]);
 
   if (resolvedItems.length === 0) return null;
 
@@ -277,9 +270,9 @@ function ScrapbookLightbox({
   }, []);
 
   // Swipe / drag navigation (mouse + touch + pen). The hook owns the imperative
-  // translate on the stage; arrows + keyboard stay the keyboard/AT path.
+  // translate AND cursor on the stage; arrows + keyboard remain the AT path.
   const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, isDragging, didDragRef } =
+  const { contentRef, handlers, isDraggingRef, didDragRef } =
     useSwipeNavigation<HTMLDivElement>({
       onPrev,
       onNext,
@@ -287,6 +280,23 @@ function ScrapbookLightbox({
       reducedMotion,
       wrap: true,
     });
+
+  // Esc closes; arrows navigate — but not mid-drag (an external nav would leave
+  // the stage half-translated). Lives here (not the section) so it can read the
+  // hook's live drag state via isDraggingRef.
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (isDraggingRef.current) return;
+      if (e.key === "ArrowRight") onNext();
+      else if (e.key === "ArrowLeft") onPrev();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose, onNext, onPrev, isDraggingRef]);
 
   const item = items[index];
   const captionText = item.caption || item.title;
@@ -307,6 +317,12 @@ function ScrapbookLightbox({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+      }}
+      onPointerDown={() => {
+        // Re-arm the drag guard on every fresh press (incl. a backdrop tap that
+        // fires no stage pointerdown), else a stale `true` from a prior drag
+        // swallows the next genuine close tap.
+        didDragRef.current = false;
       }}
       onClick={(e) => {
         // A drag that ends over the backdrop must not also close the lightbox.
@@ -419,8 +435,6 @@ function ScrapbookLightbox({
           willChange: "transform",
           userSelect: "none",
           WebkitUserSelect: "none",
-          cursor:
-            items.length > 1 ? (isDragging ? "grabbing" : "grab") : "default",
         }}
       >
         <EventImage

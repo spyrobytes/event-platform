@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { flushSync } from "react-dom";
 import type {
   HTMLAttributes,
   PointerEvent as ReactPointerEvent,
@@ -17,11 +12,24 @@ import type {
  * Pointer-driven swipe / drag navigation for lightboxes (and any prev/next
  * surface). One code path covers mouse, touch, and pen via Pointer Events; the
  * drag hot path writes `transform` straight to the DOM (no React re-render per
- * move). See docs/pending-features/gallery-swipe-navigation-implementation-plan.md.
+ * move — not even for the cursor, which is driven imperatively too).
+ * See docs/pending-features/gallery-swipe-navigation-implementation-plan.md.
  *
- * Consumers attach `contentRef` to the element that should translate, spread
- * `handlers` on that same element, and read `didDragRef` in their backdrop
- * close handler so a drag that ends over the backdrop doesn't also close.
+ * Consumers attach `contentRef` to the element that should translate and spread
+ * `handlers` on that same element. Two refs are returned for the consumer to
+ * read without triggering re-renders:
+ *   - `didDragRef`  — true after a >6px move; read it in a backdrop close handler
+ *     so a drag doesn't double as a dismiss. RE-ARM it: reset to false on a fresh
+ *     pointerdown ANYWHERE (incl. the backdrop), else a stale true swallows the
+ *     next genuine close tap.
+ *   - `isDraggingRef` — true while a pointer is held on the surface; gate live
+ *     keyboard/button nav on `!isDraggingRef.current` so an external nav can't
+ *     leave the stage mid-translated.
+ *
+ * Commit is an INSTANT cut (flushSync-navigate, then reset to center) — no
+ * deferred-transition nav window, so live keyboard/buttons can't double-advance
+ * and there's no wrong-image flash. The richer slide-out/in choreography is a
+ * deferred follow-up. Only the under-threshold snap-back is animated.
  *
  * GPU note: set `will-change: transform` on the content element while the
  * surface is open so its compositor layer is resident BEFORE the first drag —
@@ -36,18 +44,18 @@ const AXIS_LOCK_PX = 8; // movement before we decide horizontal vs vertical
 const DID_DRAG_PX = 6; // movement before a press counts as a drag (not a tap)
 const STALE_VELOCITY_MS = 100; // a pause longer than this before release = no flick
 const OPACITY_FALLOFF = 0.35; // how much the card fades at a full-width drag
-const COMMIT_MS = 180; // "slide a touch farther out" duration
 const SNAP_MS = 220; // spring-back duration
 const TRANSITION_FALLBACK_BUFFER_MS = 80; // safety margin if transitionend never fires
 
-const COMMIT_TRANSITION = `transform ${COMMIT_MS}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${COMMIT_MS}ms ease`;
 const SNAP_TRANSITION = `transform ${SNAP_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${SNAP_MS}ms ease`;
 
 // --- Pure helpers (unit-tested) ------------------------------------------
 
 /**
  * Decide the gesture axis once movement clears `lockPx`. Returns "none" while
- * the movement is still within the dead zone so the caller keeps waiting.
+ * the movement is still within the dead zone so the caller keeps waiting. An
+ * exact tie (|dx| === |dy|) resolves to "horizontal" — the axis this gesture
+ * owns — so a ~45° drag still navigates rather than bowing out.
  */
 export function lockAxis(
   dx: number,
@@ -55,7 +63,7 @@ export function lockAxis(
   lockPx = AXIS_LOCK_PX,
 ): "horizontal" | "vertical" | "none" {
   if (Math.hypot(dx, dy) < lockPx) return "none";
-  return Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+  return Math.abs(dx) >= Math.abs(dy) ? "horizontal" : "vertical";
 }
 
 export type ResolveSwipeInput = {
@@ -74,7 +82,11 @@ export type ResolveSwipeInput = {
  * Resolve a finished gesture to a navigation direction. Commits on EITHER a
  * deliberate distance (≥ max(minPx, width·fraction)) OR a fast flick
  * (|velocity| ≥ velocityPxPerMs), so a short quick flick still navigates.
- * Direction comes from `dx`, tie-broken by `velocity` when `dx` is ~0.
+ *
+ * Direction follows the dominant signal: a deliberate drag trusts `dx`; a
+ * flick (distance not met) trusts `velocity`. This way a fast flick whose
+ * finger drifts a few px the *other* way at release still goes where it was
+ * thrown, not where it happened to end.
  */
 export function resolveSwipe({
   dx,
@@ -89,8 +101,9 @@ export function resolveSwipe({
   const distancePassed = Math.abs(dx) >= distanceThreshold;
   const velocityPassed = Math.abs(velocity) >= velocityPxPerMs;
   if (!distancePassed && !velocityPassed) return "none";
-  // Dragging RIGHT (dx > 0) reveals the PREVIOUS item; LEFT reveals NEXT.
-  const dir = dx !== 0 ? dx : velocity;
+  // Deliberate distance → trust dx; flick-only → trust velocity.
+  const dir = distancePassed ? dx : velocity;
+  // Dragging RIGHT reveals the PREVIOUS item; LEFT reveals NEXT.
   return dir > 0 ? "prev" : "next";
 }
 
@@ -125,11 +138,13 @@ export type SwipeHandlers<T extends HTMLElement = HTMLDivElement> = Pick<
 export type UseSwipeNavigationResult<T extends HTMLElement = HTMLDivElement> = {
   contentRef: RefObject<T | null>;
   handlers: SwipeHandlers<T>;
-  isDragging: boolean;
+  /** True while a pointer is held on the surface. Read in keyboard/button nav. */
+  isDraggingRef: RefObject<boolean>;
+  /** True after a >6px move; read in a backdrop close handler. Re-arm on press. */
   didDragRef: RefObject<boolean>;
 };
 
-type SwipePhase = "idle" | "dragging" | "snapping-back" | "committing";
+type SwipePhase = "idle" | "dragging" | "snapping-back";
 
 export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   options: UseSwipeNavigationOptions,
@@ -143,7 +158,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     optsRef.current = options;
   });
 
-  // --- Gesture state (refs → no re-render during a move) ---
+  // --- Gesture state (refs → no re-render during a gesture, ever) ---
   const phaseRef = useRef<SwipePhase>("idle");
   const pointerIdRef = useRef<number | null>(null);
   const startXRef = useRef(0);
@@ -154,15 +169,11 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   const lastXRef = useRef(0);
   const lastTRef = useRef(0);
   const velocityRef = useRef(0);
-  const pendingDirRef = useRef<"prev" | "next" | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDraggingRef = useRef(false);
   const didDragRef = useRef(false);
 
-  // Only React state in the hook — toggled twice per gesture (down / settle),
-  // never per move.
-  const [isDragging, setIsDragging] = useState(false);
-
-  // --- DOM write helpers (imperative; bypass React during the drag) ---
+  // --- DOM write helpers (imperative; bypass React during the gesture) ---
   const applyTransform = useCallback((x: number) => {
     const el = contentRef.current;
     if (!el) return;
@@ -179,6 +190,13 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     el.style.opacity = "1";
   }, []);
 
+  // Cursor is driven imperatively (not React state) so a drag causes zero
+  // parent re-renders. The hook owns it end-to-end.
+  const setRestCursor = useCallback(() => {
+    const el = contentRef.current;
+    if (el) el.style.cursor = optsRef.current.enabled ? "grab" : "default";
+  }, []);
+
   const clearFallback = useCallback(() => {
     if (fallbackTimerRef.current !== null) {
       clearTimeout(fallbackTimerRef.current);
@@ -186,21 +204,19 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     }
   }, []);
 
-  // Finalize whichever transition (snap-back or commit) is in flight. Driven by
-  // `transitionend` with a fallback timer in case it never fires.
-  const finishActiveTransition = useCallback(() => {
+  const safeReleaseCapture = useCallback((e: ReactPointerEvent<T>) => {
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // releasePointerCapture throws if the pointer is already gone; ignore.
+    }
+  }, []);
+
+  // Finalize the snap-back transition (the only animated path now that commit
+  // is an instant cut). Driven by transitionend with a fallback timer.
+  const finishSnapBack = useCallback(() => {
     clearFallback();
-    const phase = phaseRef.current;
-    if (phase === "committing") {
-      const dir = pendingDirRef.current;
-      pendingDirRef.current = null;
-      // Swap the item FIRST (same element, new src), then snap back to center
-      // so the incoming photo appears centered rather than sliding from nowhere.
-      if (dir === "prev") optsRef.current.onPrev();
-      else if (dir === "next") optsRef.current.onNext();
-      resetStylesImmediate();
-      phaseRef.current = "idle";
-    } else if (phase === "snapping-back") {
+    if (phaseRef.current === "snapping-back") {
       resetStylesImmediate();
       phaseRef.current = "idle";
     }
@@ -211,50 +227,73 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       clearFallback();
       fallbackTimerRef.current = setTimeout(() => {
         fallbackTimerRef.current = null;
-        finishActiveTransition();
+        finishSnapBack();
       }, ms + TRANSITION_FALLBACK_BUFFER_MS);
     },
-    [clearFallback, finishActiveTransition],
+    [clearFallback, finishSnapBack],
   );
+
+  // Spring the card back to center (under-threshold release, or any cancel).
+  const snapBack = useCallback(() => {
+    if (optsRef.current.reducedMotion) {
+      resetStylesImmediate();
+      phaseRef.current = "idle";
+      return;
+    }
+    const el = contentRef.current;
+    phaseRef.current = "snapping-back";
+    if (el) {
+      el.style.transition = SNAP_TRANSITION;
+      el.style.transform = "translate3d(0, 0, 0)";
+      el.style.opacity = "1";
+    }
+    armFallback(SNAP_MS);
+  }, [armFallback, resetStylesImmediate]);
 
   const endGesture = useCallback(() => {
     pointerIdRef.current = null;
     axisRef.current = "none";
-    setIsDragging(false);
-  }, []);
+    isDraggingRef.current = false;
+    setRestCursor();
+  }, [setRestCursor]);
 
   // --- Pointer handlers ---
-  const onPointerDown = useCallback(
-    (e: ReactPointerEvent<T>) => {
-      const opts = optsRef.current;
-      if (!opts.enabled) return;
-      if (!e.isPrimary || e.button !== 0) return; // primary pointer / left button
-      if (pointerIdRef.current !== null) return; // a pointer is already active
-      if (phaseRef.current !== "idle") return; // mid snap-back / commit
+  const onPointerDown = useCallback((e: ReactPointerEvent<T>) => {
+    const opts = optsRef.current;
+    if (!opts.enabled) return;
+    if (!e.isPrimary || e.button !== 0) return; // primary pointer / left button
+    if (pointerIdRef.current !== null) return; // a pointer is already active
+    if (phaseRef.current !== "idle") return; // mid snap-back
 
-      pointerIdRef.current = e.pointerId;
-      startXRef.current = e.clientX;
-      startYRef.current = e.clientY;
-      lastXRef.current = e.clientX;
-      lastTRef.current = e.timeStamp;
-      dxRef.current = 0;
-      velocityRef.current = 0;
-      axisRef.current = "none";
-      didDragRef.current = false;
-      phaseRef.current = "dragging";
+    pointerIdRef.current = e.pointerId;
+    startXRef.current = e.clientX;
+    startYRef.current = e.clientY;
+    lastXRef.current = e.clientX;
+    lastTRef.current = e.timeStamp;
+    dxRef.current = 0;
+    velocityRef.current = 0;
+    axisRef.current = "none";
+    didDragRef.current = false;
+    isDraggingRef.current = true;
+    phaseRef.current = "dragging";
 
-      widthRef.current = contentRef.current?.offsetWidth || 1;
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {
-        // setPointerCapture can throw if the pointer is already gone; ignore.
-      }
-      const el = contentRef.current;
-      if (el) el.style.transition = "none";
-      setIsDragging(true);
-    },
-    [],
-  );
+    // Fall back to viewport width (not 1) so a not-yet-laid-out stage can't make
+    // the opacity-falloff denominator tiny and snap the photo dark on a 1px drag.
+    widthRef.current =
+      contentRef.current?.offsetWidth ||
+      (typeof window !== "undefined" ? window.innerWidth : 0) ||
+      1;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // setPointerCapture can throw if the pointer is already gone; ignore.
+    }
+    const el = contentRef.current;
+    if (el) {
+      el.style.transition = "none";
+      el.style.cursor = "grabbing";
+    }
+  }, []);
 
   const onPointerMove = useCallback(
     (e: ReactPointerEvent<T>) => {
@@ -275,11 +314,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
           // Let the browser scroll / pinch; bow out of this gesture entirely.
           axisRef.current = "vertical";
           phaseRef.current = "idle";
-          try {
-            e.currentTarget.releasePointerCapture(e.pointerId);
-          } catch {
-            /* ignore */
-          }
+          safeReleaseCapture(e);
           endGesture();
           return;
         }
@@ -298,31 +333,29 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
 
       if (!optsRef.current.reducedMotion) applyTransform(dx);
     },
-    [applyTransform, endGesture],
+    [applyTransform, endGesture, safeReleaseCapture],
   );
 
   const settle = useCallback(
     (e: ReactPointerEvent<T>) => {
       if (e.pointerId !== pointerIdRef.current) return;
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
 
       const wasHorizontal = axisRef.current === "horizontal";
       const dx = dxRef.current;
       const opts = optsRef.current;
+      // Stale-flick guard: a long pause before release is not a flick.
+      const stale = e.timeStamp - lastTRef.current > STALE_VELOCITY_MS;
+      const velocity = stale ? 0 : velocityRef.current;
+
+      // End the gesture (nulls pointerId) BEFORE releasing capture, so a
+      // synchronously-dispatched lostpointercapture can't re-handle it.
       endGesture();
+      safeReleaseCapture(e);
 
       if (!wasHorizontal) {
         phaseRef.current = "idle";
         return;
       }
-
-      // Stale-flick guard: a long pause before release is not a flick.
-      const stale = e.timeStamp - lastTRef.current > STALE_VELOCITY_MS;
-      const velocity = stale ? 0 : velocityRef.current;
 
       const result = resolveSwipe({
         dx,
@@ -341,115 +374,54 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
           (result === "next" && opts.canNext === false));
 
       if (result === "none" || blocked) {
-        if (opts.reducedMotion) {
-          resetStylesImmediate();
-          phaseRef.current = "idle";
-          return;
-        }
-        // Spring back to center.
-        const el = contentRef.current;
-        phaseRef.current = "snapping-back";
-        if (el) {
-          el.style.transition = SNAP_TRANSITION;
-          el.style.transform = "translate3d(0, 0, 0)";
-          el.style.opacity = "1";
-        }
-        armFallback(SNAP_MS);
+        snapBack();
         return;
       }
 
-      if (opts.reducedMotion) {
-        // No animation: navigate immediately.
+      // Instant-cut commit: flushSync so the new src is in the DOM before we
+      // reset the transform — no deferred nav window (can't double-advance),
+      // and no one-frame flash of the outgoing photo.
+      flushSync(() => {
         if (result === "prev") opts.onPrev();
         else opts.onNext();
-        resetStylesImmediate();
-        phaseRef.current = "idle";
-        return;
-      }
-
-      // Simple commit: slide a touch farther out in the drag direction, then
-      // (on transitionend) swap the item and snap back to center.
-      pendingDirRef.current = result;
-      phaseRef.current = "committing";
-      const sign = result === "prev" ? 1 : -1;
-      const out = sign * Math.min(widthRef.current * 0.35, Math.abs(dx) + 60);
-      const el = contentRef.current;
-      if (el) {
-        el.style.transition = COMMIT_TRANSITION;
-        el.style.transform = `translate3d(${out}px, 0, 0)`;
-        el.style.opacity = String(1 - OPACITY_FALLOFF);
-      }
-      armFallback(COMMIT_MS);
+      });
+      resetStylesImmediate();
+      phaseRef.current = "idle";
     },
-    [armFallback, endGesture, resetStylesImmediate],
+    [endGesture, resetStylesImmediate, safeReleaseCapture, snapBack],
   );
 
-  const onPointerCancel = useCallback(
-    (e: ReactPointerEvent<T>) => {
-      if (e.pointerId !== pointerIdRef.current) return;
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      endGesture();
-      // Snap back from wherever the drag left the card.
-      if (phaseRef.current === "dragging") {
-        if (optsRef.current.reducedMotion) {
-          resetStylesImmediate();
-          phaseRef.current = "idle";
-        } else {
-          const el = contentRef.current;
-          phaseRef.current = "snapping-back";
-          if (el) {
-            el.style.transition = SNAP_TRANSITION;
-            el.style.transform = "translate3d(0, 0, 0)";
-            el.style.opacity = "1";
-          }
-          armFallback(SNAP_MS);
-        }
-      }
-    },
-    [armFallback, endGesture, resetStylesImmediate],
-  );
-
-  // lostpointercapture behaves like cancellation.
-  const onLostPointerCapture = useCallback(
+  // Cancellation (browser-cancelled gesture or lost capture): snap back. Both
+  // share one guarded path so a stray cancel during an in-flight snap is a no-op.
+  const cancelGesture = useCallback(
     (e: ReactPointerEvent<T>) => {
       if (e.pointerId !== pointerIdRef.current) return;
       if (phaseRef.current !== "dragging") return;
+      safeReleaseCapture(e);
       endGesture();
-      if (optsRef.current.reducedMotion) {
-        resetStylesImmediate();
-        phaseRef.current = "idle";
-        return;
-      }
-      const el = contentRef.current;
-      phaseRef.current = "snapping-back";
-      if (el) {
-        el.style.transition = SNAP_TRANSITION;
-        el.style.transform = "translate3d(0, 0, 0)";
-        el.style.opacity = "1";
-      }
-      armFallback(SNAP_MS);
+      snapBack();
     },
-    [armFallback, endGesture, resetStylesImmediate],
+    [endGesture, safeReleaseCapture, snapBack],
   );
 
-  // Finish snap-back / commit early via transitionend (the fallback timer is the
-  // safety net). Scoped to the content element + the transform property.
+  // Base cursor (grab when navigable, default otherwise) when not dragging.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (el) el.style.cursor = options.enabled ? "grab" : "default";
+  }, [options.enabled]);
+
+  // Finish snap-back early via transitionend (the fallback timer is the safety
+  // net). Scoped to the content element + the transform property.
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
     const handleEnd = (event: TransitionEvent) => {
       if (event.target !== el || event.propertyName !== "transform") return;
-      if (phaseRef.current === "committing" || phaseRef.current === "snapping-back") {
-        finishActiveTransition();
-      }
+      finishSnapBack();
     };
     el.addEventListener("transitionend", handleEnd);
     return () => el.removeEventListener("transitionend", handleEnd);
-  }, [finishActiveTransition]);
+  }, [finishSnapBack]);
 
   // Unmount cleanup — lightboxes can unmount abruptly (Esc / close / backdrop /
   // route change) mid-gesture, so tear down the timer and inline styles.
@@ -465,11 +437,11 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       onPointerDown,
       onPointerMove,
       onPointerUp: settle,
-      onPointerCancel,
-      onLostPointerCapture,
+      onPointerCancel: cancelGesture,
+      onLostPointerCapture: cancelGesture,
     }),
-    [onPointerDown, onPointerMove, settle, onPointerCancel, onLostPointerCapture],
+    [onPointerDown, onPointerMove, settle, cancelGesture],
   );
 
-  return { contentRef, handlers, isDragging, didDragRef };
+  return { contentRef, handlers, isDraggingRef, didDragRef };
 }
