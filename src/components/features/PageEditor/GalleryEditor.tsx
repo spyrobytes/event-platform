@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { PAGE_CONFIG_LIMITS, type GallerySection } from "@/schemas/event-page";
+import { templateHonorsGalleryDisplayMode } from "@/lib/gallery-display-mode";
 
 type Asset = {
   id: string;
@@ -31,6 +32,12 @@ type GalleryEditorProps = {
   onChange: (data: GallerySection["data"]) => void;
   maxImages?: number;
   templateId?: string;
+  /**
+   * V2 scrapbook variant ignores `displayMode` (swaps in ScrapbookCollage), so
+   * the caller passes this to suppress the mode controls there too. Only
+   * meaningful for `wedding_v2`; harmless (false) elsewhere.
+   */
+  isScrapbook?: boolean;
 };
 
 /**
@@ -43,8 +50,15 @@ export function GalleryEditor({
   onChange,
   maxImages = PAGE_CONFIG_LIMITS.maxGalleryImages,
   templateId,
+  isScrapbook = false,
 }: GalleryEditorProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+  // V3 templates use a fixed curated gallery renderer that ignores `displayMode`
+  // (and V2's scrapbook variant does too), so we hide the mode / transition /
+  // auto-play controls for them — they'd be dead knobs. See gallery-display-mode.ts.
+  const honorsDisplayMode =
+    templateHonorsGalleryDisplayMode(templateId) && !isScrapbook;
 
   // Filter to only gallery-tagged assets
   const galleryAssets = assets.filter((a) => a.tags.includes("gallery"));
@@ -168,69 +182,73 @@ export function GalleryEditor({
             />
           </div>
 
-          {/* Display Mode */}
-          <div className="space-y-2">
-            <Label htmlFor="display-mode">Display Mode</Label>
-            <Select
-              id="display-mode"
-              value={data.displayMode || "grid"}
-              onChange={(e) =>
-                onChange({
-                  ...data,
-                  displayMode: e.target.value as "grid" | "carousel" | "masonry" | "slideshow",
-                })
-              }
-            >
-              <option value="grid">Grid</option>
-              <option value="carousel">Carousel</option>
-              <option value="masonry">Masonry</option>
-              <option value="slideshow">Slideshow</option>
-            </Select>
-          </div>
+          {honorsDisplayMode && (
+            <>
+              {/* Display Mode */}
+              <div className="space-y-2">
+                <Label htmlFor="display-mode">Display Mode</Label>
+                <Select
+                  id="display-mode"
+                  value={data.displayMode || "grid"}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      displayMode: e.target.value as "grid" | "carousel" | "masonry" | "slideshow",
+                    })
+                  }
+                >
+                  <option value="grid">Grid</option>
+                  <option value="carousel">Carousel</option>
+                  <option value="masonry">Masonry</option>
+                  <option value="slideshow">Slideshow</option>
+                </Select>
+              </div>
 
-          {/* Transition Effect */}
-          <div className="space-y-2">
-            <Label htmlFor="transition">Transition Effect</Label>
-            <Select
-              id="transition"
-              value={data.transition || "fade"}
-              onChange={(e) =>
-                onChange({
-                  ...data,
-                  transition: e.target.value as "fade" | "slide" | "zoom" | "flip",
-                })
-              }
-            >
-              <option value="fade">Fade</option>
-              <option value="slide">Slide</option>
-              <option value="zoom">Zoom</option>
-              <option value="flip">Flip</option>
-            </Select>
-          </div>
+              {/* Transition Effect */}
+              <div className="space-y-2">
+                <Label htmlFor="transition">Transition Effect</Label>
+                <Select
+                  id="transition"
+                  value={data.transition || "fade"}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      transition: e.target.value as "fade" | "slide" | "zoom" | "flip",
+                    })
+                  }
+                >
+                  <option value="fade">Fade</option>
+                  <option value="slide">Slide</option>
+                  <option value="zoom">Zoom</option>
+                  <option value="flip">Flip</option>
+                </Select>
+              </div>
 
-          {/* Auto-play Interval */}
-          <div className="space-y-2">
-            <Label htmlFor="autoplay-interval">Auto-play Interval (seconds)</Label>
-            <Input
-              id="autoplay-interval"
-              type="number"
-              min={2}
-              max={15}
-              value={data.autoPlayInterval || 5}
-              onChange={(e) =>
-                onChange({
-                  ...data,
-                  autoPlayInterval: Math.min(15, Math.max(2, parseInt(e.target.value) || 5)),
-                })
-              }
-              disabled={!data.autoPlay}
-            />
-          </div>
+              {/* Auto-play Interval */}
+              <div className="space-y-2">
+                <Label htmlFor="autoplay-interval">Auto-play Interval (seconds)</Label>
+                <Input
+                  id="autoplay-interval"
+                  type="number"
+                  min={2}
+                  max={15}
+                  value={data.autoPlayInterval || 5}
+                  onChange={(e) =>
+                    onChange({
+                      ...data,
+                      autoPlayInterval: Math.min(15, Math.max(2, parseInt(e.target.value) || 5)),
+                    })
+                  }
+                  disabled={!data.autoPlay}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Toggle options */}
         <div className="flex flex-wrap gap-6">
-          {(() => {
+          {honorsDisplayMode && (() => {
             const isAutoPlayDisabled = !data.displayMode || data.displayMode === "grid" || data.displayMode === "masonry";
             return (
               <label className={`flex items-center gap-2 text-sm ${isAutoPlayDisabled ? "opacity-50" : ""}`}>
