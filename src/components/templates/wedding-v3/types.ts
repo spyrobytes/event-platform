@@ -142,7 +142,6 @@ export type GalleryRendererId =
   | "masonry"             // existing V2
   | "magazine-grid"       // Editorial
   | "framed-fine-art"     // Fine Art Romance
-  | "cinematic-slider"    // Grand Luxe
   | "soft-masonry"        // Garden House
   | "compact-strip"       // Intimate Note
   | "scrapbook-collage";  // Celebration House
