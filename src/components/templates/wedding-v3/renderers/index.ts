@@ -86,7 +86,6 @@ import { FullscreenDramaticHero } from "./hero/FullscreenDramaticHero";
 import { CollageMosaicHero } from "./hero/CollageMosaicHero";
 import { FloatingPillNav } from "./nav/FloatingPillNav";
 import { UtilityForwardNav } from "./nav/UtilityForwardNav";
-import { CinematicSlider } from "./gallery/CinematicSlider";
 import { ScrapbookCollage } from "./gallery/ScrapbookCollage";
 import { StackedLuxe } from "./schedule/StackedLuxe";
 import { MultiEventTabbed } from "./schedule/MultiEventTabbed";
@@ -160,7 +159,6 @@ export const galleryRenderers: Record<GalleryRendererId, GalleryRenderer> = {
   masonry: CinematicGalleryAdapter,
   "magazine-grid": MagazineGrid,
   "framed-fine-art": FramedFineArt,
-  "cinematic-slider": CinematicSlider,
   "soft-masonry": SoftMasonry,
   "compact-strip": CompactStrip,
   "scrapbook-collage": ScrapbookCollage,
