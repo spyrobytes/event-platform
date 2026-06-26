@@ -28,8 +28,6 @@ type CinematicScrollProps = {
   className?: string;
 };
 
-const REVEAL_THRESHOLD = 0.15; // Percentage of section visible to trigger reveal
-
 /**
  * CinematicScroll creates a story-driven scroll experience.
  *
@@ -93,8 +91,12 @@ export function CinematicScroll({
         });
       },
       {
-        threshold: REVEAL_THRESHOLD,
-        rootMargin: "0px 0px -10% 0px",
+        // Height-independent reveal: fire as any pixel enters. A fractional
+        // threshold can never be reached by a section taller than ~1/threshold
+        // viewports (it would stay stuck at opacity:0); a negative bottom
+        // rootMargin carves a dead-zone a short trailing section can rest in.
+        threshold: 0,
+        rootMargin: "0px",
       }
     );
 
