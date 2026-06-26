@@ -159,10 +159,6 @@
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* Retain the flip subtree's layer (pairs with .front backface-visibility:visible)
-     so the front's backing store survives the first flip — fixes the one-frame
-     blank on first flip-back, worst on the widest 2-col cards. */
-  will-change: transform;
 }
 
 .cardOuter.flipped .cardInner {
@@ -184,10 +180,10 @@
 
 /* ===== Front face — scrapbook photo ===== */
 .front {
-  /* Override .face: keep the front backface-VISIBLE so its layer isn't culled and
-     re-rastered blank on the first flip back to front. The back face keeps
-     backface-visibility:hidden and, being opaque + later in DOM, fully covers the
-     front while flipped, so the (now-rendered) front never shows through. */
+  /* Both faces are backface-VISIBLE (never GPU-culled) and kept 1px apart in Z (the
+     offset lives on .back), so each is painted at rest and the nearer opaque face
+     occludes the other — front at rest, back when flipped. The opaque white front
+     fully covers the back behind it at rest; nothing bleeds through. */
   backface-visibility: visible;
   -webkit-backface-visibility: visible;
   background: var(--surface, #ffffff);
@@ -200,11 +196,21 @@
   position: relative;
 }
 
-.cardOuter:hover .front,
+/* Keyboard focus keeps the lift cue ungated. The :hover variant is gated to fine-
+   pointer devices so a mobile TAP doesn't trigger shadow/scale repaint work on the
+   same frame as the flip (an aggravator of the first-flip flicker). */
 .cardOuter:focus-visible .front {
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:hover .front {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.12),
+      0 2px 6px rgba(0, 0, 0, 0.06);
+  }
 }
 
 .photoFrame {
@@ -223,8 +229,10 @@
   transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.cardOuter:hover .photo {
-  transform: scale(1.04);
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:hover .photo {
+    transform: scale(1.04);
+  }
 }
 
 /* Monogram fallback when no photo */
@@ -267,35 +275,35 @@
   transition: opacity 0.3s ease;
 }
 
-.cardOuter:hover .flipHint,
 .cardOuter:focus-visible .flipHint {
   opacity: 0.7;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:hover .flipHint {
+    opacity: 0.7;
+  }
 }
 
 /* ===== Back face — editorial text ===== */
 .back {
   position: absolute;
   inset: 0;
-  transform: rotateY(180deg);
-  /* Keep the back's compositor layer resident BEFORE the first flip. The back is
-     backface-VISIBILITY:hidden and faces away at rest, so the GPU culls it and
-     never allocates its backing store. On the FIRST flip TO the back — worst on
-     the tall 1-col mobile card (largest layer, most memory pressure) — it then
-     rasters a frame late; and since #238 made the FRONT backface-VISIBLE (so it's
-     now always painted, mirrored, during a flip), that one-frame gap let the
-     mirrored front bleed through as a flicker. The immune Gilded/Couture backs
-     never flicker because #239 gave them an image-backed opaque composite (a
-     materialized, retained layer); their flat-solid-color sibling here was the
-     only one left culled-and-flat. So mirror that profile: an image-backed paint
-     (a visual no-op — the cream is already opaque) plus will-change to keep the
-     layer resident. GPU-only — does not reproduce headless/in dev; verify on a
-     real device. */
-  background-color: var(--cream-on-card, var(--cream, #f5ede0));
-  background-image: linear-gradient(
-    var(--cream-on-card, var(--cream, #f5ede0)),
-    var(--cream-on-card, var(--cream, #f5ede0))
-  );
-  will-change: transform;
+  /* The flicker fix. Both faces are backface-VISIBLE (never GPU-culled) and
+     Z-separated: this 1px offset puts the back BEHIND the opaque front at rest and
+     IN FRONT when flipped. Because it's never culled, the back is rastered at rest
+     — on every viewport entry, before any flip can happen — so the first flip can't
+     show a one-frame-late raster (the mirrored front bleeding through). This
+     supersedes the earlier cull-and-retain hacks (will-change + an image-backed
+     paint): those tried to keep the layer resident, but offscreen layers are evicted
+     regardless, which is why the flicker returned every time the card scrolled away
+     and back. The cream is already opaque, so a plain background fully covers the
+     front behind it at rest. GPU-only — does not reproduce headless/in dev; verify
+     on a real device. */
+  transform: rotateY(180deg) translateZ(1px);
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  background: var(--cream-on-card, var(--cream, #f5ede0));
   padding: clamp(24px, 3vw, 36px) clamp(16px, 2vw, 28px);
   box-shadow:
     0 4px 20px rgba(0, 0, 0, 0.08),
@@ -368,9 +376,14 @@
   transition: opacity 0.3s ease;
 }
 
-.cardOuter:hover .returnHint,
 .cardOuter:focus-visible .returnHint {
   opacity: 0.7;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:hover .returnHint {
+    opacity: 0.7;
+  }
 }
 
 /* ===== Empty state ===== */

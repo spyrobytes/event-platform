@@ -126,10 +126,6 @@
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-  /* Retain the flip subtree's layer (pairs with .front backface-visibility:visible)
-     so the front's backing store survives the first flip — fixes the one-frame
-     blank on first flip-back, worst on the widest 2-col cards. */
-  will-change: transform;
 }
 
 .cardOuter.flipped .cardInner { transform: rotateY(180deg); }
@@ -152,12 +148,18 @@
 
 /* ===== Front — framed portrait + placard ===== */
 .front {
-  /* Override .face: keep the front backface-VISIBLE so its layer isn't culled and
-     re-rastered blank on the first flip back to front. The back face keeps
-     backface-visibility:hidden and, being opaque + later in DOM, fully covers the
-     front while flipped, so the (now-rendered) front never shows through. */
+  /* Both faces are backface-VISIBLE (never GPU-culled) and Z-separated (the 1px
+     offset lives on .back), so each is painted at rest and the nearer opaque face
+     occludes the other — front at rest, back when flipped. Because the back is now
+     painted at rest too, the front must be OPAQUE so the back can't bleed through it
+     on THEMED sections, where .face's --gf-card is the ~6% --lux-card wash. The wash
+     over an opaque --gf-band base reads identically — over the band is exactly what
+     the translucent front composited to before — but fully covers. No-op on the
+     Light default, where --gf-card is the opaque --surface. */
   backface-visibility: visible;
   -webkit-backface-visibility: visible;
+  background-color: var(--gf-band);
+  background-image: linear-gradient(var(--gf-card), var(--gf-card));
   position: relative;
   padding: clamp(12px, 1.4vw, 18px);
   padding-bottom: clamp(20px, 2.4vw, 28px);
@@ -177,13 +179,25 @@
   pointer-events: none;
 }
 
-.cardOuter:not(.static):hover .front,
+/* Keyboard focus keeps the lift cue ungated. The :hover variant is gated to fine-
+   pointer devices so a mobile TAP doesn't trigger lift/scale repaint work on the
+   same frame as the flip (an aggravator of the first-flip flicker). */
 .cardOuter:not(.static):focus-visible .front {
   transform: translateY(-4px);
   border-color: color-mix(in srgb, var(--gf-accent) 50%, var(--gf-line));
   box-shadow:
     0 30px 56px -28px rgba(0, 0, 0, 0.58),
     0 4px 14px -6px rgba(0, 0, 0, 0.32);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:not(.static):hover .front {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--gf-accent) 50%, var(--gf-line));
+    box-shadow:
+      0 30px 56px -28px rgba(0, 0, 0, 0.58),
+      0 4px 14px -6px rgba(0, 0, 0, 0.32);
+  }
 }
 
 .photoFrame {
@@ -207,7 +221,9 @@
   transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.cardOuter:not(.static):hover .photo { transform: scale(1.04); }
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:not(.static):hover .photo { transform: scale(1.04); }
+}
 
 /* Monogram fallback when no photo. */
 .monogram {
@@ -264,22 +280,35 @@
   transition: opacity 0.3s ease, color 0.3s ease;
 }
 
-.cardOuter:hover .flipHint,
 .cardOuter:focus-visible .flipHint {
   opacity: 0.9;
   color: var(--gf-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:hover .flipHint {
+    opacity: 0.9;
+    color: var(--gf-accent);
+  }
 }
 
 /* ===== Back — placard ===== */
 .back {
   position: absolute;
   inset: 0;
-  transform: rotateY(180deg);
-  /* Opaque back so the now-backface-VISIBLE front (see .front) can't bleed through
-     on THEMED sections, where --gf-card is the near-transparent --lux-card wash
-     (rgba ~6%). The wash composited over an opaque --gf-band (--lux-panel) base
-     reads identically but fully covers the front. On the Light default --gf-card
-     is the opaque --surface, so this stays a no-op there. */
+  /* The flicker fix. Both faces are backface-VISIBLE (never GPU-culled) and
+     Z-separated: this 1px offset puts the back BEHIND the opaque front at rest and
+     IN FRONT when flipped. Never being culled, the back is rastered at rest — on
+     every viewport entry, before any flip — so the first flip can't show a one-frame-
+     late raster. (Supersedes the old will-change layer-retention hack, which couldn't
+     survive offscreen eviction.) Stays opaque so neither the painted-at-rest back
+     bleeds through the front nor the mirrored front through the back: --gf-card alone
+     is the ~6% --lux-card wash on themed sections; over the opaque --gf-band base it
+     reads identically but fully covers. No-op on the Light default (--gf-card =
+     --surface). GPU-only — verify on a real device. */
+  transform: rotateY(180deg) translateZ(1px);
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   background-color: var(--gf-band);
   background-image: linear-gradient(var(--gf-card), var(--gf-card));
   padding: clamp(26px, 3vw, 38px) clamp(20px, 2.2vw, 30px);
@@ -348,8 +377,11 @@
   transition: opacity 0.3s ease;
 }
 
-.cardOuter:hover .returnHint,
 .cardOuter:focus-visible .returnHint { opacity: 0.9; }
+
+@media (hover: hover) and (pointer: fine) {
+  .cardOuter:hover .returnHint { opacity: 0.9; }
+}
 
 /* ===== Empty state ===== */
 .empty {
