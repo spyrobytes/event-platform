@@ -127,22 +127,27 @@
   position: relative;
   transform-style: preserve-3d;
   transition: transform 0.65s cubic-bezier(0.34, 1.4, 0.5, 1);
-  /* Retain the flip subtree's layer (pairs with .front backface-visibility:visible)
-     so the front's backing store survives the first flip — fixes the one-frame
-     blank on first flip-back, worst on the widest 2-col cards. */
-  will-change: transform;
 }
 
 .cardOuter.flipped .cardInner { transform: rotateY(180deg); }
 
 /* ===== Shared face — heavy matte stock, deep soft shadow ===== */
 .face {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  /* BOTH faces stay backface-VISIBLE (the flicker fix): a backface-hidden face is
+     GPU-culled at rest and rasters a frame late when the flip brings it forward —
+     that late raster IS the flicker. Both stay painted, with the 1px Z-separation
+     on .back ordering them. Do not reintroduce `hidden`. */
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   border-radius: var(--r, 5px);
   /* Clip content to the card box so a long bio can't spill past the stock. */
   overflow: hidden;
-  background: var(--cp-card);
+  /* OPAQUE composite, shared by both faces: --cp-card alone is the ~6% --lux-card
+   * wash on themed sections; over the opaque --cp-band base it reads identically
+   * but fully covers, so the now painted-at-rest back can't bleed through the front
+   * (or vice-versa). No-op on the Light default, where --cp-card is opaque --surface. */
+  background-color: var(--cp-band);
+  background-image: linear-gradient(var(--cp-card), var(--cp-card));
   border: 1px solid var(--cp-line);
   box-shadow:
     0 22px 48px -26px rgba(0, 0, 0, 0.5),
@@ -151,12 +156,6 @@
 
 /* ===== Front — mounted photo + nameplate (polaroid chin) ===== */
 .front {
-  /* Override .face: keep the front backface-VISIBLE so its layer isn't culled and
-     re-rastered blank on the first flip back to front. The back face keeps
-     backface-visibility:hidden and, being opaque + later in DOM, fully covers the
-     front while flipped, so the (now-rendered) front never shows through. */
-  backface-visibility: visible;
-  -webkit-backface-visibility: visible;
   position: relative;
   padding: clamp(10px, 1.4vw, 14px);
   padding-bottom: clamp(26px, 3.2vw, 38px);
@@ -164,13 +163,26 @@
     box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
-.cardOuter:not(.static):hover .front,
+/* Keyboard focus keeps the lift cue ungated. The :hover variant is gated to
+   hover-capable devices (any-hover) so a pure-touch TAP can't trigger lift/scale
+   repaint on the flip frame (an aggravator of the first-flip flicker), while mouse
+   and hybrid touch+mouse users still get the cue. */
 .cardOuter:not(.static):focus-visible .front {
   transform: translateY(-5px);
   border-color: color-mix(in srgb, var(--cp-accent) 45%, var(--cp-line));
   box-shadow:
     0 34px 60px -28px rgba(0, 0, 0, 0.56),
     0 10px 22px -12px rgba(0, 0, 0, 0.34);
+}
+
+@media (any-hover: hover) {
+  .cardOuter:not(.static):hover .front {
+    transform: translateY(-5px);
+    border-color: color-mix(in srgb, var(--cp-accent) 45%, var(--cp-line));
+    box-shadow:
+      0 34px 60px -28px rgba(0, 0, 0, 0.56),
+      0 10px 22px -12px rgba(0, 0, 0, 0.34);
+  }
 }
 
 .photoFrame {
@@ -197,7 +209,9 @@
   transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.cardOuter:not(.static):hover .photo { transform: scale(1.04); }
+@media (any-hover: hover) {
+  .cardOuter:not(.static):hover .photo { transform: scale(1.04); }
+}
 
 /* Gold photo-corner tape — four mounting triangles laid over the photo. Each
    corner is a small box holding a single gold right-triangle (via a hard-stop
@@ -290,30 +304,49 @@
   transition: opacity 0.3s ease, color 0.3s ease;
 }
 
-.cardOuter:hover .flipHint,
 .cardOuter:focus-visible .flipHint {
   opacity: 0.9;
   color: var(--cp-accent);
+}
+
+@media (any-hover: hover) {
+  .cardOuter:hover .flipHint {
+    opacity: 0.9;
+    color: var(--cp-accent);
+  }
 }
 
 /* ===== Back — matte placard ===== */
 .back {
   position: absolute;
   inset: 0;
-  transform: rotateY(180deg);
-  /* Opaque back so the now-backface-VISIBLE front (see .front) can't bleed through
-     on THEMED sections, where --cp-card is the near-transparent --lux-card wash
-     (rgba ~6%). The wash composited over an opaque --cp-band (--lux-panel) base
-     reads identically but fully covers the front. On the Light default --cp-card
-     is the opaque --surface, so this stays a no-op there. */
-  background-color: var(--cp-band);
-  background-image: linear-gradient(var(--cp-card), var(--cp-card));
+  /* The flicker fix. The 1px Z-offset puts the back BEHIND the opaque front at rest
+     and IN FRONT when flipped; combined with backface-visible (.face) it's painted
+     at rest — on every viewport entry, before any flip — so the first flip never
+     shows a one-frame-late raster. (Supersedes the old will-change/image-paint
+     layer-retention hacks, which couldn't survive offscreen eviction — that's why
+     the flicker used to return on re-entry.) Opacity + drop-shadow come from .face.
+     GPU-only — verify on a real device. */
+  transform: rotateY(180deg) translateZ(1px);
   padding: clamp(26px, 3vw, 38px) clamp(20px, 2.2vw, 30px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+/* Both faces now paint at rest (backface-visible), so each would cast .face's
+   drop-shadow and the two would stack into a doubled halo. Only the front-FACING
+   face should cast it — suppress the other one's shadow per flip state. The front
+   suppressor carries :not(.static) to match the hover-lift rule's specificity (and
+   sits later in source order) so it still wins when a flipped card is hovered. */
+.cardOuter:not(.flipped) .back {
+  box-shadow: none;
+}
+
+.cardOuter.flipped:not(.static) .front {
+  box-shadow: none;
 }
 
 .backName {
@@ -373,8 +406,11 @@
   transition: opacity 0.3s ease;
 }
 
-.cardOuter:hover .returnHint,
 .cardOuter:focus-visible .returnHint { opacity: 0.9; }
+
+@media (any-hover: hover) {
+  .cardOuter:hover .returnHint { opacity: 0.9; }
+}
 
 /* ===== Empty state ===== */
 .empty {
