@@ -172,20 +172,21 @@
 
 /* ===== Shared face styles ===== */
 .face {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  /* BOTH faces stay backface-VISIBLE (the flicker fix): a backface-hidden face is
+     GPU-culled at rest and rasters one frame late when the flip brings it forward
+     — that late raster IS the flicker. Keeping both painted at all times, plus the
+     1px Z-separation on .back so the nearer opaque face occludes the other, removes
+     it. This is the live default for both faces; do not reintroduce `hidden`. */
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
   border-radius: var(--r, 16px);
   overflow: hidden;
 }
 
 /* ===== Front face — scrapbook photo ===== */
 .front {
-  /* Both faces are backface-VISIBLE (never GPU-culled) and kept 1px apart in Z (the
-     offset lives on .back), so each is painted at rest and the nearer opaque face
-     occludes the other — front at rest, back when flipped. The opaque white front
-     fully covers the back behind it at rest; nothing bleeds through. */
-  backface-visibility: visible;
-  -webkit-backface-visibility: visible;
+  /* Opaque white, so at rest it fully covers the now painted-at-rest back behind it
+     (backface-visibility lives on .face; the 1px Z-order offset lives on .back). */
   background: var(--surface, #ffffff);
   padding: clamp(8px, 1.5vw, 14px);
   padding-bottom: clamp(32px, 4vw, 44px);
@@ -196,16 +197,17 @@
   position: relative;
 }
 
-/* Keyboard focus keeps the lift cue ungated. The :hover variant is gated to fine-
-   pointer devices so a mobile TAP doesn't trigger shadow/scale repaint work on the
-   same frame as the flip (an aggravator of the first-flip flicker). */
+/* Keyboard focus keeps the lift cue ungated. The :hover variant is gated to
+   hover-capable devices (any-hover) so a pure-touch TAP can't trigger shadow/scale
+   repaint on the flip frame (an aggravator of the first-flip flicker), while mouse
+   and hybrid touch+mouse users still get the cue. */
 .cardOuter:focus-visible .front {
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (any-hover: hover) {
   .cardOuter:hover .front {
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.12),
@@ -229,7 +231,7 @@
   transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (any-hover: hover) {
   .cardOuter:hover .photo {
     transform: scale(1.04);
   }
@@ -279,7 +281,7 @@
   opacity: 0.7;
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (any-hover: hover) {
   .cardOuter:hover .flipHint {
     opacity: 0.7;
   }
@@ -301,8 +303,6 @@
      front behind it at rest. GPU-only — does not reproduce headless/in dev; verify
      on a real device. */
   transform: rotateY(180deg) translateZ(1px);
-  backface-visibility: visible;
-  -webkit-backface-visibility: visible;
   background: var(--cream-on-card, var(--cream, #f5ede0));
   padding: clamp(24px, 3vw, 36px) clamp(16px, 2vw, 28px);
   box-shadow:
@@ -314,6 +314,17 @@
   align-items: center;
   text-align: center;
   gap: 8px;
+}
+
+/* Both faces now paint at rest (backface-visible), so each would cast the card's
+   drop-shadow and the two would stack into a doubled halo. Only the front-FACING
+   face should cast it — suppress the other one's shadow per flip state. */
+.cardOuter:not(.flipped) .back {
+  box-shadow: none;
+}
+
+.cardOuter.flipped .front {
+  box-shadow: none;
 }
 
 .backName {
@@ -380,7 +391,7 @@
   opacity: 0.7;
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (any-hover: hover) {
   .cardOuter:hover .returnHint {
     opacity: 0.7;
   }
