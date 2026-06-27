@@ -105,6 +105,22 @@ Tailwind is the default for structure and tokens. CSS Modules are used as an esc
 - Complex hover/active interactions
 - Visual flourishes (glows, gradients)
 
+### Inline styles and `!important`
+
+All animation and custom styling lives in CSS Modules by default. **Inline styles (`style={{ ... }}` with real declarations) and `!important` overrides are disfavored hacks** — they scatter styling out of the discoverable, themeable `.module.css`, and the two are linked: an inline declaration sits at specificity `(1,0,0,0)` that no class selector can beat, so it *forces* a downstream `!important` to override it. Removing the inline style is what lets the `!important` go away.
+
+Inline styling is allowed **only on a case-by-case basis** — when it's genuinely the right tool, call it out in the PR and get sign-off; don't silently inline, and don't dogmatically refuse a legitimate case.
+
+When a styling value must come from JS (e.g. a per-instance random tilt), pass only the **scalar via an inline CSS custom property**, keeping the declaration in the module:
+
+```tsx
+<div className={styles.card} style={{ "--tilt": rotation }} />
+```
+```css
+.card { transform: rotate(var(--tilt, 0deg)); }
+.card.flipped { transform: rotate(0deg); } /* wins on normal specificity — no !important */
+```
+
 Use the `cn()` utility for conditional classes:
 ```tsx
 import { cn } from "@/lib/utils";
