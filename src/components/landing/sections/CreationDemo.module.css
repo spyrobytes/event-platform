@@ -244,23 +244,12 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Tall phone captures: crop to the hero, the template's signature moment. */
+/* Thumbs are pre-cropped to the plate aspect; cover absorbs the slight
+   box-ratio drift when the card shrinks below its 360px width. */
 .plateThumbImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 12%;
-}
-
-/* The scrapbook capture is a wide polaroid strip — center it instead. */
-.plateThumbImgWide {
-  object-position: center;
-}
-
-/* Grand Luxe's hero moment (cutout couple over florals) sits lower in the
-   capture than the other templates'. */
-.plateThumbImgMid {
-  object-position: center 30%;
 }
 
 .plateName {

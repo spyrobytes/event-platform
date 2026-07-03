@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { useReducedMotion } from "@/hooks";
+import { useIntersectionObserver, useReducedMotion } from "@/hooks";
+import { cn } from "@/lib/utils";
 import { Section } from "../ui/Section";
+import { QrCodeIcon } from "../ui/icons";
 import styles from "./CreationDemo.module.css";
 
 type Step = {
@@ -59,9 +61,10 @@ const TYPE_SPEED = 50;
 function useTypewriter(text: string, isActive: boolean, speed: number = TYPE_SPEED) {
   const [displayed, setDisplayed] = useState("");
   const indexRef = useRef(0);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!isActive) {
+    if (!isActive || reducedMotion) {
       return;
     }
 
@@ -82,10 +85,34 @@ function useTypewriter(text: string, isActive: boolean, speed: number = TYPE_SPE
       setDisplayed("");
       indexRef.current = 0;
     };
-  }, [text, isActive, speed]);
+  }, [text, isActive, speed, reducedMotion]);
 
-  // When not active, return empty string without triggering a state update
-  return isActive ? displayed : "";
+  if (!isActive) {
+    return "";
+  }
+  // Reduced motion: the full value appears at once instead of typing out.
+  return reducedMotion ? text : displayed;
+}
+
+/* Flips true `ms` after the card becomes active; resets when it deactivates.
+   Folds in the isActive render guard so the flag is never stale-true during
+   the deactivation frame (cleanup runs after the re-render). */
+function useDelayedFlag(isActive: boolean, ms: number): boolean {
+  const [flag, setFlag] = useState(false);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
+    }
+
+    const timeout = setTimeout(() => setFlag(true), ms);
+    return () => {
+      clearTimeout(timeout);
+      setFlag(false);
+    };
+  }, [isActive, ms]);
+
+  return flag && isActive;
 }
 
 function TypewriterField({
@@ -99,29 +126,15 @@ function TypewriterField({
   isActive: boolean;
   delay?: number;
 }) {
-  const [shouldType, setShouldType] = useState(false);
-  const displayed = useTypewriter(value, shouldType && isActive);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const timeout = setTimeout(() => setShouldType(true), delay);
-    return () => {
-      clearTimeout(timeout);
-      setShouldType(false);
-    };
-  }, [isActive, delay]);
-
-  const effectiveShouldType = shouldType && isActive;
+  const shouldType = useDelayedFlag(isActive, delay);
+  const displayed = useTypewriter(value, shouldType);
 
   return (
     <div className={styles.field}>
       <div className={styles.fieldLabel}>{label}</div>
       <div className={styles.fieldInput}>
         <span>{displayed}</span>
-        {effectiveShouldType && displayed.length < value.length && (
+        {shouldType && displayed.length < value.length && (
           <span className={styles.cursor}>|</span>
         )}
       </div>
@@ -129,39 +142,38 @@ function TypewriterField({
   );
 }
 
-/* The same real captures the TemplateShowcase plates use — the picker shows
-   the actual templates, not color swatches. */
-const TEMPLATE_PLATES = [
-  { name: "Cinematic", src: "/landing/templates/cinematic.jpg", width: 860, height: 1760 },
-  { name: "Grand Luxe", src: "/landing/templates/grand-luxe.jpg", width: 860, height: 1760, focusMid: true },
-  { name: "Celebration", src: "/landing/templates/celebration.jpg", width: 860, height: 1760 },
-  { name: "Scrapbook", src: "/landing/templates/scrapbook.jpg", width: 1805, height: 547, wide: true },
+type TemplatePlate = {
+  name: string;
+  src: string;
+  width: number;
+  height: number;
+};
+
+/*
+ * Pre-cropped webp thumbs (320x149, ~1-3KB each) derived from the real
+ * captures in public/landing/templates/ — the picker shows the actual
+ * templates without shipping the full-resolution originals (the custom image
+ * loader passes marker-less public assets through untouched, so a sizes hint
+ * cannot downscale them). Regenerate with sharp from ../<name>.jpg if a
+ * capture is re-shot (crop focus: hero band at 12%, grand-luxe 30%,
+ * scrapbook centered).
+ */
+const TEMPLATE_PLATES: TemplatePlate[] = [
+  { name: "Cinematic", src: "/landing/templates/thumbs/cinematic.webp", width: 320, height: 149 },
+  { name: "Grand Luxe", src: "/landing/templates/thumbs/grand-luxe.webp", width: 320, height: 149 },
+  { name: "Celebration", src: "/landing/templates/thumbs/celebration.webp", width: 320, height: 149 },
+  { name: "Scrapbook", src: "/landing/templates/thumbs/scrapbook.webp", width: 320, height: 149 },
 ];
 
 function TemplatesContent({ isActive }: { isActive: boolean }) {
-  const [selected, setSelected] = useState(false);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const timeout = setTimeout(() => setSelected(true), 900);
-    return () => {
-      clearTimeout(timeout);
-      setSelected(false);
-    };
-  }, [isActive]);
+  const selected = useDelayedFlag(isActive, 900);
 
   return (
     <div className={styles.templateGrid}>
       {TEMPLATE_PLATES.map((plate, i) => (
         <div
           key={plate.name}
-          className={[
-            styles.plate,
-            selected && isActive && i === 0 ? styles.plateSelected : "",
-          ].join(" ")}
+          className={cn(styles.plate, selected && i === 0 && styles.plateSelected)}
         >
           <div className={styles.plateThumb}>
             <Image
@@ -169,12 +181,7 @@ function TemplatesContent({ isActive }: { isActive: boolean }) {
               alt=""
               width={plate.width}
               height={plate.height}
-              sizes="160px"
-              className={[
-                styles.plateThumbImg,
-                plate.wide ? styles.plateThumbImgWide : "",
-                plate.focusMid ? styles.plateThumbImgMid : "",
-              ].join(" ")}
+              className={styles.plateThumbImg}
             />
           </div>
           <div className={styles.plateName}>{plate.name}</div>
@@ -220,22 +227,10 @@ const SHARE_CHANNELS = [
 ];
 
 function ShareContent({ isActive }: { isActive: boolean }) {
-  const [sent, setSent] = useState(false);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const timeout = setTimeout(() => setSent(true), 600);
-    return () => {
-      clearTimeout(timeout);
-      setSent(false);
-    };
-  }, [isActive]);
+  const sent = useDelayedFlag(isActive, 600);
 
   return (
-    <div className={[styles.share, sent && isActive ? styles.shareSent : ""].join(" ")}>
+    <div className={cn(styles.share, sent && styles.shareSent)}>
       {SHARE_CHANNELS.map((channel) => (
         <div key={channel.label} className={styles.shareRow}>
           <span className={styles.shareIcon}>{channel.icon}</span>
@@ -244,9 +239,7 @@ function ShareContent({ isActive }: { isActive: boolean }) {
         </div>
       ))}
       <div className={styles.shareNote}>
-        <svg aria-hidden className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-        </svg>
+        <QrCodeIcon className="size-3.5 shrink-0" />
         QR passes attach to every confirmation email
       </div>
     </div>
@@ -254,21 +247,7 @@ function ShareContent({ isActive }: { isActive: boolean }) {
 }
 
 function DashboardContent({ isActive }: { isActive: boolean }) {
-  const [showStats, setShowStats] = useState(false);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const timeout = setTimeout(() => setShowStats(true), 300);
-    return () => {
-      clearTimeout(timeout);
-      setShowStats(false);
-    };
-  }, [isActive]);
-
-  const effectiveShowStats = showStats && isActive;
+  const showStats = useDelayedFlag(isActive, 300);
 
   return (
     <div className={styles.dashboard}>
@@ -288,7 +267,7 @@ function DashboardContent({ isActive }: { isActive: boolean }) {
         </div>
       </div>
 
-      <div className={[styles.statsGrid, effectiveShowStats ? styles.statsVisible : ""].join(" ")}>
+      <div className={cn(styles.statsGrid, showStats && styles.statsVisible)}>
         <div className={styles.statCard}>
           <div className={styles.statValue}>86</div>
           <div className={styles.statLabel}>RSVPs in</div>
@@ -314,11 +293,11 @@ function DashboardContent({ isActive }: { isActive: boolean }) {
 function StepCard({ step, isActive }: { step: Step; isActive: boolean }) {
   return (
     <div
-      className={[
+      className={cn(
         styles.card,
-        isActive ? styles.cardActive : "",
-        step.variant === "dashboard" ? styles.cardDashboard : "",
-      ].join(" ")}
+        isActive && styles.cardActive,
+        step.variant === "dashboard" && styles.cardDashboard
+      )}
     >
       <div className={styles.cardHeader}>
         <div className={styles.windowControls}>
@@ -355,10 +334,11 @@ function StepCard({ step, isActive }: { step: Step; isActive: boolean }) {
 
 export function CreationDemo() {
   const [activeStep, setActiveStep] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const reducedMotion = useReducedMotion();
+  const { ref: sectionRef, hasBeenVisible: isVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    triggerOnce: true,
+  });
 
   const handleStepSelect = (index: number) => {
     setActiveStep(index);
@@ -366,33 +346,21 @@ export function CreationDemo() {
   };
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.3 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    // No auto-advance for reduced-motion users or once the user has taken
-    // control via the step buttons — the demo becomes click-to-explore.
-    if (!isVisible || reducedMotion || hasInteracted) return;
+    // Auto-advance until the user takes control via the step buttons — then
+    // the demo becomes click-to-explore. Reduced-motion users keep the
+    // auto-advance (hiding steps 2-4 from them would remove content, and the
+    // CSS reduced-motion block turns the card swap into a plain crossfade);
+    // the step buttons double as the WCAG pause control.
+    if (!isVisible || hasInteracted) return;
 
     const interval = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % steps.length);
     }, STEP_DURATION);
 
     return () => clearInterval(interval);
-  }, [isVisible, reducedMotion, hasInteracted]);
+  }, [isVisible, hasInteracted]);
+
+  const isLastStep = activeStep === steps.length - 1;
 
   return (
     <Section id="demo" className="bg-zinc-950 overflow-hidden">
@@ -406,7 +374,7 @@ export function CreationDemo() {
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div className="flex items-center justify-center gap-2 mb-4 sm:mb-10">
           {steps.map((step, i) => (
             <div key={step.id} className="flex items-center">
               <button
@@ -417,11 +385,11 @@ export function CreationDemo() {
                 className={styles.stepButton}
               >
                 <span
-                  className={[
+                  className={cn(
                     styles.stepIndicator,
-                    i === activeStep ? styles.stepActive : "",
-                    i < activeStep ? styles.stepComplete : "",
-                  ].join(" ")}
+                    i === activeStep && styles.stepActive,
+                    i < activeStep && styles.stepComplete
+                  )}
                 >
                   {i < activeStep ? (
                     <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -431,15 +399,13 @@ export function CreationDemo() {
                     <span>{step.id}</span>
                   )}
                 </span>
-                {/* Below sm only the active step's label fits — the rest
-                    stay as numbered circles. */}
+                {/* Labels don't fit below sm; the active one renders in a
+                    dedicated line under the row so the circles never shift. */}
                 <span
-                  className={[
-                    "ml-2 text-sm font-medium transition-colors",
-                    i === activeStep
-                      ? "text-white"
-                      : "hidden sm:inline text-white/50",
-                  ].join(" ")}
+                  className={cn(
+                    "ml-2 text-sm font-medium transition-colors hidden sm:inline",
+                    i === activeStep ? "text-white" : "text-white/50"
+                  )}
                 >
                   {step.label}
                 </span>
@@ -455,26 +421,27 @@ export function CreationDemo() {
           ))}
         </div>
 
+        <div aria-hidden className="sm:hidden mb-10 text-center text-sm font-medium text-white">
+          {steps[activeStep].label}
+        </div>
+
         <div className="relative flex justify-center items-center min-h-[340px]">
           {steps.map((step, i) => (
             <div
               key={step.id}
-              className={[
+              className={cn(
                 styles.cardWrapper,
-                i === activeStep ? styles.cardWrapperActive : "",
-                i < activeStep ? styles.cardWrapperLeft : "",
-                i > activeStep ? styles.cardWrapperRight : "",
-              ].join(" ")}
+                i === activeStep && styles.cardWrapperActive,
+                i < activeStep && styles.cardWrapperLeft,
+                i > activeStep && styles.cardWrapperRight
+              )}
             >
               <StepCard step={step} isActive={i === activeStep && isVisible} />
             </div>
           ))}
         </div>
 
-        <div className={[
-          styles.successHint,
-          activeStep === 3 ? styles.successHintVisible : "",
-        ].join(" ")}>
+        <div className={cn(styles.successHint, isLastStep && styles.successHintVisible)}>
           <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-2 text-sm text-emerald-400 ring-1 ring-emerald-500/30">
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
