@@ -22,6 +22,7 @@ type GlassHeaderProps = {
 const DEFAULT_LINKS: NavLink[] = [
   { label: "Discover Events", href: "/events" },
   { label: "Features", href: "#how-it-works" },
+  { label: "Templates", href: "#templates" },
   { label: "Use Cases", href: "#use-cases" },
   { label: "Mission", href: "#mission" },
 ];
