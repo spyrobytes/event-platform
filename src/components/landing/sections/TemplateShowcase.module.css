@@ -74,12 +74,21 @@
 /* ---------- Plates ---------- */
 
 .plate {
-  opacity: 0;
-  transform: translateY(24px);
   transition:
     opacity 0.7s ease,
     transform 0.7s ease;
   transition-delay: calc(var(--reveal-i, 0) * 120ms);
+}
+
+/* Hidden initial state only where scripting can reveal it — without JS
+   (crawlers, hydration failure, JS disabled) the plates render visible,
+   they just don't animate in. Older browsers that don't understand the
+   media feature also fall through to visible. */
+@media (scripting: enabled) {
+  .plate {
+    opacity: 0;
+    transform: translateY(24px);
+  }
 }
 
 .stageVisible .plate {
@@ -132,6 +141,8 @@
 .plateNumber {
   font-family: var(--font-showcase-serif), Georgia, serif;
   font-style: italic;
+  /* 500 — the loaded italic face; 400 is deliberately not shipped. */
+  font-weight: 500;
   font-size: 1.125rem;
   color: #d4b98a;
 }
@@ -140,14 +151,17 @@
 
 @media (max-width: 1023px) {
   .filmstrip {
+    /* Bleed to the container edge so the strip peeks — must track the
+       landing Container's padding (px-4, sm:px-6). */
+    --strip-bleed: 1rem;
+
     display: flex;
     gap: 1rem;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     padding-bottom: 0.75rem;
-    /* bleed to the container edge so the strip peeks */
-    margin-inline: calc(-1 * var(--strip-bleed, 1rem));
-    padding-inline: var(--strip-bleed, 1rem);
+    margin-inline: calc(-1 * var(--strip-bleed));
+    padding-inline: var(--strip-bleed);
     scrollbar-width: none;
   }
 
@@ -163,6 +177,10 @@
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
+  .filmstrip {
+    --strip-bleed: 1.5rem;
+  }
+
   .filmstrip > * {
     flex-basis: 44%;
   }
@@ -246,14 +264,18 @@
   border-radius: 0.25rem;
 }
 
+/* Each face sits 1px forward in its own local space so the two faces are
+   never coplanar — the PR #245 flip-flicker fix; coplanar faces z-fight on
+   real mobile GPUs even though headless captures look fine. */
 .gcrBack {
+  transform: translateZ(1px);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .gcrFront {
-  transform: rotateY(180deg);
+  transform: rotateY(180deg) translateZ(1px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -274,6 +296,7 @@
 .gcrFrontScript {
   font-family: var(--font-showcase-serif), Georgia, serif;
   font-style: italic;
+  font-weight: 500;
   font-size: 0.8125rem;
   color: #8b6914;
 }

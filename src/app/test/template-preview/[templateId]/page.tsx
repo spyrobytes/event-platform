@@ -210,36 +210,52 @@ const SAMPLE_EVENT_ID = "test-event-preview";
 // Empty assets for testing (no images)
 const SAMPLE_ASSETS: MediaAsset[] = [];
 
+// All sample assets share this shape; the cast is confined here. `width`/
+// `height` matter to fill-mode hosts that derive intrinsic aspect ratios;
+// `renditionWidths: []` keeps buildRenditionSrcSet on its no-renditions path.
+function makeSampleAsset(asset: {
+  id: string;
+  publicUrl: string;
+  alt?: string;
+  tags?: string[];
+  width?: number;
+  height?: number;
+}): MediaAsset {
+  return {
+    alt: "",
+    tags: [],
+    blurDataUrl: null,
+    renditionWidths: [],
+    ...asset,
+  } as unknown as MediaAsset;
+}
+
 // Sample couple-photo asset — only injected when ?couplePhotoFrame= is set so
 // baseline previews stay unchanged. Curated sample photos live in
 // public/test-assets/landing-samples/; in dev the supabase image loader
 // returns local srcs unchanged.
-const SAMPLE_COUPLE_PHOTO_ASSET = {
+const SAMPLE_COUPLE_PHOTO_ASSET = makeSampleAsset({
   id: "test-couple-photo",
   publicUrl: "/test-assets/landing-samples/couple-celebration.jpg",
   alt: "Sample couple",
   tags: ["couple"],
-  blurDataUrl: null,
   width: 1067,
   height: 1600,
-  renditionWidths: [],
-} as unknown as MediaAsset;
+});
 
 // Transparent-PNG couple silhouette for ?couplePhotoFrame=cutout — the
 // cutout layout only makes visual sense with real alpha (an opaque sample
 // would read as a bug). width/height feed the fill-mode hosts' intrinsic
 // aspect ratio (Grand Luxe). Also injects a hero background image so the
 // layering is visible.
-const SAMPLE_CUTOUT_PHOTO_ASSET = {
+const SAMPLE_CUTOUT_PHOTO_ASSET = makeSampleAsset({
   id: "test-couple-cutout",
   publicUrl: "/test-assets/landing-samples/couple-cutout.webp",
   alt: "Sample couple cutout",
   tags: ["couple"],
-  blurDataUrl: null,
   width: 1297,
   height: 1400,
-  renditionWidths: [],
-} as unknown as MediaAsset;
+});
 
 // Sample gallery assets for `?sampleGallery=1` — one consistent wedding shoot
 // so gallery renderers (masonry, scrapbook collage) have real images to lay
@@ -249,18 +265,15 @@ const SAMPLE_GALLERY_ASSETS = [
   { file: "gallery-2", width: 1068, height: 1600 },
   { file: "gallery-3", width: 1067, height: 1600 },
   { file: "gallery-4", width: 1067, height: 1600 },
-].map(
-  ({ file, width, height }) =>
-    ({
-      id: `test-${file}`,
-      publicUrl: `/test-assets/landing-samples/${file}.jpg`,
-      alt: `Sample gallery photo ${file}`,
-      tags: ["gallery"],
-      blurDataUrl: null,
-      width,
-      height,
-      renditionWidths: [],
-    }) as unknown as MediaAsset,
+].map(({ file, width, height }) =>
+  makeSampleAsset({
+    id: `test-${file}`,
+    publicUrl: `/test-assets/landing-samples/${file}.jpg`,
+    alt: `Sample gallery photo ${file}`,
+    tags: ["gallery"],
+    width,
+    height,
+  }),
 );
 
 // Sample wedding-party portraits + members for `?sampleParty=1` — three per
@@ -274,43 +287,34 @@ const SAMPLE_PARTY_MEMBERS = [
   { file: "party-6", name: "Noah Reed", role: "Groomsman", side: "groom" },
 ] as const;
 
-const SAMPLE_PARTY_ASSETS = SAMPLE_PARTY_MEMBERS.map(
-  ({ file }) =>
-    ({
-      id: `test-${file}`,
-      publicUrl: `/test-assets/landing-samples/${file}.jpg`,
-      alt: `Sample wedding party portrait ${file}`,
-      tags: ["party"],
-      blurDataUrl: null,
-      width: 1068,
-      height: 1600,
-      renditionWidths: [],
-    }) as unknown as MediaAsset,
+const SAMPLE_PARTY_ASSETS = SAMPLE_PARTY_MEMBERS.map(({ file }) =>
+  makeSampleAsset({
+    id: `test-${file}`,
+    publicUrl: `/test-assets/landing-samples/${file}.jpg`,
+    alt: `Sample wedding party portrait ${file}`,
+    tags: ["party"],
+    width: 1068,
+    height: 1600,
+  }),
 );
 
 // Hero background choices for `?sampleHero=` — `couple` (default) is a
 // golden-hour couple photo, `florals` a dark editorial flower arrangement.
 const SAMPLE_HERO_BG_ASSETS: Record<string, MediaAsset> = {
-  couple: {
+  couple: makeSampleAsset({
     id: "test-hero-couple",
     publicUrl: "/test-assets/landing-samples/hero-cinematic.jpg",
-    alt: "",
     tags: ["hero"],
-    blurDataUrl: null,
     width: 1067,
     height: 1600,
-    renditionWidths: [],
-  } as unknown as MediaAsset,
-  florals: {
+  }),
+  florals: makeSampleAsset({
     id: "test-hero-florals",
     publicUrl: "/test-assets/landing-samples/hero-luxe.jpg",
-    alt: "",
     tags: ["hero"],
-    blurDataUrl: null,
     width: 1534,
     height: 1025,
-    renditionWidths: [],
-  } as unknown as MediaAsset,
+  }),
 };
 
 function resolveHeroBg(choice: string | undefined, fallback: "couple" | "florals") {
@@ -403,10 +407,11 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     };
   }
 
-  // Optionally inject just a hero background photo + cinematic hero fields
-  // (?sampleHero=couple|florals) — exercises the full-bleed hero without the
-  // couple-photo layer that ?couplePhotoFrame= adds.
-  if (sampleHero && !couplePhotoFrame) {
+  // Optionally inject a hero background photo + cinematic hero fields
+  // (?sampleHero=couple|florals). Composes with non-cutout couple frames;
+  // the cutout branch above already injected its own backdrop (and portrait
+  // treatment suppresses the floating photo, so the pairing stays coherent).
+  if (sampleHero && couplePhotoFrame !== "cutout") {
     const heroBg = resolveHeroBg(sampleHero, "couple");
     assets = [...assets, heroBg];
     config = {

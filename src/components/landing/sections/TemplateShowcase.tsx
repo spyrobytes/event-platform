@@ -1,9 +1,7 @@
-"use client";
-
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 import { Section } from "../ui/Section";
 import { ButtonLink } from "../ui/ButtonLink";
+import { RevealOnScroll } from "../ui/RevealOnScroll";
 import { showcaseSerif } from "./showcase-fonts";
 import styles from "./TemplateShowcase.module.css";
 
@@ -120,32 +118,12 @@ function ShowcasePlate({
  * around it.
  */
 export function TemplateShowcase() {
-  const [isVisible, setIsVisible] = useState(false);
-  const stageRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0 }
-    );
-
-    if (stageRef.current) {
-      observer.observe(stageRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <Section
       id="templates"
       className={`${showcaseSerif.variable} ${styles.stage} relative overflow-hidden bg-[#181310]`}
     >
-      <div ref={stageRef} className={isVisible ? styles.stageVisible : undefined}>
+      <RevealOnScroll visibleClassName={styles.stageVisible}>
         <div className="relative mx-auto max-w-2xl text-center">
           <div className="flex justify-center">
             <span className={styles.eyebrow}>The Invitation Collection</span>
@@ -161,10 +139,7 @@ export function TemplateShowcase() {
           </p>
         </div>
 
-        <div
-          className={`${styles.filmstrip} mt-14 lg:grid lg:grid-cols-3 lg:gap-8`}
-          style={{ "--strip-bleed": "1rem" } as React.CSSProperties}
-        >
+        <div className={`${styles.filmstrip} mt-14 lg:grid lg:grid-cols-3 lg:gap-8`}>
           {tallPlates.map((plate, i) => (
             <ShowcasePlate
               key={plate.name}
@@ -241,7 +216,7 @@ export function TemplateShowcase() {
             See events built with EventFXr →
           </ButtonLink>
         </div>
-      </div>
+      </RevealOnScroll>
     </Section>
   );
 }
