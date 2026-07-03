@@ -122,8 +122,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  /* px on purpose: the thread path and --crest offsets are px geometry, so a
+     rem medallion would drift off the thread at non-default root font sizes */
+  width: 40px;
+  height: 40px;
   border-radius: 9999px;
   color: #8f7140;
   background: linear-gradient(180deg, #fffdf9, #f6eedf);
@@ -136,13 +138,13 @@
 
 @media (min-width: 1024px) {
   .medallion {
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 44px;
+    height: 44px;
   }
 }
 
 .title {
-  font-family: var(--font-showcase-serif), "Cormorant Garamond", Georgia, serif;
+  font-family: var(--font-assurance-serif), Georgia, serif;
   font-weight: 600;
   font-size: 1.125rem;
   line-height: 1.25;
