@@ -1,7 +1,9 @@
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 import { Section } from "../ui/Section";
 import { ButtonLink } from "../ui/ButtonLink";
 import { RevealOnScroll } from "../ui/RevealOnScroll";
+import reveal from "../ui/reveal.module.css";
 import { showcaseSerif } from "./showcase-fonts";
 import styles from "./TemplateShowcase.module.css";
 
@@ -88,11 +90,12 @@ function ShowcasePlate({
 }) {
   return (
     <figure
-      className={[
+      className={cn(
+        reveal.item,
         styles.plate,
-        plate.stagger === "drop" ? styles.plateDrop : "",
-        plate.stagger === "lift" ? styles.plateLift : "",
-      ].join(" ")}
+        plate.stagger === "drop" && styles.plateDrop,
+        plate.stagger === "lift" && styles.plateLift
+      )}
       style={{ "--reveal-i": index, "--plate-ar": plate.ratio } as React.CSSProperties}
     >
       <div className={styles.plateFrame}>
@@ -123,7 +126,7 @@ export function TemplateShowcase() {
       id="templates"
       className={`${showcaseSerif.variable} ${styles.stage} relative overflow-hidden bg-[#181310]`}
     >
-      <RevealOnScroll visibleClassName={styles.stageVisible}>
+      <RevealOnScroll visibleClassName={reveal.groupVisible}>
         <div className="relative mx-auto max-w-2xl text-center">
           <div className="flex justify-center">
             <span className={styles.eyebrow}>The Invitation Collection</span>
@@ -164,7 +167,7 @@ export function TemplateShowcase() {
           </div>
 
           <figure
-            className={`${styles.plate} lg:col-span-5`}
+            className={cn(reveal.item, styles.plate, "lg:col-span-5")}
             style={{ "--reveal-i": 5 } as React.CSSProperties}
           >
             <div className={styles.envelopeStage} aria-hidden="true">

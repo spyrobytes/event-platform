@@ -1,7 +1,8 @@
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 import { Section } from "../ui/Section";
 import { RevealOnScroll } from "../ui/RevealOnScroll";
-import styles from "./UseCaseGrid.module.css";
+import reveal from "../ui/reveal.module.css";
 
 type UseCase = {
   title: string;
@@ -91,20 +92,26 @@ const useCases: UseCase[] = [
   },
 ];
 
+function CheckIcon() {
+  return (
+    <svg
+      className="mt-0.5 size-4 shrink-0 text-indigo-600"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
 function CapabilityList({ items }: { items: string[] }) {
   return (
     <ul className="mt-6 space-y-3">
       {items.map((item) => (
         <li key={item} className="flex gap-3 text-sm leading-relaxed text-black/75">
-          <svg
-            className="mt-0.5 size-4 shrink-0 text-indigo-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+          <CheckIcon />
           <span>{item}</span>
         </li>
       ))}
@@ -115,29 +122,37 @@ function CapabilityList({ items }: { items: string[] }) {
 export function UseCaseGrid() {
   return (
     <Section id="use-cases" className="bg-white">
-      <RevealOnScroll visibleClassName={styles.rowsVisible}>
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
-            Built for the events you actually run
-          </h2>
-          <p className="mt-3 text-base text-black/70">
-            Four event formats, each with the specific tooling it needs — every
-            screenshot is the real product.
-          </p>
-        </div>
+      <div className="mx-auto max-w-2xl text-center">
+        <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+          Built for the events you actually run
+        </h2>
+        <p className="mt-3 text-base text-black/70">
+          Four event formats, each with the specific tooling it needs — every
+          screenshot is the real product.
+        </p>
+      </div>
 
-        <div className="mt-14 space-y-16 lg:space-y-20">
-          {useCases.map((useCase, index) => (
-            <div
+      <div className="mt-14 space-y-16 lg:space-y-20">
+        {useCases.map((useCase, index) => {
+          const isFlipped = index % 2 === 1;
+          const isPhone = useCase.image.variant === "phone";
+
+          return (
+            /* Each row reveals on its own intersection — a single observer
+               around the section would reveal below-fold rows off-screen. */
+            <RevealOnScroll
               key={useCase.title}
-              className={`${styles.row} grid items-center gap-8 lg:grid-cols-12 lg:gap-12`}
-              style={{ "--reveal-i": index % 2 } as React.CSSProperties}
+              className={cn(
+                reveal.item,
+                "grid items-center gap-8 lg:grid-cols-12 lg:gap-12"
+              )}
+              visibleClassName={reveal.itemVisible}
             >
               <div
-                className={[
+                className={cn(
                   "lg:col-span-5",
-                  index % 2 === 1 ? "lg:order-2 lg:col-start-8" : "",
-                ].join(" ")}
+                  isFlipped && "lg:order-2 lg:col-start-8"
+                )}
               >
                 <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600/10 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-700">
                   {String(index + 1).padStart(2, "0")}
@@ -150,17 +165,17 @@ export function UseCaseGrid() {
               </div>
 
               <div
-                className={[
+                className={cn(
                   "lg:col-span-7",
-                  index % 2 === 1 ? "lg:order-1 lg:col-start-1" : "",
-                  useCase.image.variant === "phone" ? "flex justify-center" : "",
-                ].join(" ")}
+                  isFlipped && "lg:order-1 lg:col-start-1",
+                  isPhone && "flex justify-center"
+                )}
               >
                 <div
-                  className={[
+                  className={cn(
                     "overflow-hidden rounded-3xl bg-zinc-50 ring-1 ring-black/5 shadow-sm",
-                    useCase.image.variant === "phone" ? "w-full max-w-[300px]" : "",
-                  ].join(" ")}
+                    isPhone && "w-full max-w-[300px]"
+                  )}
                 >
                   <Image
                     src={useCase.image.src}
@@ -168,18 +183,14 @@ export function UseCaseGrid() {
                     width={useCase.image.width}
                     height={useCase.image.height}
                     className="h-auto w-full"
-                    sizes={
-                      useCase.image.variant === "phone"
-                        ? "300px"
-                        : "(min-width: 1024px) 55vw, 92vw"
-                    }
+                    sizes={isPhone ? "300px" : "(min-width: 1024px) 55vw, 92vw"}
                   />
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </RevealOnScroll>
+            </RevealOnScroll>
+          );
+        })}
+      </div>
     </Section>
   );
 }
