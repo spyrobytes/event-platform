@@ -1,0 +1,45 @@
+/*
+ * Shared scroll-reveal states for landing sections — pair with the
+ * RevealOnScroll client wrapper.
+ *
+ * Two shapes:
+ *  - group reveal: RevealOnScroll wraps many .item children and gets
+ *    `groupVisible` (stagger siblings via an inline `--reveal-i` scalar);
+ *  - self reveal: RevealOnScroll IS the .item and gets `itemVisible`
+ *    (each element reveals on its own intersection — no stagger needed).
+ *
+ * Sections tune timing via inherited custom properties:
+ *   --reveal-stagger (default 100ms), --reveal-offset (default 20px).
+ *
+ * The hidden initial state only applies where scripting can reveal it —
+ * without JS (crawlers, hydration failure) content renders visible and
+ * simply skips the entrance animation.
+ */
+
+.item {
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+  transition-delay: calc(var(--reveal-i, 0) * var(--reveal-stagger, 100ms));
+}
+
+@media (scripting: enabled) {
+  .item {
+    opacity: 0;
+    transform: translateY(var(--reveal-offset, 20px));
+  }
+}
+
+.groupVisible .item,
+.item.itemVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

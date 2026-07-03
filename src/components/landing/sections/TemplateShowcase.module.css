@@ -10,6 +10,9 @@
 
 .stage {
   position: relative;
+  /* Plate reveal timing, consumed by the shared ui/reveal.module.css states. */
+  --reveal-stagger: 120ms;
+  --reveal-offset: 24px;
 }
 
 /* Champagne ambience: two soft radial pools + a faint top hairline. */
@@ -73,28 +76,8 @@
 
 /* ---------- Plates ---------- */
 
-.plate {
-  transition:
-    opacity 0.7s ease,
-    transform 0.7s ease;
-  transition-delay: calc(var(--reveal-i, 0) * 120ms);
-}
-
-/* Hidden initial state only where scripting can reveal it — without JS
-   (crawlers, hydration failure, JS disabled) the plates render visible,
-   they just don't animate in. Older browsers that don't understand the
-   media feature also fall through to visible. */
-@media (scripting: enabled) {
-  .plate {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-}
-
-.stageVisible .plate {
-  opacity: 1;
-  transform: translateY(0);
-}
+/* Reveal states live in ui/reveal.module.css (shared with UseCaseGrid);
+   .plate keeps only section-specific composition + hover styling. */
 
 /* Editorial stagger — the middle tall plate hangs lower. */
 @media (min-width: 1024px) {
@@ -456,12 +439,6 @@
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .plate {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-
   .plate:hover .plateFrame {
     transform: none;
   }
