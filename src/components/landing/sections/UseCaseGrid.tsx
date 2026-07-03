@@ -36,8 +36,8 @@ const useCases: UseCase[] = [
     image: {
       src: "/landing/use-cases/rsvp.jpg",
       alt: "RSVP section of a live wedding page asking guests for their invitation code",
-      width: 860,
-      height: 677,
+      width: 1690,
+      height: 675,
       variant: "wide",
     },
   },
