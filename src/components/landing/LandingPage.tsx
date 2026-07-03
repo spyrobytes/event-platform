@@ -1,11 +1,10 @@
 import { GlassHeader } from "./nav";
 import {
   HeroMontage,
-  TrustStrip,
+  AssuranceStrip,
   ProductValueSplit,
   TemplateShowcase,
   CreationDemo,
-  TechCredibility,
   MissionStatement,
   UseCaseGrid,
   FinalCTA,
@@ -20,7 +19,6 @@ import {
  * - Animated hero montage with image cycling
  * - Scroll-triggered section animations
  * - Interactive creation demo with typewriter effect
- * - Animated tech flow diagram
  * - Reduced motion support for accessibility
  */
 export function LandingPage() {
@@ -36,12 +34,11 @@ export function LandingPage() {
       <main id="main-content" className="min-h-screen bg-white">
         <GlassHeader />
         <HeroMontage />
-        <TrustStrip />
+        <AssuranceStrip />
         <ProductValueSplit />
         <TemplateShowcase />
         <CreationDemo />
         <UseCaseGrid />
-        <TechCredibility />
         <MissionStatement />
         <FinalCTA />
         <Footer />

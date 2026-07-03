@@ -23,7 +23,6 @@ const DEFAULT_LINKS: NavLink[] = [
   { label: "Discover Events", href: "/events" },
   { label: "Features", href: "#how-it-works" },
   { label: "Use Cases", href: "#use-cases" },
-  { label: "Tech", href: "#tech" },
   { label: "Mission", href: "#mission" },
 ];
 

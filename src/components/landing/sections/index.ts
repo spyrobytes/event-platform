@@ -1,9 +1,8 @@
 export { HeroMontage } from "./HeroMontage";
-export { TrustStrip } from "./TrustStrip";
+export { AssuranceStrip } from "./AssuranceStrip";
 export { ProductValueSplit } from "./ProductValueSplit";
 export { TemplateShowcase } from "./TemplateShowcase";
 export { CreationDemo } from "./CreationDemo";
-export { TechCredibility } from "./TechCredibility";
 export { MissionStatement } from "./MissionStatement";
 export { UseCaseGrid } from "./UseCaseGrid";
 export { FinalCTA } from "./FinalCTA";
