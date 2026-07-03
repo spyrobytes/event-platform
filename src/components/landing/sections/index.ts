@@ -1,6 +1,7 @@
 export { HeroMontage } from "./HeroMontage";
 export { TrustStrip } from "./TrustStrip";
 export { ProductValueSplit } from "./ProductValueSplit";
+export { TemplateShowcase } from "./TemplateShowcase";
 export { CreationDemo } from "./CreationDemo";
 export { TechCredibility } from "./TechCredibility";
 export { MissionStatement } from "./MissionStatement";
