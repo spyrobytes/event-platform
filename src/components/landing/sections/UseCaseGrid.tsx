@@ -1,104 +1,185 @@
+import Image from "next/image";
 import { Section } from "../ui/Section";
-import { ReactNode } from "react";
+import { RevealOnScroll } from "../ui/RevealOnScroll";
+import styles from "./UseCaseGrid.module.css";
 
 type UseCase = {
   title: string;
-  body: string;
-  icon: ReactNode;
-  color: {
-    bg: string;
-    text: string;
-    ring: string;
+  blurb: string;
+  capabilities: string[];
+  image: {
+    src: string;
+    alt: string;
+    /** intrinsic capture dimensions — drives the frame's aspect ratio */
+    width: number;
+    height: number;
+    /** tall phone captures get a narrower frame */
+    variant: "phone" | "wide";
   };
 };
 
-const items: UseCase[] = [
+/**
+ * Every capability named here is shipped — screenshots are real renders
+ * (template previews and the live discovery page), consistent with the
+ * showcase section's "no mockups" promise.
+ */
+const useCases: UseCase[] = [
   {
-    title: "Conferences & summits",
-    body: "Publish polished pages and manage registrations.",
-    icon: (
-      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-      </svg>
-    ),
-    color: {
-      bg: "bg-blue-500/10",
-      text: "text-blue-600",
-      ring: "ring-blue-500/20",
-    },
-  },
-  {
-    title: "Meetups & communities",
-    body: "Invite, RSVP, and follow up without chaos.",
-    icon: (
-      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-      </svg>
-    ),
-    color: {
-      bg: "bg-emerald-500/10",
-      text: "text-emerald-600",
-      ring: "ring-emerald-500/20",
-    },
-  },
-  {
-    title: "Corporate events",
-    body: "Run internal or external events with confidence.",
-    icon: (
-      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-      </svg>
-    ),
-    color: {
-      bg: "bg-violet-500/10",
-      text: "text-violet-600",
-      ring: "ring-violet-500/20",
+    title: "Weddings & celebrations",
+    blurb:
+      "The invitation rollout wedding organizers picked first — cinematic pages with the logistics handled.",
+    capabilities: [
+      "Share invites over WhatsApp or SMS — guests never install an app",
+      "Invitation-code RSVP keeps the guest list yours",
+      "Animated invitation cards, and a photo gallery for after the big day",
+    ],
+    image: {
+      src: "/landing/use-cases/rsvp.jpg",
+      alt: "RSVP section of a live wedding page asking guests for their invitation code",
+      width: 860,
+      height: 677,
+      variant: "wide",
     },
   },
   {
     title: "Private gatherings",
-    body: "Invitation-only events with clean guest control.",
-    icon: (
-      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-      </svg>
-    ),
-    color: {
-      bg: "bg-amber-500/10",
-      text: "text-amber-600",
-      ring: "ring-amber-500/20",
+    blurb: "Birthdays, showers, dinner parties — invitation-only without the group-chat chaos.",
+    capabilities: [
+      "Secure tokenized links — no guest accounts, no public listing",
+      "Control which sections each guest can see",
+      "RSVPs with plus-ones, confirmations, and reminders by email",
+    ],
+    image: {
+      src: "/landing/use-cases/party.jpg",
+      alt: "Party template with a playful gradient hero and when-and-where cards",
+      width: 860,
+      height: 1760,
+      variant: "phone",
+    },
+  },
+  {
+    title: "Conferences & summits",
+    blurb: "A public page built to be found — and to check people in.",
+    capabilities: [
+      "SEO-indexed pages with agendas, speakers, and sponsors",
+      "QR passes attached to every confirmation email",
+      "Real-time RSVP tracking as registrations come in",
+    ],
+    image: {
+      src: "/landing/use-cases/conference.jpg",
+      alt: "Conference template hero with date, time, and venue cards",
+      width: 860,
+      height: 1760,
+      variant: "phone",
+    },
+  },
+  {
+    title: "Meetups & communities",
+    blurb: "Grow attendance from discovery, not just your follower list.",
+    capabilities: [
+      "Listed in EventFXr discovery, with per-city pages",
+      "Automated confirmations and reminders for every RSVP",
+      "A livestream page for the people who can't make it in person",
+    ],
+    image: {
+      src: "/landing/use-cases/discover.jpg",
+      alt: "EventFXr discovery page showing featured event cards with dates and cities",
+      width: 1824,
+      height: 941,
+      variant: "wide",
     },
   },
 ];
 
+function CapabilityList({ items }: { items: string[] }) {
+  return (
+    <ul className="mt-6 space-y-3">
+      {items.map((item) => (
+        <li key={item} className="flex gap-3 text-sm leading-relaxed text-black/75">
+          <svg
+            className="mt-0.5 size-4 shrink-0 text-indigo-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function UseCaseGrid() {
   return (
     <Section id="use-cases" className="bg-white">
-      <div className="flex items-end justify-between gap-6">
-        <div>
+      <RevealOnScroll visibleClassName={styles.rowsVisible}>
+        <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
             Built for the events you actually run
           </h2>
           <p className="mt-3 text-base text-black/70">
-            A pragmatic toolset that adapts to different formats, audiences, and goals.
+            Four event formats, each with the specific tooling it needs — every
+            screenshot is the real product.
           </p>
         </div>
-      </div>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((item) => (
-          <div
-            key={item.title}
-            className="group rounded-3xl bg-zinc-50 p-6 ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-lg"
-          >
-            <div className={`mb-4 inline-flex size-10 items-center justify-center rounded-xl ${item.color.bg} ${item.color.text} ring-1 ${item.color.ring}`}>
-              {item.icon}
+        <div className="mt-14 space-y-16 lg:space-y-20">
+          {useCases.map((useCase, index) => (
+            <div
+              key={useCase.title}
+              className={`${styles.row} grid items-center gap-8 lg:grid-cols-12 lg:gap-12`}
+              style={{ "--reveal-i": index % 2 } as React.CSSProperties}
+            >
+              <div
+                className={[
+                  "lg:col-span-5",
+                  index % 2 === 1 ? "lg:order-2 lg:col-start-8" : "",
+                ].join(" ")}
+              >
+                <div className="inline-flex items-center gap-2 rounded-full bg-indigo-600/10 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-700">
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+                <h3 className="mt-4 text-xl font-semibold tracking-tight text-black">
+                  {useCase.title}
+                </h3>
+                <p className="mt-2 text-base text-black/70">{useCase.blurb}</p>
+                <CapabilityList items={useCase.capabilities} />
+              </div>
+
+              <div
+                className={[
+                  "lg:col-span-7",
+                  index % 2 === 1 ? "lg:order-1 lg:col-start-1" : "",
+                  useCase.image.variant === "phone" ? "flex justify-center" : "",
+                ].join(" ")}
+              >
+                <div
+                  className={[
+                    "overflow-hidden rounded-3xl bg-zinc-50 ring-1 ring-black/5 shadow-sm",
+                    useCase.image.variant === "phone" ? "w-full max-w-[300px]" : "",
+                  ].join(" ")}
+                >
+                  <Image
+                    src={useCase.image.src}
+                    alt={useCase.image.alt}
+                    width={useCase.image.width}
+                    height={useCase.image.height}
+                    className="h-auto w-full"
+                    sizes={
+                      useCase.image.variant === "phone"
+                        ? "300px"
+                        : "(min-width: 1024px) 55vw, 92vw"
+                    }
+                  />
+                </div>
+              </div>
             </div>
-            <div className="text-sm font-semibold text-black">{item.title}</div>
-            <div className="mt-2 text-sm text-black/70">{item.body}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </RevealOnScroll>
     </Section>
   );
 }

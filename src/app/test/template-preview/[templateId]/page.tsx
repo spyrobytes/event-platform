@@ -36,6 +36,8 @@ type PageProps = {
     sampleGallery?: string;
     sampleHero?: string;
     sampleParty?: string;
+    sampleTitle?: string;
+    sampleSubtitle?: string;
   }>;
 };
 
@@ -337,6 +339,8 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     sampleGallery,
     sampleHero,
     sampleParty,
+    sampleTitle,
+    sampleSubtitle,
   } = await searchParams;
 
   // Verify template exists
@@ -350,6 +354,19 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   let config: EventPageConfigV1 = sectionTheme
     ? { ...SAMPLE_CONFIG, theme: { ...SAMPLE_CONFIG.theme, sectionThemeId: sectionTheme } }
     : SAMPLE_CONFIG;
+
+  // Optionally override the hero title/subtitle (?sampleTitle=&sampleSubtitle=)
+  // so non-wedding templates can be previewed with copy that fits them.
+  if (sampleTitle || sampleSubtitle) {
+    config = {
+      ...config,
+      hero: {
+        ...config.hero,
+        ...(sampleTitle ? { title: sampleTitle } : {}),
+        ...(sampleSubtitle ? { subtitle: sampleSubtitle } : {}),
+      },
+    };
+  }
 
   // Optionally exercise the wedding-party display style (e.g.
   // ?weddingPartyStyle=scrapbook on wedding_grand_luxe).
