@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { useReducedMotion } from "@/hooks";
 import { Section } from "../ui/Section";
 import styles from "./CreationDemo.module.css";
@@ -128,7 +129,14 @@ function TypewriterField({
   );
 }
 
-const TEMPLATE_PLATES = ["Cinematic", "Grand Luxe", "Celebration", "Scrapbook"];
+/* The same real captures the TemplateShowcase plates use — the picker shows
+   the actual templates, not color swatches. */
+const TEMPLATE_PLATES = [
+  { name: "Cinematic", src: "/landing/templates/cinematic.jpg", width: 860, height: 1760 },
+  { name: "Grand Luxe", src: "/landing/templates/grand-luxe.jpg", width: 860, height: 1760, focusMid: true },
+  { name: "Celebration", src: "/landing/templates/celebration.jpg", width: 860, height: 1760 },
+  { name: "Scrapbook", src: "/landing/templates/scrapbook.jpg", width: 1805, height: 547, wide: true },
+];
 
 function TemplatesContent({ isActive }: { isActive: boolean }) {
   const [selected, setSelected] = useState(false);
@@ -147,16 +155,29 @@ function TemplatesContent({ isActive }: { isActive: boolean }) {
 
   return (
     <div className={styles.templateGrid}>
-      {TEMPLATE_PLATES.map((name, i) => (
+      {TEMPLATE_PLATES.map((plate, i) => (
         <div
-          key={name}
+          key={plate.name}
           className={[
             styles.plate,
             selected && isActive && i === 0 ? styles.plateSelected : "",
           ].join(" ")}
         >
-          <div className={styles.plateThumb} />
-          <div className={styles.plateName}>{name}</div>
+          <div className={styles.plateThumb}>
+            <Image
+              src={plate.src}
+              alt=""
+              width={plate.width}
+              height={plate.height}
+              sizes="160px"
+              className={[
+                styles.plateThumbImg,
+                plate.wide ? styles.plateThumbImgWide : "",
+                plate.focusMid ? styles.plateThumbImgMid : "",
+              ].join(" ")}
+            />
+          </div>
+          <div className={styles.plateName}>{plate.name}</div>
           <span className={styles.plateCheck}>
             <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

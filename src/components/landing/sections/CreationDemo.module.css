@@ -238,25 +238,29 @@
 }
 
 .plateThumb {
-  height: 3.25rem;
+  height: 4.5rem;
   border-radius: 0.4rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* Miniature moodboards echoing each template's real palette. */
-.plate:nth-child(1) .plateThumb {
-  background: linear-gradient(150deg, #1c1917, #44403c 55%, #a8a29e);
+/* Tall phone captures: crop to the hero, the template's signature moment. */
+.plateThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 12%;
 }
 
-.plate:nth-child(2) .plateThumb {
-  background: linear-gradient(150deg, #1a2e22, #274d36 45%, #d4b98a);
+/* The scrapbook capture is a wide polaroid strip — center it instead. */
+.plateThumbImgWide {
+  object-position: center;
 }
 
-.plate:nth-child(3) .plateThumb {
-  background: linear-gradient(150deg, #fda4af, #fb7185 50%, #fef3c7);
-}
-
-.plate:nth-child(4) .plateThumb {
-  background: linear-gradient(150deg, #f5f0e6, #e7dcc3 55%, #d6c39a);
+/* Grand Luxe's hero moment (cutout couple over florals) sits lower in the
+   capture than the other templates'. */
+.plateThumbImgMid {
+  object-position: center 30%;
 }
 
 .plateName {
