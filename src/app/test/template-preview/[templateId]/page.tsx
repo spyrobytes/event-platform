@@ -32,6 +32,10 @@ type PageProps = {
     weddingPartyStyle?: string;
     couplePhotoFrame?: string;
     backgroundTreatment?: string;
+    displayStyle?: string;
+    sampleGallery?: string;
+    sampleHero?: string;
+    sampleParty?: string;
   }>;
 };
 
@@ -206,39 +210,116 @@ const SAMPLE_EVENT_ID = "test-event-preview";
 // Empty assets for testing (no images)
 const SAMPLE_ASSETS: MediaAsset[] = [];
 
+// All sample assets share this shape; the cast is confined here. `width`/
+// `height` matter to fill-mode hosts that derive intrinsic aspect ratios;
+// `renditionWidths: []` keeps buildRenditionSrcSet on its no-renditions path.
+function makeSampleAsset(asset: {
+  id: string;
+  publicUrl: string;
+  alt?: string;
+  tags?: string[];
+  width?: number;
+  height?: number;
+}): MediaAsset {
+  return {
+    alt: "",
+    tags: [],
+    blurDataUrl: null,
+    renditionWidths: [],
+    ...asset,
+  } as unknown as MediaAsset;
+}
+
 // Sample couple-photo asset — only injected when ?couplePhotoFrame= is set so
-// baseline previews stay unchanged. Reuses a bundled landing image; in dev the
-// supabase image loader returns local srcs unchanged.
-const SAMPLE_COUPLE_PHOTO_ASSET = {
+// baseline previews stay unchanged. Curated sample photos live in
+// public/test-assets/landing-samples/; in dev the supabase image loader
+// returns local srcs unchanged.
+const SAMPLE_COUPLE_PHOTO_ASSET = makeSampleAsset({
   id: "test-couple-photo",
-  publicUrl: "/landing/hero/01.jpg",
+  publicUrl: "/test-assets/landing-samples/couple-celebration.jpg",
   alt: "Sample couple",
   tags: ["couple"],
-  blurDataUrl: null,
-} as unknown as MediaAsset;
+  width: 1067,
+  height: 1600,
+});
 
 // Transparent-PNG couple silhouette for ?couplePhotoFrame=cutout — the
 // cutout layout only makes visual sense with real alpha (an opaque sample
 // would read as a bug). width/height feed the fill-mode hosts' intrinsic
 // aspect ratio (Grand Luxe). Also injects a hero background image so the
 // layering is visible.
-const SAMPLE_CUTOUT_PHOTO_ASSET = {
+const SAMPLE_CUTOUT_PHOTO_ASSET = makeSampleAsset({
   id: "test-couple-cutout",
-  publicUrl: "/test-assets/couple-cutout-sample.png",
+  publicUrl: "/test-assets/landing-samples/couple-cutout.webp",
   alt: "Sample couple cutout",
   tags: ["couple"],
-  blurDataUrl: null,
-  width: 600,
-  height: 900,
-} as unknown as MediaAsset;
+  width: 1297,
+  height: 1400,
+});
 
-const SAMPLE_HERO_BG_ASSET = {
-  id: "test-hero-bg",
-  publicUrl: "/landing/hero/01.jpg",
-  alt: "",
-  tags: ["hero"],
-  blurDataUrl: null,
-} as unknown as MediaAsset;
+// Sample gallery assets for `?sampleGallery=1` — one consistent wedding shoot
+// so gallery renderers (masonry, scrapbook collage) have real images to lay
+// out. Baseline previews keep an empty gallery.
+const SAMPLE_GALLERY_ASSETS = [
+  { file: "gallery-1", width: 1067, height: 1600 },
+  { file: "gallery-2", width: 1068, height: 1600 },
+  { file: "gallery-3", width: 1067, height: 1600 },
+  { file: "gallery-4", width: 1067, height: 1600 },
+].map(({ file, width, height }) =>
+  makeSampleAsset({
+    id: `test-${file}`,
+    publicUrl: `/test-assets/landing-samples/${file}.jpg`,
+    alt: `Sample gallery photo ${file}`,
+    tags: ["gallery"],
+    width,
+    height,
+  }),
+);
+
+// Sample wedding-party portraits + members for `?sampleParty=1` — three per
+// side so multi-column party renderers show a full row.
+const SAMPLE_PARTY_MEMBERS = [
+  { file: "party-1", name: "Olivia Bennett", role: "Maid of Honor", side: "bride" },
+  { file: "party-2", name: "Sophia Lane", role: "Bridesmaid", side: "bride" },
+  { file: "party-5", name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
+  { file: "party-3", name: "James Carter", role: "Best Man", side: "groom" },
+  { file: "party-4", name: "Liam Walsh", role: "Groomsman", side: "groom" },
+  { file: "party-6", name: "Noah Reed", role: "Groomsman", side: "groom" },
+] as const;
+
+const SAMPLE_PARTY_ASSETS = SAMPLE_PARTY_MEMBERS.map(({ file }) =>
+  makeSampleAsset({
+    id: `test-${file}`,
+    publicUrl: `/test-assets/landing-samples/${file}.jpg`,
+    alt: `Sample wedding party portrait ${file}`,
+    tags: ["party"],
+    width: 1068,
+    height: 1600,
+  }),
+);
+
+// Hero background choices for `?sampleHero=` — `couple` (default) is a
+// golden-hour couple photo, `florals` a dark editorial flower arrangement.
+const SAMPLE_HERO_BG_ASSETS: Record<string, MediaAsset> = {
+  couple: makeSampleAsset({
+    id: "test-hero-couple",
+    publicUrl: "/test-assets/landing-samples/hero-cinematic.jpg",
+    tags: ["hero"],
+    width: 1067,
+    height: 1600,
+  }),
+  florals: makeSampleAsset({
+    id: "test-hero-florals",
+    publicUrl: "/test-assets/landing-samples/hero-luxe.jpg",
+    tags: ["hero"],
+    width: 1534,
+    height: 1025,
+  }),
+};
+
+function resolveHeroBg(choice: string | undefined, fallback: "couple" | "florals") {
+  return SAMPLE_HERO_BG_ASSETS[choice ?? ""] ?? SAMPLE_HERO_BG_ASSETS[fallback];
+}
 
 export default async function TemplatePreviewPage({ params, searchParams }: PageProps) {
   // Block in production
@@ -247,8 +328,16 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   }
 
   const { templateId } = await params;
-  const { sectionTheme, weddingPartyStyle, couplePhotoFrame, backgroundTreatment } =
-    await searchParams;
+  const {
+    sectionTheme,
+    weddingPartyStyle,
+    couplePhotoFrame,
+    backgroundTreatment,
+    displayStyle,
+    sampleGallery,
+    sampleHero,
+    sampleParty,
+  } = await searchParams;
 
   // Verify template exists
   if (!(templateId in TEMPLATES)) {
@@ -287,9 +376,12 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
       couplePhotoFrame === "cutout"
         ? SAMPLE_CUTOUT_PHOTO_ASSET
         : SAMPLE_COUPLE_PHOTO_ASSET;
+    // Cutout defaults to the dark-floral backdrop — the layered composition is
+    // most legible against it; `?sampleHero=` still overrides.
+    const cutoutHeroBg = resolveHeroBg(sampleHero, "florals");
     assets =
       couplePhotoFrame === "cutout"
-        ? [coupleAsset, SAMPLE_HERO_BG_ASSET]
+        ? [coupleAsset, cutoutHeroBg]
         : [coupleAsset];
     config = {
       ...config,
@@ -300,7 +392,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
         couplePhotoAssetId: coupleAsset.id,
         couplePhotoFrame: couplePhotoFrame as CouplePhotoFrameId,
         ...(couplePhotoFrame === "cutout"
-          ? { heroImageAssetId: SAMPLE_HERO_BG_ASSET.id }
+          ? { heroImageAssetId: cutoutHeroBg.id }
           : {}),
       },
     };
@@ -312,6 +404,73 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     config = {
       ...config,
       hero: { ...config.hero, backgroundTreatment },
+    };
+  }
+
+  // Optionally inject a hero background photo + cinematic hero fields
+  // (?sampleHero=couple|florals). Composes with non-cutout couple frames;
+  // the cutout branch above already injected its own backdrop (and portrait
+  // treatment suppresses the floating photo, so the pairing stays coherent).
+  if (sampleHero && couplePhotoFrame !== "cutout") {
+    const heroBg = resolveHeroBg(sampleHero, "couple");
+    assets = [...assets, heroBg];
+    config = {
+      ...config,
+      hero: {
+        ...config.hero,
+        style: "cinematic",
+        coupleNames: "Avery & Jordan",
+        heroImageAssetId: heroBg.id,
+      },
+    };
+  }
+
+  // Optionally swap in a fuller wedding party with portrait photos so the
+  // party renderers (polaroid, gilded, cinematic) have real faces and full
+  // rows (?sampleParty=1).
+  if (sampleParty) {
+    assets = [...assets, ...SAMPLE_PARTY_ASSETS];
+    config = {
+      ...config,
+      sections: config.sections.map((s) =>
+        s.type === "weddingParty"
+          ? {
+              ...s,
+              data: {
+                ...s.data,
+                members: SAMPLE_PARTY_MEMBERS.map(({ file, name, role, side }) => ({
+                  name,
+                  role,
+                  side,
+                  imageAssetId: `test-${file}`,
+                })),
+              },
+            }
+          : s,
+      ),
+    };
+  }
+
+  // Optionally exercise a theme display style (e.g. ?displayStyle=scrapbook on
+  // wedding_v2 renders the Scrapbook Edition chrome + renderers).
+  if (displayStyle === "scrapbook" || displayStyle === "standard") {
+    config = {
+      ...config,
+      theme: { ...config.theme, displayStyle },
+    };
+  }
+
+  // Optionally populate the gallery section with sample photos so gallery
+  // renderers have real images to lay out (?sampleGallery=1).
+  if (sampleGallery) {
+    assets = [...assets, ...SAMPLE_GALLERY_ASSETS];
+    config = {
+      ...config,
+      sections: config.sections.map((s) =>
+        s.type === "gallery"
+          ? { ...s, data: { ...s.data, assetIds: SAMPLE_GALLERY_ASSETS.map((a) => a.id) } }
+          : s,
+      ),
     };
   }
 

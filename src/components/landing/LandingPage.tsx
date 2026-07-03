@@ -3,6 +3,7 @@ import {
   HeroMontage,
   TrustStrip,
   ProductValueSplit,
+  TemplateShowcase,
   CreationDemo,
   TechCredibility,
   MissionStatement,
@@ -37,6 +38,7 @@ export function LandingPage() {
         <HeroMontage />
         <TrustStrip />
         <ProductValueSplit />
+        <TemplateShowcase />
         <CreationDemo />
         <UseCaseGrid />
         <TechCredibility />
