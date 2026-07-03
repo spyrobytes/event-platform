@@ -1,0 +1,219 @@
+/*
+ * AssuranceStrip — "the champagne thread"
+ *
+ * A cream ribbon with waved edges laid across the white page, borrowing the
+ * atelier vocabulary (warm ink, champagne hairlines, Cormorant titles) so the
+ * first beat after the hero already speaks the product's design voice. On
+ * desktop the five points ride an undulating champagne thread: alternating
+ * crest/trough column offsets (--crest, as padding so the shared reveal
+ * transform stays untouched) matched by the SVG thread path in the TSX.
+ */
+
+.strip {
+  position: relative;
+  background: #fff;
+  padding-block: 1.25rem;
+}
+
+/* ---------- Waved ribbon edges ---------- */
+
+.waveTop,
+.waveBottom {
+  height: 26px;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.waveTop {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 48' preserveAspectRatio='none'%3E%3Cpath fill='%23faf6ef' d='M0,34 C120,14 260,44 420,30 C580,16 690,40 840,28 C990,16 1120,38 1290,26 C1360,21 1400,24 1440,30 L1440,48 L0,48 Z'/%3E%3C/svg%3E");
+}
+
+.waveBottom {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 48' preserveAspectRatio='none'%3E%3Cpath fill='%23faf6ef' d='M0,0 L1440,0 L1440,16 C1330,32 1180,8 1020,20 C860,32 750,6 600,18 C450,30 320,10 180,22 C100,29 50,20 0,14 Z'/%3E%3C/svg%3E");
+}
+
+/* ---------- The band ---------- */
+
+.band {
+  position: relative;
+  background: #faf6ef;
+  padding-block: 2.25rem;
+}
+
+/* Champagne ambience: soft radial pools, same recipe as the showcase stage. */
+.band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(36rem 16rem at 22% 0%, rgba(212, 185, 138, 0.14), transparent 62%),
+    radial-gradient(32rem 14rem at 82% 100%, rgba(212, 185, 138, 0.1), transparent 65%);
+}
+
+/* ---------- Points layout ---------- */
+
+.points {
+  --reveal-stagger: 110ms;
+  --reveal-offset: 14px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+}
+
+@media (min-width: 640px) {
+  .points {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem 2.5rem;
+  }
+}
+
+/* Center the orphan fifth point while the grid is two columns wide. */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+  .point:nth-child(6) {
+    grid-column: span 2;
+    justify-self: center;
+    max-width: 22rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .points {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0 1.25rem;
+  }
+}
+
+/* ---------- A point ---------- */
+
+/* Mobile: a ledger row — medallion left, text right. */
+.point {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.9375rem;
+  align-items: start;
+}
+
+.title,
+.body {
+  grid-column: 2;
+}
+
+/* Desktop: centered columns riding the thread. --crest is applied as
+   padding so it never fights the reveal transition's transform. */
+@media (min-width: 1024px) {
+  .point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: var(--crest, 0px);
+  }
+
+  .point:nth-child(2) { --crest: 10px; }
+  .point:nth-child(3) { --crest: 38px; }
+  .point:nth-child(4) { --crest: 6px; }
+  .point:nth-child(5) { --crest: 42px; }
+  .point:nth-child(6) { --crest: 20px; }
+}
+
+.medallion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: #8f7140;
+  background: linear-gradient(180deg, #fffdf9, #f6eedf);
+  border: 1px solid rgba(212, 185, 138, 0.55);
+  box-shadow:
+    0 1px 2px rgba(24, 19, 16, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  grid-row: span 2;
+}
+
+@media (min-width: 1024px) {
+  .medallion {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
+.title {
+  font-family: var(--font-showcase-serif), "Cormorant Garamond", Georgia, serif;
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: #181310;
+}
+
+@media (min-width: 1024px) {
+  .title {
+    margin-top: 0.875rem;
+  }
+}
+
+.body {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: rgba(24, 19, 16, 0.68);
+}
+
+@media (min-width: 1024px) {
+  .body {
+    max-width: 12.5rem;
+  }
+}
+
+/* ---------- The thread ---------- */
+
+.thread {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .thread {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 110px; /* matches the viewBox height — vertical coords stay 1:1 */
+    pointer-events: none;
+    /* The thread dissolves at the container edges instead of stopping dead. */
+    mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  }
+
+  .thread path {
+    fill: none;
+    stroke: rgba(212, 185, 138, 0.75);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1.6s ease 0.25s;
+  }
+
+  /* Hidden (undrawn) start state only where scripting can reveal it —
+     without JS the thread renders fully drawn. */
+  @media (scripting: enabled) {
+    .thread path {
+      stroke-dashoffset: 1;
+    }
+  }
+
+  .threadDrawn .thread path {
+    stroke-dashoffset: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .thread path {
+      stroke-dashoffset: 0;
+      transition: none;
+    }
+  }
+}
