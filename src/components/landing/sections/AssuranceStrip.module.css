@@ -6,7 +6,9 @@
  * first beat after the hero already speaks the product's design voice. On
  * desktop the five points ride an undulating champagne thread: alternating
  * crest/trough column offsets (--crest, as padding so the shared reveal
- * transform stays untouched) matched by the SVG thread path in the TSX.
+ * transform stays untouched). Each --crest arrives as an inline scalar from
+ * the TSX's CREST_OFFSETS array — the same source that generates the SVG
+ * thread path, so the curve and the columns can't drift apart.
  */
 
 .strip {
@@ -51,6 +53,47 @@
     radial-gradient(32rem 14rem at 82% 100%, rgba(212, 185, 138, 0.1), transparent 65%);
 }
 
+/* ---------- Heading ---------- */
+
+/* Eyebrow-register h2, flanked by champagne hairlines — the same recipe as
+   the showcase eyebrow, recolored for the cream band. */
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2.25rem;
+  color: #7a6134;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.heading::before,
+.heading::after {
+  content: "";
+  height: 1px;
+  width: 1.5rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .heading::before,
+  .heading::after {
+    width: 2.5rem;
+  }
+}
+
+.heading::before {
+  background: linear-gradient(to right, transparent, rgba(212, 185, 138, 0.8));
+}
+
+.heading::after {
+  background: linear-gradient(to left, transparent, rgba(212, 185, 138, 0.8));
+}
+
 /* ---------- Points layout ---------- */
 
 .points {
@@ -71,7 +114,7 @@
 
 /* Center the orphan fifth point while the grid is two columns wide. */
 @media (min-width: 640px) and (max-width: 1023.98px) {
-  .point:nth-child(6) {
+  .point:last-child {
     grid-column: span 2;
     justify-self: center;
     max-width: 22rem;
@@ -100,8 +143,9 @@
   grid-column: 2;
 }
 
-/* Desktop: centered columns riding the thread. --crest is applied as
-   padding so it never fights the reveal transition's transform. */
+/* Desktop: centered columns riding the thread. --crest (an inline scalar
+   from the TSX) is applied as padding so it never fights the reveal
+   transition's transform. */
 @media (min-width: 1024px) {
   .point {
     display: flex;
@@ -110,12 +154,6 @@
     text-align: center;
     padding-top: var(--crest, 0px);
   }
-
-  .point:nth-child(2) { --crest: 10px; }
-  .point:nth-child(3) { --crest: 38px; }
-  .point:nth-child(4) { --crest: 6px; }
-  .point:nth-child(5) { --crest: 42px; }
-  .point:nth-child(6) { --crest: 20px; }
 }
 
 .medallion {

@@ -69,25 +69,44 @@ const assurancePoints: AssurancePoint[] = [
 ];
 
 /*
+ * Desktop wave: per-column crest offsets in px — the single source for both
+ * the column padding (passed to each point as an inline `--crest` scalar)
+ * and the generated thread path, so the curve and the columns can't drift.
+ */
+const CREST_OFFSETS = [10, 38, 6, 42, 20] as const;
+
+/* Half the 44px desktop medallion: crest + this = medallion-center y. */
+const MEDALLION_CENTER_Y = 22;
+
+/*
  * The thread: a champagne hairline undulating through the five medallion
  * centers on desktop. Columns sit at 10/30/50/70/90% of the row, so with
  * preserveAspectRatio="none" (horizontal stretch only — the CSS height
  * matches the viewBox height 1:1) the curve passes through x=100..900 in a
- * 0–1000 viewBox. The y values mirror the per-column crest offsets in the
- * CSS module (--crest + half the 44px medallion): keep both in sync.
+ * 0–1000 viewBox, with a horizontal tangent at each medallion and short
+ * lead-in/lead-out tails that the CSS mask dissolves.
  */
-const THREAD_PATH =
-  "M0,44 C40,38 60,32 100,32 C180,32 220,60 300,60 C380,60 420,28 500,28 C580,28 620,64 700,64 C780,64 820,42 900,42 C950,42 985,46 1000,48";
+function buildThreadPath(crests: readonly number[]): string {
+  const ys = crests.map((crest) => crest + MEDALLION_CENTER_Y);
+  const segments = [`M0,${ys[0] + 12} C40,${ys[0] + 6} 60,${ys[0]} 100,${ys[0]}`];
+  for (let i = 1; i < ys.length; i++) {
+    const x = 100 + i * 200;
+    segments.push(`C${x - 120},${ys[i - 1]} ${x - 80},${ys[i]} ${x},${ys[i]}`);
+  }
+  const lastY = ys[ys.length - 1];
+  segments.push(`C950,${lastY} 980,${lastY + 4} 1000,${lastY + 6}`);
+  return segments.join(" ");
+}
+
+const THREAD_PATH = buildThreadPath(CREST_OFFSETS);
 
 export function AssuranceStrip() {
   return (
-    <section
-      aria-label="Why organizers trust EventFXr"
-      className={cn(styles.strip, assuranceSerif.variable)}
-    >
+    <section className={cn(styles.strip, assuranceSerif.variable)}>
       <div aria-hidden className={styles.waveTop} />
       <div className={styles.band}>
         <Container>
+          <h2 className={styles.heading}>Why organizers trust EventFXr</h2>
           <RevealOnScroll
             className={styles.points}
             visibleClassName={cn(reveal.groupVisible, styles.threadDrawn)}
@@ -105,11 +124,16 @@ export function AssuranceStrip() {
               <div
                 key={point.title}
                 className={cn(reveal.item, styles.point)}
-                style={{ "--reveal-i": index } as CSSProperties}
+                style={
+                  {
+                    "--reveal-i": index,
+                    "--crest": `${CREST_OFFSETS[index]}px`,
+                  } as CSSProperties
+                }
               >
                 <span className={styles.medallion}>{point.icon}</span>
-                <span className={styles.title}>{point.title}</span>
-                <span className={styles.body}>{point.body}</span>
+                <h3 className={styles.title}>{point.title}</h3>
+                <p className={styles.body}>{point.body}</p>
               </div>
             ))}
           </RevealOnScroll>
