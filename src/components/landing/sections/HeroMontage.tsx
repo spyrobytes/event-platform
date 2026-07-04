@@ -2,6 +2,7 @@ import Image from "next/image";
 import styles from "./HeroMontage.module.css";
 import { ButtonLink } from "../ui/ButtonLink";
 import { Container } from "../ui/Container";
+import { StatusDot } from "../ui/StatusDot";
 
 // Base64 blur placeholder (dark gray matching the overlay)
 const BLUR_PLACEHOLDER =
@@ -51,10 +52,7 @@ export function HeroMontage() {
       <Container className="relative z-20 py-24 sm:py-32">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white ring-1 ring-white/15">
-            <span className="relative flex size-2">
-              <span className={`absolute inset-0 rounded-full bg-emerald-400 ${styles.statusPulse}`} />
-              <span className="relative size-2 rounded-full bg-emerald-500" />
-            </span>
+            <StatusDot className="size-2" />
             Now in early access
           </div>
 
