@@ -56,14 +56,17 @@ const features: Feature[] = [
 /*
  * The funnel plots the real invite pipeline for the page's one-story event
  * (Avery & Jordan: 120 invited, 86 responded — same numbers as the
- * CreationDemo dashboard). Single-hue ordinal ramp, validated indigo
- * 400→800; widths and steps flow to CSS as inline scalars.
+ * CreationDemo dashboard). Per-stage hues (user-directed), validated as a
+ * categorical set in this adjacency order (worst CVD ΔE 19.2; the amber and
+ * emerald sub-3:1 contrast is relieved by the visible label + value on
+ * every bar). Ends on emerald = attending; the guest-list pills speak the
+ * same color vocabulary. Widths and hues flow to CSS as inline scalars.
  */
 const FUNNEL_STAGES = [
-  { label: "Invited", value: 120, width: "100%", step: "#818cf8" },
-  { label: "Opened", value: 104, width: "87%", step: "#6366f1" },
-  { label: "Responded", value: 86, width: "72%", step: "#4f46e5" },
-  { label: "Attending", value: 74, width: "62%", step: "#3730a3" },
+  { label: "Invited", value: 120, width: "100%", step: "#6366f1" },
+  { label: "Opened", value: 104, width: "87%", step: "#f59e0b" },
+  { label: "Responded", value: 86, width: "72%", step: "#f43f5e" },
+  { label: "Attending", value: 74, width: "62%", step: "#10b981" },
 ];
 
 /* 12-point response-rate trend; de-emphasis stroke with the current period
@@ -71,7 +74,7 @@ const FUNNEL_STAGES = [
 const SPARK_POINTS = "0,24 9,21 18,22 27,19 36,20 45,16 54,17 63,13 72,14 81,10 90,8 100,5";
 
 const GUEST_ROWS = [
-  { name: "Amara Okafor", status: "Opened", pillClass: "bg-indigo-600/10 text-indigo-700" },
+  { name: "Amara Okafor", status: "Opened", pillClass: "bg-amber-500/15 text-amber-700" },
   { name: "Jordan Lee", status: "Attending", pillClass: "bg-emerald-600/10 text-emerald-700" },
   { name: "Tunde Bakare", status: "Delivered", pillClass: "bg-zinc-500/10 text-zinc-600" },
 ];
@@ -113,7 +116,7 @@ function StatPanel() {
       style={{ "--reveal-i": 1 } as CSSProperties}
     >
       <div className="text-xs text-black/55">Response rate</div>
-      <div className="mt-1 flex items-baseline gap-2">
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
         <span className="text-2xl font-semibold text-black">72%</span>
         <span className="whitespace-nowrap text-xs font-medium text-emerald-700">↑ 9% this week</span>
       </div>

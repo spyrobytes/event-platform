@@ -8,22 +8,34 @@
  * (indigo 400→800); bar widths arrive as inline `--w` scalars.
  */
 
+/* Dual-tone split: the chart column sits on its own dark plane while the
+   copy column keeps the section's light ground. */
 .stage {
   --reveal-stagger: 140ms;
   --reveal-offset: 16px;
   position: relative;
-  padding: 0.5rem 0.25rem 1.5rem;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(160deg, #1c1c20, #09090b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+@media (min-width: 640px) {
+  .stage {
+    padding: 1.75rem;
+  }
 }
 
 /* Dotted drafting-paper backdrop, fading out toward the edges. */
 .stage::before {
   content: "";
   position: absolute;
-  inset: -0.5rem;
+  inset: 0;
   pointer-events: none;
-  background-image: radial-gradient(circle, #d4d4d8 1px, transparent 1.5px);
+  border-radius: inherit;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.16) 1px, transparent 1.5px);
   background-size: 18px 18px;
-  mask-image: radial-gradient(75% 75% at 50% 45%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(80% 80% at 50% 45%, #000 40%, transparent 100%);
 }
 
 .cluster {
@@ -39,8 +51,8 @@
   border-radius: 1rem;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow:
-    0 1px 2px rgba(24, 24, 27, 0.05),
-    0 12px 32px -16px rgba(24, 24, 27, 0.18);
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 20px 44px -18px rgba(0, 0, 0, 0.55);
 }
 
 @media (min-width: 640px) {
@@ -56,7 +68,12 @@
   }
 
   /* The stat tile hangs off the funnel's bottom-right corner, over the
-     air left by the narrowing bars. */
+     air left by the narrowing bars. The cluster reserves the overhang so
+     the tile never escapes the dark plane. */
+  .cluster {
+    padding-bottom: 1.25rem;
+  }
+
   .panelStat {
     grid-column: 9 / 13;
     grid-row: 1 / 3;
