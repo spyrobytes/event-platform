@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ImpersonationProvider } from "@/components/providers/ImpersonationProvider";
+import { OrganizationJsonLd } from "@/components/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -83,6 +84,9 @@ export default function RootLayout({
         <AuthProvider>
           <ImpersonationProvider>{children}</ImpersonationProvider>
         </AuthProvider>
+        {/* Brand entity site-wide — deep-linked public event pages carry it
+            alongside their own Event schema. */}
+        <OrganizationJsonLd />
       </body>
     </html>
   );
