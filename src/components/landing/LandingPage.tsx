@@ -5,7 +5,6 @@ import {
   ProductValueSplit,
   TemplateShowcase,
   CreationDemo,
-  MissionStatement,
   UseCaseGrid,
   FinalCTA,
   Footer,
@@ -39,7 +38,6 @@ export function LandingPage() {
         <TemplateShowcase />
         <CreationDemo />
         <UseCaseGrid />
-        <MissionStatement />
         <FinalCTA />
         <Footer />
       </main>
