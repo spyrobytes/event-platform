@@ -1,0 +1,169 @@
+/*
+ * ProductValueSplit — "the organizer's console"
+ *
+ * Three layered product vignettes (RSVP funnel, response-rate stat tile,
+ * guest list with roster) replacing the old SVG dashboard mock. Every panel
+ * depicts a shipped feature with the page's one-story numbers (120 invited /
+ * 86 responded). Funnel ramp is a validated single-hue ordinal scale
+ * (indigo 400→800); bar widths arrive as inline `--w` scalars.
+ */
+
+/* Dual-tone split: the chart column sits on its own dark plane while the
+   copy column keeps the section's light ground. */
+.stage {
+  --reveal-stagger: 140ms;
+  --reveal-offset: 16px;
+  position: relative;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(160deg, #1c1c20, #09090b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+@media (min-width: 640px) {
+  .stage {
+    padding: 1.75rem;
+  }
+}
+
+/* Dotted drafting-paper backdrop, fading out toward the edges. */
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.16) 1px, transparent 1.5px);
+  background-size: 18px 18px;
+  mask-image: radial-gradient(80% 80% at 50% 45%, #000 40%, transparent 100%);
+}
+
+.cluster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel {
+  position: relative;
+  background: #fff;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 20px 44px -18px rgba(0, 0, 0, 0.55);
+}
+
+@media (min-width: 640px) {
+  .cluster {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 0;
+  }
+
+  .panelFunnel {
+    grid-column: 1 / 10;
+    grid-row: 1;
+  }
+
+  /* The stat tile hangs off the funnel's bottom-right corner, over the
+     air left by the narrowing bars. The cluster reserves the overhang so
+     the tile never escapes the dark plane. The offset is a MARGIN, not a
+     transform — the reveal system owns the transform channel and its
+     `.groupVisible .item { transform: translateY(0) }` would win on
+     specificity (same lesson as AssuranceStrip's --crest padding). */
+  .cluster {
+    padding-bottom: 1.25rem;
+  }
+
+  .panelStat {
+    grid-column: 9 / 13;
+    grid-row: 1 / 3;
+    align-self: end;
+    z-index: 2;
+    margin-bottom: -1.25rem;
+  }
+
+  .panelGuests {
+    grid-column: 1 / 9;
+    grid-row: 2;
+    margin-top: 2.25rem;
+    z-index: 1;
+  }
+}
+
+/* ---------- Funnel ---------- */
+
+.funnelRow {
+  display: grid;
+  grid-template-columns: 4.25rem 1fr;
+  align-items: center;
+  column-gap: 0.75rem;
+}
+
+.funnelRow + .funnelRow {
+  margin-top: 0.875rem;
+}
+
+.funnelBarLane {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Bars grow from a shared left baseline: square start, 4px rounded data-end.
+   Width and step color arrive as inline scalars from the TSX data. */
+.funnelBar {
+  width: var(--w, 100%);
+  height: 14px;
+  background: var(--step);
+  border-radius: 0 4px 4px 0;
+}
+
+/* ---------- Sparkline ---------- */
+
+.sparkWrap {
+  position: relative;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  height: 2rem;
+}
+
+/* The current-period marker is an HTML overlay, not an SVG circle — the
+   sparkline stretches non-uniformly (preserveAspectRatio: none), which
+   would squash a viewBox circle into an ellipse and clip it at the edge.
+   Position arrives as inline --dot-x/--dot-y scalars from the data. */
+.sparkDot {
+  position: absolute;
+  left: var(--dot-x);
+  top: var(--dot-y);
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #4f46e5;
+  box-shadow: 0 0 0 2px #fff;
+  transform: translate(-50%, -50%);
+}
+
+/* ---------- Status pills ---------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.pillDot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: currentColor;
+}
