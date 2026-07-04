@@ -1,10 +1,12 @@
 import { GlassHeader } from "./nav";
+import { OrganizationJsonLd } from "@/components/seo";
 import {
   HeroMontage,
   AssuranceStrip,
   ProductValueSplit,
   TemplateShowcase,
   CreationDemo,
+  Faq,
   UseCaseGrid,
   FinalCTA,
   Footer,
@@ -38,8 +40,10 @@ export function LandingPage() {
         <TemplateShowcase />
         <CreationDemo />
         <UseCaseGrid />
+        <Faq />
         <FinalCTA />
         <Footer />
+        <OrganizationJsonLd />
       </main>
     </>
   );

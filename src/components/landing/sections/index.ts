@@ -3,6 +3,7 @@ export { AssuranceStrip } from "./AssuranceStrip";
 export { ProductValueSplit } from "./ProductValueSplit";
 export { TemplateShowcase } from "./TemplateShowcase";
 export { CreationDemo } from "./CreationDemo";
+export { Faq } from "./Faq";
 export { UseCaseGrid } from "./UseCaseGrid";
 export { FinalCTA } from "./FinalCTA";
 export { Footer } from "./Footer";

@@ -17,6 +17,7 @@ const navigation = {
     { name: "Templates", href: "#templates" },
     { name: "Demo", href: "#demo" },
     { name: "Use Cases", href: "#use-cases" },
+    { name: "FAQ", href: "#faq" },
   ],
   explore: [
     { name: "Discover Events", href: "/events" },
