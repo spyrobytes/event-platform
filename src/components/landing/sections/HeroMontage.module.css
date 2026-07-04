@@ -38,30 +38,4 @@
   }
 }
 
-/* Subtle pulse for the status dot - isolated to avoid layout thrashing */
-@keyframes statusPulse {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0;
-    transform: scale(1.8);
-  }
-}
-
-.statusDot {
-  contain: layout style;
-}
-
-.statusPulse {
-  animation: statusPulse 2s ease-in-out infinite;
-  contain: layout style;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .statusPulse {
-    animation: none;
-    opacity: 0;
-  }
-}
+/* The status-dot pulse now lives in the shared ui/StatusDot. */

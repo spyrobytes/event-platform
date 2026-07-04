@@ -4,6 +4,7 @@ import { Section } from "../ui/Section";
 import { ButtonLink } from "../ui/ButtonLink";
 import { ShieldCheckIcon } from "../ui/icons";
 import { RevealOnScroll } from "../ui/RevealOnScroll";
+import { StatusDot } from "../ui/StatusDot";
 import reveal from "../ui/reveal.module.css";
 import styles from "./FinalCTA.module.css";
 
@@ -59,10 +60,7 @@ export function FinalCTA() {
         >
           <div className={reveal.item} style={{ "--reveal-i": 0 } as CSSProperties}>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/80 ring-1 ring-white/10">
-              <span className="relative flex size-1.5">
-                <span className={cn("absolute inset-0 rounded-full bg-emerald-400", styles.pulse)} />
-                <span className="relative size-1.5 rounded-full bg-emerald-500" />
-              </span>
+              <StatusDot />
               Ready when you are
             </div>
 
@@ -100,13 +98,12 @@ export function FinalCTA() {
                 Why organizers choose us
               </div>
 
+              {/* Plain rows, not reveal.items — nesting items inside the
+                  card's reveal.item compounds the fades (opacity × opacity,
+                  offset + offset); the card reveals as one unit. */}
               <div className="space-y-5">
-                {trustPoints.map((point, index) => (
-                  <div
-                    key={point.text}
-                    className={cn(reveal.item, "flex items-center gap-4")}
-                    style={{ "--reveal-i": index + 2 } as CSSProperties}
-                  >
+                {trustPoints.map((point) => (
+                  <div key={point.text} className="flex items-center gap-4">
                     <div
                       className={cn(
                         "flex size-10 shrink-0 items-center justify-center rounded-xl",

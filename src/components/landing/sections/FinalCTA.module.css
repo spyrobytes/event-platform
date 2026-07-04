@@ -27,28 +27,7 @@
   pointer-events: none;
 }
 
-/* Pulse animation for the status dot */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0;
-    transform: scale(2);
-  }
-}
-
-.pulse {
-  animation: pulse 2s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .pulse {
-    animation: none;
-    opacity: 0;
-  }
-
   .glowOrb {
     opacity: 0.5;
   }
