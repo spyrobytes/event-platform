@@ -32,7 +32,7 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     question: "How do RSVPs work?",
     answer:
-      "Each guest responds through their own secure link or invitation code, plus-ones included. Responses appear in your dashboard in real time, and confirmations and reminders go out by email automatically.",
+      "Each guest responds through their own secure link or invitation code — with plus-ones when you allow them. Responses appear in your dashboard in real time, and confirmations and reminders go out by email automatically.",
   },
   {
     question: "Do guests get tickets or passes?",

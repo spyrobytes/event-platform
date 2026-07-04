@@ -1,6 +1,6 @@
 import type { MapSection } from "@/schemas/event-page";
 import { hasValidCoordinates } from "@/lib/maps/map-utils";
-import { toJsonLdString } from "./FaqJsonLd";
+import { JsonLdScript } from "./JsonLdScript";
 
 type EventData = {
   title: string;
@@ -99,12 +99,5 @@ export function EventJsonLd({ event, mapSection }: EventJsonLdProps) {
     JSON.stringify(jsonLd, (_, value) => (value === undefined ? undefined : value))
   );
 
-  return (
-    <script
-      type="application/ld+json"
-      // toJsonLdString escapes `<` — event titles/descriptions are
-      // user-provided, so a literal "</script>" must not break out.
-      dangerouslySetInnerHTML={{ __html: toJsonLdString(cleanJsonLd) }}
-    />
-  );
+  return <JsonLdScript data={cleanJsonLd} />;
 }

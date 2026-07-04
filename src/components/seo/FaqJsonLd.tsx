@@ -1,13 +1,9 @@
+import { JsonLdScript } from "./JsonLdScript";
+
 export type FaqItem = {
   question: string;
   answer: string;
 };
-
-/* Escape `<` so serialized content can never form a `</script>` sequence
-   and break out of the JSON-LD script tag. */
-export function toJsonLdString(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
-}
 
 /**
  * schema.org FAQPage structured data. Per Google's guidelines the markup
@@ -31,10 +27,5 @@ export function FaqJsonLd({ items }: { items: readonly FaqItem[] }) {
     })),
   };
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: toJsonLdString(jsonLd) }}
-    />
-  );
+  return <JsonLdScript data={jsonLd} />;
 }

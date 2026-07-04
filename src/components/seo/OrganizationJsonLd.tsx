@@ -1,9 +1,9 @@
-import { toJsonLdString } from "./FaqJsonLd";
+import { JsonLdScript } from "./JsonLdScript";
 
 /**
- * schema.org Organization structured data for the landing page — feeds
- * search engines' brand entity (name, logo, canonical URL). Event pages
- * carry their own Event schema via EventJsonLd.
+ * schema.org Organization structured data — the brand entity (name, logo,
+ * canonical URL), rendered site-wide from the root layout. The logo must be
+ * the real brand mark at >=112x112 (Google's minimum), not the favicon.
  */
 export function OrganizationJsonLd() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
@@ -13,13 +13,8 @@ export function OrganizationJsonLd() {
     "@type": "Organization",
     name: "EventFXr",
     url: baseUrl,
-    logo: `${baseUrl}/icon.png`,
+    logo: `${baseUrl}/brand/eventfxr-logo.png`,
   };
 
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: toJsonLdString(jsonLd) }}
-    />
-  );
+  return <JsonLdScript data={jsonLd} />;
 }

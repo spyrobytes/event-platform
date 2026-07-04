@@ -1,5 +1,4 @@
 import { GlassHeader } from "./nav";
-import { OrganizationJsonLd } from "@/components/seo";
 import {
   HeroMontage,
   AssuranceStrip,
@@ -43,7 +42,6 @@ export function LandingPage() {
         <Faq />
         <FinalCTA />
         <Footer />
-        <OrganizationJsonLd />
       </main>
     </>
   );
