@@ -1,8 +1,10 @@
 import { type CSSProperties, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { Section } from "../ui/Section";
+import { EnvelopeIcon, ShieldCheckIcon } from "../ui/icons";
 import { RevealOnScroll } from "../ui/RevealOnScroll";
 import reveal from "../ui/reveal.module.css";
+import { STORY } from "./story";
 import styles from "./ProductValueSplit.module.css";
 
 type Feature = {
@@ -20,11 +22,7 @@ const features: Feature[] = [
     text: "SEO-optimized event pages built for discovery",
   },
   {
-    icon: (
-      <svg aria-hidden className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-      </svg>
-    ),
+    icon: <EnvelopeIcon className="size-5" />,
     text: "Invitations, confirmations, and reminders",
   },
   {
@@ -36,11 +34,7 @@ const features: Feature[] = [
     text: "Real-time RSVP tracking and insights",
   },
   {
-    icon: (
-      <svg aria-hidden className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-      </svg>
-    ),
+    icon: <ShieldCheckIcon className="size-5" />,
     text: "Privacy-first and secure by default",
   },
   {
@@ -55,33 +49,61 @@ const features: Feature[] = [
 
 /*
  * The funnel plots the real invite pipeline for the page's one-story event
- * (Avery & Jordan: 120 invited, 86 responded — same numbers as the
- * CreationDemo dashboard). Per-stage hues (user-directed), validated as a
- * categorical set in this adjacency order (worst CVD ΔE 19.2; the amber and
- * emerald sub-3:1 contrast is relieved by the visible label + value on
- * every bar). Ends on emerald = attending; the guest-list pills speak the
- * same color vocabulary. Widths and hues flow to CSS as inline scalars.
+ * (see ./story.ts — same numbers as the CreationDemo dashboard). Per-stage
+ * hues (user-directed), validated as a categorical set in this adjacency
+ * order (worst CVD ΔE 19.2; the amber and emerald sub-3:1 contrast is
+ * relieved by the visible label + value on every bar). Ends on emerald =
+ * attending; STATUS_STYLES below speaks the same color vocabulary. Bar
+ * widths derive from the values; hues flow to CSS as inline scalars.
  */
 const FUNNEL_STAGES = [
-  { label: "Invited", value: 120, width: "100%", step: "#6366f1" },
-  { label: "Opened", value: 104, width: "87%", step: "#f59e0b" },
-  { label: "Responded", value: 86, width: "72%", step: "#f43f5e" },
-  { label: "Attending", value: 74, width: "62%", step: "#10b981" },
+  { label: "Invited", value: STORY.invited, step: "#6366f1" },
+  { label: "Opened", value: STORY.opened, step: "#f59e0b" },
+  { label: "Responded", value: STORY.responded, step: "#f43f5e" },
+  { label: "Attending", value: STORY.attending, step: "#10b981" },
 ];
 
-/* 12-point response-rate trend; de-emphasis stroke with the current period
-   picked out in the accent, per the stat-tile contract. */
-const SPARK_POINTS = "0,24 9,21 18,22 27,19 36,20 45,16 54,17 63,13 72,14 81,10 90,8 100,5";
-
-const GUEST_ROWS = [
-  { name: "Amara Okafor", status: "Opened", pillClass: "bg-amber-500/15 text-amber-700" },
-  { name: "Jordan Lee", status: "Attending", pillClass: "bg-emerald-600/10 text-emerald-700" },
-  { name: "Tunde Bakare", status: "Delivered", pillClass: "bg-zinc-500/10 text-zinc-600" },
+/*
+ * 12-week response-rate trend in a 100x32 viewBox; the accent segment, the
+ * end dot, and the gray line all derive from this one array. The final x is
+ * inset from the viewBox edge and the dot renders as an HTML overlay (see
+ * .sparkDot) so non-uniform SVG scaling can't clip or squash it.
+ */
+const SPARK_POINTS: ReadonlyArray<readonly [number, number]> = [
+  [0, 26], [8, 24], [16, 25], [24, 22], [32, 23], [40, 19], [48, 20],
+  [56, 16], [64, 17], [72, 13], [80, 11], [88, 9], [96, 6],
 ];
 
-const ROSTER_INITIALS = ["AO", "JL", "TB", "RS"];
+const toPoints = (pts: ReadonlyArray<readonly [number, number]>) =>
+  pts.map(([x, y]) => `${x},${y}`).join(" ");
+
+const SPARK_ACCENT = SPARK_POINTS.slice(-3);
+const [SPARK_END_X, SPARK_END_Y] = SPARK_POINTS[SPARK_POINTS.length - 1];
+
+/* One source for the status color vocabulary (matches the funnel: amber =
+   opened, emerald = attending). */
+const STATUS_STYLES = {
+  Opened: "bg-amber-500/15 text-amber-700",
+  Attending: "bg-emerald-600/10 text-emerald-700",
+  Delivered: "bg-zinc-500/10 text-zinc-600",
+} as const;
+
+type GuestRow = { name: string; status: keyof typeof STATUS_STYLES };
+
+const GUEST_ROWS: GuestRow[] = [
+  { name: "Amara Okafor", status: "Opened" },
+  { name: "Jordan Lee", status: "Attending" },
+  { name: "Tunde Bakare", status: "Delivered" },
+];
+
+/* The roster strip shows attendees only — Jordan Lee from the rows above
+   plus guests beyond the visible list — so it can't contradict the
+   statuses it sits under. Initials derive from the names. */
+const ATTENDING_SAMPLE = ["Jordan Lee", "Rina Sato", "Marcus Kim", "Deja Adams"];
 
 function FunnelPanel() {
+  const maxValue = FUNNEL_STAGES[0].value;
+
   return (
     <div
       className={cn(reveal.item, styles.panel, styles.panelFunnel, "p-5")}
@@ -89,7 +111,7 @@ function FunnelPanel() {
     >
       <div className="flex items-baseline justify-between gap-3">
         <div className="text-sm font-semibold text-black">RSVP funnel</div>
-        <div className="text-xs text-black/45">Avery &amp; Jordan&apos;s Wedding</div>
+        <div className="text-xs text-black/45">{STORY.eventName}</div>
       </div>
       <div className="mt-4">
         {FUNNEL_STAGES.map((stage) => (
@@ -98,7 +120,12 @@ function FunnelPanel() {
             <div className={styles.funnelBarLane}>
               <div
                 className={styles.funnelBar}
-                style={{ "--w": stage.width, "--step": stage.step } as CSSProperties}
+                style={
+                  {
+                    "--w": `${Math.round((stage.value / maxValue) * 100)}%`,
+                    "--step": stage.step,
+                  } as CSSProperties
+                }
               />
               <div className="text-xs font-semibold text-black">{stage.value}</div>
             </div>
@@ -117,14 +144,41 @@ function StatPanel() {
     >
       <div className="text-xs text-black/55">Response rate</div>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-        <span className="text-2xl font-semibold text-black">72%</span>
+        <span className="text-2xl font-semibold text-black">{STORY.responseRate}</span>
         <span className="whitespace-nowrap text-xs font-medium text-emerald-700">↑ 9% this week</span>
       </div>
-      <svg aria-hidden className={cn(styles.sparkline, "mt-2")} viewBox="0 0 100 28" preserveAspectRatio="none">
-        <polyline points={SPARK_POINTS} fill="none" stroke="#d4d4d8" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        <polyline points="81,10 90,8 100,5" fill="none" stroke="#4f46e5" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx="100" cy="5" r="4" fill="#4f46e5" stroke="#fff" strokeWidth="2" />
-      </svg>
+      <div className={cn(styles.sparkWrap, "mt-2")}>
+        <svg aria-hidden className={styles.sparkline} viewBox="0 0 100 32" preserveAspectRatio="none">
+          <polyline
+            points={toPoints(SPARK_POINTS)}
+            fill="none"
+            stroke="#d4d4d8"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+          <polyline
+            points={toPoints(SPARK_ACCENT)}
+            fill="none"
+            stroke="#4f46e5"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        <span
+          aria-hidden
+          className={styles.sparkDot}
+          style={
+            {
+              "--dot-x": `${SPARK_END_X}%`,
+              "--dot-y": `${(SPARK_END_Y / 32) * 100}%`,
+            } as CSSProperties
+          }
+        />
+      </div>
     </div>
   );
 }
@@ -149,7 +203,7 @@ function GuestsPanel() {
         {GUEST_ROWS.map((row) => (
           <li key={row.name} className="flex items-center justify-between gap-3 py-2">
             <span className="text-xs text-black/75">{row.name}</span>
-            <span className={cn(styles.pill, row.pillClass)}>
+            <span className={cn(styles.pill, STATUS_STYLES[row.status])}>
               <span className={styles.pillDot} />
               {row.status}
             </span>
@@ -159,16 +213,18 @@ function GuestsPanel() {
 
       <div className="mt-3 flex items-center gap-2 border-t border-black/5 pt-3">
         <div className="flex -space-x-1.5">
-          {ROSTER_INITIALS.map((initials) => (
+          {ATTENDING_SAMPLE.map((name) => (
             <span
-              key={initials}
+              key={name}
               className="flex size-6 items-center justify-center rounded-full bg-zinc-100 text-[9px] font-semibold text-black/60 ring-2 ring-white"
             >
-              {initials}
+              {getInitials(name)}
             </span>
           ))}
         </div>
-        <span className="text-xs text-black/50">+70 more · 74 attending</span>
+        <span className="text-xs text-black/50">
+          +{STORY.attending - ATTENDING_SAMPLE.length} more · {STORY.attending} attending
+        </span>
       </div>
     </div>
   );
@@ -178,7 +234,11 @@ export function ProductValueSplit() {
   return (
     <Section id="how-it-works" className="bg-zinc-50">
       <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div className={styles.stage}>
+        <div
+          className={styles.stage}
+          role="group"
+          aria-label="Sample event dashboard preview with illustrative data"
+        >
           <RevealOnScroll className={styles.cluster} visibleClassName={reveal.groupVisible}>
             <FunnelPanel />
             <StatPanel />

@@ -6,6 +6,7 @@ import { useIntersectionObserver, useReducedMotion } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { Section } from "../ui/Section";
 import { QrCodeIcon } from "../ui/icons";
+import { STORY } from "./story";
 import styles from "./CreationDemo.module.css";
 
 type Step = {
@@ -19,8 +20,8 @@ type Step = {
 
 /*
  * The demo walks the real product loop — template, details, share, track —
- * telling the page's one story (Avery & Jordan, same couple as the showcase
- * captures; RSVP numbers match the ProductValueSplit planner mock).
+ * telling the page's one story (see ./story.ts; same couple as the showcase
+ * captures, same numbers as the ProductValueSplit console).
  */
 const steps: Step[] = [
   {
@@ -35,9 +36,9 @@ const steps: Step[] = [
     title: "New Event",
     variant: "form",
     fields: [
-      { label: "Event name", value: "Avery & Jordan's Wedding", type: "text" },
-      { label: "Date & time", value: "Sat, Jun 20, 2026 · 4:00 PM", type: "date" },
-      { label: "Location", value: "Rosewood Garden Estate", type: "text" },
+      { label: "Event name", value: STORY.eventName, type: "text" },
+      { label: "Date & time", value: STORY.dateLine, type: "date" },
+      { label: "Location", value: STORY.venue, type: "text" },
     ],
     buttonLabel: "Publish Event",
   },
@@ -258,26 +259,26 @@ function DashboardContent({ isActive }: { isActive: boolean }) {
 
       <div className={styles.eventHeader}>
         <div className={styles.eventDate}>
-          <span className={styles.eventDateDay}>20</span>
-          <span className={styles.eventDateMonth}>JUN</span>
+          <span className={styles.eventDateDay}>{STORY.dateDay}</span>
+          <span className={styles.eventDateMonth}>{STORY.dateMonth}</span>
         </div>
         <div className={styles.eventInfo}>
-          <div className={styles.eventTitle}>Avery &amp; Jordan&apos;s Wedding</div>
-          <div className={styles.eventMeta}>4:00 PM · Rosewood Garden Estate</div>
+          <div className={styles.eventTitle}>{STORY.eventName}</div>
+          <div className={styles.eventMeta}>{`${STORY.time} · ${STORY.venue}`}</div>
         </div>
       </div>
 
       <div className={cn(styles.statsGrid, showStats && styles.statsVisible)}>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>86</div>
+          <div className={styles.statValue}>{STORY.responded}</div>
           <div className={styles.statLabel}>RSVPs in</div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>120</div>
+          <div className={styles.statValue}>{STORY.invited}</div>
           <div className={styles.statLabel}>Invited</div>
         </div>
         <div className={styles.statCard}>
-          <div className={styles.statValue}>164</div>
+          <div className={styles.statValue}>{STORY.daysToGo}</div>
           <div className={styles.statLabel}>Days to go</div>
         </div>
       </div>
