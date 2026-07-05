@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { DEMO_TEMPLATE_SLUGS, demoTemplatePath } from "@/lib/demo-templates";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
@@ -20,6 +21,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "hourly",
       priority: 0.9,
     },
+    // Template demo pages — slugs come from the shared leaf module (no
+    // template-tree imports), so this list can't drift from the routes.
+    ...DEMO_TEMPLATE_SLUGS.map((slug) => ({
+      url: `${BASE_URL}${demoTemplatePath(slug)}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 
   // Only fetch from database if DATABASE_URL is available

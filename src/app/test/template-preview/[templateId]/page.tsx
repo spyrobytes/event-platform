@@ -7,6 +7,7 @@
 
 import { notFound } from "next/navigation";
 import { TEMPLATES } from "@/components/templates";
+import { makeSampleAsset } from "@/lib/sample-asset";
 import type {
   EventPageConfigV1,
   WeddingPartyDisplayStyle,
@@ -211,26 +212,6 @@ const SAMPLE_EVENT_ID = "test-event-preview";
 
 // Empty assets for testing (no images)
 const SAMPLE_ASSETS: MediaAsset[] = [];
-
-// All sample assets share this shape; the cast is confined here. `width`/
-// `height` matter to fill-mode hosts that derive intrinsic aspect ratios;
-// `renditionWidths: []` keeps buildRenditionSrcSet on its no-renditions path.
-function makeSampleAsset(asset: {
-  id: string;
-  publicUrl: string;
-  alt?: string;
-  tags?: string[];
-  width?: number;
-  height?: number;
-}): MediaAsset {
-  return {
-    alt: "",
-    tags: [],
-    blurDataUrl: null,
-    renditionWidths: [],
-    ...asset,
-  } as unknown as MediaAsset;
-}
 
 // Sample couple-photo asset — only injected when ?couplePhotoFrame= is set so
 // baseline previews stay unchanged. Curated sample photos live in

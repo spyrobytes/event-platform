@@ -1,0 +1,118 @@
+/*
+ * Floating demo chrome for /sample-templates/*.
+ *
+ * Deliberately template-agnostic: dark glass + champagne accent (the landing
+ * showcase palette) so it reads as EventFXr chrome over any template, light
+ * or dark. Sits above template content but below full-screen mobile nav
+ * portals (which use z-index >= 100).
+ */
+
+.bar {
+  position: fixed;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  translate: -50% 0;
+  z-index: 90;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 24px);
+  padding: 8px 10px 8px 14px;
+
+  background: rgba(24, 19, 16, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 239, 228, 0.14);
+  border-radius: 999px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(245, 239, 228, 0.65);
+  white-space: nowrap;
+  transition: color 150ms ease;
+}
+
+.back:hover {
+  color: rgba(245, 239, 228, 0.95);
+}
+
+.swatches {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0 2px;
+  border-inline: 1px solid rgba(245, 239, 228, 0.12);
+  padding-inline: 12px;
+}
+
+.swatch {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--swatch, #888);
+  border: 1px solid rgba(245, 239, 228, 0.35);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.swatch:hover {
+  transform: scale(1.15);
+}
+
+.swatchActive {
+  box-shadow:
+    0 0 0 2px rgba(24, 19, 16, 1),
+    0 0 0 4px rgba(245, 239, 228, 0.9);
+}
+
+.cta {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #f5efe4;
+  color: #181310;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background 150ms ease;
+}
+
+.cta:hover {
+  background: #fffdf7;
+}
+
+/* Compact phones: drop the back label, tighten spacing. */
+@media (max-width: 480px) {
+  .bar {
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+  }
+
+  .backLabel {
+    display: none;
+  }
+
+  .swatches {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .swatch {
+    width: 18px;
+    height: 18px;
+  }
+
+  .cta {
+    padding: 7px 12px;
+    font-size: 0.75rem;
+  }
+}

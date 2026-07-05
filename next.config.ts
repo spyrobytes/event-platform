@@ -32,6 +32,26 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The /sample-templates/* demo pages render real templates with the
+  // sentinel event slug "__demo__" (see src/lib/demo-event.ts). Any template
+  // href built from that slug (nav RSVP pill, registry/wishes CTAs, share
+  // URL) lands on /e/__demo__/*, which has no backing event — funnel those
+  // clicks to sign-up instead of a 404.
+  async redirects() {
+    return [
+      {
+        source: "/e/__demo__",
+        destination: "/join",
+        permanent: false,
+      },
+      {
+        source: "/e/__demo__/:path*",
+        destination: "/join",
+        permanent: false,
+      },
+    ];
+  },
+
   // Security headers for all routes
   async headers() {
     return [
