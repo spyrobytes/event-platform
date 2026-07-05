@@ -20,6 +20,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "hourly",
       priority: 0.9,
     },
+    // Template demo pages (src/app/sample-templates) — update when a demo
+    // is added to TEMPLATE_DEMOS (not imported here to keep the sitemap
+    // route from pulling in the full template component tree).
+    ...["cinematic", "grand-luxe", "celebration"].map((slug) => ({
+      url: `${BASE_URL}/sample-templates/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 
   // Only fetch from database if DATABASE_URL is available

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { isDemoEventSlug } from "@/lib/demo-event";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -42,12 +43,22 @@ export function RsvpCta({
   buttonStyle,
   helpTextClassName,
 }: Props) {
+  // Demo pages (/sample-templates/*) have no backing event, so the RSVP
+  // portal link would 404. Swap in a sign-up CTA instead — styling props
+  // stay untouched so the button remains native to each template's renderer.
+  const isDemo = isDemoEventSlug(eventSlug);
+  const href = isDemo ? "/join" : `/e/${eventSlug}/rsvp`;
+  const resolvedLabel = isDemo ? "Create your own page" : label;
+  const resolvedHelpText = isDemo
+    ? "This is a sample page — sign up to build one just like it."
+    : helpText;
+
   return (
     <div className="text-center">
       {/* The Button itself isn't a router link, so we wrap it in <Link> and
           render it as a presentational element. The whole link is clickable
           and Tailwind classes from Button cascade through. */}
-      <Link href={`/e/${eventSlug}/rsvp`} className="inline-block">
+      <Link href={href} className="inline-block">
         <Button
           type="button"
           size="lg"
@@ -55,17 +66,17 @@ export function RsvpCta({
           className={buttonClassName}
           style={buttonStyle}
         >
-          {label}
+          {resolvedLabel}
         </Button>
       </Link>
-      {helpText && (
+      {resolvedHelpText && (
         <p
           className={cn(
             "mt-3 text-sm",
             helpTextClassName ?? "text-muted-foreground"
           )}
         >
-          {helpText}
+          {resolvedHelpText}
         </p>
       )}
     </div>
