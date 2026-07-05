@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { isDemoEventSlug } from "@/lib/demo-event";
+import { DEMO_RSVP_CTA, isDemoEventSlug } from "@/lib/demo-event";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -44,14 +44,16 @@ export function RsvpCta({
   helpTextClassName,
 }: Props) {
   // Demo pages (/sample-templates/*) have no backing event, so the RSVP
-  // portal link would 404. Swap in a sign-up CTA instead — styling props
+  // portal link would 404. Swap in the sign-up CTA instead — styling props
   // stay untouched so the button remains native to each template's renderer.
+  // The demo copy DELIBERATELY supersedes any caller-supplied label/helpText
+  // (e.g. Conference's "Register", Party's "RSVP →"): on a demo, every RSVP
+  // CTA must funnel to sign-up, whatever the template calls it. Copy lives
+  // in DEMO_RSVP_CTA next to the sentinel definition.
   const isDemo = isDemoEventSlug(eventSlug);
-  const href = isDemo ? "/join" : `/e/${eventSlug}/rsvp`;
-  const resolvedLabel = isDemo ? "Create your own page" : label;
-  const resolvedHelpText = isDemo
-    ? "This is a sample page — sign up to build one just like it."
-    : helpText;
+  const href = isDemo ? DEMO_RSVP_CTA.href : `/e/${eventSlug}/rsvp`;
+  const resolvedLabel = isDemo ? DEMO_RSVP_CTA.label : label;
+  const resolvedHelpText = isDemo ? DEMO_RSVP_CTA.helpText : helpText;
 
   return (
     <div className="text-center">

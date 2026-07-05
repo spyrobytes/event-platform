@@ -19,3 +19,15 @@ export const DEMO_EVENT_SLUG = "__demo__";
 export function isDemoEventSlug(slug: string | undefined): boolean {
   return slug === DEMO_EVENT_SLUG;
 }
+
+/**
+ * Copy for the RSVP call-to-action on demo pages. Lives here — beside the
+ * sentinel that triggers it — so the demo surface owns its copy and a future
+ * per-template variant (e.g. conference phrasing) has one place to grow,
+ * rather than being buried in the shared RsvpCta component.
+ */
+export const DEMO_RSVP_CTA = {
+  href: "/join",
+  label: "Create your own page",
+  helpText: "This is a sample page — sign up to build one just like it.",
+} as const;

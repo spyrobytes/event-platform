@@ -6,6 +6,8 @@ import {
   V2_DEFAULT_SECTION_THEME,
 } from "@/components/templates/wedding-v2/section-themes";
 import { getV3Definition } from "@/components/templates/wedding-v3";
+import type { DemoTemplateSlug } from "@/lib/demo-templates";
+import { makeSampleAsset } from "@/lib/sample-asset";
 
 /**
  * Sample data for the public /sample-templates/* demo pages.
@@ -24,7 +26,7 @@ export type DemoThemeOption = {
 };
 
 export type TemplateDemo = {
-  slug: string;
+  slug: DemoTemplateSlug;
   templateId: "wedding_v2" | "wedding_grand_luxe" | "wedding_celebration";
   /** Display name, matches the landing showcase plate caption. */
   name: string;
@@ -45,28 +47,18 @@ export type TemplateDemo = {
   temporal: TemporalData;
 };
 
-// All sample assets share this shape; the cast is confined here (same
-// pattern as /test/template-preview). `width`/`height` feed fill-mode hosts
-// that derive intrinsic aspect ratios; `renditionWidths: []` keeps
-// buildRenditionSrcSet on its no-renditions path, so the local /public srcs
-// ship as-is.
-function makeSampleAsset(asset: {
-  id: string;
-  publicUrl: string;
-  alt: string;
-  tags?: string[];
-  width: number;
-  height: number;
-}): MediaAsset {
-  return {
-    tags: [],
-    blurDataUrl: null,
-    renditionWidths: [],
-    ...asset,
-  } as unknown as MediaAsset;
-}
-
 const DEMO_ASSET_BASE = "/landing/template-demos";
+
+/** Shape shared by the party-member tables below. */
+type DemoPartyMember = {
+  id: string;
+  file: string;
+  width: number;
+  name: string;
+  role: string;
+  side: "bride" | "groom";
+  bio?: string;
+};
 
 // ---------------------------------------------------------------------------
 // № 01 — Wedding Cinematic (wedding_v2)
@@ -74,21 +66,21 @@ const DEMO_ASSET_BASE = "/landing/template-demos";
 // ---------------------------------------------------------------------------
 
 const CINEMATIC_GALLERY = [
-  { id: "demo-cin-gal-1", file: "gallery/cin-1.jpg", width: 800, height: 1200 },
-  { id: "demo-cin-gal-2", file: "gallery/cin-2.jpg", width: 801, height: 1200 },
-  { id: "demo-cin-gal-3", file: "gallery/cin-3.jpg", width: 800, height: 1200 },
-  { id: "demo-cin-gal-4", file: "gallery/cin-4.jpg", width: 801, height: 1200 },
-  { id: "demo-cin-gal-5", file: "gallery/cin-5.jpg", width: 800, height: 1200 },
+  { id: "demo-cin-gal-1", file: "gallery/cin-1.jpg", width: 600, height: 900 },
+  { id: "demo-cin-gal-2", file: "gallery/cin-2.jpg", width: 601, height: 900 },
+  { id: "demo-cin-gal-3", file: "gallery/cin-3.jpg", width: 600, height: 900 },
+  { id: "demo-cin-gal-4", file: "gallery/cin-4.jpg", width: 601, height: 900 },
+  { id: "demo-cin-gal-5", file: "gallery/cin-5.jpg", width: 600, height: 900 },
 ];
 
-const CINEMATIC_PARTY = [
-  { id: "demo-cin-party-1", file: "party/cin-1.jpg", name: "Olivia Bennett", role: "Maid of Honor", side: "bride", bio: "Best friends since freshman year." },
-  { id: "demo-cin-party-2", file: "party/cin-2.jpg", name: "Sophia Lane", role: "Bridesmaid", side: "bride" },
-  { id: "demo-cin-party-3", file: "party/cin-3.jpg", name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
-  { id: "demo-cin-party-4", file: "party/cin-4.jpg", name: "James Carter", role: "Best Man", side: "groom", bio: "Brother and partner in crime." },
-  { id: "demo-cin-party-5", file: "party/cin-5.jpg", name: "Liam Walsh", role: "Groomsman", side: "groom" },
-  { id: "demo-cin-party-6", file: "party/cin-6.jpg", name: "Noah Reed", role: "Groomsman", side: "groom" },
-] as const;
+const CINEMATIC_PARTY: DemoPartyMember[] = [
+  { id: "demo-cin-party-1", file: "party/cin-1.jpg", width: 427, name: "Olivia Bennett", role: "Maid of Honor", side: "bride", bio: "Best friends since freshman year." },
+  { id: "demo-cin-party-2", file: "party/cin-2.jpg", width: 426, name: "Sophia Lane", role: "Bridesmaid", side: "bride" },
+  { id: "demo-cin-party-3", file: "party/cin-3.jpg", width: 427, name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
+  { id: "demo-cin-party-4", file: "party/cin-4.jpg", width: 427, name: "James Carter", role: "Best Man", side: "groom", bio: "Brother and partner in crime." },
+  { id: "demo-cin-party-5", file: "party/cin-5.jpg", width: 427, name: "Liam Walsh", role: "Groomsman", side: "groom" },
+  { id: "demo-cin-party-6", file: "party/cin-6.jpg", width: 427, name: "Noah Reed", role: "Groomsman", side: "groom" },
+];
 
 const cinematicAssets: MediaAsset[] = [
   makeSampleAsset({
@@ -115,8 +107,8 @@ const cinematicAssets: MediaAsset[] = [
       publicUrl: `${DEMO_ASSET_BASE}/${m.file}`,
       alt: `Portrait of ${m.name}`,
       tags: ["party"],
-      width: 1068,
-      height: 1600,
+      width: m.width,
+      height: 640,
     }),
   ),
 ];
@@ -213,12 +205,12 @@ const cinematicConfig: EventPageConfigV1 = {
       data: {
         heading: "The Wedding Party",
         description: "The people standing beside us.",
-        members: CINEMATIC_PARTY.map(({ id, name, role, side, ...rest }) => ({
-          name,
-          role,
-          side,
-          imageAssetId: id,
-          ...("bio" in rest ? { bio: rest.bio } : {}),
+        members: CINEMATIC_PARTY.map((m) => ({
+          name: m.name,
+          role: m.role,
+          side: m.side,
+          imageAssetId: m.id,
+          bio: m.bio,
         })),
       },
     },
@@ -265,21 +257,21 @@ const LUXE_FLORAL_HEROES = [
 ];
 
 const LUXE_GALLERY = [
-  { id: "demo-lux-gal-1", file: "gallery/lux-1.jpg", width: 960, height: 1200 },
-  { id: "demo-lux-gal-2", file: "gallery/lux-2.jpg", width: 675, height: 1200 },
-  { id: "demo-lux-gal-3", file: "gallery/lux-3.jpg", width: 800, height: 1200 },
-  { id: "demo-lux-gal-4", file: "gallery/lux-4.jpg", width: 800, height: 1200 },
-  { id: "demo-lux-gal-5", file: "gallery/lux-5.jpg", width: 800, height: 1200 },
+  { id: "demo-lux-gal-1", file: "gallery/lux-1.jpg", width: 720, height: 900 },
+  { id: "demo-lux-gal-2", file: "gallery/lux-2.jpg", width: 506, height: 900 },
+  { id: "demo-lux-gal-3", file: "gallery/lux-3.jpg", width: 600, height: 900 },
+  { id: "demo-lux-gal-4", file: "gallery/lux-4.jpg", width: 600, height: 900 },
+  { id: "demo-lux-gal-5", file: "gallery/lux-5.jpg", width: 600, height: 900 },
 ];
 
-const LUXE_PARTY = [
-  { id: "demo-lux-party-b1", file: "party/lux-b1.jpg", width: 534, name: "Zuri Okafor", role: "Maid of Honor", side: "bride", bio: "Sisters in everything but blood." },
-  { id: "demo-lux-party-b2", file: "party/lux-b2.jpg", width: 532, name: "Adaeze Nwosu", role: "Bridesmaid", side: "bride" },
-  { id: "demo-lux-party-b3", file: "party/lux-b3.jpg", width: 533, name: "Chidinma Eze", role: "Bridesmaid", side: "bride" },
-  { id: "demo-lux-party-g1", file: "party/lux-g1.jpg", width: 534, name: "Emeka Obi", role: "Best Man", side: "groom", bio: "Brothers since the first day of school." },
-  { id: "demo-lux-party-g2", file: "party/lux-g2.jpg", width: 533, name: "Kelechi Ade", role: "Groomsman", side: "groom" },
-  { id: "demo-lux-party-g3", file: "party/lux-g3.jpg", width: 533, name: "Tunde Bello", role: "Groomsman", side: "groom" },
-] as const;
+const LUXE_PARTY: DemoPartyMember[] = [
+  { id: "demo-lux-party-b1", file: "party/lux-b1.jpg", width: 427, name: "Zuri Okafor", role: "Maid of Honor", side: "bride", bio: "Sisters in everything but blood." },
+  { id: "demo-lux-party-b2", file: "party/lux-b2.jpg", width: 426, name: "Adaeze Nwosu", role: "Bridesmaid", side: "bride" },
+  { id: "demo-lux-party-b3", file: "party/lux-b3.jpg", width: 426, name: "Chidinma Eze", role: "Bridesmaid", side: "bride" },
+  { id: "demo-lux-party-g1", file: "party/lux-g1.jpg", width: 427, name: "Emeka Obi", role: "Best Man", side: "groom", bio: "Brothers since the first day of school." },
+  { id: "demo-lux-party-g2", file: "party/lux-g2.jpg", width: 426, name: "Kelechi Ade", role: "Groomsman", side: "groom" },
+  { id: "demo-lux-party-g3", file: "party/lux-g3.jpg", width: 426, name: "Tunde Bello", role: "Groomsman", side: "groom" },
+];
 
 const luxeAssets: MediaAsset[] = [
   makeSampleAsset({
@@ -317,7 +309,7 @@ const luxeAssets: MediaAsset[] = [
       alt: `Portrait of ${m.name}`,
       tags: ["party"],
       width: m.width,
-      height: 800,
+      height: 640,
     }),
   ),
 ];
@@ -385,12 +377,16 @@ const luxeConfig: EventPageConfigV1 = {
       data: {
         heading: "The Wedding Party",
         description: "Our nearest and dearest.",
-        members: LUXE_PARTY.map(({ id, name, role, side, ...rest }) => ({
-          name,
-          role,
-          side,
-          imageAssetId: id,
-          ...("bio" in rest ? { bio: rest.bio } : {}),
+        // Couture Polaroid — the bespoke renderer the landing plate № 05
+        // advertises; without it the resolver falls back to the generic
+        // cinematic adapter.
+        displayStyle: "couture",
+        members: LUXE_PARTY.map((m) => ({
+          name: m.name,
+          role: m.role,
+          side: m.side,
+          imageAssetId: m.id,
+          bio: m.bio,
         })),
       },
     },
@@ -425,23 +421,24 @@ const luxeConfig: EventPageConfigV1 = {
 // Warm champagne light: golden-hour engagement shoot.
 // ---------------------------------------------------------------------------
 
+// Five photos, not six — the source set's couple-photo-3 and couple-photo-6
+// are byte-identical, so the sixth slot would duplicate position three.
 const CELEBRATION_GALLERY = [
-  { id: "demo-cel-gal-1", file: "gallery/cel-1.jpg", width: 800, height: 1200 },
-  { id: "demo-cel-gal-2", file: "gallery/cel-2.jpg", width: 868, height: 1200 },
-  { id: "demo-cel-gal-3", file: "gallery/cel-3.jpg", width: 800, height: 1200 },
-  { id: "demo-cel-gal-4", file: "gallery/cel-4.jpg", width: 960, height: 1200 },
-  { id: "demo-cel-gal-5", file: "gallery/cel-5.jpg", width: 800, height: 1200 },
-  { id: "demo-cel-gal-6", file: "gallery/cel-6.jpg", width: 1200, height: 801 },
+  { id: "demo-cel-gal-1", file: "gallery/cel-1.jpg", width: 600, height: 900 },
+  { id: "demo-cel-gal-2", file: "gallery/cel-2.jpg", width: 651, height: 900 },
+  { id: "demo-cel-gal-3", file: "gallery/cel-3.jpg", width: 600, height: 900 },
+  { id: "demo-cel-gal-4", file: "gallery/cel-4.jpg", width: 720, height: 900 },
+  { id: "demo-cel-gal-6", file: "gallery/cel-6.jpg", width: 900, height: 601 },
 ];
 
-const CELEBRATION_PARTY = [
-  { id: "demo-cel-party-b1", file: "party/cel-b1.jpg", name: "Isabella Reyes", role: "Maid of Honor", side: "bride", bio: "Roommates turned lifelong friends." },
-  { id: "demo-cel-party-b2", file: "party/cel-b2.jpg", name: "Camila Torres", role: "Bridesmaid", side: "bride" },
-  { id: "demo-cel-party-b3", file: "party/cel-b3.jpg", name: "Lucia Vega", role: "Bridesmaid", side: "bride" },
-  { id: "demo-cel-party-g1", file: "party/cel-g1.jpg", name: "Diego Morales", role: "Best Man", side: "groom", bio: "Cousin, confidant, chaos coordinator." },
-  { id: "demo-cel-party-g2", file: "party/cel-g2.jpg", name: "Andres Silva", role: "Groomsman", side: "groom" },
-  { id: "demo-cel-party-g3", file: "party/cel-g3.jpg", name: "Rafael Cruz", role: "Groomsman", side: "groom" },
-] as const;
+const CELEBRATION_PARTY: DemoPartyMember[] = [
+  { id: "demo-cel-party-b1", file: "party/cel-b1.jpg", width: 426, name: "Isabella Reyes", role: "Maid of Honor", side: "bride", bio: "Roommates turned lifelong friends." },
+  { id: "demo-cel-party-b2", file: "party/cel-b2.jpg", width: 426, name: "Camila Torres", role: "Bridesmaid", side: "bride" },
+  { id: "demo-cel-party-b3", file: "party/cel-b3.jpg", width: 426, name: "Lucia Vega", role: "Bridesmaid", side: "bride" },
+  { id: "demo-cel-party-g1", file: "party/cel-g1.jpg", width: 426, name: "Diego Morales", role: "Best Man", side: "groom", bio: "Cousin, confidant, chaos coordinator." },
+  { id: "demo-cel-party-g2", file: "party/cel-g2.jpg", width: 512, name: "Andres Silva", role: "Groomsman", side: "groom" },
+  { id: "demo-cel-party-g3", file: "party/cel-g3.jpg", width: 426, name: "Rafael Cruz", role: "Groomsman", side: "groom" },
+];
 
 const celebrationAssets: MediaAsset[] = [
   makeSampleAsset({
@@ -468,8 +465,8 @@ const celebrationAssets: MediaAsset[] = [
       publicUrl: `${DEMO_ASSET_BASE}/${m.file}`,
       alt: `Portrait of ${m.name}`,
       tags: ["party"],
-      width: 533,
-      height: 800,
+      width: m.width,
+      height: 640,
     }),
   ),
 ];
@@ -512,12 +509,12 @@ const celebrationConfig: EventPageConfigV1 = {
       data: {
         heading: "The Crew",
         description: "The friends and family celebrating with us.",
-        members: CELEBRATION_PARTY.map(({ id, name, role, side, ...rest }) => ({
-          name,
-          role,
-          side,
-          imageAssetId: id,
-          ...("bio" in rest ? { bio: rest.bio } : {}),
+        members: CELEBRATION_PARTY.map((m) => ({
+          name: m.name,
+          role: m.role,
+          side: m.side,
+          imageAssetId: m.id,
+          bio: m.bio,
         })),
       },
     },
