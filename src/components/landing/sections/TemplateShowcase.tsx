@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { demoTemplatePath } from "@/lib/demo-templates";
 import { cn } from "@/lib/utils";
 import { Section } from "../ui/Section";
 import { ButtonLink } from "../ui/ButtonLink";
@@ -29,7 +30,7 @@ const tallPlates: Plate[] = [
     src: "/landing/templates/cinematic.jpg",
     alt: "Wedding Cinematic template — full-bleed ceremony photo behind the couple's names",
     ratio: "43 / 88",
-    href: "/sample-templates/cinematic",
+    href: demoTemplatePath("cinematic"),
   },
   {
     number: "№ 02",
@@ -39,7 +40,7 @@ const tallPlates: Plate[] = [
     alt: "The Grand Luxe template — couple cutout layered over dark florals with serif names",
     ratio: "860 / 1760",
     stagger: "drop",
-    href: "/sample-templates/grand-luxe",
+    href: demoTemplatePath("grand-luxe"),
   },
   {
     number: "№ 03",
@@ -49,7 +50,7 @@ const tallPlates: Plate[] = [
     alt: "Celebration template — champagne-toned page with framed photo and events timeline",
     ratio: "860 / 1760",
     stagger: "lift",
-    href: "/sample-templates/celebration",
+    href: demoTemplatePath("celebration"),
   },
 ];
 
@@ -60,7 +61,7 @@ const scrapbookPlate: Plate = {
   src: "/landing/templates/scrapbook.jpg",
   alt: "Scrapbook Gallery — a row of tilted polaroid wedding photos on a cream page",
   ratio: "1805 / 547",
-  href: "/sample-templates/cinematic?edition=scrapbook",
+  href: `${demoTemplatePath("cinematic")}?edition=scrapbook`,
 };
 
 const partyPlate: Plate = {
@@ -70,7 +71,7 @@ const partyPlate: Plate = {
   src: "/landing/templates/wedding-party.jpg",
   alt: "Wedding party section — couture polaroid portraits of the bridal party with names and roles",
   ratio: "2414 / 1318",
-  href: "/sample-templates/grand-luxe#party",
+  href: `${demoTemplatePath("grand-luxe")}#party`,
 };
 
 function PlateCaption({ plate }: { plate: Plate }) {
@@ -163,9 +164,9 @@ export function TemplateShowcase() {
             <span className={styles.headlineAccent}> will keep</span>
           </h2>
           <p className="mt-5 text-base leading-relaxed text-[#f5efe4]/60">
-            These aren&apos;t mockups. Every frame below is a real EventFXr page,
-            rendered from a live template — click one to walk through it, then
-            add your names and it&apos;s yours.
+            These aren&apos;t mockups. The templates below are real EventFXr
+            pages, rendered live — open one to walk through it, then add your
+            names and it&apos;s yours.
           </p>
         </div>
 
