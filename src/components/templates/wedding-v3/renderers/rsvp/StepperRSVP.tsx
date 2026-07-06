@@ -98,7 +98,16 @@ export function StepperRSVP({ data, eventSlug }: RSVPRendererProps) {
             boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
           }}
         >
-          <RsvpCta eventSlug={eventSlug} />
+          {/* Explicit colors: Button's `bg-accent` reads the app-shell RGB
+              triplet, but template scope redefines --accent as a hex, so the
+              utility computes to transparent here. Same guard as
+              HighContrastRSVP. */}
+          <RsvpCta
+            eventSlug={eventSlug}
+            buttonClassName="text-[var(--lux-accent-ink,var(--surface,#ffffff))] hover:opacity-90 transition-opacity"
+            buttonStyle={{ backgroundColor: "var(--lux-accent, var(--accent, #7a8c72))" }}
+            helpTextClassName="text-[var(--lux-ink-soft,var(--text-2,#786f65))]"
+          />
         </div>
       </div>
     </section>

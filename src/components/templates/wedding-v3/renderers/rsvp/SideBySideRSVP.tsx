@@ -83,7 +83,16 @@ export function SideBySideRSVP({ data, eventSlug }: RSVPRendererProps) {
               paddingTop: "clamp(24px, 3vw, 40px)",
             }}
           >
-            <RsvpCta eventSlug={eventSlug} />
+            {/* Explicit colors: Button's `bg-accent` reads the app-shell RGB
+                triplet, but template scope redefines --accent as a hex, so the
+                utility computes to transparent here. Same guard as
+                HighContrastRSVP. */}
+            <RsvpCta
+              eventSlug={eventSlug}
+              buttonClassName="text-[var(--lux-accent-ink,var(--surface,#ffffff))] hover:opacity-90 transition-opacity"
+              buttonStyle={{ backgroundColor: "var(--lux-accent, var(--accent, #7a8c72))" }}
+              helpTextClassName="text-[var(--lux-ink-soft,var(--text-2,#786f65))]"
+            />
           </div>
 
           {/* Right: Info panel */}

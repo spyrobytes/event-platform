@@ -11,12 +11,12 @@
   </g>
   <defs>
     <linearGradient x1="0%" y1="100%" x2="100%" y2="0%" id="b">
-      <stop stop-color="#38DDD3" offset="0"/>
-      <stop stop-opacity="0" stop-color="#ce009f)" offset=".66"/>
+      <stop stop-color="#daa840" offset="0"/>
+      <stop stop-opacity="0" stop-color="#b03030" offset=".66"/>
     </linearGradient>
     <linearGradient x1="100%" y1="100%" x2="0%" y2="0%" id="c">
-      <stop stop-color="#ce009f" offset="0"/>
-      <stop stop-opacity="0" stop-color="#38DDD3" offset=".66"/>
+      <stop stop-color="#b03030" offset="0"/>
+      <stop stop-opacity="0" stop-color="#daa840" offset=".66"/>
     </linearGradient>
     <mask id="a">
       <path fill="#fff" d="M0 0h1440v250H0z"/>

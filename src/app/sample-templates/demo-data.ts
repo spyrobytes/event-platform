@@ -76,9 +76,10 @@ const CINEMATIC_GALLERY = [
 const CINEMATIC_PARTY: DemoPartyMember[] = [
   { id: "demo-cin-party-1", file: "party/cin-1.jpg", width: 427, name: "Olivia Bennett", role: "Maid of Honor", side: "bride", bio: "Best friends since freshman year." },
   { id: "demo-cin-party-2", file: "party/cin-2.jpg", width: 426, name: "Sophia Lane", role: "Bridesmaid", side: "bride" },
-  { id: "demo-cin-party-3", file: "party/cin-3.jpg", width: 427, name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
+  // cin-5 is the woman, cin-3 the bearded man — assign accordingly.
+  { id: "demo-cin-party-3", file: "party/cin-5.jpg", width: 427, name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
   { id: "demo-cin-party-4", file: "party/cin-4.jpg", width: 427, name: "James Carter", role: "Best Man", side: "groom", bio: "Brother and partner in crime." },
-  { id: "demo-cin-party-5", file: "party/cin-5.jpg", width: 427, name: "Liam Walsh", role: "Groomsman", side: "groom" },
+  { id: "demo-cin-party-5", file: "party/cin-3.jpg", width: 427, name: "Liam Walsh", role: "Groomsman", side: "groom" },
   { id: "demo-cin-party-6", file: "party/cin-6.jpg", width: 427, name: "Noah Reed", role: "Groomsman", side: "groom" },
 ];
 
@@ -282,6 +283,18 @@ const luxeAssets: MediaAsset[] = [
     width: 1297,
     height: 1400,
   }),
+  // Default (Light theme) hero — bright romantic backdrop. Grand Luxe's
+  // fullscreen-dramatic hero grades the image down (brightness 0.45), so it
+  // wants a light source image; the dark florals below stay as the
+  // hue-matched backdrops for the dark section themes.
+  makeSampleAsset({
+    id: "demo-lux-confetti-light",
+    publicUrl: `${DEMO_ASSET_BASE}/hero/confetti-light.jpg`,
+    alt: "Cream backdrop with florals, eucalyptus, and scattered heart confetti",
+    tags: ["hero"],
+    width: 1536,
+    height: 1024,
+  }),
   ...LUXE_FLORAL_HEROES.map((h) =>
     makeSampleAsset({
       id: h.id,
@@ -332,7 +345,7 @@ const luxeConfig: EventPageConfigV1 = {
     monogram: "A&D",
     couplePhotoAssetId: "demo-lux-cutout",
     couplePhotoFrame: "cutout",
-    heroImageAssetId: "demo-lux-floral-dark",
+    heroImageAssetId: "demo-lux-confetti-light",
   },
   sections: [
     {
@@ -612,14 +625,16 @@ export const TEMPLATE_DEMOS: TemplateDemo[] = [
     templateId: "wedding_grand_luxe",
     name: "The Grand Luxe",
     tagline:
-      "Cutout couple portraits over dark florals with gilded details — explore the full template with live color themes.",
+      "Cutout couple portraits over romantic florals with gilded details — explore the full template with live color themes.",
     ogImage: "/landing/templates/grand-luxe.jpg",
     config: luxeConfig,
     assets: luxeAssets,
     themes: grandLuxeThemes(),
-    // Hue-matched floral backdrops per section theme; "" = default (Light).
+    // Hue-matched hero backdrops per section theme; "" = default (Light),
+    // which gets the bright romantic backdrop — the dark florals pair with
+    // the dark section themes.
     themeHeroAssetIds: {
-      "": "demo-lux-floral-dark",
+      "": "demo-lux-confetti-light",
       "midnight-slate": "demo-lux-floral-blue",
       amethyst: "demo-lux-floral-purple",
       "emerald-noir": "demo-lux-floral-green",
