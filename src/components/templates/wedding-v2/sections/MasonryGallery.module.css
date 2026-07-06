@@ -173,12 +173,30 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
+  /* Swipe-nav gesture contract: we own horizontal, the browser keeps vertical
+     scroll + pinch-zoom. will-change pre-materializes the compositor layer so
+     the FIRST drag doesn't jank promoting it mid-gesture (cf. #238/#239). */
+  touch-action: pan-y pinch-zoom;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .lightboxStage img {
   display: block;
   width: 100%;
   max-height: calc(100svh - 120px);
   object-fit: contain;
+}
+
+/* Off-screen decode warmers for the lightbox's ±1 neighbours. */
+.lightboxPreloads {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .lightboxCaption {

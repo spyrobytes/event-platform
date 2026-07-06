@@ -272,13 +272,12 @@ function ScrapbookLightbox({
   // Swipe / drag navigation (mouse + touch + pen). The hook owns the imperative
   // translate AND cursor on the stage; arrows + keyboard remain the AT path.
   const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, isBusyRef, didDragRef } =
+  const { contentRef, handlers, isBusyRef, getBackdropProps } =
     useSwipeNavigation<HTMLDivElement>({
       onPrev,
       onNext,
       enabled: items.length > 1,
       reducedMotion,
-      wrap: true,
     });
 
   // Esc closes; arrows navigate — but not while a swipe gesture or its settle
@@ -318,21 +317,7 @@ function ScrapbookLightbox({
         alignItems: "center",
         justifyContent: "center",
       }}
-      onPointerDown={() => {
-        // Re-arm the drag guard on every fresh press (incl. a backdrop tap that
-        // fires no stage pointerdown), else a stale `true` from a prior drag
-        // swallows the next genuine close tap.
-        didDragRef.current = false;
-      }}
-      onClick={(e) => {
-        // A drag that ends over the backdrop must not also close the lightbox.
-        // Ref-based (not state) to dodge pointerup → click → setState batching.
-        if (didDragRef.current) {
-          didDragRef.current = false;
-          return;
-        }
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...getBackdropProps(onClose)}
     >
       {/* Close */}
       <button

@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
@@ -106,22 +108,15 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
     );
   }, [itemCount]);
 
-  // Lightbox keyboard handler and body scroll lock.
+  // Body scroll lock while the lightbox is open. Keyboard nav lives inside
+  // Lightbox itself, where it can read the swipe hook's busy state.
   useEffect(() => {
     if (!isLightboxOpen) return;
     document.body.style.overflow = "hidden";
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowRight") showNext();
-      if (e.key === "ArrowLeft") showPrev();
-    };
-    document.addEventListener("keydown", handleKey);
     return () => {
       document.body.style.overflow = "";
-      document.removeEventListener("keydown", handleKey);
     };
-  }, [isLightboxOpen, closeLightbox, showNext, showPrev]);
+  }, [isLightboxOpen]);
 
   if (resolvedItems.length === 0) {
     return (
@@ -367,6 +362,34 @@ function Lightbox({
     return () => dialog.removeEventListener("keydown", handleFocusTrap);
   }, []);
 
+  // Swipe / drag navigation (mouse + touch + pen). The hook owns the imperative
+  // translate AND cursor on the stage; arrows + keyboard remain the AT path.
+  const reducedMotion = useReducedMotion();
+  const { contentRef, handlers, isBusyRef, getBackdropProps } =
+    useSwipeNavigation<HTMLDivElement>({
+      onPrev,
+      onNext,
+      enabled: items.length > 1,
+      reducedMotion,
+    });
+
+  // Esc closes; arrows navigate — but not while a swipe gesture or its settle
+  // glide is in flight (an external nav would swap src mid-animation). Lives
+  // here (not the section) so it can read the hook's busy state via isBusyRef.
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (isBusyRef.current) return;
+      if (e.key === "ArrowRight") onNext();
+      else if (e.key === "ArrowLeft") onPrev();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose, onNext, onPrev, isBusyRef]);
+
   const item = items[index];
   const captionText = item.caption || item.title;
 
@@ -378,9 +401,7 @@ function Lightbox({
       aria-label="Image preview"
       tabIndex={-1}
       className={cn(styles.lightbox, styles.lightboxOpen)}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...getBackdropProps(onClose)}
     >
       <button className={styles.lightboxClose} onClick={onClose} aria-label="Close">
         <svg
@@ -399,7 +420,11 @@ function Lightbox({
 
       <button
         className={cn(styles.lightboxNav, styles.lightboxPrev)}
-        onClick={onPrev}
+        onClick={() => {
+          // Ignore clicks during a gesture / settle glide so we don't swap src
+          // mid-animation (matches the keyboard gate above).
+          if (!isBusyRef.current) onPrev();
+        }}
         aria-label="Previous image"
       >
         <svg
@@ -417,7 +442,9 @@ function Lightbox({
 
       <button
         className={cn(styles.lightboxNav, styles.lightboxNext)}
-        onClick={onNext}
+        onClick={() => {
+          if (!isBusyRef.current) onNext();
+        }}
         aria-label="Next image"
       >
         <svg
@@ -433,7 +460,10 @@ function Lightbox({
         </svg>
       </button>
 
-      <div className={styles.lightboxStage}>
+      {/* Stage — the single element the swipe gesture translates. The single
+          persistent EventImage swaps src in place, holding the previous frame
+          until the new one decodes (the smooth path the arrows use). */}
+      <div ref={contentRef} {...handlers} className={styles.lightboxStage}>
         <EventImage
           src={item.url}
           alt={item.alt}
@@ -442,6 +472,7 @@ function Lightbox({
           sizes="(max-width: 768px) 100vw, 80vw"
           blurDataURL={item.blurDataUrl}
           renditionWidths={item.renditionWidths}
+          draggable={false}
         />
         {captionText && (
           <div className={styles.lightboxCaption}>{captionText}</div>
@@ -451,6 +482,54 @@ function Lightbox({
       <div className={styles.lightboxCounter}>
         {index + 1} / {items.length}
       </div>
+
+      <AdjacentPreloads items={items} index={index} />
+    </div>
+  );
+}
+
+/**
+ * Off-screen decode warmers for the lightbox's ±1 neighbours, so a swipe or
+ * arrow commit swaps to an already-decoded frame. `loading="eager"` forces the
+ * fetch despite the 1×1 off-screen box, and the matching `sizes` primes the
+ * same rendition the visible stage will request. Scoped to ±1 only — never the
+ * whole gallery — to keep network pressure low on image-heavy pages.
+ */
+function AdjacentPreloads({
+  items,
+  index,
+}: {
+  items: ResolvedItem[];
+  index: number;
+}) {
+  if (items.length < 2) return null;
+  const prev = items[(index - 1 + items.length) % items.length];
+  const next = items[(index + 1) % items.length];
+  const current = items[index];
+  const seen = new Set<string>();
+  const adjacent: ResolvedItem[] = [];
+  for (const candidate of [prev, next]) {
+    const key = candidate.assetId || candidate.url;
+    if (candidate !== current && !seen.has(key)) {
+      seen.add(key);
+      adjacent.push(candidate);
+    }
+  }
+
+  return (
+    <div aria-hidden className={styles.lightboxPreloads}>
+      {adjacent.map((it, i) => (
+        <EventImage
+          key={it.assetId || i}
+          src={it.url}
+          alt=""
+          width={1}
+          height={1}
+          sizes="(max-width: 768px) 100vw, 80vw"
+          renditionWidths={it.renditionWidths}
+          loading="eager"
+        />
+      ))}
     </div>
   );
 }
