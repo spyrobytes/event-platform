@@ -6,6 +6,10 @@
  */
 
 .nav {
+  /* Single source for the rail's accent: the template primary injected
+     inline by SectionNav/SectionNavProgress, with an app-shell fallback.
+     Every color below derives from this one property. */
+  --_nav-accent: var(--nav-accent-color, rgb(var(--primary)));
   position: fixed;
   right: 1rem;
   top: 50%;
@@ -73,12 +77,18 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(var(--muted-foreground) / 0.3),
+    color-mix(in srgb, var(--_nav-accent) 30%, rgb(var(--muted-foreground) / 0.3)),
     transparent
   );
 }
 
-/* Navigation button (dot) */
+/* Navigation button (dot)
+
+   Inactive dots tint the template accent (--_nav-accent), mixed toward
+   the app-shell muted grey rather than transparent: the nav renders
+   outside the template token scope, so the pill behind the dots is
+   always the app shell's dark surface — the grey component guarantees
+   a lightness floor when the template accent is itself dark. */
 .button {
   position: relative;
   display: flex;
@@ -89,13 +99,21 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background-color: rgb(var(--muted-foreground) / 0.4);
+  background-color: color-mix(
+    in srgb,
+    var(--_nav-accent) 40%,
+    rgb(var(--muted-foreground) / 0.4)
+  );
   cursor: pointer;
   transition: all 200ms ease-out;
 }
 
 .button:hover {
-  background-color: rgb(var(--muted-foreground) / 0.7);
+  background-color: color-mix(
+    in srgb,
+    var(--_nav-accent) 70%,
+    rgb(var(--muted-foreground) / 0.7)
+  );
   transform: scale(1.3);
 }
 
@@ -106,12 +124,12 @@
 
 /* Active state */
 .active {
-  background-color: var(--nav-accent-color, rgb(var(--primary)));
+  background-color: var(--_nav-accent);
   transform: scale(1.4);
 }
 
 .active:hover {
-  background-color: var(--nav-accent-color, rgb(var(--primary)));
+  background-color: var(--_nav-accent);
 }
 
 /* Label tooltip */
@@ -196,13 +214,17 @@
   transform: translateX(-50%);
   width: 2px;
   height: 0.75rem;
-  background-color: rgb(var(--muted-foreground) / 0.2);
+  background-color: color-mix(
+    in srgb,
+    var(--_nav-accent) 20%,
+    rgb(var(--muted-foreground) / 0.2)
+  );
   border-radius: 1px;
   overflow: hidden;
 }
 
 .progressFill {
   width: 100%;
-  background-color: var(--nav-accent-color, rgb(var(--primary)));
+  background-color: var(--_nav-accent);
   transition: height 100ms ease-out;
 }
