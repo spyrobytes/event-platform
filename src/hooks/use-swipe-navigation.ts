@@ -16,18 +16,21 @@ import type {
  * See docs/pending-features/gallery-swipe-navigation-implementation-plan.md.
  *
  * Consumers attach `contentRef` to the element that should translate and spread
- * `handlers` on that same element. For the backdrop, spread
- * `getBackdropProps(onClose)` — it packages the drag/close disambiguation
- * (re-arm on press, swallow the click that ends a drag, close only on a true
- * backdrop tap) so consumers can't implement half of the contract.
- * Two refs are also returned for reading without re-renders:
- *   - `isBusyRef` — true while a gesture OR its settle animation is in flight;
- *     gate live keyboard/button nav on `!isBusyRef.current` so an external nav
- *     can't fire mid-transition (dropping a fast swipe, or swapping src mid-glide).
- *   - `didDragRef` — the raw drag guard behind getBackdropProps, exposed for
- *     surfaces whose dismiss isn't a simple backdrop click. If you consume it
- *     directly you own the re-arm: reset to false on a fresh pointerdown
- *     ANYWHERE, else a stale true swallows the next genuine close tap.
+ * `handlers` on that same element. The full lightbox-nav contract ships from
+ * the hook so consumers can't implement half of it:
+ *   - `backdropProps` — spread on the backdrop element. Packages the
+ *     drag/close disambiguation: re-arm on press, swallow the click that ends
+ *     a drag, close (via the `onClose` option) only on a true backdrop tap.
+ *   - `prev` / `next` — busy-gated wrappers around onPrev/onNext for arrow
+ *     buttons; they no-op while a gesture or its settle glide is in flight so
+ *     a click can't swap src mid-animation.
+ *   - Keyboard: when the `onClose` option is provided the hook owns the
+ *     document keydown handler for the surface's lifetime — Escape closes
+ *     (never gated), ArrowLeft/ArrowRight navigate (busy-gated). Mount the
+ *     hook inside the lightbox component so the listener's lifetime matches.
+ *   - `isBusyRef` — the raw busy signal, for gating nav paths the hook can't
+ *     see (e.g. a filmstrip thumbnail's goTo). True while a gesture OR its
+ *     settle animation is in flight.
  *
  * Navigation is wrap-around by design: every gallery surface in this codebase
  * wraps (modulo prev/next), so the hook has no bounded-edge mode. If a bounded
@@ -158,6 +161,11 @@ export function resolveSwipe({
 export type UseSwipeNavigationOptions = {
   onPrev: () => void;
   onNext: () => void;
+  /** When provided, the hook owns lightbox keyboard nav (Escape closes,
+   *  arrows navigate busy-gated) and `backdropProps` closes on a true
+   *  backdrop tap. Mount the hook inside the lightbox so the document
+   *  listener's lifetime matches the surface. */
+  onClose?: () => void;
   /** Gate the whole gesture (e.g. false for a single-item gallery). */
   enabled: boolean;
   /** When true, skip the live translate and commit instantly on threshold. */
@@ -184,15 +192,15 @@ export type BackdropProps = {
 export type UseSwipeNavigationResult<T extends HTMLElement = HTMLDivElement> = {
   contentRef: RefObject<T | null>;
   handlers: SwipeHandlers<T>;
-  /** True while a gesture OR its settle animation is in flight. Gate external
-   *  (keyboard / button) nav on this so it can't fire mid-transition. */
+  /** True while a gesture OR its settle animation is in flight. Gate any nav
+   *  path the hook can't see (e.g. filmstrip goTo) on this. */
   isBusyRef: RefObject<boolean>;
-  /** True after a >6px move. Raw guard behind getBackdropProps — consuming it
-   *  directly means you own the re-arm contract (see the header comment). */
-  didDragRef: RefObject<boolean>;
-  /** Spread on the backdrop element: closes on a genuine backdrop tap, never
-   *  on the click that ends a drag, and re-arms the guard on every press. */
-  getBackdropProps: (onClose: () => void) => BackdropProps;
+  /** Spread on the backdrop element: closes (via the onClose option) on a
+   *  genuine backdrop tap, never on the click that ends a drag. */
+  backdropProps: BackdropProps;
+  /** Busy-gated onPrev/onNext for arrow buttons. */
+  prev: () => void;
+  next: () => void;
 };
 
 type SwipePhase = "idle" | "dragging" | "snapping-back";
@@ -507,8 +515,8 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   // that ends a drag (ref-based — pointerup → click → setState batching makes
   // state too late here), and close only on a true backdrop tap (not a click
   // that bubbled from a child).
-  const getBackdropProps = useCallback(
-    (onClose: () => void): BackdropProps => ({
+  const backdropProps = useMemo<BackdropProps>(
+    () => ({
       onPointerDown: () => {
         didDragRef.current = false;
       },
@@ -517,11 +525,41 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
           didDragRef.current = false;
           return;
         }
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) optsRef.current.onClose?.();
       },
     }),
     [],
   );
 
-  return { contentRef, handlers, isBusyRef, didDragRef, getBackdropProps };
+  // Busy-gated arrow nav: a click mid-gesture or mid-glide would swap src
+  // mid-animation, the same race the keyboard gate below prevents.
+  const prev = useCallback(() => {
+    if (!isBusyRef.current) optsRef.current.onPrev();
+  }, []);
+  const next = useCallback(() => {
+    if (!isBusyRef.current) optsRef.current.onNext();
+  }, []);
+
+  // Lightbox keyboard nav, owned by the hook so no consumer can copy half of
+  // it (Escape must close ungated; arrows must be busy-gated). Active only
+  // when an onClose is provided; lifetime = the hook's mount, which is why
+  // the hook belongs inside the lightbox component.
+  const hasKeyboard = Boolean(options.onClose);
+  useEffect(() => {
+    if (!hasKeyboard) return;
+    const handleKey = (e: KeyboardEvent) => {
+      const opts = optsRef.current;
+      if (e.key === "Escape") {
+        opts.onClose?.();
+        return;
+      }
+      if (isBusyRef.current) return;
+      if (e.key === "ArrowRight") opts.onNext();
+      else if (e.key === "ArrowLeft") opts.onPrev();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [hasKeyboard]);
+
+  return { contentRef, handlers, isBusyRef, backdropProps, prev, next };
 }

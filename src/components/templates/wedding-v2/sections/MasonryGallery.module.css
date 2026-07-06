@@ -188,17 +188,6 @@
   object-fit: contain;
 }
 
-/* Off-screen decode warmers for the lightbox's ±1 neighbours. */
-.lightboxPreloads {
-  position: fixed;
-  top: -9999px;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
 .lightboxCaption {
   position: absolute;
   bottom: 0;

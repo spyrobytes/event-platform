@@ -61,6 +61,9 @@ export {
   useSwipeNavigation,
   lockAxis,
   resolveSwipe,
+  windowVelocity,
+  type VelocitySample,
+  type BackdropProps,
   type UseSwipeNavigationOptions,
   type UseSwipeNavigationResult,
 } from "./use-swipe-navigation";
