@@ -52,7 +52,7 @@ export function RSVPSection({ data, eventSlug, primaryColor }: RSVPSectionProps)
             <span className="text-2xl">✨</span>
           </div>
 
-          <RsvpCta eventSlug={eventSlug} label="RSVP →" />
+          <RsvpCta eventSlug={eventSlug} label="RSVP →" accentHex={primaryColor} />
         </div>
       </div>
     </SectionWrapper>

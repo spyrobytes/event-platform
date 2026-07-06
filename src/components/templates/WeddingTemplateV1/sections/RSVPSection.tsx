@@ -35,7 +35,7 @@ export function RSVPSection({ data, eventSlug, primaryColor }: RSVPSectionProps)
           className="mx-auto max-w-lg rounded-2xl border bg-card/50 p-8 shadow-sm backdrop-blur-sm"
           style={{ borderColor: `${primaryColor}20` }}
         >
-          <RsvpCta eventSlug={eventSlug} />
+          <RsvpCta eventSlug={eventSlug} accentHex={primaryColor} />
         </div>
       </div>
     </SectionWrapper>

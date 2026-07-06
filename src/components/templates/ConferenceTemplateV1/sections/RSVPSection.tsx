@@ -52,7 +52,7 @@ export function RSVPSection({ data, eventSlug, primaryColor }: RSVPSectionProps)
             Secure Registration
           </div>
 
-          <RsvpCta eventSlug={eventSlug} label="Register" />
+          <RsvpCta eventSlug={eventSlug} label="Register" accentHex={primaryColor} />
         </div>
       </div>
     </SectionWrapper>

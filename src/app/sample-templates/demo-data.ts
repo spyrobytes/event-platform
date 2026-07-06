@@ -259,11 +259,11 @@ const cinematicConfig: EventPageConfigV1 = {
 
 // ---------------------------------------------------------------------------
 // № 02 — The Grand Luxe (wedding_grand_luxe)
-// Cutout couple over dark florals, gilded party portraits, editorial gallery.
+// Cutout couple over romantic florals, gilded party portraits, editorial
+// gallery. The dark florals below back the DARK section themes only.
 // ---------------------------------------------------------------------------
 
 const LUXE_FLORAL_HEROES = [
-  { id: "demo-lux-floral-dark", file: "hero/floral-dark.jpg", alt: "Dark floral arrangement on a charcoal backdrop" },
   { id: "demo-lux-floral-blue", file: "hero/floral-blue.jpg", alt: "Dark floral arrangement on a midnight-blue backdrop" },
   { id: "demo-lux-floral-green", file: "hero/floral-green.jpg", alt: "Dark floral arrangement on a deep-green backdrop" },
   { id: "demo-lux-floral-purple", file: "hero/floral-purple.jpg", alt: "Dark floral arrangement on a deep-purple backdrop" },
@@ -301,7 +301,7 @@ const luxeAssets: MediaAsset[] = [
   // hue-matched backdrops for the dark section themes.
   makeSampleAsset({
     id: "demo-lux-confetti-light",
-    publicUrl: `${DEMO_ASSET_BASE}/hero/confetti-light.jpg`,
+    publicUrl: `${DEMO_ASSET_BASE}/hero/confetti-light.webp`,
     alt: "Cream backdrop with florals, eucalyptus, and scattered heart confetti",
     tags: ["hero"],
     width: 1536,
@@ -357,7 +357,9 @@ const luxeConfig: EventPageConfigV1 = {
     monogram: "A&D",
     couplePhotoAssetId: "demo-lux-cutout",
     couplePhotoFrame: "cutout",
-    heroImageAssetId: "demo-lux-confetti-light",
+    // No heroImageAssetId: the hero backdrop comes exclusively from
+    // themeHeroAssetIds below ("" = default/Light) — the page override covers
+    // every reachable theme state, so a value here would be dead and drift.
   },
   sections: [
     {
