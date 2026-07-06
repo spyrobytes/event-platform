@@ -35,9 +35,9 @@ const tallPlates: Plate[] = [
   {
     number: "№ 02",
     name: "The Grand Luxe",
-    blurb: "Cutout couple portraits layered over dark florals, with gilded details.",
+    blurb: "Cutout couple portraits layered over romantic florals, with gilded details.",
     src: "/landing/templates/grand-luxe.jpg",
-    alt: "The Grand Luxe template — couple cutout layered over dark florals with serif names",
+    alt: "The Grand Luxe template — couple cutout layered over romantic florals with serif names",
     ratio: "860 / 1760",
     stagger: "drop",
     href: demoTemplatePath("grand-luxe"),

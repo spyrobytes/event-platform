@@ -92,6 +92,16 @@ const cinematicAssets: MediaAsset[] = [
     width: 1067,
     height: 1600,
   }),
+  // Transparent cutout (same couple, veil sweeping right) — showcases the
+  // hero's cutout couple-photo frame, like the Grand Luxe demo.
+  makeSampleAsset({
+    id: "demo-cin-cutout",
+    publicUrl: `${DEMO_ASSET_BASE}/couple/cin-cutout.webp`,
+    alt: "Bride and groom nose to nose with a flowing veil, cutout portrait",
+    tags: ["couple"],
+    width: 1083,
+    height: 1400,
+  }),
   ...CINEMATIC_GALLERY.map((g, i) =>
     makeSampleAsset({
       id: g.id,
@@ -132,6 +142,8 @@ const cinematicConfig: EventPageConfigV1 = {
     coupleNames: "Avery & Jordan",
     monogram: "A&J",
     heroImageAssetId: "demo-cin-hero",
+    couplePhotoAssetId: "demo-cin-cutout",
+    couplePhotoFrame: "cutout",
   },
   sections: [
     {
