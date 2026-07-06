@@ -122,3 +122,4 @@ test-results/
 
 # Supabase Studio SQL editor drafts (local-only)
 supabase/snippets/
+.playwright-mcp/

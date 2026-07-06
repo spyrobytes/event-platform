@@ -244,6 +244,15 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--sage-d, #5c6b55);
+  /* Frosted pill: the eyebrow sits above the title, where the bottom-rising
+     legibility scrim is still thin, so a busy hero photo can swallow this
+     small mid-luminance text (text-shadow halos measured insufficient over
+     dark image regions). Same glass treatment as the topbar/hero cards, and
+     --glass-bg is variant-aware, so dark palettes frost in their own color. */
+  padding: 9px 22px;
+  border-radius: 999px;
+  background: var(--glass-bg, rgba(248, 245, 240, 0.55));
+  backdrop-filter: blur(10px);
   margin-bottom: 20px;
   opacity: 0;
   transform: translateY(12px);

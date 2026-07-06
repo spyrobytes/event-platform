@@ -104,12 +104,13 @@ export function RSVPV2({ data, eventSlug }: RSVPV2Props) {
           />
 
           <div style={{ padding: "clamp(24px, 4vw, 40px)" }}>
-            {/* helpText reads --lux-ink-soft so it stays legible when the RSVP
-                section becomes a dark themed panel (falls back to the base
-                muted text when no theme is active). */}
+            {/* Ink override only: RsvpCta's template default is dark ink, but
+                this template's hero .btnPrimary is white-on-accent — keep the
+                two buttons consistent. A themed panel still wins via
+                --lux-accent-ink. Background/helpText use RsvpCta's defaults. */}
             <RsvpCta
               eventSlug={eventSlug}
-              helpTextClassName="text-[var(--lux-ink-soft,var(--text-2,#786f65))]"
+              buttonClassName="text-[var(--lux-accent-ink,#ffffff)] hover:opacity-90 transition-opacity"
             />
           </div>
         </div>

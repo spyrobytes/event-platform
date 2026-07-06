@@ -76,9 +76,10 @@ const CINEMATIC_GALLERY = [
 const CINEMATIC_PARTY: DemoPartyMember[] = [
   { id: "demo-cin-party-1", file: "party/cin-1.jpg", width: 427, name: "Olivia Bennett", role: "Maid of Honor", side: "bride", bio: "Best friends since freshman year." },
   { id: "demo-cin-party-2", file: "party/cin-2.jpg", width: 426, name: "Sophia Lane", role: "Bridesmaid", side: "bride" },
-  { id: "demo-cin-party-3", file: "party/cin-3.jpg", width: 427, name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
+  // cin-5 is the woman, cin-3 the bearded man — assign accordingly.
+  { id: "demo-cin-party-3", file: "party/cin-5.jpg", width: 427, name: "Maya Brooks", role: "Bridesmaid", side: "bride" },
   { id: "demo-cin-party-4", file: "party/cin-4.jpg", width: 427, name: "James Carter", role: "Best Man", side: "groom", bio: "Brother and partner in crime." },
-  { id: "demo-cin-party-5", file: "party/cin-5.jpg", width: 427, name: "Liam Walsh", role: "Groomsman", side: "groom" },
+  { id: "demo-cin-party-5", file: "party/cin-3.jpg", width: 427, name: "Liam Walsh", role: "Groomsman", side: "groom" },
   { id: "demo-cin-party-6", file: "party/cin-6.jpg", width: 427, name: "Noah Reed", role: "Groomsman", side: "groom" },
 ];
 
@@ -90,6 +91,16 @@ const cinematicAssets: MediaAsset[] = [
     tags: ["hero"],
     width: 1067,
     height: 1600,
+  }),
+  // Transparent cutout (same couple, veil sweeping right) — showcases the
+  // hero's cutout couple-photo frame, like the Grand Luxe demo.
+  makeSampleAsset({
+    id: "demo-cin-cutout",
+    publicUrl: `${DEMO_ASSET_BASE}/couple/cin-cutout.webp`,
+    alt: "Bride and groom nose to nose with a flowing veil, cutout portrait",
+    tags: ["couple"],
+    width: 1083,
+    height: 1400,
   }),
   ...CINEMATIC_GALLERY.map((g, i) =>
     makeSampleAsset({
@@ -131,6 +142,8 @@ const cinematicConfig: EventPageConfigV1 = {
     coupleNames: "Avery & Jordan",
     monogram: "A&J",
     heroImageAssetId: "demo-cin-hero",
+    couplePhotoAssetId: "demo-cin-cutout",
+    couplePhotoFrame: "cutout",
   },
   sections: [
     {
@@ -246,11 +259,11 @@ const cinematicConfig: EventPageConfigV1 = {
 
 // ---------------------------------------------------------------------------
 // № 02 — The Grand Luxe (wedding_grand_luxe)
-// Cutout couple over dark florals, gilded party portraits, editorial gallery.
+// Cutout couple over romantic florals, gilded party portraits, editorial
+// gallery. The dark florals below back the DARK section themes only.
 // ---------------------------------------------------------------------------
 
 const LUXE_FLORAL_HEROES = [
-  { id: "demo-lux-floral-dark", file: "hero/floral-dark.jpg", alt: "Dark floral arrangement on a charcoal backdrop" },
   { id: "demo-lux-floral-blue", file: "hero/floral-blue.jpg", alt: "Dark floral arrangement on a midnight-blue backdrop" },
   { id: "demo-lux-floral-green", file: "hero/floral-green.jpg", alt: "Dark floral arrangement on a deep-green backdrop" },
   { id: "demo-lux-floral-purple", file: "hero/floral-purple.jpg", alt: "Dark floral arrangement on a deep-purple backdrop" },
@@ -281,6 +294,18 @@ const luxeAssets: MediaAsset[] = [
     tags: ["couple"],
     width: 1297,
     height: 1400,
+  }),
+  // Default (Light theme) hero — bright romantic backdrop. Grand Luxe's
+  // fullscreen-dramatic hero grades the image down (brightness 0.45), so it
+  // wants a light source image; the dark florals below stay as the
+  // hue-matched backdrops for the dark section themes.
+  makeSampleAsset({
+    id: "demo-lux-confetti-light",
+    publicUrl: `${DEMO_ASSET_BASE}/hero/confetti-light.webp`,
+    alt: "Cream backdrop with florals, eucalyptus, and scattered heart confetti",
+    tags: ["hero"],
+    width: 1536,
+    height: 1024,
   }),
   ...LUXE_FLORAL_HEROES.map((h) =>
     makeSampleAsset({
@@ -332,7 +357,9 @@ const luxeConfig: EventPageConfigV1 = {
     monogram: "A&D",
     couplePhotoAssetId: "demo-lux-cutout",
     couplePhotoFrame: "cutout",
-    heroImageAssetId: "demo-lux-floral-dark",
+    // No heroImageAssetId: the hero backdrop comes exclusively from
+    // themeHeroAssetIds below ("" = default/Light) — the page override covers
+    // every reachable theme state, so a value here would be dead and drift.
   },
   sections: [
     {
@@ -612,14 +639,16 @@ export const TEMPLATE_DEMOS: TemplateDemo[] = [
     templateId: "wedding_grand_luxe",
     name: "The Grand Luxe",
     tagline:
-      "Cutout couple portraits over dark florals with gilded details — explore the full template with live color themes.",
+      "Cutout couple portraits over romantic florals with gilded details — explore the full template with live color themes.",
     ogImage: "/landing/templates/grand-luxe.jpg",
     config: luxeConfig,
     assets: luxeAssets,
     themes: grandLuxeThemes(),
-    // Hue-matched floral backdrops per section theme; "" = default (Light).
+    // Hue-matched hero backdrops per section theme; "" = default (Light),
+    // which gets the bright romantic backdrop — the dark florals pair with
+    // the dark section themes.
     themeHeroAssetIds: {
-      "": "demo-lux-floral-dark",
+      "": "demo-lux-confetti-light",
       "midnight-slate": "demo-lux-floral-blue",
       amethyst: "demo-lux-floral-purple",
       "emerald-noir": "demo-lux-floral-green",
