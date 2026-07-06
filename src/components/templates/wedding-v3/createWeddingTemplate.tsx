@@ -555,7 +555,11 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
             </article>
 
             {/* Floating Section Navigation */}
-            <SectionNav accentColor={primaryColor} />
+            <SectionNav
+              accentColor={primaryColor}
+              surfaceColor={cssVars["--bg"]}
+              inkColor={cssVars["--text"]}
+            />
           </AnimationProvider>
         </SectionNavProvider>
       </TemporalProvider>

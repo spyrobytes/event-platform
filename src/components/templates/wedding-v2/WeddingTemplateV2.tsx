@@ -676,7 +676,11 @@ export function WeddingTemplateV2({
           </article>
 
           {/* Floating Section Navigation */}
-          <SectionNav accentColor={primaryColor} />
+          <SectionNav
+            accentColor={primaryColor}
+            surfaceColor={cssVars["--bg"]}
+            inkColor={cssVars["--text"]}
+          />
 
           {/* Global V2 styles loaded via WeddingTemplateV2.module.css */}
         </AnimationProvider>

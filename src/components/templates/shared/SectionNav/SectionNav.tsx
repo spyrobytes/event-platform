@@ -5,9 +5,28 @@ import { cn } from "@/lib/utils";
 import { useSectionNav } from "./SectionNavContext";
 import styles from "./SectionNav.module.css";
 
+/** Inline vars consumed by SectionNav.module.css; the nav renders outside
+ *  the template token scope, so template colors must be injected here. */
+function buildNavStyle(
+  accentColor?: string,
+  surfaceColor?: string,
+  inkColor?: string
+): React.CSSProperties | undefined {
+  if (!accentColor && !surfaceColor && !inkColor) return undefined;
+  return {
+    ...(accentColor && { "--nav-accent-color": accentColor }),
+    ...(surfaceColor && { "--nav-surface-color": surfaceColor }),
+    ...(inkColor && { "--nav-ink-color": inkColor }),
+  } as React.CSSProperties;
+}
+
 type SectionNavProps = {
   /** Custom accent color (hex or CSS variable) */
   accentColor?: string;
+  /** Pill/tooltip surface color (hex); defaults to the app-shell background */
+  surfaceColor?: string;
+  /** Text/border ink color (hex); defaults to the app-shell foreground ramp */
+  inkColor?: string;
   /** Additional CSS classes */
   className?: string;
   /** Whether to show labels on hover (default: true) */
@@ -36,6 +55,8 @@ type SectionNavProps = {
  */
 export function SectionNav({
   accentColor,
+  surfaceColor,
+  inkColor,
   className,
   showLabels = true,
   ariaLabel = "Page sections",
@@ -98,9 +119,7 @@ export function SectionNav({
     return null;
   }
 
-  const navStyle = accentColor
-    ? ({ "--nav-accent-color": accentColor } as React.CSSProperties)
-    : undefined;
+  const navStyle = buildNavStyle(accentColor, surfaceColor, inkColor);
 
   // Helper to check if a section starts a new chapter
   const isNewChapter = (index: number): boolean => {
@@ -170,12 +189,18 @@ export function SectionNav({
 type SectionNavProgressProps = {
   /** Custom accent color */
   accentColor?: string;
+  /** Track surface color (hex); defaults to the app-shell background */
+  surfaceColor?: string;
+  /** Ink color (hex); defaults to the app-shell foreground ramp */
+  inkColor?: string;
   /** Additional CSS classes */
   className?: string;
 };
 
 export function SectionNavProgress({
   accentColor,
+  surfaceColor,
+  inkColor,
   className,
 }: SectionNavProgressProps) {
   const { sections, activeSectionId, isNavVisible } = useSectionNav();
@@ -187,9 +212,7 @@ export function SectionNavProgress({
     return null;
   }
 
-  const navStyle = accentColor
-    ? ({ "--nav-accent-color": accentColor } as React.CSSProperties)
-    : undefined;
+  const navStyle = buildNavStyle(accentColor, surfaceColor, inkColor);
 
   return (
     <div
