@@ -363,7 +363,11 @@ export function WeddingTemplate({
           </article>
 
           {/* Floating Section Navigation */}
-          <SectionNav accentColor={primaryColor} />
+          <SectionNav
+            accentColor={primaryColor}
+            surfaceColor={styles.colors.background}
+            inkColor={styles.colors.text}
+          />
         </AnimationProvider>
       </SectionNavProvider>
     </TemporalProvider>
