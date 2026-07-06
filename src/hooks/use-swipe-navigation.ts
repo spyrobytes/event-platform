@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   HTMLAttributes,
+  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   RefObject,
 } from "react";
@@ -15,15 +16,28 @@ import type {
  * See docs/pending-features/gallery-swipe-navigation-implementation-plan.md.
  *
  * Consumers attach `contentRef` to the element that should translate and spread
- * `handlers` on that same element. Two refs are returned for the consumer to
- * read without triggering re-renders:
- *   - `didDragRef`  — true after a >6px move; read it in a backdrop close handler
- *     so a drag doesn't double as a dismiss. RE-ARM it: reset to false on a fresh
- *     pointerdown ANYWHERE (incl. the backdrop), else a stale true swallows the
- *     next genuine close tap.
- *   - `isBusyRef` — true while a gesture OR its settle animation is in flight;
- *     gate live keyboard/button nav on `!isBusyRef.current` so an external nav
- *     can't fire mid-transition (dropping a fast swipe, or swapping src mid-glide).
+ * `handlers` on that same element. The full lightbox-nav contract ships from
+ * the hook so consumers can't implement half of it:
+ *   - `backdropProps` — spread on the backdrop element. Packages the
+ *     drag/close disambiguation: re-arm on press, swallow the click that ends
+ *     a drag, close (via the `onClose` option) only on a true backdrop tap.
+ *   - `prev` / `next` — busy-gated wrappers around onPrev/onNext for arrow
+ *     buttons; they no-op while a gesture or its settle glide is in flight so
+ *     a click can't swap src mid-animation.
+ *   - Keyboard: when the `onClose` option is provided the hook owns the
+ *     document keydown handler for the surface's lifetime — Escape closes
+ *     (never gated), ArrowLeft/ArrowRight navigate (busy-gated). Mount the
+ *     hook inside the lightbox component so the listener's lifetime matches.
+ *   - `isBusyRef` — the raw busy signal, for gating nav paths the hook can't
+ *     see (e.g. a filmstrip thumbnail's goTo). True while a gesture OR its
+ *     settle animation is in flight.
+ *
+ * Navigation is wrap-around by design: every gallery surface in this codebase
+ * wraps (modulo prev/next), so the hook has no bounded-edge mode. If a bounded
+ * consumer ever lands (e.g. a filmstrip with real ends), edge behavior must be
+ * built WITH it — a blocked edge needs rubber-band resistance during the drag,
+ * not a full-tracking drag that silently snaps back (reads as a dropped
+ * gesture).
  *
  * Commit navigates and then springs the drag offset back to center: the
  * consumer's single persistent image swaps src in place (holding the previous
@@ -43,6 +57,7 @@ import type {
 const AXIS_LOCK_PX = 8; // movement before we decide horizontal vs vertical
 const DID_DRAG_PX = 6; // movement before a press counts as a drag (not a tap)
 const STALE_VELOCITY_MS = 100; // a pause longer than this before release = no flick
+const VELOCITY_WINDOW_MS = 80; // trailing window the release velocity averages over
 const OPACITY_FALLOFF = 0.35; // how much the card fades at a full-width drag
 const SNAP_MS = 220; // spring-back duration
 const TRANSITION_FALLBACK_BUFFER_MS = 80; // safety margin if transitionend never fires
@@ -64,6 +79,40 @@ export function lockAxis(
 ): "horizontal" | "vertical" | "none" {
   if (Math.hypot(dx, dy) < lockPx) return "none";
   return Math.abs(dx) >= Math.abs(dy) ? "horizontal" : "vertical";
+}
+
+export type VelocitySample = {
+  /** Pointer x at this move (px). */
+  x: number;
+  /** Event timeStamp at this move (ms). */
+  t: number;
+};
+
+/**
+ * Velocity over a trailing window of move samples (px/ms). A single
+ * last-segment velocity is noisy — pointer-event coalescing on high-refresh
+ * screens makes one segment's dt jitter wildly, and one erratic sample can
+ * flip a flick's sign. Averaging displacement over the trailing `windowMs`
+ * reads the finger's actual throw. Falls back to the last single segment when
+ * the window holds only the newest pair; returns 0 when there's nothing to
+ * measure.
+ */
+export function windowVelocity(
+  samples: readonly VelocitySample[],
+  windowMs = VELOCITY_WINDOW_MS,
+): number {
+  if (samples.length < 2) return 0;
+  const newest = samples[samples.length - 1];
+  const cutoff = newest.t - windowMs;
+  // Oldest sample still inside the window (samples are time-ordered).
+  let first = samples[samples.length - 2];
+  for (let i = samples.length - 2; i >= 0; i--) {
+    if (samples[i].t < cutoff) break;
+    first = samples[i];
+  }
+  const dt = newest.t - first.t;
+  if (dt <= 0) return 0;
+  return (newest.x - first.x) / dt;
 }
 
 export type ResolveSwipeInput = {
@@ -112,15 +161,15 @@ export function resolveSwipe({
 export type UseSwipeNavigationOptions = {
   onPrev: () => void;
   onNext: () => void;
+  /** When provided, the hook owns lightbox keyboard nav (Escape closes,
+   *  arrows navigate busy-gated) and `backdropProps` closes on a true
+   *  backdrop tap. Mount the hook inside the lightbox so the document
+   *  listener's lifetime matches the surface. */
+  onClose?: () => void;
   /** Gate the whole gesture (e.g. false for a single-item gallery). */
   enabled: boolean;
   /** When true, skip the live translate and commit instantly on threshold. */
   reducedMotion: boolean;
-  /** Wrapping galleries have no edges. Defaults to true. */
-  wrap?: boolean;
-  /** For future bounded galleries (ignored while `wrap`). */
-  canPrev?: boolean;
-  canNext?: boolean;
   minSwipePx?: number;
   swipeFraction?: number;
   velocityPxPerMs?: number;
@@ -135,14 +184,23 @@ export type SwipeHandlers<T extends HTMLElement = HTMLDivElement> = Pick<
   | "onLostPointerCapture"
 >;
 
+export type BackdropProps = {
+  onPointerDown: () => void;
+  onClick: (e: ReactMouseEvent<HTMLElement>) => void;
+};
+
 export type UseSwipeNavigationResult<T extends HTMLElement = HTMLDivElement> = {
   contentRef: RefObject<T | null>;
   handlers: SwipeHandlers<T>;
-  /** True while a gesture OR its settle animation is in flight. Gate external
-   *  (keyboard / button) nav on this so it can't fire mid-transition. */
+  /** True while a gesture OR its settle animation is in flight. Gate any nav
+   *  path the hook can't see (e.g. filmstrip goTo) on this. */
   isBusyRef: RefObject<boolean>;
-  /** True after a >6px move; read in a backdrop close handler. Re-arm on press. */
-  didDragRef: RefObject<boolean>;
+  /** Spread on the backdrop element: closes (via the onClose option) on a
+   *  genuine backdrop tap, never on the click that ends a drag. */
+  backdropProps: BackdropProps;
+  /** Busy-gated onPrev/onNext for arrow buttons. */
+  prev: () => void;
+  next: () => void;
 };
 
 type SwipePhase = "idle" | "dragging" | "snapping-back";
@@ -167,9 +225,9 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   const axisRef = useRef<"none" | "horizontal" | "vertical">("none");
   const widthRef = useRef(1);
   const dxRef = useRef(0);
-  const lastXRef = useRef(0);
-  const lastTRef = useRef(0);
-  const velocityRef = useRef(0);
+  // Trailing move samples for the release velocity; pruned to the window as
+  // they're recorded, so it stays a handful of entries.
+  const samplesRef = useRef<VelocitySample[]>([]);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBusyRef = useRef(false);
   const didDragRef = useRef(false);
@@ -288,10 +346,8 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     pointerIdRef.current = e.pointerId;
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
-    lastXRef.current = e.clientX;
-    lastTRef.current = e.timeStamp;
     dxRef.current = 0;
-    velocityRef.current = 0;
+    samplesRef.current = [{ x: e.clientX, t: e.timeStamp }];
     axisRef.current = "none";
     didDragRef.current = false;
     setPhase("dragging");
@@ -344,11 +400,12 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       // is the primary scroll contract; this just suppresses text selection etc).
       e.preventDefault();
 
-      // Last-segment velocity (more faithful to intent than a whole-gesture avg).
-      const dt = e.timeStamp - lastTRef.current;
-      if (dt > 0) velocityRef.current = (e.clientX - lastXRef.current) / dt;
-      lastXRef.current = e.clientX;
-      lastTRef.current = e.timeStamp;
+      // Record a velocity sample and prune to the trailing window (+1 sample of
+      // slack so windowVelocity always has a pair to fall back on).
+      const samples = samplesRef.current;
+      samples.push({ x: e.clientX, t: e.timeStamp });
+      const cutoff = e.timeStamp - VELOCITY_WINDOW_MS;
+      while (samples.length > 2 && samples[0].t < cutoff) samples.shift();
 
       if (!optsRef.current.reducedMotion) applyTransform(dx);
     },
@@ -363,8 +420,10 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       const dx = dxRef.current;
       const opts = optsRef.current;
       // Stale-flick guard: a long pause before release is not a flick.
-      const stale = e.timeStamp - lastTRef.current > STALE_VELOCITY_MS;
-      const velocity = stale ? 0 : velocityRef.current;
+      const samples = samplesRef.current;
+      const newestT = samples.length ? samples[samples.length - 1].t : 0;
+      const stale = e.timeStamp - newestT > STALE_VELOCITY_MS;
+      const velocity = stale ? 0 : windowVelocity(samples);
 
       // End the gesture (nulls pointerId) BEFORE releasing capture, so a
       // synchronously-dispatched lostpointercapture can't re-handle it.
@@ -385,24 +444,15 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
         velocityPxPerMs: opts.velocityPxPerMs,
       });
 
-      // Honour bounds for non-wrapping galleries (wrap defaults to true).
-      const wrap = opts.wrap ?? true;
-      const blocked =
-        !wrap &&
-        ((result === "prev" && opts.canPrev === false) ||
-          (result === "next" && opts.canNext === false));
-
-      // Commit (past threshold and not blocked): navigate — the lightbox's
-      // single persistent <EventImage> swaps src in place and holds the previous
-      // frame until the new one decodes (the smooth path the arrows use). A
-      // no-op / blocked release skips the nav. Either way snapBack springs the
-      // photo home; it holds isBusyRef set through the glide so an arrow or
-      // button press can't swap src mid-animation. No flushSync, no slide panes —
-      // both cost smoothness on real hardware.
-      if (result !== "none" && !blocked) {
-        if (result === "prev") opts.onPrev();
-        else opts.onNext();
-      }
+      // Commit (past threshold): navigate — the lightbox's single persistent
+      // <EventImage> swaps src in place and holds the previous frame until the
+      // new one decodes (the smooth path the arrows use). An under-threshold
+      // release skips the nav. Either way snapBack springs the photo home; it
+      // holds isBusyRef set through the glide so an arrow or button press
+      // can't swap src mid-animation. No flushSync, no slide panes — both cost
+      // smoothness on real hardware.
+      if (result === "prev") opts.onPrev();
+      else if (result === "next") opts.onNext();
       snapBack();
     },
     [endGesture, safeReleaseCapture, snapBack, setPhase],
@@ -460,5 +510,56 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     [onPointerDown, onPointerMove, settle, cancelGesture],
   );
 
-  return { contentRef, handlers, isBusyRef, didDragRef };
+  // The full backdrop contract in one spread: re-arm the drag guard on every
+  // fresh press (incl. presses that never touch the stage), swallow the click
+  // that ends a drag (ref-based — pointerup → click → setState batching makes
+  // state too late here), and close only on a true backdrop tap (not a click
+  // that bubbled from a child).
+  const backdropProps = useMemo<BackdropProps>(
+    () => ({
+      onPointerDown: () => {
+        didDragRef.current = false;
+      },
+      onClick: (e: ReactMouseEvent<HTMLElement>) => {
+        if (didDragRef.current) {
+          didDragRef.current = false;
+          return;
+        }
+        if (e.target === e.currentTarget) optsRef.current.onClose?.();
+      },
+    }),
+    [],
+  );
+
+  // Busy-gated arrow nav: a click mid-gesture or mid-glide would swap src
+  // mid-animation, the same race the keyboard gate below prevents.
+  const prev = useCallback(() => {
+    if (!isBusyRef.current) optsRef.current.onPrev();
+  }, []);
+  const next = useCallback(() => {
+    if (!isBusyRef.current) optsRef.current.onNext();
+  }, []);
+
+  // Lightbox keyboard nav, owned by the hook so no consumer can copy half of
+  // it (Escape must close ungated; arrows must be busy-gated). Active only
+  // when an onClose is provided; lifetime = the hook's mount, which is why
+  // the hook belongs inside the lightbox component.
+  const hasKeyboard = Boolean(options.onClose);
+  useEffect(() => {
+    if (!hasKeyboard) return;
+    const handleKey = (e: KeyboardEvent) => {
+      const opts = optsRef.current;
+      if (e.key === "Escape") {
+        opts.onClose?.();
+        return;
+      }
+      if (isBusyRef.current) return;
+      if (e.key === "ArrowRight") opts.onNext();
+      else if (e.key === "ArrowLeft") opts.onPrev();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [hasKeyboard]);
+
+  return { contentRef, handlers, isBusyRef, backdropProps, prev, next };
 }

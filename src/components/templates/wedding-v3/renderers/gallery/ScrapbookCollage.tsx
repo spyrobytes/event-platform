@@ -18,6 +18,7 @@ import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } fro
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { AdjacentPreloads } from "@/components/media/AdjacentPreloads";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
 
@@ -269,34 +270,19 @@ function ScrapbookLightbox({
     return () => dialog.removeEventListener("keydown", handleFocusTrap);
   }, []);
 
-  // Swipe / drag navigation (mouse + touch + pen). The hook owns the imperative
-  // translate AND cursor on the stage; arrows + keyboard remain the AT path.
+  // Swipe / drag navigation (mouse + touch + pen). The hook owns the
+  // imperative translate + cursor on the stage, the busy-gated keyboard nav
+  // (via onClose), the backdrop drag/close contract, and busy-gated prev/next
+  // for the arrow buttons.
   const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, isBusyRef, didDragRef } =
+  const { contentRef, handlers, backdropProps, prev, next } =
     useSwipeNavigation<HTMLDivElement>({
       onPrev,
       onNext,
+      onClose,
       enabled: items.length > 1,
       reducedMotion,
-      wrap: true,
     });
-
-  // Esc closes; arrows navigate — but not while a swipe gesture or its settle
-  // glide is in flight (an external nav would swap src mid-animation). Lives here
-  // (not the section) so it can read the hook's busy state via isBusyRef.
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (isBusyRef.current) return;
-      if (e.key === "ArrowRight") onNext();
-      else if (e.key === "ArrowLeft") onPrev();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose, onNext, onPrev, isBusyRef]);
 
   const item = items[index];
   const captionText = item.caption || item.title;
@@ -318,21 +304,7 @@ function ScrapbookLightbox({
         alignItems: "center",
         justifyContent: "center",
       }}
-      onPointerDown={() => {
-        // Re-arm the drag guard on every fresh press (incl. a backdrop tap that
-        // fires no stage pointerdown), else a stale `true` from a prior drag
-        // swallows the next genuine close tap.
-        didDragRef.current = false;
-      }}
-      onClick={(e) => {
-        // A drag that ends over the backdrop must not also close the lightbox.
-        // Ref-based (not state) to dodge pointerup → click → setState batching.
-        if (didDragRef.current) {
-          didDragRef.current = false;
-          return;
-        }
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...backdropProps}
     >
       {/* Close */}
       <button
@@ -363,11 +335,7 @@ function ScrapbookLightbox({
 
       {/* Prev */}
       <button
-        onClick={() => {
-          // Ignore clicks during a gesture / settle glide so we don't swap src
-          // mid-animation (matches the keyboard gate above).
-          if (!isBusyRef.current) onPrev();
-        }}
+        onClick={prev}
         aria-label="Previous image"
         style={{
           position: "fixed",
@@ -394,9 +362,7 @@ function ScrapbookLightbox({
 
       {/* Next */}
       <button
-        onClick={() => {
-          if (!isBusyRef.current) onNext();
-        }}
+        onClick={next}
         aria-label="Next image"
         style={{
           position: "fixed",
@@ -480,7 +446,12 @@ function ScrapbookLightbox({
       </div>
 
       {/* Prime ±1 so a swipe/arrow commit shows the neighbour instantly */}
-      <AdjacentPreloads items={items} index={index} />
+      {/* sizes must match the stage's EventImage above. */}
+      <AdjacentPreloads
+        items={items}
+        index={index}
+        sizes="(max-width: 768px) 100vw, 1000px"
+      />
 
       {/* Counter */}
       <div
@@ -500,63 +471,3 @@ function ScrapbookLightbox({
   );
 }
 
-// ---------------------------------------------------------------------------
-// AdjacentPreloads — prime the ±1 neighbours of the open lightbox
-// ---------------------------------------------------------------------------
-
-/**
- * Off-screen EventImage stubs for the items adjacent to `index`, so a swipe (or
- * arrow) commit shows the neighbour with no decode gap. `loading="eager"` forces
- * the fetch despite the 1×1 off-screen box, and the matching `sizes` primes the
- * same rendition the visible stage will request. Scoped to ±1 only — never the
- * whole gallery — to keep network pressure low on image-heavy pages.
- */
-function AdjacentPreloads({
-  items,
-  index,
-}: {
-  items: ResolvedGalleryItem[];
-  index: number;
-}) {
-  if (items.length < 2) return null;
-  const prev = items[(index - 1 + items.length) % items.length];
-  const next = items[(index + 1) % items.length];
-  const current = items[index];
-  const seen = new Set<string>();
-  const adjacent: ResolvedGalleryItem[] = [];
-  for (const candidate of [prev, next]) {
-    const key = candidate.assetId || candidate.url;
-    if (candidate !== current && !seen.has(key)) {
-      seen.add(key);
-      adjacent.push(candidate);
-    }
-  }
-
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: "fixed",
-        top: -9999,
-        left: -9999,
-        width: 1,
-        height: 1,
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}
-    >
-      {adjacent.map((it, i) => (
-        <EventImage
-          key={it.assetId || i}
-          src={it.url}
-          alt=""
-          width={1}
-          height={1}
-          sizes="(max-width: 768px) 100vw, 1000px"
-          renditionWidths={it.renditionWidths}
-          loading="eager"
-        />
-      ))}
-    </div>
-  );
-}

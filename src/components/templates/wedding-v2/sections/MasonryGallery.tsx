@@ -5,6 +5,9 @@ import { createPortal } from "react-dom";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { AdjacentPreloads } from "@/components/media/AdjacentPreloads";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
@@ -106,22 +109,15 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
     );
   }, [itemCount]);
 
-  // Lightbox keyboard handler and body scroll lock.
+  // Body scroll lock while the lightbox is open. Keyboard nav lives inside
+  // Lightbox itself, where it can read the swipe hook's busy state.
   useEffect(() => {
     if (!isLightboxOpen) return;
     document.body.style.overflow = "hidden";
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowRight") showNext();
-      if (e.key === "ArrowLeft") showPrev();
-    };
-    document.addEventListener("keydown", handleKey);
     return () => {
       document.body.style.overflow = "";
-      document.removeEventListener("keydown", handleKey);
     };
-  }, [isLightboxOpen, closeLightbox, showNext, showPrev]);
+  }, [isLightboxOpen]);
 
   if (resolvedItems.length === 0) {
     return (
@@ -367,6 +363,20 @@ function Lightbox({
     return () => dialog.removeEventListener("keydown", handleFocusTrap);
   }, []);
 
+  // Swipe / drag navigation (mouse + touch + pen). The hook owns the
+  // imperative translate + cursor on the stage, the busy-gated keyboard nav
+  // (via onClose), the backdrop drag/close contract, and busy-gated prev/next
+  // for the arrow buttons.
+  const reducedMotion = useReducedMotion();
+  const { contentRef, handlers, backdropProps, prev, next } =
+    useSwipeNavigation<HTMLDivElement>({
+      onPrev,
+      onNext,
+      onClose,
+      enabled: items.length > 1,
+      reducedMotion,
+    });
+
   const item = items[index];
   const captionText = item.caption || item.title;
 
@@ -378,9 +388,7 @@ function Lightbox({
       aria-label="Image preview"
       tabIndex={-1}
       className={cn(styles.lightbox, styles.lightboxOpen)}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      {...backdropProps}
     >
       <button className={styles.lightboxClose} onClick={onClose} aria-label="Close">
         <svg
@@ -399,7 +407,7 @@ function Lightbox({
 
       <button
         className={cn(styles.lightboxNav, styles.lightboxPrev)}
-        onClick={onPrev}
+        onClick={prev}
         aria-label="Previous image"
       >
         <svg
@@ -417,7 +425,7 @@ function Lightbox({
 
       <button
         className={cn(styles.lightboxNav, styles.lightboxNext)}
-        onClick={onNext}
+        onClick={next}
         aria-label="Next image"
       >
         <svg
@@ -433,7 +441,10 @@ function Lightbox({
         </svg>
       </button>
 
-      <div className={styles.lightboxStage}>
+      {/* Stage — the single element the swipe gesture translates. The single
+          persistent EventImage swaps src in place, holding the previous frame
+          until the new one decodes (the smooth path the arrows use). */}
+      <div ref={contentRef} {...handlers} className={styles.lightboxStage}>
         <EventImage
           src={item.url}
           alt={item.alt}
@@ -442,6 +453,7 @@ function Lightbox({
           sizes="(max-width: 768px) 100vw, 80vw"
           blurDataURL={item.blurDataUrl}
           renditionWidths={item.renditionWidths}
+          draggable={false}
         />
         {captionText && (
           <div className={styles.lightboxCaption}>{captionText}</div>
@@ -451,6 +463,13 @@ function Lightbox({
       <div className={styles.lightboxCounter}>
         {index + 1} / {items.length}
       </div>
+
+      {/* sizes must match the stage's EventImage above. */}
+      <AdjacentPreloads
+        items={items}
+        index={index}
+        sizes="(max-width: 768px) 100vw, 80vw"
+      />
     </div>
   );
 }
