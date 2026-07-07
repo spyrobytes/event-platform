@@ -16,11 +16,10 @@ import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { useLightboxTrack } from "@/hooks/use-lightbox-track";
+import { LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
-import { AdjacentPreloads } from "@/components/media/AdjacentPreloads";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
 
@@ -213,6 +212,20 @@ function LightboxPortal({ children }: { children: React.ReactNode }) {
 // Lightbox
 // ---------------------------------------------------------------------------
 
+/**
+ * Strip-of-cards filmstrip: each slide is a COMPLETE scrapbook card —
+ * chrome, photo, caption — sized to its own photo and centered in its
+ * slide, so mixed aspect ratios never letterbox; neighbor cards glide in
+ * as their own objects with the backdrop visible between them (the
+ * physical-photos-on-a-table metaphor). useLightboxTrack owns slot
+ * rotation, swipe/keyboard nav, and the reanchor choreography; the side
+ * cards double as the ±1 preload.
+ *
+ * Pointer plumbing: slides are pointer-events-none (cards opt back in), so
+ * a tap in the gap between cards falls through to the track, whose
+ * backdropProps close the lightbox — preserving tap-outside-to-close now
+ * that the track covers the backdrop area.
+ */
 function ScrapbookLightbox({
   items,
   index,
@@ -231,22 +244,15 @@ function ScrapbookLightbox({
   // Focus handoff + Tab trap (shared across all lightboxes).
   useFocusTrap(dialogRef);
 
-  // Swipe / drag navigation (mouse + touch + pen). The hook owns the
-  // imperative translate + cursor on the stage, the busy-gated keyboard nav
-  // (via onClose), the backdrop drag/close contract, and busy-gated prev/next
-  // for the arrow buttons.
-  const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, backdropProps, prev, next } =
-    useSwipeNavigation<HTMLDivElement>({
+  const { trackRef, trackProps, backdropProps, prev, next, slides } =
+    useLightboxTrack({
+      items,
+      index,
+      getItemKey: (item) => item.assetId,
       onPrev,
       onNext,
       onClose,
-      enabled: items.length > 1,
-      reducedMotion,
     });
-
-  const item = items[index];
-  const captionText = item.caption || item.title;
 
   return (
     <div
@@ -261,12 +267,85 @@ function ScrapbookLightbox({
         zIndex: 300,
         background: "rgba(30, 27, 23, 0.88)",
         backdropFilter: "blur(12px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
       }}
       {...backdropProps}
     >
+      {/* Viewport clips the card strip; the TRACK carries the gesture (the
+          hook applies touch-action / will-change / user-select / cursor to
+          it) AND the backdrop tap-to-close for the gaps between cards. */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+        <div
+          ref={trackRef}
+          {...trackProps}
+          style={{ position: "absolute", inset: 0 }}
+        >
+          {slides.map(({ key, offset, item }) => {
+            const captionText = item.caption || item.title;
+            return (
+              <LightboxTrackSlide
+                key={key}
+                offset={offset}
+                blurDataUrl={item.blurDataUrl}
+                className="pointer-events-none flex items-center justify-center"
+              >
+                {({ imageProps, hideStale, staleOverlay }) => (
+                  <div
+                    style={{
+                      maxWidth: "min(1000px, calc(100% - 48px))",
+                      maxHeight: "calc(100svh - 80px)",
+                      borderRadius: 24,
+                      overflow: "hidden",
+                      background: "#1e1b17",
+                      boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      position: "relative",
+                      pointerEvents: "auto",
+                    }}
+                  >
+                    <EventImage
+                      src={item.url}
+                      alt={offset === 0 ? captionText || "" : ""}
+                      width={item.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
+                      height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
+                      sizes="(max-width: 768px) 100vw, 1000px"
+                      blurDataURL={item.blurDataUrl}
+                      renditionWidths={item.renditionWidths}
+                      {...imageProps}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "calc(100svh - 120px)",
+                        objectFit: "contain",
+                        ...(hideStale ? { visibility: "hidden" as const } : {}),
+                      }}
+                    />
+                    {captionText && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          padding: "32px 20px 16px",
+                          background: "linear-gradient(transparent, rgba(0,0,0,0.6))",
+                          color: "rgba(255,255,255,0.9)",
+                          fontSize: "0.85rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {captionText}
+                      </div>
+                    )}
+                    {staleOverlay}
+                  </div>
+                )}
+              </LightboxTrackSlide>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Close */}
       <button
         onClick={onClose}
@@ -348,67 +427,6 @@ function ScrapbookLightbox({
         </svg>
       </button>
 
-      {/* Stage — the single element the swipe gesture translates */}
-      <div
-        ref={contentRef}
-        {...handlers}
-        style={{
-          maxWidth: "min(1000px, calc(100% - 48px))",
-          maxHeight: "calc(100svh - 80px)",
-          borderRadius: 24,
-          overflow: "hidden",
-          background: "#1e1b17",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
-          border: "1px solid rgba(255,255,255,0.06)",
-          position: "relative",
-          // The gesture contract (touch-action / will-change / user-select /
-          // cursor) is applied to this element by useSwipeNavigation itself.
-        }}
-      >
-        <EventImage
-          src={item.url}
-          alt={captionText || ""}
-          width={item.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
-          height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
-          sizes="(max-width: 768px) 100vw, 1000px"
-          blurDataURL={item.blurDataUrl}
-          renditionWidths={item.renditionWidths}
-          draggable={false}
-          style={{
-            display: "block",
-            width: "100%",
-            height: "auto",
-            maxHeight: "calc(100svh - 120px)",
-            objectFit: "contain",
-          }}
-        />
-        {captionText && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "32px 20px 16px",
-              background: "linear-gradient(transparent, rgba(0,0,0,0.6))",
-              color: "rgba(255,255,255,0.9)",
-              fontSize: "0.85rem",
-              fontWeight: 500,
-            }}
-          >
-            {captionText}
-          </div>
-        )}
-      </div>
-
-      {/* Prime ±1 so a swipe/arrow commit shows the neighbour instantly */}
-      {/* sizes must match the stage's EventImage above. */}
-      <AdjacentPreloads
-        items={items}
-        index={index}
-        sizes="(max-width: 768px) 100vw, 1000px"
-      />
-
       {/* Counter */}
       <div
         style={{
@@ -426,4 +444,3 @@ function ScrapbookLightbox({
     </div>
   );
 }
-

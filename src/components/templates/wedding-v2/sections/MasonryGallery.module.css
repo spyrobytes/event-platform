@@ -164,7 +164,20 @@
   visibility: visible;
 }
 
+/* Viewport clips the card strip; the track carries the gesture and the
+   gap tap-to-close (slides are pointer-events-none, cards opt back in). */
+.lightboxViewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.lightboxTrack {
+  position: absolute;
+  inset: 0;
+}
+
 .lightboxStage {
+  pointer-events: auto; /* card opts back in under a pointer-events-none slide */
   max-width: min(1000px, calc(100% - 48px));
   max-height: calc(100svh - 80px);
   border-radius: var(--r-lg, 24px);
@@ -199,6 +212,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
+  z-index: 301; /* above the full-viewport track */
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -218,6 +232,7 @@
 .lightboxNav {
   position: fixed;
   top: 50%;
+  z-index: 301; /* above the full-viewport track */
   transform: translateY(-50%);
   width: 48px;
   height: 48px;
