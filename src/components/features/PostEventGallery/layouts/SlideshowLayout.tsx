@@ -82,6 +82,7 @@ export function SlideshowLayout({
   onOpenLightbox,
   onRequestMore,
   hasMore = false,
+  isLightboxOpen = false,
   autoplay,
   autoplayInterval,
   transition,
@@ -217,6 +218,12 @@ export function SlideshowLayout({
   // level, since this is the only stage). ArrowLeft/Right behave like
   // the manual arrows; Space toggles play/pause when autoplay is on.
   useEffect(() => {
+    // While the orchestrator's lightbox is open it owns keyboard nav.
+    // Both listeners sit on `document` (the lightbox is a portal, not a
+    // descendant), so without this gate every arrow press advanced the
+    // hidden slideshow too — desyncing it from the lightbox and pausing
+    // autoplay behind the overlay.
+    if (isLightboxOpen) return;
     const handleKey = (e: KeyboardEvent) => {
       // Ignore when the user is typing in a form (e.g. organizer editor).
       const target = e.target as HTMLElement | null;
@@ -234,7 +241,7 @@ export function SlideshowLayout({
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [autoplay, items.length, manualNext, manualPrev]);
+  }, [autoplay, items.length, manualNext, manualPrev, isLightboxOpen]);
 
   if (items.length === 0) return null;
 

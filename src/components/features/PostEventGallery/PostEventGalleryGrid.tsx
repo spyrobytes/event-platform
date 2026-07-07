@@ -188,6 +188,7 @@ export function PostEventGalleryGrid({
         // before any await), so layouts can call freely.
         onRequestMore={loadMore}
         hasMore={nextCursor !== null}
+        isLightboxOpen={lightboxIndex !== null}
       />
 
       {/* Sentinel — used by the IntersectionObserver. Always rendered so

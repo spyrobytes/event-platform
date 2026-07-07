@@ -28,8 +28,10 @@ type Props = {
 
 /**
  * Full-screen image viewer rendered via portal so it escapes the parent
- * stacking context. Keyboard nav (Esc / ← / →), focus trap, body-scroll
- * lock while open, and a flushSync close to mitigate the BFCache ghost
+ * stacking context. Swipe/drag + keyboard nav (Esc / ← / →) come from
+ * useSwipeNavigation (busy-gated, with Esc routed through the flushSync
+ * close below); this component owns the Tab focus trap, body-scroll lock
+ * while open, and the flushSync close that mitigates the BFCache ghost
  * issue documented in project_v2_mobile_nav_bfcache.
  *
  * Verify on a real mobile browser before flipping that memory to resolved:
@@ -199,11 +201,15 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
         {/* Stage — the single element the swipe gesture translates.
             touch-action keeps vertical scroll + pinch-zoom native while we
             own horizontal; will-change pre-materializes the compositor
-            layer so the FIRST drag doesn't jank promoting it. */}
+            layer so the FIRST drag doesn't jank promoting it — only when a
+            gesture is possible: a single-photo lightbox would otherwise
+            hold a full-viewport GPU layer for nothing. */}
         <div
           ref={contentRef}
           {...handlers}
-          className="relative h-full max-h-[85vh] w-full max-w-[95vw] touch-pan-y touch-pinch-zoom select-none will-change-transform"
+          className={`relative h-full max-h-[85vh] w-full max-w-[95vw] touch-pan-y touch-pinch-zoom select-none ${
+            items.length > 1 ? "will-change-transform" : ""
+          }`}
         >
           <Image
             // Intentionally NO `key` here. With a per-item key, every

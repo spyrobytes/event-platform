@@ -35,6 +35,7 @@ export function PostEventGalleryRenderer({
   onOpenLightbox,
   onRequestMore,
   hasMore,
+  isLightboxOpen,
 }: Props) {
   switch (presentation.variant) {
     case "romantic-masonry":
@@ -50,6 +51,7 @@ export function PostEventGalleryRenderer({
           onOpenLightbox={onOpenLightbox}
           onRequestMore={onRequestMore}
           hasMore={hasMore}
+          isLightboxOpen={isLightboxOpen}
           autoplay={presentation.slideshowAutoplay}
           autoplayInterval={presentation.slideshowAutoplayInterval}
           transition={presentation.slideshowTransition}
