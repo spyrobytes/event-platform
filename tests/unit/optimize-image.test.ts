@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { optimizeImage } from "@/lib/media-validation";
+import { makeOrientedImage } from "./helpers/oriented-image";
 import {
   IMAGE_CONSTRAINTS,
   HERO_DISPLAY_MAX_DIMENSION,
@@ -49,32 +50,30 @@ describe("optimizeImage", () => {
 });
 
 describe("optimizeImage — EXIF orientation", () => {
-  // A "portrait phone photo": stored landscape 200x100 with orientation 6
+  // "Portrait phone photo": stored landscape 200x100 with orientation 6
   // (rotate 90° CW to display), i.e. displays as 100x200 portrait.
-  async function makeOrientedImage(): Promise<Buffer> {
-    return sharp({
-      create: {
-        width: 200,
-        height: 100,
-        channels: 3,
-        background: { r: 200, g: 40, b: 40 },
-      },
-    })
-      .jpeg({ quality: 95 })
-      .withMetadata({ orientation: 6 })
-      .toBuffer();
-  }
 
-  it("default (template pipeline): preserves the orientation tag and sensor dims — byte-contract unchanged", async () => {
-    const out = await optimizeImage(await makeOrientedImage());
+  it("default (template pipeline): preserves the tag in the buffer, reports DISPLAY dims", async () => {
+    const out = await optimizeImage(await makeOrientedImage(200, 100, 6, "jpeg"));
+    // Reported dims are the rendered shape — srcset originalWidth, intrinsic
+    // next/image boxes, and aspect math all consume these. The BUFFER still
+    // carries the tag (byte-contract unchanged): browsers rotate at display.
+    expect({ w: out.width, h: out.height }).toEqual({ w: 100, h: 200 });
+    const meta = await sharp(out.buffer).metadata();
+    expect(meta.orientation).toBe(6);
+    // Encoded pixels remain sensor-axis; only the REPORT is display-axis.
+    expect({ w: meta.width, h: meta.height }).toEqual({ w: 200, h: 100 });
+  });
+
+  it("default path does not swap dims for the flip/180 family (orientation 3)", async () => {
+    const out = await optimizeImage(await makeOrientedImage(200, 100, 3, "jpeg"));
     expect({ w: out.width, h: out.height }).toEqual({ w: 200, h: 100 });
     const meta = await sharp(out.buffer).metadata();
-    // The tag rides along so browsers display the photo correctly rotated.
-    expect(meta.orientation).toBe(6);
+    expect(meta.orientation).toBe(3);
   });
 
   it("autoOrient (gallery pipeline): bakes rotation into pixels, drops the tag, reports display dims", async () => {
-    const out = await optimizeImage(await makeOrientedImage(), {
+    const out = await optimizeImage(await makeOrientedImage(200, 100, 6, "jpeg"), {
       autoOrient: true,
     });
     expect({ w: out.width, h: out.height }).toEqual({ w: 100, h: 200 });
@@ -82,6 +81,8 @@ describe("optimizeImage — EXIF orientation", () => {
     // After baking, sharp normalizes the tag to 1 ("upright") — either 1 or
     // absent means no further rotation is applied at display time.
     expect(meta.orientation ?? 1).toBe(1);
+    // Baked: encoded pixels ARE the display shape.
+    expect({ w: meta.width, h: meta.height }).toEqual({ w: 100, h: 200 });
   });
 
   it("autoOrient is a no-op for untagged images", async () => {

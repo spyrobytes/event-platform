@@ -91,6 +91,26 @@ export async function validateUploadedImage(
  * - Resizes if larger than max dimensions
  * - Strips metadata for privacy
  */
+/**
+ * Displayed (post-EXIF-rotation) dimensions. Orientations 5-8 are the
+ * transposed 90° family: the rendered axes are swapped relative to the
+ * encoded pixels. Single source of truth for the axis-swap rule — the
+ * rendition ladder, stored MediaAsset dims, and srcset width descriptors
+ * must all live on the DISPLAY axis or they disagree for rotated photos
+ * (mislabeled/dropped srcset originals, squished intrinsic boxes).
+ */
+export function displayDimensions(meta: {
+  width?: number;
+  height?: number;
+  orientation?: number;
+}): { width: number; height: number } {
+  const rotated90 = (meta.orientation ?? 1) >= 5;
+  return {
+    width: (rotated90 ? meta.height : meta.width) ?? 0,
+    height: (rotated90 ? meta.width : meta.height) ?? 0,
+  };
+}
+
 export async function optimizeImage(
   buffer: Buffer,
   options: {
@@ -98,10 +118,10 @@ export async function optimizeImage(
     maxHeight?: number;
     quality?: number;
     /** Bake EXIF orientation into the pixels (and drop the tag) instead of
-     *  carrying the tag through. Output width/height then match the DISPLAYED
-     *  orientation. Opt-in: the default (false) preserves the orientation tag
-     *  and reports sensor-orientation dimensions — existing callers depend on
-     *  that behavior staying byte-identical. */
+     *  carrying the tag through. The default (false) preserves the tag so the
+     *  stored file still displays upright — the output BUFFER is byte-identical
+     *  to the historical behavior. Reported width/height are the DISPLAY
+     *  dimensions in both modes (see displayDimensions). */
     autoOrient?: boolean;
   } = {}
 ): Promise<{ buffer: Buffer; width: number; height: number; format: string }> {
@@ -126,10 +146,18 @@ export async function optimizeImage(
   const optimizedBuffer = await image.toBuffer();
   const metadata = await sharp(optimizedBuffer).metadata();
 
+  // Report DISPLAY dimensions in both modes. With autoOrient the pixels are
+  // baked (tag gone → no swap needed); on the default tag-preserving path the
+  // output still carries the orientation tag, so the rendered axes are
+  // swapped for orientations 5-8. Consumers (srcset originalWidth, intrinsic
+  // next/image boxes, aspect math) all need the rendered shape — reporting
+  // sensor dims here is what made rotated portraits drop/mislabel their
+  // srcset original and squish in fixed-dims lightboxes.
+  const { width, height } = displayDimensions(metadata);
   return {
     buffer: optimizedBuffer,
-    width: metadata.width || 0,
-    height: metadata.height || 0,
+    width,
+    height,
     format: "webp",
   };
 }
@@ -160,9 +188,7 @@ export async function generateRenditions(
   quality = 80
 ): Promise<Array<{ width: number; buffer: Buffer }>> {
   const meta = await sharp(buffer).metadata();
-  // EXIF orientations 5-8 are 90° rotations: displayed width = sensor height.
-  const isRotated90 = (meta.orientation ?? 1) >= 5;
-  const sourceWidth = (isRotated90 ? meta.height : meta.width) ?? 0;
+  const sourceWidth = displayDimensions(meta).width;
 
   const renditions = await Promise.all(
     widths
