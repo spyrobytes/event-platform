@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { generateRenditions } from "@/lib/media-validation";
 import { RESPONSIVE_RENDITION_WIDTHS } from "@/schemas/media-asset";
+import { makeOrientedImage } from "./helpers/oriented-image";
 
 /**
  * Tier 2 (issue #211). Real sharp (no mock) on generated images.
@@ -58,5 +59,57 @@ describe("generateRenditions", () => {
       RESPONSIVE_RENDITION_WIDTHS
     );
     expect(out).toEqual([]);
+  });
+});
+
+describe("generateRenditions — EXIF orientation", () => {
+  it("bakes the rotation into rungs: upright dimensions, no orientation tag", async () => {
+    // Sensor 1000x2000 + orientation 6 → displays 2000 wide × 1000 tall.
+    const out = await generateRenditions(
+      await makeOrientedImage(1000, 2000, 6),
+      [640]
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0].width).toBe(640);
+    const meta = await sharp(out[0].buffer).metadata();
+    // 2000x1000 display → 640 wide is 320 tall; tag baked away (absent or 1).
+    expect(meta.height).toBe(320);
+    expect(meta.orientation ?? 1).toBe(1);
+  });
+
+  it("filters rung widths against the DISPLAY width, not the sensor width", async () => {
+    // Sensor 2000x1000 + orientation 6 → displays 1000 wide. A 1200 rung must
+    // be skipped (would upscale the displayed image) even though the sensor
+    // width (2000) exceeds it.
+    const out = await generateRenditions(
+      await makeOrientedImage(2000, 1000, 6),
+      [640, 1200]
+    );
+    expect(out.map((r) => r.width)).toEqual([640]);
+  });
+
+  it("handles orientation 8 (the other 90° direction) identically", async () => {
+    const out = await generateRenditions(
+      await makeOrientedImage(1000, 2000, 8),
+      [640]
+    );
+    expect(out).toHaveLength(1);
+    const meta = await sharp(out[0].buffer).metadata();
+    expect(meta.height).toBe(320); // display 2000x1000 → 640x320
+    expect(meta.orientation ?? 1).toBe(1);
+  });
+
+  it("does NOT swap axes for the flip/180 family (orientation 3) but still bakes it", async () => {
+    // 180° rotation: displayed axes = sensor axes. A 1200 rung is valid for
+    // the 2000-wide display; output aspect matches the sensor shape.
+    const out = await generateRenditions(
+      await makeOrientedImage(2000, 1000, 3),
+      [1200]
+    );
+    expect(out).toHaveLength(1);
+    const meta = await sharp(out[0].buffer).metadata();
+    expect(meta.width).toBe(1200);
+    expect(meta.height).toBe(600);
+    expect(meta.orientation ?? 1).toBe(1);
   });
 });
