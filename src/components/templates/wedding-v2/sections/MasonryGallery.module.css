@@ -173,13 +173,8 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
-  /* Swipe-nav gesture contract: we own horizontal, the browser keeps vertical
-     scroll + pinch-zoom. will-change pre-materializes the compositor layer so
-     the FIRST drag doesn't jank promoting it mid-gesture (cf. #238/#239). */
-  touch-action: pan-y pinch-zoom;
-  will-change: transform;
-  user-select: none;
-  -webkit-user-select: none;
+  /* The swipe gesture contract (touch-action / will-change / user-select /
+     cursor) is applied to this element by useSwipeNavigation itself. */
 }
 .lightboxStage img {
   display: block;

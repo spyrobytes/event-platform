@@ -45,11 +45,16 @@ import type {
  * the photo glides home. No flushSync, no separate slide panes — both of those
  * cost smoothness on real hardware. Only the snap-back is animated.
  *
- * GPU note: set `will-change: transform` on the content element while the
- * surface is open so its compositor layer is resident BEFORE the first drag —
- * otherwise the first drag can jank promoting the layer mid-gesture (the same
- * first-interaction layer-materialization class fixed on the flip cards in
- * #238/#239).
+ * The stage's per-element gesture requirements are applied imperatively to
+ * `contentRef` by the hook itself while `enabled` — cursor affordance,
+ * `touch-action: pan-y pinch-zoom` (we own horizontal, the browser keeps
+ * vertical scroll + pinch-zoom), `user-select: none`, and
+ * `will-change: transform` so the compositor layer is resident BEFORE the
+ * first drag (otherwise that drag can jank promoting the layer mid-gesture —
+ * the same first-interaction layer-materialization class fixed on the flip
+ * cards in #238/#239). Consumers must not redeclare any of these on the
+ * stage; a disabled (single-item) stage keeps browser defaults and holds no
+ * GPU layer.
  */
 
 // --- Tunables -------------------------------------------------------------
@@ -471,10 +476,29 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     [endGesture, safeReleaseCapture, snapBack],
   );
 
-  // Base cursor (grab when navigable, default otherwise) when not dragging.
+  // Stage contract — the hook owns every per-element requirement of the
+  // gesture so a consumer can't ship half of it: rest cursor, touch-action
+  // (we own horizontal, the browser keeps vertical scroll + pinch-zoom),
+  // text-selection suppression, and will-change to pre-materialize the
+  // compositor layer so the FIRST drag doesn't jank promoting it mid-gesture
+  // (cf. flip-card #238/#239). Applied only while navigable — a single-item
+  // stage keeps browser defaults and doesn't hold a full-size GPU layer.
   useEffect(() => {
     const el = contentRef.current;
-    if (el) el.style.cursor = options.enabled ? "grab" : "default";
+    if (!el) return;
+    if (options.enabled) {
+      el.style.cursor = "grab";
+      el.style.touchAction = "pan-y pinch-zoom";
+      el.style.willChange = "transform";
+      el.style.userSelect = "none";
+      el.style.webkitUserSelect = "none";
+    } else {
+      el.style.cursor = "default";
+      el.style.touchAction = "";
+      el.style.willChange = "";
+      el.style.userSelect = "";
+      el.style.webkitUserSelect = "";
+    }
   }, [options.enabled]);
 
   // Finish snap-back early via transitionend (the fallback timer is the safety

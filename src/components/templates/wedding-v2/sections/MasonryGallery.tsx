@@ -7,6 +7,8 @@ import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } fro
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { AdjacentPreloads } from "@/components/media/AdjacentPreloads";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import { normalizeGalleryData } from "@/schemas/event-page";
@@ -111,13 +113,7 @@ export function MasonryGallery({ data, assets }: GalleryV2Props) {
 
   // Body scroll lock while the lightbox is open. Keyboard nav lives inside
   // Lightbox itself, where it can read the swipe hook's busy state.
-  useEffect(() => {
-    if (!isLightboxOpen) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isLightboxOpen]);
+  useBodyScrollLock(isLightboxOpen);
 
   if (resolvedItems.length === 0) {
     return (
@@ -307,9 +303,6 @@ function GalleryItem({
 // LIGHTBOX
 // =============================================================================
 
-/** Focusable elements query for focus trap */
-const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
 /** Full-screen lightbox with navigation and focus trap */
 function Lightbox({
   items,
@@ -326,42 +319,8 @@ function Lightbox({
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Move focus into the dialog on open.
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
-
-  // Focus trap — cycle Tab between interactive children of the dialog.
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleFocusTrap = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey) {
-        if (document.activeElement === first || document.activeElement === dialog) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    dialog.addEventListener("keydown", handleFocusTrap);
-    return () => dialog.removeEventListener("keydown", handleFocusTrap);
-  }, []);
+  // Focus handoff + Tab trap (shared across all lightboxes).
+  useFocusTrap(dialogRef);
 
   // Swipe / drag navigation (mouse + touch + pen). The hook owns the
   // imperative translate + cursor on the stage, the busy-gated keyboard nav
