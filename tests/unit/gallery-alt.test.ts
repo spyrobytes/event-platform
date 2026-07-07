@@ -10,6 +10,19 @@ describe("deriveAltFromFilename", () => {
       "Émilie & Marc first dance",
     );
     expect(deriveAltFromFilename("cake cutting.webp")).toBe("cake cutting");
+    // Dotted word separators humanize too (extension stripped first).
+    expect(deriveAltFromFilename("our.wedding.day.jpg")).toBe(
+      "our wedding day",
+    );
+    // A trailing ".2024" is content, not an extension (extensions start
+    // with a letter) — the year survives.
+    expect(deriveAltFromFilename("reception.2024")).toBe("reception 2024");
+  });
+
+  it("keeps hex-alphabet words that only look like hashes", () => {
+    expect(deriveAltFromFilename("dead beef cafe faced.jpg")).toBe(
+      "dead beef cafe faced",
+    );
   });
 
   it("returns empty for camera-generated names", () => {

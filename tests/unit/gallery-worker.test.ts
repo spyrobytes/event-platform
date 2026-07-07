@@ -13,6 +13,7 @@ beforeAll(() => {
 const dbMock = {
   eventGalleryItem: {
     update: vi.fn(),
+    updateMany: vi.fn(),
     groupBy: vi.fn(),
   },
   eventGallery: {
@@ -186,13 +187,13 @@ describe("processItem — happy path", () => {
     // covered by optimize-image.test.ts; here we assert the worker threads
     // the cap through.
     await processItem(makeItem(), gallery, event);
-    expect(optimizeImageMock).toHaveBeenCalledWith(
-      expect.any(Buffer),
-      expect.objectContaining({
-        maxWidth: 2560,
-        maxHeight: 2560,
-      }),
-    );
+    // Exact-object match: guards that NOTHING beyond the cap + autoOrient is
+    // passed (a stray quality/format option would degrade every large image).
+    expect(optimizeImageMock).toHaveBeenCalledWith(expect.any(Buffer), {
+      maxWidth: 2560,
+      maxHeight: 2560,
+      autoOrient: true,
+    });
   });
 });
 
@@ -328,31 +329,35 @@ describe("persistOutcome", () => {
     },
   } as const;
 
-  it("fills alt from a descriptive original filename when alt is blank", async () => {
+  it("fills alt from a descriptive original filename via a compare-and-set on the live row", async () => {
     await persistOutcome(
       makeItem({ original_name: "first-dance_golden-hour.jpg", alt: "" }),
       readyResult,
     );
+    // The alt write is a SEPARATE updateMany guarded on alt:"" at write time,
+    // so an alt curated during the processing window is never clobbered.
+    expect(dbMock.eventGalleryItem.updateMany).toHaveBeenCalledWith({
+      where: { id: "item_1", alt: "" },
+      data: { alt: "first dance golden hour" },
+    });
     const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
-    expect(update.data.alt).toBe("first dance golden hour");
+    expect(update.data).not.toHaveProperty("alt");
   });
 
-  it("leaves alt untouched for camera-generated filenames", async () => {
+  it("writes no alt for camera-generated filenames", async () => {
     await persistOutcome(
       makeItem({ original_name: "IMG_4021.JPG", alt: "" }),
       readyResult,
     );
-    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
-    expect(update.data).not.toHaveProperty("alt");
+    expect(dbMock.eventGalleryItem.updateMany).not.toHaveBeenCalled();
   });
 
-  it("never overwrites an organizer-curated alt", async () => {
+  it("skips the alt write entirely when alt was already set at claim time", async () => {
     await persistOutcome(
       makeItem({ original_name: "first-dance.jpg", alt: "The first dance" }),
       readyResult,
     );
-    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
-    expect(update.data).not.toHaveProperty("alt");
+    expect(dbMock.eventGalleryItem.updateMany).not.toHaveBeenCalled();
   });
 
   it("writes FAILED with errorCode for permanent errors", async () => {

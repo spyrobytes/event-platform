@@ -135,22 +135,6 @@ export async function optimizeImage(
 }
 
 /**
- * Generates a thumbnail for an image
- */
-export async function generateThumbnail(
-  buffer: Buffer,
-  size: number = 300
-): Promise<Buffer> {
-  return sharp(buffer)
-    .resize(size, size, {
-      fit: "cover",
-      position: "center",
-    })
-    .webp({ quality: 80 })
-    .toBuffer();
-}
-
-/**
  * Generates responsive WebP renditions from a source image buffer.
  *
  * Produces one rendition per requested width that is strictly smaller than the

@@ -265,9 +265,11 @@ async function processItem(
     largeBuffer = optimized.buffer;
     width = optimized.width;
     height = optimized.height;
-    // .rotate() before resize so the attention crop sees upright pixels.
-    thumbBuffer = await sharp(buffer)
-      .rotate()
+    // Thumb from the oriented large, not the original: skips a second
+    // full-resolution decode (the largest avoidable CPU cost per item under
+    // the 60s cron budget) and inherits the baked rotation, so the attention
+    // crop sees upright pixels with no second .rotate() to keep in sync.
+    thumbBuffer = await sharp(largeBuffer)
       .resize(THUMBNAIL_DIMENSION, THUMBNAIL_DIMENSION, {
         fit: "cover",
         position: "attention",
@@ -369,16 +371,10 @@ async function persistOutcome(
   result: ProcessResult,
 ): Promise<"READY" | "FAILED" | "SKIPPED" | "RETRY"> {
   if (result.outcome === "READY") {
-    // Fill alt from the original filename when the organizer hasn't set one
-    // (the schema field has documented this contract since it landed). Only
-    // on READY, only when blank — a curated alt is never overwritten.
-    const derivedAlt =
-      item.alt === "" ? deriveAltFromFilename(item.original_name) : "";
     await db.eventGalleryItem.update({
       where: { id: item.id },
       data: {
         status: "READY",
-        ...(derivedAlt !== "" && { alt: derivedAlt }),
         publicUrl: result.data.publicUrl,
         thumbnailUrl: result.data.thumbnailUrl,
         storageBucket: BUCKETS.gallery,
@@ -394,6 +390,20 @@ async function persistOutcome(
         lockedAt: null,
       },
     });
+    // Fill alt from the original filename when blank (the schema field has
+    // documented this contract since it landed). Written as a compare-and-set
+    // on the LIVE row value — not the claim-time snapshot — so an alt curated
+    // during the multi-second download/optimize window is never clobbered.
+    // The snapshot check just skips the query when alt was already set.
+    if (item.alt === "") {
+      const derivedAlt = deriveAltFromFilename(item.original_name);
+      if (derivedAlt !== "") {
+        await db.eventGalleryItem.updateMany({
+          where: { id: item.id, alt: "" },
+          data: { alt: derivedAlt },
+        });
+      }
+    }
     return "READY";
   }
 
