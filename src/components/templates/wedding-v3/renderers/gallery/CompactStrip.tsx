@@ -15,6 +15,7 @@ import type { GallerySection } from "@/schemas/event-page";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import type { ResolvedGalleryItem } from "./types";
 import styles from "./CompactStrip.module.css";
 
@@ -51,6 +52,11 @@ export function CompactStrip({
     setLightboxIndex((i) => i !== null ? (i - 1 + resolvedItems.length) % resolvedItems.length : null);
   }, [resolvedItems.length]);
 
+  // Shared lock keyed on the open/closed boolean — the keydown effect below
+  // re-runs per lightboxIndex, which used to flicker the lock off/on on
+  // every navigation.
+  useBodyScrollLock(lightboxIndex !== null);
+
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -58,10 +64,8 @@ export function CompactStrip({
       if (e.key === "ArrowRight") goNext();
       if (e.key === "ArrowLeft") goPrev();
     };
-    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.body.style.overflow = "";
       document.removeEventListener("keydown", handleKey);
     };
   }, [lightboxIndex, closeLightbox, goNext, goPrev]);

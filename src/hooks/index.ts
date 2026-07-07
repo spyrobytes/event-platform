@@ -67,3 +67,9 @@ export {
   type UseSwipeNavigationOptions,
   type UseSwipeNavigationResult,
 } from "./use-swipe-navigation";
+
+// Modal focus management (focus handoff + Tab trap) for lightboxes/dialogs
+export { useFocusTrap } from "./use-focus-trap";
+
+// Body scroll lock that restores the prior overflow value
+export { useBodyScrollLock } from "./use-body-scroll-lock";

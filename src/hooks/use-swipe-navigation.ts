@@ -45,11 +45,16 @@ import type {
  * the photo glides home. No flushSync, no separate slide panes — both of those
  * cost smoothness on real hardware. Only the snap-back is animated.
  *
- * GPU note: set `will-change: transform` on the content element while the
- * surface is open so its compositor layer is resident BEFORE the first drag —
- * otherwise the first drag can jank promoting the layer mid-gesture (the same
- * first-interaction layer-materialization class fixed on the flip cards in
- * #238/#239).
+ * The stage's per-element gesture requirements are applied imperatively to
+ * `contentRef` by the hook itself — `touch-action: pan-y pinch-zoom` (we own
+ * horizontal, the browser keeps vertical scroll + pinch-zoom) and
+ * `user-select: none` unconditionally (a single-photo stage must not select
+ * its caption on drag either), plus, while `enabled`, the grab cursor and
+ * `will-change: transform` so the compositor layer is resident BEFORE the
+ * first drag (otherwise that drag can jank promoting the layer mid-gesture —
+ * the same first-interaction layer-materialization class fixed on the flip
+ * cards in #238/#239). Consumers must not redeclare any of these on the
+ * stage.
  */
 
 // --- Tunables -------------------------------------------------------------
@@ -471,10 +476,29 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     [endGesture, safeReleaseCapture, snapBack],
   );
 
-  // Base cursor (grab when navigable, default otherwise) when not dragging.
+  // Stage contract — the hook owns every per-element requirement of the
+  // gesture so a consumer can't ship half of it. Selection/callout
+  // suppression and touch-action are UNCONDITIONAL: even a single-photo
+  // stage must not blue-highlight its caption on a mouse drag or pop the
+  // iOS long-press selection UI (parity with the per-consumer declarations
+  // this replaced). Only the grab cursor and will-change are gated on
+  // `enabled` — will-change pre-materializes the compositor layer so the
+  // FIRST drag doesn't jank promoting it mid-gesture (cf. flip-card
+  // #238/#239), and a non-navigable stage shouldn't hold a full-size GPU
+  // layer for a gesture that can never happen.
   useEffect(() => {
     const el = contentRef.current;
-    if (el) el.style.cursor = options.enabled ? "grab" : "default";
+    if (!el) return;
+    el.style.touchAction = "pan-y pinch-zoom";
+    el.style.userSelect = "none";
+    el.style.webkitUserSelect = "none";
+    if (options.enabled) {
+      el.style.cursor = "grab";
+      el.style.willChange = "transform";
+    } else {
+      el.style.cursor = "default";
+      el.style.willChange = "";
+    }
   }, [options.enabled]);
 
   // Finish snap-back early via transitionend (the fallback timer is the safety

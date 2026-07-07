@@ -7,6 +7,8 @@ import Image from "next/image";
 import { isAllowedImageHost } from "@/lib/images/host";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import type { PublicGalleryItem } from "@/schemas/gallery";
 
 // useSyncExternalStore-based "is the client mounted" check. Returns false
@@ -30,16 +32,16 @@ type Props = {
  * Full-screen image viewer rendered via portal so it escapes the parent
  * stacking context. Swipe/drag + keyboard nav (Esc / ← / →) come from
  * useSwipeNavigation (busy-gated, with Esc routed through the flushSync
- * close below); this component owns the Tab focus trap, body-scroll lock
- * while open, and the flushSync close that mitigates the BFCache ghost
- * issue documented in project_v2_mobile_nav_bfcache.
+ * close below); focus handoff/trap and the body-scroll lock come from the
+ * shared useFocusTrap / useBodyScrollLock hooks. This component owns the
+ * flushSync close that mitigates the BFCache ghost issue documented in
+ * project_v2_mobile_nav_bfcache.
  *
  * Verify on a real mobile browser before flipping that memory to resolved:
  * open lightbox → hit native Back → forward → confirm no DOM ghost.
  */
 export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   // `mounted` gates createPortal so SSR doesn't try to mount into a
   // non-existent document.body.
   const mounted = useSyncExternalStore(
@@ -72,63 +74,11 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
       reducedMotion,
     });
 
-  // Focus-trap Tab boundary wrap. (Esc/arrow handling lives in the swipe
-  // hook above, where it can be gated on the gesture's busy state.)
-  useEffect(() => {
-    if (!mounted) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
-        // Real focus trap: query focusables inside the dialog and wrap
-        // at the boundaries. Without this, Tab past the last button
-        // leaks focus to the page underneath the modal — accessibility
-        // bug for keyboard / screen-reader users.
-        const root = containerRef.current;
-        if (!root) return;
-        const focusables = Array.from(
-          root.querySelectorAll<HTMLElement>(
-            'button, [href], input, [tabindex]:not([tabindex="-1"])',
-          ),
-        ).filter((el) => !el.hasAttribute("disabled"));
-        if (focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        const active = document.activeElement;
-        if (e.shiftKey && active === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && active === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [mounted]);
-
-  // Body-scroll lock while open. Saves the prior overflow so we restore
-  // it cleanly even if it was already non-default (some themes set
-  // `overflow: hidden` for modal stacks).
-  useEffect(() => {
-    if (!mounted) return;
-    const prior = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prior;
-    };
-  }, [mounted]);
-
-  // Open/close focus handoff: snapshot the previously-focused element,
-  // move focus into the dialog, restore on unmount. Tab cycling within
-  // the dialog is handled by the keydown trap above.
-  useEffect(() => {
-    if (!mounted) return;
-    previousFocusRef.current = document.activeElement as HTMLElement | null;
-    containerRef.current?.focus();
-    return () => {
-      previousFocusRef.current?.focus?.();
-    };
-  }, [mounted]);
+  // Focus handoff + Tab trap and body-scroll lock (shared across all
+  // lightboxes). Esc/arrow handling lives in the swipe hook above, where it
+  // can be gated on the gesture's busy state.
+  useFocusTrap(containerRef, mounted);
+  useBodyScrollLock(mounted);
 
   // BFCache safety: when this page is restored from BFCache (e.g. mobile
   // Back), unmount immediately. The keyboard handlers + scroll lock
@@ -198,18 +148,14 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
             </span>
           </button>
         )}
-        {/* Stage — the single element the swipe gesture translates.
-            touch-action keeps vertical scroll + pinch-zoom native while we
-            own horizontal; will-change pre-materializes the compositor
-            layer so the FIRST drag doesn't jank promoting it — only when a
-            gesture is possible: a single-photo lightbox would otherwise
-            hold a full-viewport GPU layer for nothing. */}
+        {/* Stage — the single element the swipe gesture translates. The
+            gesture contract (touch-action / will-change / user-select /
+            cursor) is applied to this element by useSwipeNavigation itself,
+            only while navigable. */}
         <div
           ref={contentRef}
           {...handlers}
-          className={`relative h-full max-h-[85vh] w-full max-w-[95vw] touch-pan-y touch-pinch-zoom select-none ${
-            items.length > 1 ? "will-change-transform" : ""
-          }`}
+          className="relative h-full max-h-[85vh] w-full max-w-[95vw]"
         >
           <Image
             // Intentionally NO `key` here. With a per-item key, every

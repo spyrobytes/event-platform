@@ -8,7 +8,7 @@
  * Playful, festive, social. Includes full-screen lightbox on click.
  */
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import type { SectionRendererProps } from "../../types";
 import type { GallerySection } from "@/schemas/event-page";
@@ -18,6 +18,8 @@ import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } fro
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { AdjacentPreloads } from "@/components/media/AdjacentPreloads";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
@@ -78,13 +80,7 @@ export function ScrapbookCollage({
 
   // Body scroll lock while the lightbox is open. (Keyboard nav — Esc / arrows —
   // lives in ScrapbookLightbox so it can gate arrows on the swipe drag state.)
-  useEffect(() => {
-    if (!isLightboxOpen) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isLightboxOpen]);
+  useBodyScrollLock(isLightboxOpen);
 
   if (resolvedItems.length === 0) return null;
 
@@ -217,8 +213,6 @@ function LightboxPortal({ children }: { children: React.ReactNode }) {
 // Lightbox
 // ---------------------------------------------------------------------------
 
-const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
 function ScrapbookLightbox({
   items,
   index,
@@ -234,41 +228,8 @@ function ScrapbookLightbox({
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
-
-  // Focus trap
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleFocusTrap = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      const focusable = Array.from(
-        dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey) {
-        if (document.activeElement === first || document.activeElement === dialog) {
-          e.preventDefault();
-          last.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    dialog.addEventListener("keydown", handleFocusTrap);
-    return () => dialog.removeEventListener("keydown", handleFocusTrap);
-  }, []);
+  // Focus handoff + Tab trap (shared across all lightboxes).
+  useFocusTrap(dialogRef);
 
   // Swipe / drag navigation (mouse + touch + pen). The hook owns the
   // imperative translate + cursor on the stage, the busy-gated keyboard nav
@@ -400,13 +361,8 @@ function ScrapbookLightbox({
           boxShadow: "0 24px 80px rgba(0,0,0,0.4)",
           border: "1px solid rgba(255,255,255,0.06)",
           position: "relative",
-          // Browser-level gesture contract: we own horizontal, browser keeps
-          // vertical scroll + pinch-zoom. will-change pre-materializes the layer
-          // so the FIRST drag doesn't jank promoting it (cf. flip-card #238/#239).
-          touchAction: "pan-y pinch-zoom",
-          willChange: "transform",
-          userSelect: "none",
-          WebkitUserSelect: "none",
+          // The gesture contract (touch-action / will-change / user-select /
+          // cursor) is applied to this element by useSwipeNavigation itself.
         }}
       >
         <EventImage
