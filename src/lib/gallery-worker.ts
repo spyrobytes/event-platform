@@ -17,6 +17,7 @@ import {
   GoogleDriveDownloadError,
 } from "@/lib/providers/google-drive";
 import { BUCKETS, ensureBucket, uploadFile } from "@/lib/supabase-storage";
+import { deriveAltFromFilename } from "@/lib/gallery-alt";
 import {
   generateBlurDataUrl,
   optimizeImage,
@@ -66,6 +67,8 @@ type ClaimedItem = {
   gallery_id: string;
   source_file_id: string | null;
   attempts: number;
+  original_name: string | null;
+  alt: string;
 };
 
 type GalleryRow = {
@@ -122,7 +125,7 @@ async function claimPendingItems(limit: number): Promise<ClaimedItem[]> {
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED
      )
-    RETURNING id, gallery_id, source_file_id, attempts
+    RETURNING id, gallery_id, source_file_id, attempts, original_name, alt
   `;
 }
 
@@ -250,21 +253,30 @@ async function processItem(
   let width: number;
   let height: number;
   try {
+    // autoOrient bakes EXIF rotation into the pixels: portrait phone photos
+    // used to ship a sideways thumbnail (this chain never carried the
+    // orientation tag) and sensor-orientation width/height. The large keeps
+    // displaying correctly either way (tag before, baked pixels now).
     const optimized = await optimizeImage(buffer, {
       maxWidth: LARGE_IMAGE_MAX_DIMENSION,
       maxHeight: LARGE_IMAGE_MAX_DIMENSION,
+      autoOrient: true,
     });
     largeBuffer = optimized.buffer;
     width = optimized.width;
     height = optimized.height;
+    // .rotate() before resize so the attention crop sees upright pixels.
     thumbBuffer = await sharp(buffer)
+      .rotate()
       .resize(THUMBNAIL_DIMENSION, THUMBNAIL_DIMENSION, {
         fit: "cover",
         position: "attention",
       })
       .webp({ quality: 75 })
       .toBuffer();
-    blurDataUrl = await generateBlurDataUrl(buffer);
+    // Blur from the already-oriented large (matches the media route's
+    // pattern) so the placeholder aspect follows the displayed photo.
+    blurDataUrl = await generateBlurDataUrl(largeBuffer);
   } catch (err) {
     const { message } = classifyError(err);
     return {
@@ -357,10 +369,16 @@ async function persistOutcome(
   result: ProcessResult,
 ): Promise<"READY" | "FAILED" | "SKIPPED" | "RETRY"> {
   if (result.outcome === "READY") {
+    // Fill alt from the original filename when the organizer hasn't set one
+    // (the schema field has documented this contract since it landed). Only
+    // on READY, only when blank — a curated alt is never overwritten.
+    const derivedAlt =
+      item.alt === "" ? deriveAltFromFilename(item.original_name) : "";
     await db.eventGalleryItem.update({
       where: { id: item.id },
       data: {
         status: "READY",
+        ...(derivedAlt !== "" && { alt: derivedAlt }),
         publicUrl: result.data.publicUrl,
         thumbnailUrl: result.data.thumbnailUrl,
         storageBucket: BUCKETS.gallery,

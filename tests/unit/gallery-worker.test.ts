@@ -94,6 +94,7 @@ vi.mock("file-type", () => ({
 const sharpThumbBuffer = Buffer.from("thumb-bytes");
 vi.mock("sharp", () => ({
   default: vi.fn(() => ({
+    rotate: vi.fn().mockReturnThis(),
     resize: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(sharpThumbBuffer),
@@ -110,11 +111,13 @@ const { processItem, persistOutcome, reconcileJobs } = __testing;
 // Shared fixtures
 // ---------------------------------------------------------------------------
 
-const makeItem = (overrides: Partial<{ id: string; gallery_id: string; source_file_id: string; attempts: number }> = {}) => ({
+const makeItem = (overrides: Partial<{ id: string; gallery_id: string; source_file_id: string; attempts: number; original_name: string | null; alt: string }> = {}) => ({
   id: overrides.id ?? "item_1",
   gallery_id: overrides.gallery_id ?? "gal_1",
   source_file_id: overrides.source_file_id ?? "drive_file_1",
   attempts: overrides.attempts ?? 1,
+  original_name: overrides.original_name ?? null,
+  alt: overrides.alt ?? "",
 });
 
 const gallery = { id: "gal_1", event_id: "evt_1" };
@@ -162,6 +165,19 @@ describe("processItem — happy path", () => {
     }
   });
 
+  it("bakes EXIF orientation (autoOrient) and derives blur from the oriented large", async () => {
+    await processItem(makeItem(), gallery, event);
+    expect(optimizeImageMock).toHaveBeenCalledWith(
+      downloadedJpeg.buffer,
+      expect.objectContaining({ autoOrient: true }),
+    );
+    // Blur must come from the already-oriented large buffer, not the raw
+    // download — else a portrait phone photo gets a landscape placeholder.
+    expect(generateBlurDataUrlMock).toHaveBeenCalledWith(
+      Buffer.from("optimized-bytes"),
+    );
+  });
+
   it("caps the lightbox large image at 2560px longest edge", async () => {
     // The worker must pass an explicit 2560 cap to optimizeImage rather than
     // letting it default to the 4000 max-dimension. This keeps mobile
@@ -170,10 +186,13 @@ describe("processItem — happy path", () => {
     // covered by optimize-image.test.ts; here we assert the worker threads
     // the cap through.
     await processItem(makeItem(), gallery, event);
-    expect(optimizeImageMock).toHaveBeenCalledWith(expect.any(Buffer), {
-      maxWidth: 2560,
-      maxHeight: 2560,
-    });
+    expect(optimizeImageMock).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      expect.objectContaining({
+        maxWidth: 2560,
+        maxHeight: 2560,
+      }),
+    );
   });
 });
 
@@ -292,6 +311,48 @@ describe("persistOutcome", () => {
     expect(update.data.errorCode).toBeNull();
     expect(update.data.lockedAt).toBeNull();
     expect(update.data.publicUrl).toBe("u");
+  });
+
+  const readyResult = {
+    outcome: "READY",
+    data: {
+      publicUrl: "u",
+      thumbnailUrl: "t",
+      storageKey: "k",
+      thumbnailKey: "tk",
+      width: 1,
+      height: 1,
+      blurDataUrl: "b",
+      sizeBytes: 1,
+      mimeType: "image/webp",
+    },
+  } as const;
+
+  it("fills alt from a descriptive original filename when alt is blank", async () => {
+    await persistOutcome(
+      makeItem({ original_name: "first-dance_golden-hour.jpg", alt: "" }),
+      readyResult,
+    );
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data.alt).toBe("first dance golden hour");
+  });
+
+  it("leaves alt untouched for camera-generated filenames", async () => {
+    await persistOutcome(
+      makeItem({ original_name: "IMG_4021.JPG", alt: "" }),
+      readyResult,
+    );
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data).not.toHaveProperty("alt");
+  });
+
+  it("never overwrites an organizer-curated alt", async () => {
+    await persistOutcome(
+      makeItem({ original_name: "first-dance.jpg", alt: "The first dance" }),
+      readyResult,
+    );
+    const update = dbMock.eventGalleryItem.update.mock.calls[0][0];
+    expect(update.data).not.toHaveProperty("alt");
   });
 
   it("writes FAILED with errorCode for permanent errors", async () => {
