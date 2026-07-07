@@ -146,19 +146,30 @@ export async function optimizeImage(
  * The media route passes the already-optimized (WebP, HERO-capped) buffer:
  * downscaling it is cheaper than re-decoding the raw upload and keeps the
  * ladder consistent with the stored original that serves the top. See #211.
+ *
+ * EXIF orientation is BAKED into every rung (`.rotate()`): the source buffer
+ * may carry an orientation tag over unrotated pixels (optimizeImage's default
+ * path preserves the tag for the browser to honor), but sharp strips metadata
+ * on re-encode — an un-rotated rung would ship sideways pixels with no tag.
+ * For an already-baked source the rotate is a no-op, so both input flavors
+ * are safe. Width math likewise uses the DISPLAY orientation.
  */
 export async function generateRenditions(
   buffer: Buffer,
   widths: readonly number[],
   quality = 80
 ): Promise<Array<{ width: number; buffer: Buffer }>> {
-  const sourceWidth = (await sharp(buffer).metadata()).width ?? 0;
+  const meta = await sharp(buffer).metadata();
+  // EXIF orientations 5-8 are 90° rotations: displayed width = sensor height.
+  const isRotated90 = (meta.orientation ?? 1) >= 5;
+  const sourceWidth = (isRotated90 ? meta.height : meta.width) ?? 0;
 
   const renditions = await Promise.all(
     widths
       .filter((w) => w < sourceWidth)
       .map(async (w) => {
         const out = await sharp(buffer)
+          .rotate()
           .resize(w, undefined, { fit: "inside", withoutEnlargement: true })
           .webp({ quality })
           .toBuffer({ resolveWithObject: true });

@@ -60,3 +60,47 @@ describe("generateRenditions", () => {
     expect(out).toEqual([]);
   });
 });
+
+describe("generateRenditions — EXIF orientation", () => {
+  // A "portrait phone photo" the way optimizeImage's default path stores it:
+  // sensor-landscape pixels + orientation tag 6 (rotate 90° CW to display).
+  // Displays as portrait: display width = sensor HEIGHT.
+  async function makeOrientedImage(
+    sensorW: number,
+    sensorH: number
+  ): Promise<Buffer> {
+    return sharp({
+      create: {
+        width: sensorW,
+        height: sensorH,
+        channels: 3,
+        background: { r: 10, g: 20, b: 30 },
+      },
+    })
+      .webp()
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+  }
+
+  it("bakes the rotation into rungs: upright dimensions, no orientation tag", async () => {
+    // Sensor 1000x2000 + orientation 6 → displays 2000 wide × 1000 tall.
+    const out = await generateRenditions(await makeOrientedImage(1000, 2000), [640]);
+    expect(out).toHaveLength(1);
+    expect(out[0].width).toBe(640);
+    const meta = await sharp(out[0].buffer).metadata();
+    // 2000x1000 display → 640 wide is 320 tall; tag baked away (absent or 1).
+    expect(meta.height).toBe(320);
+    expect(meta.orientation ?? 1).toBe(1);
+  });
+
+  it("filters rung widths against the DISPLAY width, not the sensor width", async () => {
+    // Sensor 2000x1000 + orientation 6 → displays 1000 wide. A 1200 rung must
+    // be skipped (would upscale the displayed image) even though the sensor
+    // width (2000) exceeds it.
+    const out = await generateRenditions(
+      await makeOrientedImage(2000, 1000),
+      [640, 1200]
+    );
+    expect(out.map((r) => r.width)).toEqual([640]);
+  });
+});
