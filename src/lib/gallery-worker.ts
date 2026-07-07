@@ -17,6 +17,7 @@ import {
   GoogleDriveDownloadError,
 } from "@/lib/providers/google-drive";
 import { BUCKETS, ensureBucket, uploadFile } from "@/lib/supabase-storage";
+import { deriveAltFromFilename } from "@/lib/gallery-alt";
 import {
   generateBlurDataUrl,
   optimizeImage,
@@ -66,6 +67,8 @@ type ClaimedItem = {
   gallery_id: string;
   source_file_id: string | null;
   attempts: number;
+  original_name: string | null;
+  alt: string;
 };
 
 type GalleryRow = {
@@ -122,7 +125,7 @@ async function claimPendingItems(limit: number): Promise<ClaimedItem[]> {
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED
      )
-    RETURNING id, gallery_id, source_file_id, attempts
+    RETURNING id, gallery_id, source_file_id, attempts, original_name, alt
   `;
 }
 
@@ -250,21 +253,32 @@ async function processItem(
   let width: number;
   let height: number;
   try {
+    // autoOrient bakes EXIF rotation into the pixels: portrait phone photos
+    // used to ship a sideways thumbnail (this chain never carried the
+    // orientation tag) and sensor-orientation width/height. The large keeps
+    // displaying correctly either way (tag before, baked pixels now).
     const optimized = await optimizeImage(buffer, {
       maxWidth: LARGE_IMAGE_MAX_DIMENSION,
       maxHeight: LARGE_IMAGE_MAX_DIMENSION,
+      autoOrient: true,
     });
     largeBuffer = optimized.buffer;
     width = optimized.width;
     height = optimized.height;
-    thumbBuffer = await sharp(buffer)
+    // Thumb from the oriented large, not the original: skips a second
+    // full-resolution decode (the largest avoidable CPU cost per item under
+    // the 60s cron budget) and inherits the baked rotation, so the attention
+    // crop sees upright pixels with no second .rotate() to keep in sync.
+    thumbBuffer = await sharp(largeBuffer)
       .resize(THUMBNAIL_DIMENSION, THUMBNAIL_DIMENSION, {
         fit: "cover",
         position: "attention",
       })
       .webp({ quality: 75 })
       .toBuffer();
-    blurDataUrl = await generateBlurDataUrl(buffer);
+    // Blur from the already-oriented large (matches the media route's
+    // pattern) so the placeholder aspect follows the displayed photo.
+    blurDataUrl = await generateBlurDataUrl(largeBuffer);
   } catch (err) {
     const { message } = classifyError(err);
     return {
@@ -376,6 +390,20 @@ async function persistOutcome(
         lockedAt: null,
       },
     });
+    // Fill alt from the original filename when blank (the schema field has
+    // documented this contract since it landed). Written as a compare-and-set
+    // on the LIVE row value — not the claim-time snapshot — so an alt curated
+    // during the multi-second download/optimize window is never clobbered.
+    // The snapshot check just skips the query when alt was already set.
+    if (item.alt === "") {
+      const derivedAlt = deriveAltFromFilename(item.original_name);
+      if (derivedAlt !== "") {
+        await db.eventGalleryItem.updateMany({
+          where: { id: item.id, alt: "" },
+          data: { alt: derivedAlt },
+        });
+      }
+    }
     return "READY";
   }
 

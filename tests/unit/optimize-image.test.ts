@@ -47,3 +47,47 @@ describe("optimizeImage", () => {
     expect(out.width).toBe(IMAGE_CONSTRAINTS.maxDimensions.width);
   });
 });
+
+describe("optimizeImage — EXIF orientation", () => {
+  // A "portrait phone photo": stored landscape 200x100 with orientation 6
+  // (rotate 90° CW to display), i.e. displays as 100x200 portrait.
+  async function makeOrientedImage(): Promise<Buffer> {
+    return sharp({
+      create: {
+        width: 200,
+        height: 100,
+        channels: 3,
+        background: { r: 200, g: 40, b: 40 },
+      },
+    })
+      .jpeg({ quality: 95 })
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+  }
+
+  it("default (template pipeline): preserves the orientation tag and sensor dims — byte-contract unchanged", async () => {
+    const out = await optimizeImage(await makeOrientedImage());
+    expect({ w: out.width, h: out.height }).toEqual({ w: 200, h: 100 });
+    const meta = await sharp(out.buffer).metadata();
+    // The tag rides along so browsers display the photo correctly rotated.
+    expect(meta.orientation).toBe(6);
+  });
+
+  it("autoOrient (gallery pipeline): bakes rotation into pixels, drops the tag, reports display dims", async () => {
+    const out = await optimizeImage(await makeOrientedImage(), {
+      autoOrient: true,
+    });
+    expect({ w: out.width, h: out.height }).toEqual({ w: 100, h: 200 });
+    const meta = await sharp(out.buffer).metadata();
+    // After baking, sharp normalizes the tag to 1 ("upright") — either 1 or
+    // absent means no further rotation is applied at display time.
+    expect(meta.orientation ?? 1).toBe(1);
+  });
+
+  it("autoOrient is a no-op for untagged images", async () => {
+    const out = await optimizeImage(await makeImage(800, 600), {
+      autoOrient: true,
+    });
+    expect({ w: out.width, h: out.height }).toEqual({ w: 800, h: 600 });
+  });
+});

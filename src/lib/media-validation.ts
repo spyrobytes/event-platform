@@ -97,15 +97,25 @@ export async function optimizeImage(
     maxWidth?: number;
     maxHeight?: number;
     quality?: number;
+    /** Bake EXIF orientation into the pixels (and drop the tag) instead of
+     *  carrying the tag through. Output width/height then match the DISPLAYED
+     *  orientation. Opt-in: the default (false) preserves the orientation tag
+     *  and reports sensor-orientation dimensions — existing callers depend on
+     *  that behavior staying byte-identical. */
+    autoOrient?: boolean;
   } = {}
 ): Promise<{ buffer: Buffer; width: number; height: number; format: string }> {
   const {
     maxWidth = IMAGE_CONSTRAINTS.maxDimensions.width,
     maxHeight = IMAGE_CONSTRAINTS.maxDimensions.height,
     quality = 85,
+    autoOrient = false,
   } = options;
 
-  const image = sharp(buffer)
+  // .rotate() with no args = auto-orient from EXIF and clear the tag; it must
+  // run BEFORE resize so fit is computed against display-orientation pixels.
+  const source = autoOrient ? sharp(buffer).rotate() : sharp(buffer);
+  const image = source
     .resize(maxWidth, maxHeight, {
       fit: "inside",
       withoutEnlargement: true,
@@ -122,22 +132,6 @@ export async function optimizeImage(
     height: metadata.height || 0,
     format: "webp",
   };
-}
-
-/**
- * Generates a thumbnail for an image
- */
-export async function generateThumbnail(
-  buffer: Buffer,
-  size: number = 300
-): Promise<Buffer> {
-  return sharp(buffer)
-    .resize(size, size, {
-      fit: "cover",
-      position: "center",
-    })
-    .webp({ quality: 80 })
-    .toBuffer();
 }
 
 /**
