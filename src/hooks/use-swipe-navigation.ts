@@ -46,15 +46,15 @@ import type {
  * cost smoothness on real hardware. Only the snap-back is animated.
  *
  * The stage's per-element gesture requirements are applied imperatively to
- * `contentRef` by the hook itself while `enabled` — cursor affordance,
- * `touch-action: pan-y pinch-zoom` (we own horizontal, the browser keeps
- * vertical scroll + pinch-zoom), `user-select: none`, and
+ * `contentRef` by the hook itself — `touch-action: pan-y pinch-zoom` (we own
+ * horizontal, the browser keeps vertical scroll + pinch-zoom) and
+ * `user-select: none` unconditionally (a single-photo stage must not select
+ * its caption on drag either), plus, while `enabled`, the grab cursor and
  * `will-change: transform` so the compositor layer is resident BEFORE the
  * first drag (otherwise that drag can jank promoting the layer mid-gesture —
  * the same first-interaction layer-materialization class fixed on the flip
  * cards in #238/#239). Consumers must not redeclare any of these on the
- * stage; a disabled (single-item) stage keeps browser defaults and holds no
- * GPU layer.
+ * stage.
  */
 
 // --- Tunables -------------------------------------------------------------
@@ -477,27 +477,27 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   );
 
   // Stage contract — the hook owns every per-element requirement of the
-  // gesture so a consumer can't ship half of it: rest cursor, touch-action
-  // (we own horizontal, the browser keeps vertical scroll + pinch-zoom),
-  // text-selection suppression, and will-change to pre-materialize the
-  // compositor layer so the FIRST drag doesn't jank promoting it mid-gesture
-  // (cf. flip-card #238/#239). Applied only while navigable — a single-item
-  // stage keeps browser defaults and doesn't hold a full-size GPU layer.
+  // gesture so a consumer can't ship half of it. Selection/callout
+  // suppression and touch-action are UNCONDITIONAL: even a single-photo
+  // stage must not blue-highlight its caption on a mouse drag or pop the
+  // iOS long-press selection UI (parity with the per-consumer declarations
+  // this replaced). Only the grab cursor and will-change are gated on
+  // `enabled` — will-change pre-materializes the compositor layer so the
+  // FIRST drag doesn't jank promoting it mid-gesture (cf. flip-card
+  // #238/#239), and a non-navigable stage shouldn't hold a full-size GPU
+  // layer for a gesture that can never happen.
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
+    el.style.touchAction = "pan-y pinch-zoom";
+    el.style.userSelect = "none";
+    el.style.webkitUserSelect = "none";
     if (options.enabled) {
       el.style.cursor = "grab";
-      el.style.touchAction = "pan-y pinch-zoom";
       el.style.willChange = "transform";
-      el.style.userSelect = "none";
-      el.style.webkitUserSelect = "none";
     } else {
       el.style.cursor = "default";
-      el.style.touchAction = "";
       el.style.willChange = "";
-      el.style.userSelect = "";
-      el.style.webkitUserSelect = "";
     }
   }, [options.enabled]);
 

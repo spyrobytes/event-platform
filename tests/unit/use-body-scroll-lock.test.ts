@@ -53,4 +53,23 @@ describe("useBodyScrollLock", () => {
     outer.unmount();
     expect(document.body.style.overflow).toBe("");
   });
+
+  it("survives non-LIFO release: outer lock releasing first neither unlocks the page nor poisons the final restore", () => {
+    document.body.style.overflow = "auto";
+    const outer = renderHook(() => useBodyScrollLock(true));
+    const inner = renderHook(() => useBodyScrollLock(true));
+    expect(document.body.style.overflow).toBe("hidden");
+
+    // The surface UNDERNEATH closes while the lightbox is still open: the
+    // page must stay locked (a per-instance snapshot would restore "auto"
+    // here, letting the page scroll behind the open lightbox).
+    outer.unmount();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    // Last lock releases: the ORIGINAL value comes back (a per-instance
+    // snapshot would restore the stale "hidden" captured at stack time,
+    // leaving the page permanently unscrollable).
+    inner.unmount();
+    expect(document.body.style.overflow).toBe("auto");
+  });
 });

@@ -17,6 +17,7 @@ import { normalizeGalleryData } from "@/schemas/event-page";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import type { ResolvedGalleryItem } from "./types";
 import styles from "./FramedFineArt.module.css";
@@ -54,6 +55,10 @@ export function FramedFineArt({
     setLightboxIndex((i) => i !== null ? (i - 1 + resolvedItems.length) % resolvedItems.length : null);
   }, [resolvedItems.length]);
 
+  // Shared lock keyed on the open/closed boolean (the keydown effect below
+  // re-runs per lightboxIndex).
+  useBodyScrollLock(lightboxIndex !== null);
+
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -61,10 +66,8 @@ export function FramedFineArt({
       if (e.key === "ArrowRight") goNext();
       if (e.key === "ArrowLeft") goPrev();
     };
-    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.body.style.overflow = "";
       document.removeEventListener("keydown", handleKey);
     };
   }, [lightboxIndex, closeLightbox, goNext, goPrev]);
