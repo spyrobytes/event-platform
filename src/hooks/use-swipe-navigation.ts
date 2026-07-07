@@ -355,26 +355,43 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     [clearFallback, finishSnapBack],
   );
 
+  // The one settle sequence both glide paths share: spring the element to
+  // center — from wherever its transform currently is (snapBack), or from an
+  // explicit re-anchored offset written first (track-mode reanchor). Keeping
+  // this single keeps gesture commits, arrow glides, and cancels feeling
+  // identical. Holds phase in "snapping-back" until it settles, which keeps
+  // isBusyRef true so external nav stays gated through the glide.
+  const springHome = useCallback(
+    (from?: number) => {
+      dxRef.current = 0; // consumed — a later reanchor must not reuse a stale drag
+      if (optsRef.current.reducedMotion) {
+        resetStylesImmediate();
+        setPhase("idle");
+        return;
+      }
+      const el = contentRef.current;
+      setPhase("snapping-back");
+      if (el) {
+        if (from !== undefined) {
+          el.style.transition = "none";
+          el.style.transform = `translate3d(${from}px, 0, 0)`;
+          // Force a reflow so the spring below animates FROM `from` instead
+          // of coalescing both writes into one style update.
+          void el.offsetWidth;
+        }
+        el.style.transition = SNAP_TRANSITION;
+        el.style.transform = "translate3d(0, 0, 0)";
+        el.style.opacity = "1";
+      }
+      armFallback(SNAP_MS);
+    },
+    [armFallback, resetStylesImmediate, setPhase],
+  );
+
   // Spring the card to center. Runs on an under-threshold release, on any
   // cancel, AND on a committed swipe (after navigating) so the new photo glides
-  // home. Holds phase in "snapping-back" until it settles, which keeps isBusyRef
-  // true so external nav stays gated through the glide.
-  const snapBack = useCallback(() => {
-    dxRef.current = 0; // consumed — a later reanchor must not reuse a stale drag
-    if (optsRef.current.reducedMotion) {
-      resetStylesImmediate();
-      setPhase("idle");
-      return;
-    }
-    const el = contentRef.current;
-    setPhase("snapping-back");
-    if (el) {
-      el.style.transition = SNAP_TRANSITION;
-      el.style.transform = "translate3d(0, 0, 0)";
-      el.style.opacity = "1";
-    }
-    armFallback(SNAP_MS);
-  }, [armFallback, resetStylesImmediate, setPhase]);
+  // home.
+  const snapBack = useCallback(() => springHome(), [springHome]);
 
   const endGesture = useCallback(() => {
     // Note: the "busy" state follows the phase (set by callers via setPhase
@@ -431,12 +448,20 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
       if (e.pointerId !== pointerIdRef.current) return;
       if (phaseRef.current !== "dragging") return;
 
-      const dx = e.clientX - startXRef.current;
+      let dx = e.clientX - startXRef.current;
       const dy = e.clientY - startYRef.current;
-      dxRef.current = dx;
       if (Math.abs(dx) > DID_DRAG_PX || Math.abs(dy) > DID_DRAG_PX) {
         didDragRef.current = true;
       }
+      // Track mode: clamp travel to one slide width. There's only one
+      // neighbor per side, so farther would drag empty backdrop into view —
+      // and a commit from an over-drag would compute a wrong-signed
+      // re-anchor and visibly spring backward.
+      if (optsRef.current.track) {
+        const w = Math.max(widthRef.current, 1);
+        dx = Math.max(-w, Math.min(w, dx));
+      }
+      dxRef.current = dx;
 
       if (axisRef.current === "none") {
         const axis = lockAxis(dx, dy);
@@ -646,23 +671,19 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     if (!el) return;
     const width = el.offsetWidth || widthRef.current || 1;
     const from = reanchorOffset(dxRef.current, width, lastNavDirRef.current);
-    dxRef.current = 0;
     clearFallback();
-    if (optsRef.current.reducedMotion) {
+    if (from === 0) {
+      // The drag already carried the strip exactly one full step, so after
+      // rotation it's visually settled. Skip the spring: a zero-distance
+      // transition never fires transitionend and would hold busy (dropping
+      // arrow/key presses) until the fallback timer.
+      dxRef.current = 0;
       resetStylesImmediate();
       setPhase("idle");
       return;
     }
-    setPhase("snapping-back");
-    el.style.transition = "none";
-    el.style.transform = `translate3d(${from}px, 0, 0)`;
-    // Force a reflow so the spring below animates FROM the re-anchored
-    // position instead of coalescing both writes into one style update.
-    void el.offsetWidth;
-    el.style.transition = SNAP_TRANSITION;
-    el.style.transform = "translate3d(0, 0, 0)";
-    armFallback(SNAP_MS);
-  }, [armFallback, clearFallback, resetStylesImmediate, setPhase]);
+    springHome(from);
+  }, [clearFallback, resetStylesImmediate, setPhase, springHome]);
 
   // Lightbox keyboard nav, owned by the hook so no consumer can copy half of
   // it (Escape must close ungated; arrows must be busy-gated). Active only

@@ -73,6 +73,27 @@ describe("trackSlotAssignment / advanceCenterSlot", () => {
     }
   });
 
+  it("glide geometry: the old center becomes the trailing side with its item intact — INCLUDING 2- and 3-item albums", () => {
+    // During the commit glide the track re-anchors to ±width, so the slide
+    // on screen mid-glide is the OLD CENTER at its new side offset (-1 for
+    // next, +1 for prev). If its item changed, the viewer would see a
+    // mid-src-swap slide front and center — the 2-item prev bug the review
+    // caught (the earlier index-delta direction inference rotated the wrong
+    // way while the hook re-anchored correctly).
+    for (const count of [2, 3, 4, 5]) {
+      for (const dir of ["next", "prev"] as const) {
+        const frames = [...walk(count, Array.from({ length: count + 2 }, () => dir))];
+        for (let i = 1; i < frames.length; i++) {
+          const before = frames[i - 1].assignments;
+          const after = frames[i].assignments;
+          const oldCenterSlot = before.findIndex((a) => a.offset === 0);
+          expect(after[oldCenterSlot].offset).toBe(dir === "next" ? -1 : 1);
+          expect(after[oldCenterSlot].itemIndex).toBe(before[oldCenterSlot].itemIndex);
+        }
+      }
+    }
+  });
+
   it("each step changes exactly one slot's item (only the new far side loads), for count >= 4", () => {
     for (const count of [4, 5, 15]) {
       for (const steps of [NEXT10, MIXED]) {
@@ -92,13 +113,24 @@ describe("trackSlotAssignment / advanceCenterSlot", () => {
     }
   });
 
-  it("2-item gallery: both side slots always show the other photo", () => {
-    for (const frame of walk(2, MIXED)) {
+  it("2-item gallery: both side slots always show the other photo, and each step changes exactly one slot", () => {
+    const frames = [...walk(2, MIXED)];
+    for (const frame of frames) {
       const sides = frame.assignments.filter((a) => a.offset !== 0);
       expect(sides).toHaveLength(2);
       for (const side of sides) {
         expect(side.itemIndex).toBe((frame.index + 1) % 2);
       }
+    }
+    for (let i = 1; i < frames.length; i++) {
+      const changed = SLOTS.filter(
+        (s) =>
+          frames[i - 1].assignments[s].itemIndex !==
+          frames[i].assignments[s].itemIndex,
+      );
+      // The one that changes is the new FAR side — off-screen, never center.
+      expect(changed).toHaveLength(1);
+      expect(frames[i].assignments[changed[0]].offset).not.toBe(0);
     }
   });
 
@@ -138,5 +170,11 @@ describe("reanchorOffset", () => {
     // Finger drifted +12px but the velocity said "next": the rotation is
     // toward next, so the re-anchor must be on the right regardless of dx.
     expect(reanchorOffset(12, 800, "next")).toBe(812);
+  });
+
+  it("a full-width drag re-anchors to exactly 0 — the hook must settle instantly, not wait out a dead transition", () => {
+    // dx is clamped to ±width in track mode, so this is the extreme input.
+    expect(reanchorOffset(-800, 800, "next")).toBe(0);
+    expect(reanchorOffset(800, 800, "prev")).toBe(0);
   });
 });

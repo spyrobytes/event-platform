@@ -42,12 +42,14 @@ type Props = {
  * left, 0 = center, +1 = peeking right), given which slot currently holds
  * the center role.
  *
- * Slots are the PERSISTENT identities (React keys); photos rotate through
- * them so that on every index step the incoming side slide simply *becomes*
- * the center — same element, same src, no on-screen swap — and only the far
- * slide (off-screen) is assigned a new photo. That preserves the
- * frame-holding smoothness rule the whole swipe stack is built on: no
- * visible element ever changes src or mounts.
+ * Photos rotate through the three slots so that on every index step the
+ * incoming side slide simply *becomes* the center — same element, same src,
+ * no on-screen swap — and only the far slide (off-screen) is assigned a new
+ * photo. Slides are keyed by slot + item id: the two slots that keep their
+ * item across a step keep their elements (and decoded frames), while the
+ * far slide's key change remounts it off-screen with fresh load state. That
+ * preserves the frame-holding smoothness rule the whole swipe stack is
+ * built on: no visible element ever changes src or mounts.
  *
  * `centerSlot` is SEQUENTIAL state, advanced ±1 (mod 3) per navigation via
  * advanceCenterSlot — it cannot be derived from the index: stepping across
@@ -112,6 +114,27 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
     });
   }, [onClose]);
 
+  // Which persistent slot holds the center role — sequential rotation state
+  // (see trackSlotAssignment). Rotated inside the SAME event that navigates
+  // (the wrapped onPrev/onNext below), so the slide rotation and the parent
+  // index update batch into one commit, AND the rotation direction comes
+  // from the same call site the hook records for reanchor() — the two can
+  // never disagree. (An index-delta inference would: a 2-item album's prev
+  // step is indistinguishable from next by index alone, but NOT by glide
+  // geometry — the review caught the wrong slide on screen mid-glide.)
+  // The count guard keeps a single-photo album's keyboard no-op nav from
+  // re-seating its lone slide.
+  const count = items.length;
+  const [centerSlot, setCenterSlot] = useState(0);
+  const handlePrev = useCallback(() => {
+    if (count > 1) setCenterSlot((s) => advanceCenterSlot(s, "prev"));
+    onPrev();
+  }, [count, onPrev]);
+  const handleNext = useCallback(() => {
+    if (count > 1) setCenterSlot((s) => advanceCenterSlot(s, "next"));
+    onNext();
+  }, [count, onNext]);
+
   // Swipe / drag navigation (mouse + touch + pen) in track mode. The hook
   // owns the imperative track translate + stage contract, the busy-gated
   // keyboard nav (Esc / ← / → via onClose), the backdrop drag/close
@@ -120,29 +143,13 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
   const reducedMotion = useReducedMotion();
   const { contentRef, handlers, backdropProps, prev, next, reanchor } =
     useSwipeNavigation<HTMLDivElement>({
-      onPrev,
-      onNext,
+      onPrev: handlePrev,
+      onNext: handleNext,
       onClose: closeLightbox,
       enabled: items.length > 1,
       reducedMotion,
       track: true,
     });
-
-  // Which persistent slot holds the center role. Sequential rotation state
-  // (see trackSlotAssignment) adjusted during render — React's documented
-  // previous-render-comparison pattern — so the rotated slide positions and
-  // the new index land in the same commit. Direction is inferred from the
-  // ±1 index step; a 2-item album matches "next" for both directions, which
-  // is harmless there (both side slots show the same photo).
-  const [slotState, setSlotState] = useState({ index, centerSlot: 0 });
-  if (slotState.index !== index) {
-    const direction =
-      index === (slotState.index + 1) % items.length ? "next" : "prev";
-    setSlotState({
-      index,
-      centerSlot: advanceCenterSlot(slotState.centerSlot, direction),
-    });
-  }
 
   // Track-mode rotation partner: when the index commits, the slides render
   // into their rotated slots and this layout effect re-anchors the track
@@ -182,7 +189,7 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
   // Side slides double as the ±1 preload (they fetch the same rendition the
   // stage uses), so the old off-screen AdjacentPreloads stubs are gone. A
   // single-photo album needs no track — render just the center slide.
-  const slots = items.length > 1 ? [0, 1, 2] : [slotState.centerSlot];
+  const slots = items.length > 1 ? [0, 1, 2] : [centerSlot];
 
   const node = (
     <div
@@ -243,20 +250,25 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
             {slots.map((slot) => {
               const { offset, itemIndex } = trackSlotAssignment(
                 slot,
-                slotState.centerSlot,
+                centerSlot,
                 index,
                 items.length,
               );
+              const item = items[itemIndex];
               return (
                 <TrackSlide
-                  // Keyed by SLOT, not photo: elements persist across
-                  // rotations, so the slide gliding in keeps its decoded
-                  // frame when it becomes center, and only the off-screen
-                  // far slide ever changes src. A per-item key would
-                  // remount the center and re-show the blur backdrop —
-                  // the flash the organizer reported pre-#241.
-                  key={`slot-${slot}`}
-                  item={items[itemIndex]}
+                  // Keyed by slot + photo: across a rotation the entering
+                  // side and the old center both keep their item, so their
+                  // keys — and therefore their elements and decoded frames —
+                  // persist (the center NEVER remounts on screen; a per-item
+                  // key alone would collide in a 2-photo album where both
+                  // sides show the same photo). Only the far side's item
+                  // changes, and its key change remounts it OFF-screen with
+                  // fresh per-element load state — which is what makes the
+                  // stale-peek guard race-free: a stale load event can't
+                  // outlive its element.
+                  key={`${slot}-${item.id}`}
+                  item={item}
                   offset={offset}
                 />
               );
@@ -289,17 +301,21 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
 }
 
 /**
- * One persistent slide of the track. Sits at `offset * 100%` of the
- * viewport; aria-hidden unless centered.
+ * One slide of the track. Sits at `offset * 100%` of the viewport;
+ * aria-hidden unless centered. Its `slot + item` key means the element
+ * lives exactly as long as this slot shows this photo — so `item.src`
+ * never changes within an element's lifetime, and `settled` below can't
+ * be confused by load events from a previous assignment.
  *
- * Stale-peek guard: when this (off-screen) slide is assigned a new photo,
- * the persistent <img> keeps showing its PREVIOUS bitmap until the new one
- * arrives — frame-holding, great for the center, misleading for a peek
- * (dragging would reveal the wrong photo). Until the assigned src has
- * actually loaded, the img is hidden behind the item's blur placeholder,
- * so an early peek shows a blur of the REAL neighbor instead of a stale
- * frame. After load, `decode()` pre-decompresses the bitmap off-screen so
- * the first composite during a drag doesn't pay decode cost mid-gesture.
+ * Stale-peek guard — SIDES ONLY: a freshly assigned side slide has no
+ * meaningful frame to hold, so until its src loads (or errors) the img is
+ * hidden behind the item's blur placeholder — an early peek shows a blur
+ * of the REAL neighbor, never the wrong photo. The CENTER is exempt: it
+ * paints progressively and frame-holds like the pre-track lightbox (the
+ * organizer-approved no-flash behavior), including when fast navigation
+ * rotates a still-loading side into view. After load, `decode()`
+ * pre-decompresses the bitmap off-screen so the first composite during a
+ * drag doesn't pay decode cost mid-gesture.
  */
 function TrackSlide({
   item,
@@ -309,8 +325,12 @@ function TrackSlide({
   offset: -1 | 0 | 1;
 }) {
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-  const pending = loadedSrc !== item.src;
+  // "This element's src has finished loading — or definitively failed."
+  // On error we settle rather than blur forever: the browser's broken-image
+  // state is more honest than a permanent placeholder (and matches the
+  // pre-track lightbox, which had no special error handling either).
+  const [settled, setSettled] = useState(false);
+  const hideStale = !settled && offset !== 0;
 
   return (
     <div
@@ -327,7 +347,7 @@ function TrackSlide({
         alt={offset === 0 ? item.alt : ""}
         fill
         sizes="95vw"
-        className={cn("object-contain", pending && "invisible")}
+        className={cn("object-contain", hideStale && "invisible")}
         placeholder={item.blurDataUrl ? "blur" : "empty"}
         blurDataURL={item.blurDataUrl ?? undefined}
         priority={offset === 0}
@@ -340,13 +360,14 @@ function TrackSlide({
         draggable={false}
         unoptimized={!isAllowedImageHost(item.src)}
         onLoad={() => {
-          setLoadedSrc(item.src);
+          setSettled(true);
           // Decode while off-screen so the first drag composites a
           // ready bitmap instead of decoding mid-gesture.
           imgRef.current?.decode?.().catch(() => {});
         }}
+        onError={() => setSettled(true)}
       />
-      {pending && item.blurDataUrl && (
+      {hideStale && item.blurDataUrl && (
         <div
           aria-hidden
           className="absolute inset-0 bg-contain bg-center bg-no-repeat [background-image:var(--peek-blur)]"
