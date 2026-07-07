@@ -32,4 +32,10 @@ export type GalleryLayoutProps = {
    *  this to gate prefetch nudges (e.g. "load more when current >=
    *  length - 3 AND hasMore"). False after the last page lands. */
   hasMore?: boolean;
+  /** True while the orchestrator's GalleryLightbox portal is open.
+   *  Layouts with their OWN document-level keyboard handlers (Slideshow)
+   *  must no-op while open — the lightbox owns keyboard nav then, and
+   *  both listeners sit on `document`, so nothing else suppresses the
+   *  double-handling. */
+  isLightboxOpen?: boolean;
 };

@@ -5,6 +5,8 @@ import { flushSync } from "react-dom";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { isAllowedImageHost } from "@/lib/images/host";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
 import type { PublicGalleryItem } from "@/schemas/gallery";
 
 // useSyncExternalStore-based "is the client mounted" check. Returns false
@@ -26,8 +28,10 @@ type Props = {
 
 /**
  * Full-screen image viewer rendered via portal so it escapes the parent
- * stacking context. Keyboard nav (Esc / ← / →), focus trap, body-scroll
- * lock while open, and a flushSync close to mitigate the BFCache ghost
+ * stacking context. Swipe/drag + keyboard nav (Esc / ← / →) come from
+ * useSwipeNavigation (busy-gated, with Esc routed through the flushSync
+ * close below); this component owns the Tab focus trap, body-scroll lock
+ * while open, and the flushSync close that mitigates the BFCache ghost
  * issue documented in project_v2_mobile_nav_bfcache.
  *
  * Verify on a real mobile browser before flipping that memory to resolved:
@@ -53,26 +57,26 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
     });
   }, [onClose]);
 
-  // Keyboard handling: nav (Esc / ← / →) + focus-trap Tab boundary wrap.
-  // Re-bound on dep changes so the closure sees current handlers.
+  // Swipe / drag navigation (mouse + touch + pen). The hook owns the
+  // imperative translate + cursor on the stage, the busy-gated keyboard
+  // nav (Esc / ← / → via onClose), the backdrop drag/close contract, and
+  // busy-gated prev/next for the arrow buttons. Esc goes through
+  // closeLightbox so the flushSync BFCache mitigation is preserved.
+  const reducedMotion = useReducedMotion();
+  const { contentRef, handlers, backdropProps, prev, next } =
+    useSwipeNavigation<HTMLDivElement>({
+      onPrev,
+      onNext,
+      onClose: closeLightbox,
+      enabled: items.length > 1,
+      reducedMotion,
+    });
+
+  // Focus-trap Tab boundary wrap. (Esc/arrow handling lives in the swipe
+  // hook above, where it can be gated on the gesture's busy state.)
   useEffect(() => {
     if (!mounted) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeLightbox();
-        return;
-      }
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        onPrev();
-        return;
-      }
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        onNext();
-        return;
-      }
       if (e.key === "Tab") {
         // Real focus trap: query focusables inside the dialog and wrap
         // at the boundaries. Without this, Tab past the last button
@@ -100,7 +104,7 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [mounted, closeLightbox, onPrev, onNext]);
+  }, [mounted]);
 
   // Body-scroll lock while open. Saves the prior overflow so we restore
   // it cleanly even if it was already non-default (some themes set
@@ -151,10 +155,9 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
       aria-label={current.alt || `Photo ${index + 1} of ${items.length}`}
       tabIndex={-1}
       className="fixed inset-0 z-[200] flex flex-col bg-black/95 outline-none"
-      onClick={(e) => {
-        // Click on backdrop (not on the image or controls) closes.
-        if (e.target === e.currentTarget) closeLightbox();
-      }}
+      // Backdrop tap closes; a drag that ends here doesn't (the hook's
+      // backdropProps package the didDrag disambiguation + re-arm).
+      {...backdropProps}
     >
       <header className="flex items-center justify-between px-4 py-3 text-white">
         <span className="text-sm tabular-nums" aria-live="polite">
@@ -174,18 +177,19 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
 
       <div
         className="relative flex flex-1 items-center justify-center overflow-hidden"
-        onClick={(e) => {
-          // Mirror the dialog-root backdrop-close handler so clicks on
-          // the dark space around the image (between the image wrapper
-          // and the flex container's edges) also close. Without this,
-          // most of the on-screen backdrop area was unclickable.
-          if (e.target === e.currentTarget) closeLightbox();
-        }}
+        // Mirror the dialog-root backdrop handler so the dark space
+        // around the image also closes on a tap (but never on the click
+        // that ends a drag). Spreading the same backdropProps on both
+        // elements is safe: the inner handler consumes the drag guard and
+        // the bubbled outer click fails its own-target check.
+        {...backdropProps}
       >
         {items.length > 1 && (
           <button
             type="button"
-            onClick={onPrev}
+            // Busy-gated wrapper: a click mid-gesture or mid-settle-glide
+            // can't swap src mid-animation.
+            onClick={prev}
             className="absolute left-2 z-10 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white md:left-4"
             aria-label="Previous photo"
           >
@@ -194,7 +198,19 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
             </span>
           </button>
         )}
-        <div className="relative h-full max-h-[85vh] w-full max-w-[95vw]">
+        {/* Stage — the single element the swipe gesture translates.
+            touch-action keeps vertical scroll + pinch-zoom native while we
+            own horizontal; will-change pre-materializes the compositor
+            layer so the FIRST drag doesn't jank promoting it — only when a
+            gesture is possible: a single-photo lightbox would otherwise
+            hold a full-viewport GPU layer for nothing. */}
+        <div
+          ref={contentRef}
+          {...handlers}
+          className={`relative h-full max-h-[85vh] w-full max-w-[95vw] touch-pan-y touch-pinch-zoom select-none ${
+            items.length > 1 ? "will-change-transform" : ""
+          }`}
+        >
           <Image
             // Intentionally NO `key` here. With a per-item key, every
             // prev/next click unmounts the Image and a fresh one mounts
@@ -215,6 +231,9 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
             placeholder={current.blurDataUrl ? "blur" : "empty"}
             blurDataURL={current.blurDataUrl ?? undefined}
             priority
+            // Native HTML5 image-drag would hijack mouse swipes (ghost
+            // image + lostpointercapture mid-gesture).
+            draggable={false}
             unoptimized={!isAllowedImageHost(current.src)}
           />
         </div>
@@ -222,7 +241,7 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
         {items.length > 1 && (
           <button
             type="button"
-            onClick={onNext}
+            onClick={next}
             className="absolute right-2 z-10 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white md:right-4"
             aria-label="Next photo"
           >
