@@ -45,6 +45,14 @@ import type {
  * the photo glides home. No flushSync, no separate slide panes — both of those
  * cost smoothness on real hardware. Only the snap-back is animated.
  *
+ * Filmstrip track mode (`track: true`): `contentRef` is a 3-slide track and
+ * neighbors peek in during the drag. The commit contract changes shape — the
+ * hook still navigates at release, but the spring is completed by the
+ * consumer calling `reanchor()` from a useLayoutEffect after its slides
+ * rotate, so the rotation and the transform re-anchor land in one paint. The
+ * no-on-screen-src-swap rule still holds: slides are persistent slot-keyed
+ * elements whose src only changes while off-screen (see GalleryLightbox).
+ *
  * The stage's per-element gesture requirements are applied imperatively to
  * `contentRef` by the hook itself — `touch-action: pan-y pinch-zoom` (we own
  * horizontal, the browser keeps vertical scroll + pinch-zoom) and
@@ -161,6 +169,22 @@ export function resolveSwipe({
   return dir > 0 ? "prev" : "next";
 }
 
+/**
+ * Track-mode re-anchor math. After a committed navigation the consumer's
+ * slides rotate one slot (the world shifts by one slide width), so to keep
+ * the pixels identical the track transform must jump from `dx` to
+ * `dx ± width` in the same frame — then spring to 0 to finish centering the
+ * incoming slide. "next" enters from the right (dx ≤ 0 → re-anchor right of
+ * center), "prev" mirrors it.
+ */
+export function reanchorOffset(
+  dx: number,
+  width: number,
+  direction: "prev" | "next",
+): number {
+  return dx + (direction === "next" ? width : -width);
+}
+
 // --- Hook -----------------------------------------------------------------
 
 export type UseSwipeNavigationOptions = {
@@ -175,6 +199,18 @@ export type UseSwipeNavigationOptions = {
   enabled: boolean;
   /** When true, skip the live translate and commit instantly on threshold. */
   reducedMotion: boolean;
+  /**
+   * Filmstrip track mode. `contentRef` is a multi-slide TRACK (neighbors
+   * peek during the drag) instead of a single stage:
+   *  - the drag translate skips the opacity falloff (carousels don't fade);
+   *  - a committed swipe navigates at release but does NOT spring here —
+   *    the consumer must rotate its slides on the index change and call
+   *    `reanchor()` from a `useLayoutEffect`, which re-anchors the track
+   *    transform for the rotated slide positions and springs it home. Busy
+   *    is held from release through the spring (with a fallback reset in
+   *    case the consumer's reanchor never comes).
+   */
+  track?: boolean;
   minSwipePx?: number;
   swipeFraction?: number;
   velocityPxPerMs?: number;
@@ -206,6 +242,10 @@ export type UseSwipeNavigationResult<T extends HTMLElement = HTMLDivElement> = {
   /** Busy-gated onPrev/onNext for arrow buttons. */
   prev: () => void;
   next: () => void;
+  /** Track mode only: call from a useLayoutEffect after the slides have
+   *  rotated on an index change. Re-anchors the track transform for the
+   *  rotated slot positions and springs it home. No-op outside track mode. */
+  reanchor: () => void;
 };
 
 type SwipePhase = "idle" | "dragging" | "snapping-back";
@@ -236,6 +276,11 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBusyRef = useRef(false);
   const didDragRef = useRef(false);
+  // Direction of the most recent hook-driven navigation (gesture, arrow, or
+  // keyboard). Track mode's reanchor() reads it instead of taking a param so
+  // a 2-item wrap-around gallery (where next and prev land on the same index)
+  // can't mis-derive the glide direction from index deltas.
+  const lastNavDirRef = useRef<"prev" | "next">("next");
 
   // Phase + its "busy" mirror, kept in lockstep. isBusyRef (read by the consumer)
   // is true for BOTH "dragging" and "snapping-back", so a committed swipe's
@@ -250,6 +295,10 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
     const el = contentRef.current;
     if (!el) return;
     el.style.transform = `translate3d(${x}px, 0, 0)`;
+    // Single-stage mode fades the card as it leaves; a track doesn't — the
+    // neighbor peeking in IS the depart cue, and fading the strip would dim
+    // the incoming photo too.
+    if (optsRef.current.track) return;
     const frac = Math.min(Math.abs(x) / Math.max(widthRef.current, 1), 1);
     el.style.opacity = String(1 - frac * OPACITY_FALLOFF);
   }, []);
@@ -289,6 +338,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   const finishSnapBack = useCallback(() => {
     clearFallback();
     if (phaseRef.current === "snapping-back") {
+      dxRef.current = 0;
       resetStylesImmediate();
       setPhase("idle");
     }
@@ -310,6 +360,7 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   // home. Holds phase in "snapping-back" until it settles, which keeps isBusyRef
   // true so external nav stays gated through the glide.
   const snapBack = useCallback(() => {
+    dxRef.current = 0; // consumed — a later reanchor must not reuse a stale drag
     if (optsRef.current.reducedMotion) {
       resetStylesImmediate();
       setPhase("idle");
@@ -449,18 +500,31 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
         velocityPxPerMs: opts.velocityPxPerMs,
       });
 
-      // Commit (past threshold): navigate — the lightbox's single persistent
-      // <EventImage> swaps src in place and holds the previous frame until the
-      // new one decodes (the smooth path the arrows use). An under-threshold
-      // release skips the nav. Either way snapBack springs the photo home; it
-      // holds isBusyRef set through the glide so an arrow or button press
-      // can't swap src mid-animation. No flushSync, no slide panes — both cost
-      // smoothness on real hardware.
-      if (result === "prev") opts.onPrev();
-      else if (result === "next") opts.onNext();
+      // Commit (past threshold): navigate. Single-stage mode: the persistent
+      // image swaps src in place (frame-held) and snapBack springs it home.
+      // Track mode: navigation triggers the consumer's slide rotation; its
+      // layout-effect reanchor() (not snapBack here) re-anchors the track for
+      // the rotated slot positions and springs it — so hold busy from release
+      // and arm the fallback in case the reanchor never comes. React flushes
+      // discrete pointerup updates synchronously, so the rotation + reanchor
+      // land before any other event can slip into the gap. An under-threshold
+      // release skips the nav; either way isBusyRef stays set through the
+      // glide so an arrow or key press can't swap src mid-animation. No
+      // flushSync, no on-screen src swaps — both cost smoothness on real
+      // hardware.
+      if (result === "prev" || result === "next") {
+        lastNavDirRef.current = result;
+        if (result === "prev") opts.onPrev();
+        else opts.onNext();
+        if (opts.track) {
+          setPhase("snapping-back");
+          armFallback(SNAP_MS);
+          return;
+        }
+      }
       snapBack();
     },
-    [endGesture, safeReleaseCapture, snapBack, setPhase],
+    [armFallback, endGesture, safeReleaseCapture, snapBack, setPhase],
   );
 
   // Cancellation (browser-cancelled gesture or lost capture): snap back. Both
@@ -556,13 +620,49 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
   );
 
   // Busy-gated arrow nav: a click mid-gesture or mid-glide would swap src
-  // mid-animation, the same race the keyboard gate below prevents.
+  // mid-animation, the same race the keyboard gate below prevents. Direction
+  // is recorded so track mode's reanchor glides arrow presses too — button,
+  // key, and finger all produce the same one-step motion.
   const prev = useCallback(() => {
-    if (!isBusyRef.current) optsRef.current.onPrev();
+    if (isBusyRef.current) return;
+    lastNavDirRef.current = "prev";
+    optsRef.current.onPrev();
   }, []);
   const next = useCallback(() => {
-    if (!isBusyRef.current) optsRef.current.onNext();
+    if (isBusyRef.current) return;
+    lastNavDirRef.current = "next";
+    optsRef.current.onNext();
   }, []);
+
+  // Track-mode partner of the consumer's slide rotation: call from a
+  // useLayoutEffect keyed on the lightbox index, AFTER the slides have
+  // re-rendered into their rotated slots. Jumps the track transform to the
+  // equivalent position for the rotated world (net visual change: zero, both
+  // land in the same paint) and springs it home to finish centering the
+  // incoming slide. No-op outside track mode.
+  const reanchor = useCallback(() => {
+    if (!optsRef.current.track) return;
+    const el = contentRef.current;
+    if (!el) return;
+    const width = el.offsetWidth || widthRef.current || 1;
+    const from = reanchorOffset(dxRef.current, width, lastNavDirRef.current);
+    dxRef.current = 0;
+    clearFallback();
+    if (optsRef.current.reducedMotion) {
+      resetStylesImmediate();
+      setPhase("idle");
+      return;
+    }
+    setPhase("snapping-back");
+    el.style.transition = "none";
+    el.style.transform = `translate3d(${from}px, 0, 0)`;
+    // Force a reflow so the spring below animates FROM the re-anchored
+    // position instead of coalescing both writes into one style update.
+    void el.offsetWidth;
+    el.style.transition = SNAP_TRANSITION;
+    el.style.transform = "translate3d(0, 0, 0)";
+    armFallback(SNAP_MS);
+  }, [armFallback, clearFallback, resetStylesImmediate, setPhase]);
 
   // Lightbox keyboard nav, owned by the hook so no consumer can copy half of
   // it (Escape must close ungated; arrows must be busy-gated). Active only
@@ -578,12 +678,17 @@ export function useSwipeNavigation<T extends HTMLElement = HTMLDivElement>(
         return;
       }
       if (isBusyRef.current) return;
-      if (e.key === "ArrowRight") opts.onNext();
-      else if (e.key === "ArrowLeft") opts.onPrev();
+      if (e.key === "ArrowRight") {
+        lastNavDirRef.current = "next";
+        opts.onNext();
+      } else if (e.key === "ArrowLeft") {
+        lastNavDirRef.current = "prev";
+        opts.onPrev();
+      }
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [hasKeyboard]);
 
-  return { contentRef, handlers, isBusyRef, backdropProps, prev, next };
+  return { contentRef, handlers, isBusyRef, backdropProps, prev, next, reanchor };
 }
