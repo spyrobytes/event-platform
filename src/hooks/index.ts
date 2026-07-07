@@ -62,6 +62,7 @@ export {
   lockAxis,
   resolveSwipe,
   windowVelocity,
+  reanchorOffset,
   type VelocitySample,
   type BackdropProps,
   type UseSwipeNavigationOptions,
