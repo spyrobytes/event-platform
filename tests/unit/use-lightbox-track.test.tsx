@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
+import { renderHook, act } from "@testing-library/react";
 import {
+  useLightboxTrack,
   trackSlotAssignment,
   advanceCenterSlot,
-} from "@/components/features/PostEventGallery/GalleryLightbox";
+} from "@/hooks/use-lightbox-track";
 import { reanchorOffset } from "@/hooks/use-swipe-navigation";
 
 const SLOTS = [0, 1, 2];
@@ -176,5 +178,100 @@ describe("reanchorOffset", () => {
     // dx is clamped to ±width in track mode, so this is the extreme input.
     expect(reanchorOffset(-800, 800, "next")).toBe(0);
     expect(reanchorOffset(800, 800, "prev")).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Hook-level: key/element stability across navigation (renderHook, no DOM
+// track attached — reanchor no-ops, rotation state still advances).
+// ---------------------------------------------------------------------------
+
+// useLightboxTrack pulls in useReducedMotion, which reads matchMedia —
+// jsdom doesn't implement it.
+beforeAll(() => {
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }) as unknown as typeof window.matchMedia;
+});
+
+type Item = { id: string };
+
+function setup(count: number, startIndex = 0) {
+  const items: Item[] = Array.from({ length: count }, (_, i) => ({ id: `item-${i}` }));
+  let index = startIndex;
+  const view = renderHook(
+    ({ idx }: { idx: number }) =>
+      useLightboxTrack<Item>({
+        items,
+        index: idx,
+        getItemKey: (it) => it.id,
+        onPrev: () => {
+          index = (index - 1 + count) % count;
+        },
+        onNext: () => {
+          index = (index + 1) % count;
+        },
+      }),
+    { initialProps: { idx: startIndex } },
+  );
+  const nav = (dir: "prev" | "next") => {
+    act(() => {
+      (dir === "prev" ? view.result.current.prev : view.result.current.next)();
+    });
+    view.rerender({ idx: index });
+  };
+  return { view, nav };
+}
+
+describe("useLightboxTrack slide keys", () => {
+  it("the slide entering from a side keeps its key (and element) when it becomes center", () => {
+    for (const count of [2, 3, 5]) {
+      for (const dir of ["next", "prev"] as const) {
+        const { view, nav } = setup(count);
+        for (let step = 0; step < count + 2; step++) {
+          const enteringOffset = dir === "next" ? 1 : -1;
+          const entering = view.result.current.slides.find((s) => s.offset === enteringOffset);
+          nav(dir);
+          const center = view.result.current.slides.find((s) => s.offset === 0);
+          expect(center?.key).toBe(entering?.key);
+          expect(center?.item).toBe(entering?.item);
+        }
+      }
+    }
+  });
+
+  it("2-item prev regression: the slide visible mid-glide (old center at +1) keeps its key and item", () => {
+    // The review-caught bug: prev and next are indistinguishable by index
+    // delta in a 2-item album, so an index-derived rotation put a
+    // mid-src-swap slide on screen. Direction now comes from the wrapped
+    // callbacks, so the old center must land at +1 unchanged.
+    const { view, nav } = setup(2);
+    const oldCenter = view.result.current.slides.find((s) => s.offset === 0);
+    nav("prev");
+    const trailing = view.result.current.slides.find((s) => s.offset === 1);
+    expect(trailing?.key).toBe(oldCenter?.key);
+    expect(trailing?.item).toBe(oldCenter?.item);
+  });
+
+  it("the new far side gets a NEW key (remounts off-screen with fresh load state)", () => {
+    const { view, nav } = setup(5);
+    const keysBefore = view.result.current.slides.map((s) => s.key);
+    nav("next");
+    const after = view.result.current.slides;
+    const newKeys = after.filter((s) => !keysBefore.includes(s.key));
+    expect(newKeys).toHaveLength(1);
+    expect(newKeys[0].offset).not.toBe(0);
+  });
+
+  it("a single-photo album renders one centered slide and navigation does not re-seat it", () => {
+    const { view, nav } = setup(1);
+    expect(view.result.current.slides).toHaveLength(1);
+    const key = view.result.current.slides[0].key;
+    expect(view.result.current.slides[0].offset).toBe(0);
+    nav("next"); // parent index wraps to itself; slide must not re-seat
+    expect(view.result.current.slides).toHaveLength(1);
+    expect(view.result.current.slides[0].key).toBe(key);
   });
 });

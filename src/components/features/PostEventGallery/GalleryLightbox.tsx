@@ -1,21 +1,13 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import type { CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { isAllowedImageHost } from "@/lib/images/host";
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { useLightboxTrack } from "@/hooks/use-lightbox-track";
+import { LightboxTrack, LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import type { PublicGalleryItem } from "@/schemas/gallery";
@@ -38,59 +30,11 @@ type Props = {
 };
 
 /**
- * Which photo a track slot shows, and where the slot sits (-1 = peeking
- * left, 0 = center, +1 = peeking right), given which slot currently holds
- * the center role.
- *
- * Photos rotate through the three slots so that on every index step the
- * incoming side slide simply *becomes* the center — same element, same src,
- * no on-screen swap — and only the far slide (off-screen) is assigned a new
- * photo. Slides are keyed by slot + item id: the two slots that keep their
- * item across a step keep their elements (and decoded frames), while the
- * far slide's key change remounts it off-screen with fresh load state. That
- * preserves the frame-holding smoothness rule the whole swipe stack is
- * built on: no visible element ever changes src or mounts.
- *
- * `centerSlot` is SEQUENTIAL state, advanced ±1 (mod 3) per navigation via
- * advanceCenterSlot — it cannot be derived from the index: stepping across
- * an album-boundary wrap on a count that isn't a multiple of 3 would
- * re-seat the center into a different slot and swap the visible src
- * (caught by the invariant tests).
- *
- * Invariants (unit-tested):
- *  - the three slots always cover offsets {-1, 0, +1};
- *  - a slot's item is always items[(index + offset) mod count];
- *  - any navigation sequence (including wraps) keeps two slots' items
- *    unchanged per step — the entering side becomes the center, and only
- *    the new far side changes.
- */
-export function trackSlotAssignment(
-  slot: number,
-  centerSlot: number,
-  index: number,
-  count: number,
-): { offset: -1 | 0 | 1; itemIndex: number } {
-  const m = (slot - centerSlot + 3) % 3;
-  const offset = (m === 2 ? -1 : m) as -1 | 0 | 1;
-  const itemIndex = (((index + offset) % count) + count) % count;
-  return { offset, itemIndex };
-}
-
-/** Center-slot rotation for one navigation step. */
-export function advanceCenterSlot(
-  centerSlot: number,
-  direction: "prev" | "next",
-): number {
-  return (centerSlot + (direction === "next" ? 1 : 2)) % 3;
-}
-
-/**
  * Full-screen image viewer rendered via portal so it escapes the parent
- * stacking context. Swipe/drag + keyboard nav (Esc / ← / →) come from
- * useSwipeNavigation in filmstrip track mode — the stage is a 3-slide track
- * so neighbors physically peek in during the drag, and a committed swipe
- * glides the strip one step (see trackSlotAssignment for the rotation
- * contract). Focus handoff/trap and the body-scroll lock come from the
+ * stacking context. The stage is a filmstrip track (useLightboxTrack /
+ * LightboxTrackSlide own the slot rotation, stale-peek guard, and the
+ * swipe + keyboard + backdrop contracts); the side slides double as the ±1
+ * preload. Focus handoff/trap and the body-scroll lock come from the
  * shared useFocusTrap / useBodyScrollLock hooks. This component owns the
  * flushSync close that mitigates the BFCache ghost issue documented in
  * project_v2_mobile_nav_bfcache.
@@ -114,57 +58,21 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
     });
   }, [onClose]);
 
-  // Which persistent slot holds the center role — sequential rotation state
-  // (see trackSlotAssignment). Rotated inside the SAME event that navigates
-  // (the wrapped onPrev/onNext below), so the slide rotation and the parent
-  // index update batch into one commit, AND the rotation direction comes
-  // from the same call site the hook records for reanchor() — the two can
-  // never disagree. (An index-delta inference would: a 2-item album's prev
-  // step is indistinguishable from next by index alone, but NOT by glide
-  // geometry — the review caught the wrong slide on screen mid-glide.)
-  // The count guard keeps a single-photo album's keyboard no-op nav from
-  // re-seating its lone slide.
-  const count = items.length;
-  const [centerSlot, setCenterSlot] = useState(0);
-  const handlePrev = useCallback(() => {
-    if (count > 1) setCenterSlot((s) => advanceCenterSlot(s, "prev"));
-    onPrev();
-  }, [count, onPrev]);
-  const handleNext = useCallback(() => {
-    if (count > 1) setCenterSlot((s) => advanceCenterSlot(s, "next"));
-    onNext();
-  }, [count, onNext]);
-
-  // Swipe / drag navigation (mouse + touch + pen) in track mode. The hook
-  // owns the imperative track translate + stage contract, the busy-gated
-  // keyboard nav (Esc / ← / → via onClose), the backdrop drag/close
-  // contract, and busy-gated prev/next for the arrow buttons. Esc goes
+  // Filmstrip track: slot rotation + swipe/drag + busy-gated keyboard nav
+  // (Esc / ← / → via onClose) + the backdrop drag/close contract. Esc goes
   // through closeLightbox so the flushSync BFCache mitigation is preserved.
-  const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, backdropProps, prev, next, reanchor } =
-    useSwipeNavigation<HTMLDivElement>({
-      onPrev: handlePrev,
-      onNext: handleNext,
+  const { trackRef, trackProps, backdropProps, prev, next, slides } =
+    useLightboxTrack({
+      items,
+      index,
+      getItemKey: (item) => item.id,
+      onPrev,
+      onNext,
       onClose: closeLightbox,
-      enabled: items.length > 1,
-      reducedMotion,
-      track: true,
     });
 
-  // Track-mode rotation partner: when the index commits, the slides render
-  // into their rotated slots and this layout effect re-anchors the track
-  // transform in the SAME paint (net visual change zero), then the hook
-  // springs the strip home. Must be useLayoutEffect — a plain effect would
-  // let the rotated slides paint one frame at the wrong offset.
-  const prevIndexRef = useRef(index);
-  useLayoutEffect(() => {
-    if (prevIndexRef.current === index) return;
-    prevIndexRef.current = index;
-    reanchor();
-  }, [index, reanchor]);
-
   // Focus handoff + Tab trap and body-scroll lock (shared across all
-  // lightboxes). Esc/arrow handling lives in the swipe hook above, where it
+  // lightboxes). Esc/arrow handling lives in the track hook above, where it
   // can be gated on the gesture's busy state.
   useFocusTrap(containerRef, mounted);
   useBodyScrollLock(mounted);
@@ -185,11 +93,6 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
 
   const current = items[index];
   if (!current) return null;
-
-  // Side slides double as the ±1 preload (they fetch the same rendition the
-  // stage uses), so the old off-screen AdjacentPreloads stubs are gone. A
-  // single-photo album needs no track — render just the center slide.
-  const slots = items.length > 1 ? [0, 1, 2] : [centerSlot];
 
   const node = (
     <div
@@ -244,37 +147,40 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
         )}
         {/* Viewport clips the strip; the TRACK is the element the swipe
             gesture translates (the hook applies the gesture contract —
-            touch-action / will-change / user-select / cursor — to it). */}
-        <div className="relative h-full max-h-[85vh] w-full max-w-[95vw] overflow-hidden">
-          <div ref={contentRef} {...handlers} className="absolute inset-0">
-            {slots.map((slot) => {
-              const { offset, itemIndex } = trackSlotAssignment(
-                slot,
-                centerSlot,
-                index,
-                items.length,
-              );
-              const item = items[itemIndex];
-              return (
-                <TrackSlide
-                  // Keyed by slot + photo: across a rotation the entering
-                  // side and the old center both keep their item, so their
-                  // keys — and therefore their elements and decoded frames —
-                  // persist (the center NEVER remounts on screen; a per-item
-                  // key alone would collide in a 2-photo album where both
-                  // sides show the same photo). Only the far side's item
-                  // changes, and its key change remounts it OFF-screen with
-                  // fresh per-element load state — which is what makes the
-                  // stale-peek guard race-free: a stale load event can't
-                  // outlive its element.
-                  key={`${slot}-${item.id}`}
-                  item={item}
-                  offset={offset}
-                />
-              );
-            })}
-          </div>
-        </div>
+            touch-action / will-change / user-select / cursor — to it).
+            Side slides double as the ±1 preload: they fetch the same
+            rendition the stage uses. */}
+        <LightboxTrack
+          trackRef={trackRef}
+          trackProps={trackProps}
+          className="relative h-full max-h-[85vh] w-full max-w-[95vw]"
+        >
+          {slides.map(({ key, offset, item }) => (
+              <LightboxTrackSlide
+                key={key}
+                offset={offset}
+                blurDataUrl={item.blurDataUrl}
+              >
+                {({ imageProps, hideStale, staleOverlay }) => (
+                  <>
+                    <Image
+                      src={item.src}
+                      alt={offset === 0 ? item.alt : ""}
+                      fill
+                      sizes="95vw"
+                      className={cn("object-contain", hideStale && "invisible")}
+                      placeholder={item.blurDataUrl ? "blur" : "empty"}
+                      blurDataURL={item.blurDataUrl ?? undefined}
+                      priority={offset === 0}
+                      unoptimized={!isAllowedImageHost(item.src)}
+                      {...imageProps}
+                    />
+                    {staleOverlay}
+                  </>
+                )}
+              </LightboxTrackSlide>
+          ))}
+        </LightboxTrack>
         {items.length > 1 && (
           <button
             type="button"
@@ -298,82 +204,4 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
   );
 
   return createPortal(node, document.body);
-}
-
-/**
- * One slide of the track. Sits at `offset * 100%` of the viewport;
- * aria-hidden unless centered. Its `slot + item` key means the element
- * lives exactly as long as this slot shows this photo — so `item.src`
- * never changes within an element's lifetime, and `settled` below can't
- * be confused by load events from a previous assignment.
- *
- * Stale-peek guard — SIDES ONLY: a freshly assigned side slide has no
- * meaningful frame to hold, so until its src loads (or errors) the img is
- * hidden behind the item's blur placeholder — an early peek shows a blur
- * of the REAL neighbor, never the wrong photo. The CENTER is exempt: it
- * paints progressively and frame-holds like the pre-track lightbox (the
- * organizer-approved no-flash behavior), including when fast navigation
- * rotates a still-loading side into view. After load, `decode()`
- * pre-decompresses the bitmap off-screen so the first composite during a
- * drag doesn't pay decode cost mid-gesture.
- */
-function TrackSlide({
-  item,
-  offset,
-}: {
-  item: PublicGalleryItem;
-  offset: -1 | 0 | 1;
-}) {
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  // "This element's src has finished loading — or definitively failed."
-  // On error we settle rather than blur forever: the browser's broken-image
-  // state is more honest than a permanent placeholder (and matches the
-  // pre-track lightbox, which had no special error handling either).
-  const [settled, setSettled] = useState(false);
-  const hideStale = !settled && offset !== 0;
-
-  return (
-    <div
-      aria-hidden={offset !== 0}
-      className={cn(
-        "absolute inset-0",
-        offset === -1 && "-translate-x-full",
-        offset === 1 && "translate-x-full",
-      )}
-    >
-      <Image
-        ref={imgRef}
-        src={item.src}
-        alt={offset === 0 ? item.alt : ""}
-        fill
-        sizes="95vw"
-        className={cn("object-contain", hideStale && "invisible")}
-        placeholder={item.blurDataUrl ? "blur" : "empty"}
-        blurDataURL={item.blurDataUrl ?? undefined}
-        priority={offset === 0}
-        // Side slides sit outside the clipped viewport — native lazy
-        // loading would never fetch them (same lesson as the old
-        // AdjacentPreloads stubs), and they ARE the preload now.
-        loading={offset === 0 ? undefined : "eager"}
-        // Native HTML5 image-drag would hijack mouse swipes (ghost
-        // image + lostpointercapture mid-gesture).
-        draggable={false}
-        unoptimized={!isAllowedImageHost(item.src)}
-        onLoad={() => {
-          setSettled(true);
-          // Decode while off-screen so the first drag composites a
-          // ready bitmap instead of decoding mid-gesture.
-          imgRef.current?.decode?.().catch(() => {});
-        }}
-        onError={() => setSettled(true)}
-      />
-      {hideStale && item.blurDataUrl && (
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-contain bg-center bg-no-repeat [background-image:var(--peek-blur)]"
-          style={{ "--peek-blur": `url(${item.blurDataUrl})` } as CSSProperties}
-        />
-      )}
-    </div>
-  );
 }

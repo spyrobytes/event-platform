@@ -69,6 +69,17 @@ export {
   type UseSwipeNavigationResult,
 } from "./use-swipe-navigation";
 
+// Filmstrip lightbox track (slot rotation + swipe/keyboard/backdrop contracts)
+export {
+  useLightboxTrack,
+  trackSlotAssignment,
+  advanceCenterSlot,
+  type LightboxTrackSlideData,
+  type LightboxTrackProps,
+  type UseLightboxTrackOptions,
+  type UseLightboxTrackResult,
+} from "./use-lightbox-track";
+
 // Modal focus management (focus handoff + Tab trap) for lightboxes/dialogs
 export { useFocusTrap } from "./use-focus-trap";
 

@@ -5,11 +5,10 @@ import { createPortal } from "react-dom";
 import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
-import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { useLightboxTrack } from "@/hooks/use-lightbox-track";
+import { LightboxTrack, LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
-import { AdjacentPreloads } from "@/components/media/AdjacentPreloads";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
 import { normalizeGalleryData } from "@/schemas/event-page";
 import type { GallerySection } from "@/schemas/event-page";
@@ -303,7 +302,16 @@ function GalleryItem({
 // LIGHTBOX
 // =============================================================================
 
-/** Full-screen lightbox with navigation and focus trap */
+/**
+ * Full-screen strip-of-cards lightbox: each slide is a complete card —
+ * chrome, photo, caption — sized to its own photo, so mixed aspect ratios
+ * never letterbox; neighbor cards glide in as their own objects with the
+ * backdrop visible between them. useLightboxTrack owns slot rotation,
+ * swipe/keyboard nav, and the reanchor choreography; side cards double as
+ * the ±1 preload. Slides are pointer-events-none (cards opt back in), so a
+ * tap in the gap falls through to the track, whose backdropProps close the
+ * lightbox.
+ */
 function Lightbox({
   items,
   index,
@@ -322,22 +330,15 @@ function Lightbox({
   // Focus handoff + Tab trap (shared across all lightboxes).
   useFocusTrap(dialogRef);
 
-  // Swipe / drag navigation (mouse + touch + pen). The hook owns the
-  // imperative translate + cursor on the stage, the busy-gated keyboard nav
-  // (via onClose), the backdrop drag/close contract, and busy-gated prev/next
-  // for the arrow buttons.
-  const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, backdropProps, prev, next } =
-    useSwipeNavigation<HTMLDivElement>({
+  const { trackRef, trackProps, backdropProps, prev, next, slides } =
+    useLightboxTrack({
+      items,
+      index,
+      getItemKey: (item) => item.assetId,
       onPrev,
       onNext,
       onClose,
-      enabled: items.length > 1,
-      reducedMotion,
     });
-
-  const item = items[index];
-  const captionText = item.caption || item.title;
 
   return (
     <div
@@ -400,35 +401,46 @@ function Lightbox({
         </svg>
       </button>
 
-      {/* Stage — the single element the swipe gesture translates. The single
-          persistent EventImage swaps src in place, holding the previous frame
-          until the new one decodes (the smooth path the arrows use). */}
-      <div ref={contentRef} {...handlers} className={styles.lightboxStage}>
-        <EventImage
-          src={item.url}
-          alt={item.alt}
-          width={item.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
-          height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
-          sizes="(max-width: 768px) 100vw, 80vw"
-          blurDataURL={item.blurDataUrl}
-          renditionWidths={item.renditionWidths}
-          draggable={false}
-        />
-        {captionText && (
-          <div className={styles.lightboxCaption}>{captionText}</div>
-        )}
-      </div>
+      {/* Viewport clips the card strip; the TRACK carries the gesture (the
+          hook applies touch-action / will-change / user-select / cursor to
+          it) AND the backdrop tap-to-close for the gaps between cards. */}
+      <LightboxTrack trackRef={trackRef} trackProps={trackProps} className="absolute inset-0">
+          {slides.map(({ key, offset, item }) => {
+            const captionText = item.caption || item.title;
+            return (
+              <LightboxTrackSlide
+                key={key}
+                offset={offset}
+                blurDataUrl={item.blurDataUrl}
+                center
+              >
+                {({ imageProps, hideStale, staleOverlay }) => (
+                  <div className={styles.lightboxStage}>
+                    <EventImage
+                      src={item.url}
+                      alt={offset === 0 ? item.alt : ""}
+                      width={item.width ?? DEFAULT_LIGHTBOX_FALLBACK_WIDTH}
+                      height={item.height ?? DEFAULT_LIGHTBOX_FALLBACK_HEIGHT}
+                      sizes="(max-width: 768px) 100vw, 80vw"
+                      blurDataURL={item.blurDataUrl}
+                      renditionWidths={item.renditionWidths}
+                      className={cn(hideStale && "invisible")}
+                      {...imageProps}
+                    />
+                    {captionText && (
+                      <div className={styles.lightboxCaption}>{captionText}</div>
+                    )}
+                    {staleOverlay}
+                  </div>
+                )}
+              </LightboxTrackSlide>
+            );
+          })}
+      </LightboxTrack>
 
       <div className={styles.lightboxCounter}>
         {index + 1} / {items.length}
       </div>
-
-      {/* sizes must match the stage's EventImage above. */}
-      <AdjacentPreloads
-        items={items}
-        index={index}
-        sizes="(max-width: 768px) 100vw, 80vw"
-      />
     </div>
   );
 }
