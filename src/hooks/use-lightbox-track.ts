@@ -4,6 +4,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
+  RefObject,
 } from "react";
 import { useSwipeNavigation } from "./use-swipe-navigation";
 import type {
@@ -11,7 +12,6 @@ import type {
   SwipeHandlers,
 } from "./use-swipe-navigation";
 import { useReducedMotion } from "./use-reduced-motion";
-import type { RefObject } from "react";
 
 /**
  * Shared consumer half of the filmstrip track (the hook half is
@@ -73,12 +73,16 @@ export function advanceCenterSlot(
   return (centerSlot + (direction === "next" ? 1 : 2)) % 3;
 }
 
-export type LightboxTrackSlide<T> = {
+export type LightboxTrackSlideData<T> = {
   /** React key — stable exactly as long as this slot shows this photo. */
   key: string;
   offset: -1 | 0 | 1;
   item: T;
 };
+
+/** The ONLY sanctioned spread for the track element (see trackProps). */
+export type LightboxTrackProps = SwipeHandlers<HTMLDivElement> &
+  Pick<BackdropProps, "onClick">;
 
 export type UseLightboxTrackOptions<T> = {
   items: readonly T[];
@@ -99,19 +103,16 @@ export type UseLightboxTrackResult<T> = {
   /** Spread on the track element: the swipe gesture handlers plus the
    *  backdrop tap-to-close for any track area not covered by content
    *  (e.g. the gaps between cards; a no-op when slides cover the track). */
-  trackProps: SwipeHandlers<HTMLDivElement> & Pick<BackdropProps, "onClick">;
+  trackProps: LightboxTrackProps;
   /** Spread on additional backdrop element(s) OUTSIDE the track (e.g. the
    *  dialog root around a clipped viewport). */
   backdropProps: BackdropProps;
   /** Busy-gated arrow-button navigation. */
   prev: () => void;
   next: () => void;
-  /** True while a gesture or its glide is in flight (for nav paths the
-   *  hook can't see). */
-  isBusyRef: RefObject<boolean>;
   /** Render these in order, keyed by `slide.key`. One slide when the
    *  gallery has a single photo, three otherwise. */
-  slides: Array<LightboxTrackSlide<T>>;
+  slides: Array<LightboxTrackSlideData<T>>;
 };
 
 export function useLightboxTrack<T>({
@@ -137,7 +138,7 @@ export function useLightboxTrack<T>({
   }, [count, onNext]);
 
   const reducedMotion = useReducedMotion();
-  const { contentRef, handlers, isBusyRef, backdropProps, prev, next, reanchor } =
+  const { contentRef, handlers, backdropProps, prev, next, reanchor } =
     useSwipeNavigation<HTMLDivElement>({
       onPrev: handlePrev,
       onNext: handleNext,
@@ -171,7 +172,13 @@ export function useLightboxTrack<T>({
     () => ({
       ...handlers,
       onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
-        downOnGapRef.current = e.target === e.currentTarget;
+        // Same primary/left-button filter the gesture applies: a second
+        // resting finger on the gap must not overwrite the primary press's
+        // gap/card classification (it could reclassify a photo tap as a
+        // backdrop tap and close the lightbox).
+        if (e.isPrimary && e.button === 0) {
+          downOnGapRef.current = e.target === e.currentTarget;
+        }
         handlers.onPointerDown?.(e);
       },
       onClick: (e: ReactMouseEvent<HTMLElement>) => {
@@ -185,7 +192,10 @@ export function useLightboxTrack<T>({
     [handlers, backdropProps],
   );
 
-  const slots = count > 1 ? [0, 1, 2] : [centerSlot];
+  // items=[] would make the slot modulo NaN and getItemKey(undefined)
+  // throw — hooks run above the consumers' own `return null` guards, so
+  // degrade to an empty strip instead of crashing the tree.
+  const slots = count === 0 ? [] : count > 1 ? [0, 1, 2] : [centerSlot];
   const slides = slots.map((slot) => {
     const { offset, itemIndex } = trackSlotAssignment(
       slot,
@@ -197,5 +207,5 @@ export function useLightboxTrack<T>({
     return { key: `${slot}-${getItemKey(item)}`, offset, item };
   });
 
-  return { trackRef: contentRef, trackProps, backdropProps, prev, next, isBusyRef, slides };
+  return { trackRef: contentRef, trackProps, backdropProps, prev, next, slides };
 }

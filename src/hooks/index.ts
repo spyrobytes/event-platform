@@ -74,7 +74,8 @@ export {
   useLightboxTrack,
   trackSlotAssignment,
   advanceCenterSlot,
-  type LightboxTrackSlide,
+  type LightboxTrackSlideData,
+  type LightboxTrackProps,
   type UseLightboxTrackOptions,
   type UseLightboxTrackResult,
 } from "./use-lightbox-track";

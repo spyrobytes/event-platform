@@ -164,18 +164,6 @@
   visibility: visible;
 }
 
-/* Viewport clips the card strip; the track carries the gesture and the
-   gap tap-to-close (slides are pointer-events-none, cards opt back in). */
-.lightboxViewport {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-.lightboxTrack {
-  position: absolute;
-  inset: 0;
-}
-
 .lightboxStage {
   pointer-events: auto; /* card opts back in under a pointer-events-none slide */
   max-width: min(1000px, calc(100% - 48px));

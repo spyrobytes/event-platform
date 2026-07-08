@@ -6,7 +6,7 @@ import { EventImage } from "@/components/media/EventImage";
 import { DEFAULT_LIGHTBOX_FALLBACK_WIDTH, DEFAULT_LIGHTBOX_FALLBACK_HEIGHT } from "@/components/media/image-defaults";
 import { useProgressiveReveal, GALLERY_REVEAL } from "@/hooks/use-progressive-reveal";
 import { useLightboxTrack } from "@/hooks/use-lightbox-track";
-import { LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
+import { LightboxTrack, LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { RevealMoreButton } from "@/components/media/RevealMoreButton";
@@ -404,12 +404,7 @@ function Lightbox({
       {/* Viewport clips the card strip; the TRACK carries the gesture (the
           hook applies touch-action / will-change / user-select / cursor to
           it) AND the backdrop tap-to-close for the gaps between cards. */}
-      <div className={styles.lightboxViewport}>
-        <div
-          ref={trackRef}
-          {...trackProps}
-          className={styles.lightboxTrack}
-        >
+      <LightboxTrack trackRef={trackRef} trackProps={trackProps} className="absolute inset-0">
           {slides.map(({ key, offset, item }) => {
             const captionText = item.caption || item.title;
             return (
@@ -417,7 +412,7 @@ function Lightbox({
                 key={key}
                 offset={offset}
                 blurDataUrl={item.blurDataUrl}
-                className="pointer-events-none flex items-center justify-center"
+                center
               >
                 {({ imageProps, hideStale, staleOverlay }) => (
                   <div className={styles.lightboxStage}>
@@ -441,8 +436,7 @@ function Lightbox({
               </LightboxTrackSlide>
             );
           })}
-        </div>
-      </div>
+      </LightboxTrack>
 
       <div className={styles.lightboxCounter}>
         {index + 1} / {items.length}

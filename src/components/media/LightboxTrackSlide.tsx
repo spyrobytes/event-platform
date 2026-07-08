@@ -1,16 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
+import type {
+  CSSProperties,
+  ReactNode,
+  RefObject,
+  SyntheticEvent,
+} from "react";
+import type { LightboxTrackProps } from "@/hooks/use-lightbox-track";
 import { cn } from "@/lib/utils";
 
 /**
- * Everything the slide's image element must carry for the stale-peek guard
- * (and mouse-drag safety) to work — spread it on the EventImage / next
- * Image inside the slide.
+ * Structural shell of a filmstrip lightbox: the clipping viewport and the
+ * TRACK element the swipe hook translates (and applies the gesture contract
+ * to). Keeps the viewport/track wiring in one place so template and
+ * full-bleed lightboxes can't drift; only sizing comes from the consumer.
+ */
+export function LightboxTrack({
+  trackRef,
+  trackProps,
+  className,
+  children,
+}: {
+  trackRef: RefObject<HTMLDivElement | null>;
+  /** The composed spread from useLightboxTrack — the ONLY thing that may
+   *  go on the track (raw swipe handlers + backdropProps collide). */
+  trackProps: LightboxTrackProps;
+  /** Sizing/positioning for the clipping viewport (e.g. `absolute inset-0`
+   *  for a full-screen card strip, or a max-w/max-h box for a full-bleed
+   *  stage). `overflow-hidden` is built in. */
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("overflow-hidden", className)}>
+      <div ref={trackRef} {...trackProps} className="absolute inset-0">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Everything the slide's image element must carry — spread it on the
+ * EventImage / next Image inside the slide:
+ *  - stale-peek guard plumbing (onLoad/onError),
+ *  - drag safety (draggable=false),
+ *  - and the preload contract: side slides sit OUTSIDE the clipped viewport,
+ *    where native lazy loading would never fetch them — and they ARE the ±1
+ *    preload, so they load eagerly. (Omitting this on one consumer silently
+ *    regresses preloading; it lives here so it can't be forgotten.)
  */
 export type TrackSlideImageProps = {
   draggable: false;
+  loading: "eager" | undefined;
   onLoad: (e: SyntheticEvent<HTMLImageElement>) => void;
   onError: () => void;
 };
@@ -34,6 +77,13 @@ type SlideRenderProps = {
  * renders the actual content (full-bleed image, or a complete card with
  * chrome + caption) via the render prop.
  *
+ * `center` layout (strip-of-cards): the slide is pointer-events-none and
+ * flex-centers its card, so a tap in the gap between cards falls through
+ * to the track (whose trackProps close the lightbox) — the card itself
+ * must opt back in with pointer-events: auto. This invariant is what the
+ * hook's gap-vs-card pointerdown classification depends on, so it lives
+ * here rather than as a per-consumer className.
+ *
  * Stale-peek guard — SIDES ONLY: a freshly assigned side slide has no
  * meaningful frame to hold, so until its src loads (or definitively fails)
  * the consumer hides the img behind the item's blur placeholder — an early
@@ -51,16 +101,14 @@ type SlideRenderProps = {
 export function LightboxTrackSlide({
   offset,
   blurDataUrl,
-  className,
+  center = false,
   children,
 }: {
   offset: -1 | 0 | 1;
   blurDataUrl?: string | null;
-  /** Extra shell classes — e.g. the strip-of-cards layout passes
-   *  `pointer-events-none flex items-center justify-center` so gap taps
-   *  fall through to the track's backdropProps while the card (which must
-   *  re-enable pointer-events) stays centered in the slide. */
-  className?: string;
+  /** Strip-of-cards layout: flex-center the card in a pointer-events-none
+   *  slide (the card must re-enable pointer-events itself). */
+  center?: boolean;
   children: (slide: SlideRenderProps) => ReactNode;
 }) {
   const [settled, setSettled] = useState(false);
@@ -70,6 +118,7 @@ export function LightboxTrackSlide({
     // Native HTML5 image-drag would hijack mouse swipes (ghost image +
     // lostpointercapture mid-gesture).
     draggable: false,
+    loading: offset === 0 ? undefined : "eager",
     onLoad: (e) => {
       setSettled(true);
       e.currentTarget.decode?.().catch(() => {});
@@ -93,7 +142,7 @@ export function LightboxTrackSlide({
         "absolute inset-0",
         offset === -1 && "-translate-x-full",
         offset === 1 && "translate-x-full",
-        className,
+        center && "pointer-events-none flex items-center justify-center",
       )}
     >
       {children({ imageProps, hideStale, staleOverlay })}

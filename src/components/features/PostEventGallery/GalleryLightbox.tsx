@@ -7,7 +7,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { isAllowedImageHost } from "@/lib/images/host";
 import { useLightboxTrack } from "@/hooks/use-lightbox-track";
-import { LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
+import { LightboxTrack, LightboxTrackSlide } from "@/components/media/LightboxTrackSlide";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import type { PublicGalleryItem } from "@/schemas/gallery";
@@ -150,9 +150,12 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
             touch-action / will-change / user-select / cursor — to it).
             Side slides double as the ±1 preload: they fetch the same
             rendition the stage uses. */}
-        <div className="relative h-full max-h-[85vh] w-full max-w-[95vw] overflow-hidden">
-          <div ref={trackRef} {...trackProps} className="absolute inset-0">
-            {slides.map(({ key, offset, item }) => (
+        <LightboxTrack
+          trackRef={trackRef}
+          trackProps={trackProps}
+          className="relative h-full max-h-[85vh] w-full max-w-[95vw]"
+        >
+          {slides.map(({ key, offset, item }) => (
               <LightboxTrackSlide
                 key={key}
                 offset={offset}
@@ -169,10 +172,6 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
                       placeholder={item.blurDataUrl ? "blur" : "empty"}
                       blurDataURL={item.blurDataUrl ?? undefined}
                       priority={offset === 0}
-                      // Side slides sit outside the clipped viewport —
-                      // native lazy loading would never fetch them, and
-                      // they ARE the preload.
-                      loading={offset === 0 ? undefined : "eager"}
                       unoptimized={!isAllowedImageHost(item.src)}
                       {...imageProps}
                     />
@@ -180,9 +179,8 @@ export function GalleryLightbox({ items, index, onClose, onPrev, onNext }: Props
                   </>
                 )}
               </LightboxTrackSlide>
-            ))}
-          </div>
-        </div>
+          ))}
+        </LightboxTrack>
         {items.length > 1 && (
           <button
             type="button"
