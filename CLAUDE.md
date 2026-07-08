@@ -343,6 +343,27 @@ PR title format: `feat: Add event creation form`, `fix: Resolve RSVP issue`
 
 **Don't test**: Third-party library internals, simple getters/setters, type definitions alone
 
+## Browser Automation: Playwright MCP vs. Scripts
+
+Two ways to drive a browser are available, and they trade off differently:
+
+- **Playwright MCP** (tools namespaced `mcp__playwright__*`) — a connected MCP server
+  that returns page snapshots/screenshots inline for Claude to see and reason about.
+- **Ad-hoc scripts** — Playwright driven via the project's installed package (see
+  `test:e2e`), saving output to disk and returning only file paths.
+
+Choose by task, not by habit:
+
+- **Use MCP when the value is seeing and reasoning about page state** — exploratory
+  QA, "what's broken here," interactive multi-step flows. The tokens spent pulling
+  snapshots into context buy real work.
+- **Use a script when producing artifacts** — a batch of screenshots, or a defined,
+  repeatable run (the E2E suite under `test:e2e`). MCP would route image/DOM data
+  through context that belongs on disk: cost without matching benefit.
+
+Rule of thumb: if the purpose is *Claude analyzing what's on screen*, use MCP.
+If the purpose is *producing screenshot/test files*, script it.
+
 ## Performance Targets
 
 | Metric | Target |
