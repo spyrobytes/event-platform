@@ -449,20 +449,28 @@
   justify-content: center;
   text-align: center;
   opacity: 0;
-  transform: translateY(10px);
+  /* --fit-scale is set by useFitScale when natural content height exceeds
+     the card face — shrinks the whole stack instead of clipping the RSVP. */
+  transform: translateY(10px) scale(var(--fit-scale, 1));
   transition: opacity 0.6s ease, transform 0.6s ease;
   transition-delay: 0.8s;
 }
 
+/* Children keep their natural height — overflow is absorbed by --fit-scale,
+   not by flex crushing individual blocks. */
+.invitationContent > * {
+  flex-shrink: 0;
+}
+
 .flipped .invitationContent {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(var(--fit-scale, 1));
 }
 
 /* When closing, fade out */
 .card:not(.flipped) .invitationContent {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(10px) scale(var(--fit-scale, 1));
   transition-delay: 0s;
 }
 

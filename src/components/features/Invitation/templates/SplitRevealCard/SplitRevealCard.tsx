@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useReducedMotion, type InvitationState } from "@/hooks";
+import { useFitScale, useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS, NAME_CONNECTORS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
@@ -210,6 +210,13 @@ export function SplitRevealCard({
       hasReceptionDate: !!data.receptionDate,
     });
 
+  // Shrink-to-fit backstop: schema-max content can exceed the fixed card
+  // even after the compact/extreme cascades — scale the stack down rather
+  // than crush blocks or clip the RSVP CTA.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const contentInnerRef = useRef<HTMLDivElement>(null);
+  useFitScale(contentRef, contentInnerRef, [data]);
+
   // Notify parent of state changes
   useEffect(() => {
     onStateChange?.(state);
@@ -321,8 +328,9 @@ export function SplitRevealCard({
         <div className={styles.frame} aria-hidden="true" />
 
         {/* Revealed Content (Behind doors) */}
-        <div className={styles.content}>
+        <div ref={contentRef} className={styles.content}>
           <div
+            ref={contentInnerRef}
             className={cn(
               styles.contentInner,
               isOpen && styles.contentVisible,
