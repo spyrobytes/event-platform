@@ -18,3 +18,11 @@ export type DemoTemplateSlug = (typeof DEMO_TEMPLATE_SLUGS)[number];
 export function demoTemplatePath(slug: DemoTemplateSlug): string {
   return `/sample-templates/${slug}`;
 }
+
+/**
+ * The animated-invitation-cards demo page. A static sibling of the
+ * `[slug]` demos (static segments win Next.js routing) — it showcases the
+ * invitation reveal templates rather than an event-page template, so it has
+ * its own route module instead of a TEMPLATE_DEMOS entry.
+ */
+export const DEMO_INVITATIONS_PATH = "/sample-templates/invitations";

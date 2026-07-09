@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { demoTemplatePath } from "@/lib/demo-templates";
+import { DEMO_INVITATIONS_PATH, demoTemplatePath } from "@/lib/demo-templates";
 import { cn } from "@/lib/utils";
 import { Section } from "../ui/Section";
 import { ButtonLink } from "../ui/ButtonLink";
@@ -198,35 +198,44 @@ export function TemplateShowcase() {
             className={cn(reveal.item, styles.plate, "lg:col-span-5")}
             style={{ "--reveal-i": 5 } as React.CSSProperties}
           >
-            <div className={styles.envelopeStage} aria-hidden="true">
-              <div className={styles.gcrStage}>
-                <div className={styles.gcrCard}>
-                  <div className={`${styles.gcrFace} ${styles.gcrBack}`}>
-                    <div className={styles.gcrSeal}>
-                      <span className={styles.gcrSealGlow} />
-                      <span className={`${styles.gcrSealHalf} ${styles.gcrSealLeft}`}>
-                        <span className={styles.gcrSealMonogram}>A·J</span>
-                      </span>
-                      <span className={`${styles.gcrSealHalf} ${styles.gcrSealRight}`}>
-                        <span className={styles.gcrSealMonogram}>A·J</span>
-                      </span>
+            <Link
+              href={DEMO_INVITATIONS_PATH}
+              className={styles.plateLink}
+              aria-label="Animated Invitation Cards — view the live demo"
+            >
+              <div className={styles.envelopeStage} aria-hidden="true">
+                <div className={styles.gcrStage}>
+                  <div className={styles.gcrCard}>
+                    <div className={`${styles.gcrFace} ${styles.gcrBack}`}>
+                      <div className={styles.gcrSeal}>
+                        <span className={styles.gcrSealGlow} />
+                        <span className={`${styles.gcrSealHalf} ${styles.gcrSealLeft}`}>
+                          <span className={styles.gcrSealMonogram}>A·J</span>
+                        </span>
+                        <span className={`${styles.gcrSealHalf} ${styles.gcrSealRight}`}>
+                          <span className={styles.gcrSealMonogram}>A·J</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`${styles.gcrFace} ${styles.gcrFront}`}>
+                      <span className={styles.gcrFrontScript}>Together with their families</span>
+                      <span className={styles.gcrFrontNames}>Avery &amp; Jordan</span>
+                      <span className={styles.gcrFrontRule} />
+                      <span className={styles.gcrFrontDate}>08 · 15 · 2026</span>
                     </div>
                   </div>
-                  <div className={`${styles.gcrFace} ${styles.gcrFront}`}>
-                    <span className={styles.gcrFrontScript}>Together with their families</span>
-                    <span className={styles.gcrFrontNames}>Avery &amp; Jordan</span>
-                    <span className={styles.gcrFrontRule} />
-                    <span className={styles.gcrFrontDate}>08 · 15 · 2026</span>
-                  </div>
                 </div>
+                <span className={styles.plateHint} aria-hidden="true">
+                  View live demo →
+                </span>
               </div>
-            </div>
+            </Link>
             <PlateCaption
               plate={{
                 number: "№ 06",
                 name: "Animated Invitation Cards",
                 blurb:
-                  "Shown: Golden Card Reveal. Also in the collection — Split Reveal, Flip Flap Reveal, and the Wedding Storybook.",
+                  "Shown: Golden Card Reveal. Also in the collection — Split Reveal, Flip Flap Reveal, and the Wedding Storybook. Open one and tap the seal.",
                 src: "",
                 alt: "",
                 ratio: "",
