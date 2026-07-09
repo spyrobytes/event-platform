@@ -172,7 +172,7 @@ export default async function InvitationPreviewPage({ params, searchParams }: Pa
   if (!SUPPORTED_TEMPLATES.includes(templateId as SupportedTemplateId)) {
     notFound();
   }
-  if (!(preset in PRESETS)) {
+  if (!Object.hasOwn(PRESETS, preset)) {
     notFound();
   }
 

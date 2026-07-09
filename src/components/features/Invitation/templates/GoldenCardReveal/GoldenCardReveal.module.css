@@ -457,6 +457,12 @@
    ============================================ */
 .invitationContent {
   flex: 1;
+  /* Without this, min-height:auto floors the flex item at its content
+     height — an overflowing stack then top-aligns in the card face and
+     sits low, so even a correct --fit-scale lands past the clip edge.
+     With min-height:0 the box matches the face and justify-center
+     overflows symmetrically, which is what the scale math assumes. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

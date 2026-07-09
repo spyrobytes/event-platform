@@ -1,14 +1,33 @@
 import type { Metadata } from "next";
-import {
-  InvitationShell,
-  SplitRevealCard,
-  GoldenCardReveal,
-  FlipFlapReveal,
-  WeddingStorybook,
-} from "@/components/features/Invitation";
+import dynamic from "next/dynamic";
+import { InvitationShell } from "@/components/features/Invitation/InvitationShell";
 import { DEMO_INVITATIONS_PATH } from "@/lib/demo-templates";
 import type { InvitationData } from "@/schemas/invitation";
 import { InvitationDemoBar, type InvitationCardOption } from "./InvitationDemoBar";
+
+// Lazy per-template imports (direct folder paths, not the Invitation barrel)
+// so each card gets its own client chunk — visitors download only the card
+// they're looking at, not all four.
+const GoldenCardReveal = dynamic(() =>
+  import("@/components/features/Invitation/templates/GoldenCardReveal").then(
+    (m) => m.GoldenCardReveal,
+  ),
+);
+const SplitRevealCard = dynamic(() =>
+  import("@/components/features/Invitation/templates/SplitRevealCard").then(
+    (m) => m.SplitRevealCard,
+  ),
+);
+const FlipFlapReveal = dynamic(() =>
+  import("@/components/features/Invitation/templates/FlipFlapReveal").then(
+    (m) => m.FlipFlapReveal,
+  ),
+);
+const WeddingStorybook = dynamic(() =>
+  import("@/components/features/Invitation/templates/WeddingStorybook").then(
+    (m) => m.WeddingStorybook,
+  ),
+);
 
 /**
  * Public, indexable demo page for the animated invitation cards shown on
@@ -35,6 +54,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: PAGE_TITLE,
     description: PAGE_DESCRIPTION,
+    // 1200x630 capture of the opened Golden Card on this page.
+    images: ["/landing/templates/invitations.jpg"],
   },
 };
 

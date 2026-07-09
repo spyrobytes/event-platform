@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 
 /**
  * Minimum scale the hook will apply. Below this, type becomes unreadable —
@@ -21,62 +21,69 @@ const MIN_FIT_SCALE = 0.55;
  * the whole content stack down uniformly until it fits.
  *
  * The hook measures the natural height of `contentRef`'s children (union of
- * their border boxes, corrected for any scale already applied) against the
- * padding-box of `containerRef` and writes the resulting factor to the
- * `--fit-scale` custom property on the content element. The template's CSS
- * Module consumes the scalar inside its existing transform declarations
+ * their offsetTop/offsetHeight boxes) against the padding-box of
+ * `containerRef` and writes the resulting factor to the `--fit-scale`
+ * custom property on the content element. The template's CSS Module
+ * consumes the scalar inside its existing transform declarations
  * (e.g. `transform: translateY(0) scale(var(--fit-scale, 1))`), so all
  * styling stays in the module. Scale only ever shrinks (≤ 1) and is floored
  * at MIN_FIT_SCALE.
  *
+ * Measurement uses offset* layout metrics deliberately: they ignore CSS
+ * transforms, so reveal translations, an already-applied --fit-scale, and
+ * mid-transition frames can never skew a re-measure. This requires the
+ * measured children to share one offsetParent (true for a plain flex stack —
+ * don't add `position` to individual content blocks) and to keep their
+ * natural layout height: give them `flex-shrink: 0` or a crushed child
+ * measures at its crushed height.
+ *
  * Re-measures on container resize, font load, and whenever `deps` change.
- * Content elements must not be crushable by flex (give the measured children
- * `flex-shrink: 0`) or the measurement reads the crushed height.
  */
 export function useFitScale(
   containerRef: RefObject<HTMLElement | null>,
   contentRef: RefObject<HTMLElement | null>,
   deps: readonly unknown[] = []
 ): void {
-  // The scale currently applied to the content element. Measurements via
-  // getBoundingClientRect include this transform, so it must be divided
-  // back out to recover the natural (unscaled) content height.
-  const appliedScaleRef = useRef(1);
-
   useEffect(() => {
     const container = containerRef.current;
     const content = contentRef.current;
     if (!container || !content) return;
 
     let frame: number | null = null;
+    let disposed = false;
+    // Seed from the element so a re-run (deps change) can still clear a
+    // previously applied scale when the new content fits at 1.
+    let appliedScale =
+      parseFloat(content.style.getPropertyValue("--fit-scale")) || 1;
 
     const measure = () => {
       frame = null;
+      if (disposed || !container.isConnected) return;
+
       const containerStyle = getComputedStyle(container);
       const available =
         container.clientHeight -
         parseFloat(containerStyle.paddingTop) -
         parseFloat(containerStyle.paddingBottom);
-      if (available <= 0) return;
+      if (!(available > 0)) return;
 
       let top = Infinity;
       let bottom = -Infinity;
-      for (const child of content.children) {
-        const rect = (child as HTMLElement).getBoundingClientRect();
-        if (rect.height === 0) continue;
-        top = Math.min(top, rect.top);
-        bottom = Math.max(bottom, rect.bottom);
+      for (const node of content.children) {
+        const child = node as HTMLElement;
+        if (child.offsetHeight === 0) continue;
+        top = Math.min(top, child.offsetTop);
+        bottom = Math.max(bottom, child.offsetTop + child.offsetHeight);
       }
       if (bottom <= top) return;
 
-      const naturalHeight = (bottom - top) / appliedScaleRef.current;
       const nextScale = Math.min(
         1,
-        Math.max(MIN_FIT_SCALE, available / naturalHeight)
+        Math.max(MIN_FIT_SCALE, available / (bottom - top))
       );
 
-      if (Math.abs(nextScale - appliedScaleRef.current) < 0.01) return;
-      appliedScaleRef.current = nextScale;
+      if (Math.abs(nextScale - appliedScale) < 0.01) return;
+      appliedScale = nextScale;
       if (nextScale >= 1) {
         content.style.removeProperty("--fit-scale");
       } else {
@@ -85,19 +92,21 @@ export function useFitScale(
     };
 
     const scheduleMeasure = () => {
-      if (frame !== null) return;
+      if (disposed || frame !== null) return;
       frame = requestAnimationFrame(measure);
     };
 
     scheduleMeasure();
 
-    // Web fonts change text metrics — re-measure once they settle.
+    // Web fonts change text metrics — re-measure once they settle. This can
+    // resolve after cleanup; the disposed flag makes it a guaranteed no-op.
     document.fonts?.ready.then(scheduleMeasure).catch(() => {});
 
     const observer = new ResizeObserver(scheduleMeasure);
     observer.observe(container);
 
     return () => {
+      disposed = true;
       observer.disconnect();
       if (frame !== null) cancelAnimationFrame(frame);
     };
