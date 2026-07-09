@@ -166,6 +166,20 @@
   height: 540px;
   cursor: pointer;
   perspective: 2000px;
+  /* Same arrival treatment as FlipFlapReveal's cardEntrance — fade in
+     while rising and settling from a slight zoom. */
+  animation: containerEntrance 1s ease-out;
+}
+
+@keyframes containerEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Decorative frame */
@@ -1010,7 +1024,8 @@
 }
 
 .reducedMotion .doorShimmer,
-.reducedMotion .ctaHint::before {
+.reducedMotion .ctaHint::before,
+.reducedMotion .container {
   animation: none !important;
 }
 

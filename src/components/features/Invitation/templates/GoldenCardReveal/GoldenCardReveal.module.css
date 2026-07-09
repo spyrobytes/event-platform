@@ -32,6 +32,20 @@
      3D depth instead of looking like a flat orthographic mirror */
   perspective: 1200px;
   margin: 0 auto;
+  /* Same arrival treatment as FlipFlapReveal's cardEntrance — fade in
+     while rising and settling from a slight zoom. */
+  animation: stageEntrance 1s ease-out;
+}
+
+@keyframes stageEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Surface shadow beneath card */
@@ -756,6 +770,10 @@
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
+  .stage {
+    animation: none;
+  }
+
   .cardWrapper {
     transition: none;
   }

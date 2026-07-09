@@ -45,6 +45,20 @@
     0 25px 50px -10px rgba(0, 0, 0, 0.5),
     0 10px 20px -5px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(201, 169, 110, 0.06);
+  /* Same arrival treatment as FlipFlapReveal's cardEntrance — fade in
+     while rising and settling from a slight zoom. */
+  animation: bookEntrance 1s ease-out;
+}
+
+@keyframes bookEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ─── Book Spine ─── */
@@ -297,6 +311,10 @@
 
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
+  .book {
+    animation: none;
+  }
+
   .navButton {
     transition: none;
   }
