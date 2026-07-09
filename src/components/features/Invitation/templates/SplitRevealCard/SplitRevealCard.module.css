@@ -54,6 +54,10 @@
   min-height: 100dvh;
   padding: 2rem;
   background: var(--card-bg);
+  /* The open doors swing outside the card — on narrow viewports they'd
+     otherwise widen the page and create horizontal scroll. `clip` hides
+     the overhang without creating a scroll container. */
+  overflow-x: clip;
 }
 
 /* Blush & Rose — matches "blush" theme in src/lib/invitation-themes.ts */
@@ -162,6 +166,20 @@
   height: 540px;
   cursor: pointer;
   perspective: 2000px;
+  /* Same arrival treatment as FlipFlapReveal's cardEntrance — fade in
+     while rising and settling from a slight zoom. */
+  animation: containerEntrance 1s ease-out;
+}
+
+@keyframes containerEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Decorative frame */
@@ -229,14 +247,22 @@
   align-items: center;
   width: 100%;
   min-height: 0;
+  /* Keep natural height — overflow is absorbed by --fit-scale (set by
+     useFitScale), not by flex crushing blocks like customMessage (whose
+     overflow:hidden removes the min-content floor) into cut-off slivers. */
+  flex-shrink: 0;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(20px) scale(var(--fit-scale, 1));
   transition: opacity 0.6s ease 0.5s, transform 0.6s ease 0.5s;
+}
+
+.contentInner > * {
+  flex-shrink: 0;
 }
 
 .contentVisible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(var(--fit-scale, 1));
 }
 
 /* Photo */
@@ -998,7 +1024,8 @@
 }
 
 .reducedMotion .doorShimmer,
-.reducedMotion .ctaHint::before {
+.reducedMotion .ctaHint::before,
+.reducedMotion .container {
   animation: none !important;
 }
 

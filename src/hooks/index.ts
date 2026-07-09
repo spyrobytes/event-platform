@@ -53,6 +53,9 @@ export {
 // Animation completion detection
 export { useAnimationComplete } from "./use-animation-complete";
 
+// Shrink-to-fit backstop for fixed-size invitation cards
+export { useFitScale } from "./use-fit-scale";
+
 // Unsaved-changes guard for editor pages
 export { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
 

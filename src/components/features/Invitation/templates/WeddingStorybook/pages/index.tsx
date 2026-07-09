@@ -1,8 +1,10 @@
 "use client";
 
+import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { isAllowedImageHost } from "@/lib/images/host";
+import { useFitScale } from "@/hooks/use-fit-scale";
 import type { StorybookData } from "../types";
 import { ScatterText } from "../ScatterText";
 
@@ -218,8 +220,16 @@ export function CoverLeft({ data, active }: PageProps) {
 }
 
 export function CoverRight({ data, active }: PageProps) {
+  // Shrink-to-fit backstop: a traditional header with schema-max family
+  // names plus long couple names can exceed the page height and clip at the
+  // top (the page centers its overflow). Scale the stack down instead.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  useFitScale(pageRef, contentRef, [data]);
+
   return (
     <div
+      ref={pageRef}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -245,6 +255,17 @@ export function CoverRight({ data, active }: PageProps) {
         }}
       />
 
+      <div
+        ref={contentRef}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          transformStyle: "preserve-3d",
+          transform: "scale(var(--fit-scale, 1))",
+        }}
+      >
       {/* Header: Traditional or Modern */}
       {data.headerMode === "traditional" && data.person1FamilyName && data.person2FamilyName ? (
         <div
@@ -428,6 +449,7 @@ export function CoverRight({ data, active }: PageProps) {
         <br />
         {data.ceremonyAddress}
       </p>
+      </div>
     </div>
   );
 }

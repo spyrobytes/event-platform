@@ -74,6 +74,43 @@
     0 0 0 4px rgba(245, 239, 228, 0.9);
 }
 
+/* Labeled switcher pills (invitation-card demo) — same slot as .swatches
+   but text links instead of color dots. Scrolls horizontally if the four
+   labels outgrow a phone viewport. */
+.cards {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0 2px;
+  border-inline: 1px solid rgba(245, 239, 228, 0.12);
+  padding-inline: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cardPill {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: rgba(245, 239, 228, 0.65);
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.cardPill:hover {
+  color: rgba(245, 239, 228, 0.95);
+}
+
+.cardPillActive {
+  background: rgba(245, 239, 228, 0.14);
+  color: rgba(245, 239, 228, 0.95);
+}
+
 .cta {
   padding: 8px 16px;
   border-radius: 999px;
@@ -109,6 +146,32 @@
   .swatch {
     width: 18px;
     height: 18px;
+  }
+
+  /* Four labeled pills can't share one row with the CTA on a phone —
+     wrap the pill strip onto its own full-width row instead of hiding
+     half the cards behind an invisible horizontal scroll. */
+  .bar:has(.cards) {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 20px;
+  }
+
+  .cards {
+    order: 3;
+    flex-basis: 100%;
+    justify-content: center;
+    gap: 4px;
+    border-inline: none;
+    border-top: 1px solid rgba(245, 239, 228, 0.12);
+    padding-inline: 0;
+    padding-top: 6px;
+    margin-top: 2px;
+  }
+
+  .cardPill {
+    padding: 5px 8px;
+    font-size: 0.7rem;
   }
 
   .cta {

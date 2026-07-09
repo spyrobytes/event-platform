@@ -1,5 +1,9 @@
 import { MetadataRoute } from "next";
-import { DEMO_TEMPLATE_SLUGS, demoTemplatePath } from "@/lib/demo-templates";
+import {
+  DEMO_INVITATIONS_PATH,
+  DEMO_TEMPLATE_SLUGS,
+  demoTemplatePath,
+} from "@/lib/demo-templates";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://eventfxr.com";
 
@@ -29,6 +33,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.7,
     })),
+    {
+      url: `${BASE_URL}${DEMO_INVITATIONS_PATH}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
   ];
 
   // Only fetch from database if DATABASE_URL is available

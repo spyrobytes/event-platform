@@ -32,6 +32,20 @@
      3D depth instead of looking like a flat orthographic mirror */
   perspective: 1200px;
   margin: 0 auto;
+  /* Same arrival treatment as FlipFlapReveal's cardEntrance — fade in
+     while rising and settling from a slight zoom. */
+  animation: stageEntrance 1s ease-out;
+}
+
+@keyframes stageEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Surface shadow beneath card */
@@ -443,26 +457,40 @@
    ============================================ */
 .invitationContent {
   flex: 1;
+  /* Without this, min-height:auto floors the flex item at its content
+     height — an overflowing stack then top-aligns in the card face and
+     sits low, so even a correct --fit-scale lands past the clip edge.
+     With min-height:0 the box matches the face and justify-center
+     overflows symmetrically, which is what the scale math assumes. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   opacity: 0;
-  transform: translateY(10px);
+  /* --fit-scale is set by useFitScale when natural content height exceeds
+     the card face — shrinks the whole stack instead of clipping the RSVP. */
+  transform: translateY(10px) scale(var(--fit-scale, 1));
   transition: opacity 0.6s ease, transform 0.6s ease;
   transition-delay: 0.8s;
 }
 
+/* Children keep their natural height — overflow is absorbed by --fit-scale,
+   not by flex crushing individual blocks. */
+.invitationContent > * {
+  flex-shrink: 0;
+}
+
 .flipped .invitationContent {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(var(--fit-scale, 1));
 }
 
 /* When closing, fade out */
 .card:not(.flipped) .invitationContent {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(10px) scale(var(--fit-scale, 1));
   transition-delay: 0s;
 }
 
@@ -748,6 +776,10 @@
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
+  .stage {
+    animation: none;
+  }
+
   .cardWrapper {
     transition: none;
   }

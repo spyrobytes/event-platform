@@ -16,6 +16,7 @@ import { getGoldenCardThemeTokens } from "@/lib/invitation-themes";
 import { isAllowedImageHost } from "@/lib/images/host";
 import { classifyInvitationDensity } from "@/lib/invitation-density";
 import { InvitationHeader } from "../../InvitationHeader";
+import { useFitScale } from "@/hooks/use-fit-scale";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { GoldenCardRevealProps, ConfettiShape, CardState } from "./types";
 import styles from "./GoldenCardReveal.module.css";
@@ -127,8 +128,16 @@ export function GoldenCardReveal({
   // card is now a <div role="button"> so nested <Link> is valid HTML
   const cardRef = useRef<HTMLDivElement>(null);
   const confettiRef = useRef<HTMLDivElement>(null);
+  const cardFrontRef = useRef<HTMLDivElement>(null);
+  const invitationContentRef = useRef<HTMLDivElement>(null);
   // [Fix #4] Track all pending timers so we can cancel on unmount
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Shrink-to-fit backstop: schema-max content (traditional header + long
+  // family names + ceremony & reception) can exceed the fixed card face even
+  // after the .compact/.extreme cascades — scale the stack down rather than
+  // clip the RSVP CTA below the face edge.
+  useFitScale(cardFrontRef, invitationContentRef, [data]);
 
   // State
   const [cardState, setCardState] = useState<CardState>({
@@ -585,8 +594,8 @@ export function GoldenCardReveal({
                   div) require block-level wrappers, so this face uses <div>
                   rather than <span>. The .cardFace class still controls
                   positioning/flip behavior identically. */}
-              <div className={cn(styles.cardFace, styles.cardFront)}>
-                <div className={styles.invitationContent}>
+              <div ref={cardFrontRef} className={cn(styles.cardFace, styles.cardFront)}>
+                <div ref={invitationContentRef} className={styles.invitationContent}>
                   <InvitationHeader
                     data={data}
                     inline

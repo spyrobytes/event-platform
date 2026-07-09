@@ -13,6 +13,7 @@ import Link from "next/link";
 import { cn, formatEventDateLong } from "@/lib/utils";
 import { getFlipFlapThemeTokens } from "@/lib/invitation-themes";
 import { isAllowedImageHost } from "@/lib/images/host";
+import { useFitScale } from "@/hooks/use-fit-scale";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { FlipFlapRevealProps, ConfettiPiece, CardState } from "./types";
 import { InvitationHeader } from "../../InvitationHeader";
@@ -204,6 +205,13 @@ export function FlipFlapReveal({
   // Refs
   const wrapperRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const cardContentRef = useRef<HTMLDivElement>(null);
+  const contentInnerRef = useRef<HTMLDivElement>(null);
+
+  // Shrink-to-fit backstop: schema-max content (traditional header + long
+  // names + ceremony & reception) can exceed the fixed card face even after
+  // the compact cascade — scale the stack down rather than clip the RSVP CTA.
+  useFitScale(cardContentRef, contentInnerRef, [data]);
 
   // State
   const [cardState, setCardState] = useState<CardState>({
@@ -428,8 +436,8 @@ export function FlipFlapReveal({
           )}
 
           {/* Inner Content (revealed when flap opens) */}
-          <div className={styles.cardContent}>
-            <div className={styles.contentInner}>
+          <div ref={cardContentRef} className={styles.cardContent}>
+            <div ref={contentInnerRef} className={styles.contentInner}>
               <InvitationHeader
                 data={data}
                 headerTextClassName={styles.invitationHeader}
