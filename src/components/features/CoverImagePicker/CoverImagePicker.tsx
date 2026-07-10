@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { parseApiResponse } from "@/lib/api-client";
+import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -27,7 +29,9 @@ type CoverImagePickerProps = {
   disabled?: boolean;
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// Single source of truth in the schema — sized to what the upload route can
+// actually receive (Vercel's 4.5MB function-body cap), see PAGE_CONFIG_LIMITS.
+const MAX_FILE_SIZE = PAGE_CONFIG_LIMITS.maxFileSizeBytes;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /**
@@ -118,8 +122,11 @@ export function CoverImagePicker({
           body: formData,
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Upload failed");
+        // Safe parse: a platform-level rejection (e.g. Vercel's 4.5MB body
+        // cap → plain-text 413) is not JSON and must surface readably.
+        const data = await parseApiResponse<{
+          data: { id: string; kind: string; publicUrl: string | null; width: number | null; height: number | null };
+        }>(res);
 
         const newAsset: Asset = {
           id: data.data.id,

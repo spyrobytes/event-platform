@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
+import { parseApiResponse } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +43,10 @@ type MediaUploadCardProps = {
   maxAssets?: number;
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// Single source of truth in the schema — sized to what the upload route can
+// actually receive (Vercel's 4.5MB function-body cap), see PAGE_CONFIG_LIMITS.
+const MAX_FILE_SIZE = PAGE_CONFIG_LIMITS.maxFileSizeBytes;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / 1024 / 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function MediaUploadCard({
@@ -201,11 +205,11 @@ export function MediaUploadCard({
         body: formData,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to upload image");
-      }
+      // Safe parse: a platform-level rejection (e.g. Vercel's 4.5MB body cap
+      // → plain-text 413) is not JSON and must surface a readable message.
+      const data = await parseApiResponse<{
+        data: Asset & { tags?: string[] };
+      }>(response);
 
       // API returns { data: { id, publicUrl, width, height, kind, tags } }
       const newAsset: Asset = {
@@ -256,8 +260,8 @@ export function MediaUploadCard({
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to delete image");
+          // Same safe-parse rationale as the upload path above.
+          await parseApiResponse(response);
         }
 
         onAssetDeleted(assetId);
@@ -371,7 +375,7 @@ export function MediaUploadCard({
                 className="text-sm file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50"
               />
               <p className="text-xs text-muted-foreground">
-                Max 5MB, JPEG/PNG/WebP
+                Max {MAX_FILE_SIZE_MB}MB, JPEG/PNG/WebP
               </p>
             </div>
           </div>

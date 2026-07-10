@@ -222,7 +222,7 @@ export default function DocsPage() {
                     icon="📤"
                     title="Upload Images"
                     description="Drag and drop or click to upload. Supports JPEG, PNG, and WebP formats."
-                    highlights={["Max 5MB each", "Up to 20 images"]}
+                    highlights={["Max 4MB each", "Up to 20 images"]}
                   />
                   <FeatureBox
                     icon="🏷️"
@@ -516,7 +516,7 @@ export default function DocsPage() {
                 <h4 className="mb-4 font-semibold">Platform Limits</h4>
                 <div className="space-y-3">
                   <TipBox type="warning">
-                    <strong>Images:</strong> Max 20 images per event, 5MB each.
+                    <strong>Images:</strong> Max 20 images per event, 4MB each.
                     Formats: JPEG, PNG, WebP.
                   </TipBox>
                   <TipBox type="warning">

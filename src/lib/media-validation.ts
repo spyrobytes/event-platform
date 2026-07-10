@@ -10,7 +10,7 @@ import {
  * Validates an uploaded image buffer
  *
  * Performs the following checks:
- * 1. File size (max 5MB)
+ * 1. File size (max = PAGE_CONFIG_LIMITS.maxFileSizeBytes — sized to Vercel's 4.5MB function-body cap)
  * 2. MIME type verification (not just extension)
  * 3. Image dimensions (min/max)
  * 4. Image integrity (can be processed)
