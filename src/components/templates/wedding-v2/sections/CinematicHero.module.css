@@ -125,18 +125,15 @@
    overflows horizontally (tall phones AND tablet portrait/landscape — the
    same ungated behavior as the left/right rules above); on non-overflowing
    viewports both copies render identical pixels and the overlay is invisible,
-   so wide-viewport output is visually unchanged. Drift is off in edges mode
-   on EVERY viewport — wherever the crop overflows, the two copies show
-   different windows and any motion shears the seam; a viewport-scoped
-   drift-kill would put a motion cliff at an arbitrary width. Both copies
-   inherit .heroMedia img's geometry — identical boxes are what the seam
-   quality depends on; only anchor + mask differ. Reduced motion needs no new
-   selector — the existing `.heroMedia[data-focal] img` override matches the
-   attr's every value. If masks ever fail to apply, the top copy wins —
-   degrading to the existing right-focal look, not breakage. mask-image is
-   authored standard-only; Lightning CSS emits the -webkit- pair. Portrait
-   never composes with these rules: the renderer normalizes edges → center
-   while portrait is active (resolveHeroFocalX). */
+   so wide-viewport output is visually unchanged. Drift: off on touch devices
+   (the base rules below), restored on desktop-like devices (the hover+fine
+   block below) — see that block for why lockstep animation can't shear.
+   Both copies inherit .heroMedia img's geometry — identical boxes are what
+   the seam quality depends on; only anchor + mask differ. If masks ever fail
+   to apply, the top copy wins — degrading to the existing right-focal look,
+   not breakage. mask-image is authored standard-only; Lightning CSS emits
+   the -webkit- pair. Portrait never composes with these rules: the renderer
+   normalizes edges → center while portrait is active (resolveHeroFocalX). */
 .heroMedia[data-focal="edges"] {
   /* Blend stops — the shared default across all three enrolled heroes
      (42/58). Internal only, never organizer-facing. Tune deliberately: keep
@@ -146,7 +143,10 @@
 }
 .heroMedia[data-focal="edges"] .imgPrimary {
   object-position: left 30%;
-  animation: none;
+  /* animation-name (not the shorthand): the hover+fine block below re-enables
+     by name only, inheriting the base rule's timing — one source of truth for
+     the drift's duration/easing (same idiom as the left/right focal rules). */
+  animation-name: none;
   will-change: auto;
 }
 .heroMedia[data-focal="edges"] .imgEdgeRight {
@@ -156,8 +156,33 @@
     transparent var(--edge-blend-start),
     black var(--edge-blend-end)
   );
-  animation: none;
+  animation-name: none;
   will-change: auto;
+}
+
+/* Edges + desktop-like devices (mouse + hover): restore the signature drift.
+   Seam shear only happens between INDEPENDENT animations — here BOTH copies
+   run the same keyframes, timing, and (default center) transform-origin, so
+   their transform fields are identical at every frame and the copies move in
+   lockstep: the blend physically cannot shear, even in a narrow desktop
+   window where the crop overflows and the two copies show different pixels.
+   kenBurnsFocal (X-pan-free) rather than base kenBurns so that rare
+   overflowing-window case doesn't also pan the pinned edges; the only cost
+   there is the edge motifs breathing ~3% at max zoom (scale 1.06, center
+   origin) — on a normal desktop nothing overflows, both copies show
+   identical pixels, and this is pixel-identical to the single-image drift.
+   Touch devices (hover:none/pointer:coarse — phones AND tablets) keep the
+   static rules above: that partition matches device reality rather than an
+   arbitrary width cliff. animation-name only — duration/easing inherit from
+   the base .heroMedia img shorthand, so a future drift retune can't desync
+   this block. Reduced motion: the media block at the end of this file
+   re-kills these at equal specificity + later source order. */
+@media (hover: hover) and (pointer: fine) {
+  .heroMedia[data-focal="edges"] .imgPrimary,
+  .heroMedia[data-focal="edges"] .imgEdgeRight {
+    animation-name: kenBurnsFocal;
+    will-change: transform;
+  }
 }
 
 /* Complex gradient overlay fading to bg color (parameterized for dark variants) */
@@ -674,9 +699,14 @@
      set animation-name at (0,2,1) specificity, which outranks a bare
      `.heroMedia img` (0,1,1) — without this a focal-set hero would keep
      drifting under reduced motion. Equal specificity here + later source order
-     wins, so both focal sides resolve to none. */
+     wins, so both focal sides resolve to none. The edges desktop-drift rules
+     sit higher still at (0,3,0) (class + attr + class), so their selectors
+     are also listed verbatim — equal specificity + this block's later source
+     order re-kills the restored drift. */
   .heroMedia img,
-  .heroMedia[data-focal] img {
+  .heroMedia[data-focal] img,
+  .heroMedia[data-focal="edges"] .imgPrimary,
+  .heroMedia[data-focal="edges"] .imgEdgeRight {
     animation: none;
   }
   .floatCard {
