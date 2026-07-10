@@ -13,6 +13,7 @@ import type {
   WeddingPartyDisplayStyle,
   CouplePhotoFrameId,
 } from "@/schemas/event-page";
+import { heroFocalXSchema } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 // Only allow in development/test
@@ -33,6 +34,7 @@ type PageProps = {
     weddingPartyStyle?: string;
     couplePhotoFrame?: string;
     backgroundTreatment?: string;
+    backgroundFocalX?: string;
     displayStyle?: string;
     sampleGallery?: string;
     sampleHero?: string;
@@ -316,6 +318,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     weddingPartyStyle,
     couplePhotoFrame,
     backgroundTreatment,
+    backgroundFocalX,
     displayStyle,
     sampleGallery,
     sampleHero,
@@ -402,6 +405,19 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     config = {
       ...config,
       hero: { ...config.hero, backgroundTreatment },
+    };
+  }
+
+  // Optionally exercise the hero focal anchor (?backgroundFocalX= any
+  // heroFocalXSchema value — compose with ?sampleHero= for a hero image, and
+  // with ?backgroundTreatment=portrait to verify the edges → center
+  // normalization). Validated against the schema itself so a future enum
+  // value is exercisable here the day it lands.
+  const focal = heroFocalXSchema.safeParse(backgroundFocalX);
+  if (focal.success) {
+    config = {
+      ...config,
+      hero: { ...config.hero, backgroundFocalX: focal.data },
     };
   }
 

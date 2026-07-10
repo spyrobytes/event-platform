@@ -1,6 +1,7 @@
 "use client";
 
 import type { HeroConfig } from "@/schemas/event-page";
+import { resolveHeroFocalX } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 import { useTemporal } from "../../shared";
 import { CouplePhotoFrame } from "../../shared/CouplePhotoFrame";
@@ -85,12 +86,28 @@ export function CinematicHero({
   // and the floating couple photo is skipped to keep the hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
-  // Horizontal focal point for the cover-crop. Only bites on phones (the
-  // landscape image overflows horizontally there); a no-op on desktop. Keeps a
-  // one-sided motif (e.g. a floral border) in frame instead of cropping it off.
-  // CSS owns the per-side object-position + drift-off; the Y axis stays driven
-  // by the treatment class so portrait's top-anchor is untouched.
-  const focalX = config.backgroundFocalX ?? "center";
+  // Horizontal focal point for the cover-crop — self-arms wherever the image
+  // overflows horizontally (tall phones and tablets). Keeps a one-sided motif
+  // (e.g. a floral border) in frame instead of cropping it off. CSS owns the
+  // per-side object-position + drift handling; the Y axis stays driven by the
+  // treatment class so portrait's top-anchor is untouched. "edges" keeps BOTH
+  // sides: a second right-anchored copy fades in over the left-anchored
+  // primary (see the module's edges block). resolveHeroFocalX normalizes a
+  // stale "edges" to center while portrait renders, so the wrapper never
+  // carries data-focal="edges" under portrait and no second copy is mounted.
+  const focalX = resolveHeroFocalX(config.backgroundFocalX, isPortraitBackdrop);
+  const isEdges = focalX === "edges";
+
+  // One srcSet for both copies in edges mode — identical responsive-image
+  // inputs are what guarantee the browser resolves both to the same rendition
+  // (one fetch, and the two crops sample the same pixels at the seam).
+  const heroSrcSet = heroAsset?.publicUrl
+    ? buildRenditionSrcSet(
+        heroAsset.publicUrl,
+        heroAsset.renditionWidths,
+        heroAsset.width
+      )
+    : undefined;
 
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
@@ -139,16 +156,26 @@ export function CinematicHero({
           aria-hidden="true"
         >
           <img
+            className={styles.imgPrimary}
             src={heroAsset.publicUrl}
-            srcSet={buildRenditionSrcSet(
-              heroAsset.publicUrl,
-              heroAsset.renditionWidths,
-              heroAsset.width
-            )}
+            srcSet={heroSrcSet}
             sizes="100vw"
             alt=""
             loading="eager"
           />
+          {/* "Both sides": right-anchored second copy that fades in over the
+              primary (mask in the module). Shares heroSrcSet — same
+              rendition, cache hit, no second transfer. */}
+          {isEdges && (
+            <img
+              className={styles.imgEdgeRight}
+              src={heroAsset.publicUrl}
+              srcSet={heroSrcSet}
+              sizes="100vw"
+              alt=""
+              loading="eager"
+            />
+          )}
         </div>
       ) : (
         <div className={styles.heroFallback} aria-hidden="true" />

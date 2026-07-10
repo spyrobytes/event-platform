@@ -10,6 +10,7 @@
  */
 
 import { EventImage } from "@/components/media/EventImage";
+import { resolveHeroFocalX } from "@/schemas/event-page";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { showHeroCountdown } from "../../hero-card-visibility";
@@ -60,11 +61,16 @@ export function FullscreenDramaticHero({
   // hero clean.
   const isPortraitBackdrop = config.backgroundTreatment === "portrait";
 
-  // Horizontal focal point for the cover-crop — only bites on phones (the
-  // landscape image overflows horizontally there), a no-op on desktop. Keeps a
-  // one-sided motif in frame; CSS owns the per-side object-position and the
-  // luxeDrift-off, with the Y axis left to the treatment class.
-  const focalX = config.backgroundFocalX ?? "center";
+  // Horizontal focal point for the cover-crop — self-arms wherever the image
+  // overflows horizontally (tall phones and tablets). Keeps a one-sided motif
+  // in frame; CSS owns the per-side object-position and drift handling, with
+  // the Y axis left to the treatment class. "edges" keeps BOTH sides: a
+  // second right-anchored copy fades in over the left-anchored primary (see
+  // the module's edges block). resolveHeroFocalX normalizes a stale "edges"
+  // to center while portrait renders, so the wrapper never carries
+  // data-focal="edges" under portrait and no second copy is mounted.
+  const focalX = resolveHeroFocalX(config.backgroundFocalX, isPortraitBackdrop);
+  const isEdges = focalX === "edges";
 
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
@@ -99,12 +105,16 @@ export function FullscreenDramaticHero({
 
   return (
     <section className={styles.hero} aria-label="Event hero" id="top">
+      {/* Background image — aria-hidden on the wrapper (not the inner
+          copies): same convention as the other enrolled heroes. */}
       {heroAsset?.publicUrl ? (
         <div
           className={cn(styles.bgImage, isPortraitBackdrop && styles.bgPortrait)}
           data-focal={focalX}
+          aria-hidden="true"
         >
           <EventImage
+            className={styles.imgPrimary}
             src={heroAsset.publicUrl}
             alt=""
             fill
@@ -113,6 +123,22 @@ export function FullscreenDramaticHero({
             blurDataURL={heroAsset.blurDataUrl}
             renditionWidths={heroAsset.renditionWidths}
           />
+          {/* "Both sides": right-anchored second copy that fades in over the
+              primary (mask in the module). Identical responsive-image inputs
+              — same rendition, cache hit, no second transfer. Eager but NOT
+              priority: only the primary preloads. */}
+          {isEdges && (
+            <EventImage
+              className={styles.imgEdgeRight}
+              src={heroAsset.publicUrl}
+              alt=""
+              fill
+              sizes="100vw"
+              loading="eager"
+              blurDataURL={heroAsset.blurDataUrl}
+              renditionWidths={heroAsset.renditionWidths}
+            />
+          )}
         </div>
       ) : (
         <div className={styles.bgFallback} aria-hidden="true" />

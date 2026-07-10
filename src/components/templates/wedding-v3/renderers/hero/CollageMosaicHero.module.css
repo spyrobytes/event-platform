@@ -64,6 +64,44 @@
   object-position: right center;
 }
 
+/* Both sides (hero.backgroundFocalX = "edges") — artwork on BOTH edges, which
+   one cover-crop can't preserve. Two copies of the image: .imgPrimary (the
+   normal hero image) anchored left, and .imgEdgeRight anchored right and
+   masked so it fades in OVER the primary — the seam lands in the plain middle
+   these images have by design, under this hero's grade. Only the TOP copy is
+   masked: the primary stays fully opaque underneath, so coverage never dips
+   and the cream page surface can't bleed through the seam as a translucent
+   band (complementary masks compose to ~75% alpha at the seam center — worst
+   on this hero, whose light #f8f5f0 surface sits behind a darkened image).
+   Not viewport-gated — object-position self-arms exactly when the image
+   overflows horizontally (tall phones AND tablets, matching the ungated
+   left/right rules); where nothing overflows both copies show identical
+   pixels and the overlay is invisible. Both copies inherit .bgImage img's
+   geometry (identical boxes — seam quality depends on it) and grade; only
+   anchor + mask differ. No drift and no portrait variant on this hero, so no
+   animation handling and no normalization — the simplest of the three
+   enrolled heroes. Mask failure degrades to the right-focal look, not
+   breakage. mask-image authored standard-only; Lightning CSS emits the
+   -webkit- pair. */
+.bgImage[data-focal="edges"] {
+  /* Blend stops — the shared default across all three enrolled heroes
+     (42/58). Internal only, never organizer-facing. Tune deliberately: keep
+     the three modules in sync, or leave a comment where one hero diverges. */
+  --edge-blend-start: 42%;
+  --edge-blend-end: 58%;
+}
+.bgImage[data-focal="edges"] .imgPrimary {
+  object-position: left center;
+}
+.bgImage[data-focal="edges"] .imgEdgeRight {
+  object-position: right center;
+  mask-image: linear-gradient(
+    to right,
+    transparent var(--edge-blend-start),
+    black var(--edge-blend-end)
+  );
+}
+
 .bgFallback {
   position: absolute;
   inset: 0;

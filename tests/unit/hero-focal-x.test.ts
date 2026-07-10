@@ -7,7 +7,11 @@ vi.mock("next/font/google", () => import("./helpers/next-font-google-mock"));
 import { templateSupportsHeroFocalX } from "@/components/templates";
 import { GRAND_LUXE } from "@/components/templates/wedding-v3/definitions/grand-luxe";
 import { CELEBRATION } from "@/components/templates/wedding-v3/definitions/celebration";
-import { heroFocalXSchema, heroSchema } from "@/schemas/event-page";
+import {
+  heroFocalXSchema,
+  heroSchema,
+  resolveHeroFocalX,
+} from "@/schemas/event-page";
 
 describe("templateSupportsHeroFocalX", () => {
   it("is enabled for the single full-bleed cover heroes (V2, Grand Luxe, Celebration)", () => {
@@ -40,8 +44,8 @@ describe("templateSupportsHeroFocalX", () => {
 describe("heroSchema backgroundFocalX field", () => {
   const baseHero = { title: "Our Wedding", align: "center", overlay: "soft" };
 
-  it("accepts left, center, and right", () => {
-    for (const focal of ["left", "center", "right"]) {
+  it("accepts left, center, right, and edges", () => {
+    for (const focal of ["left", "center", "right", "edges"]) {
       expect(() =>
         heroSchema.parse({ ...baseHero, backgroundFocalX: focal })
       ).not.toThrow();
@@ -50,9 +54,13 @@ describe("heroSchema backgroundFocalX field", () => {
   });
 
   it("rejects unknown focal values", () => {
-    expect(() =>
-      heroSchema.parse({ ...baseHero, backgroundFocalX: "top" })
-    ).toThrow();
+    // "both" is the label-shaped mistake for "edges"; "top" is the axis
+    // mistake. Both must fail so a typo can't silently persist.
+    for (const bogus of ["top", "both"]) {
+      expect(() =>
+        heroSchema.parse({ ...baseHero, backgroundFocalX: bogus })
+      ).toThrow();
+    }
   });
 
   it("parses legacy configs without the field (backward compat — unset = center)", () => {
@@ -60,5 +68,31 @@ describe("heroSchema backgroundFocalX field", () => {
     // "center", so today's crop is byte-identical.
     const parsed = heroSchema.parse(baseHero);
     expect(parsed.backgroundFocalX).toBeUndefined();
+  });
+});
+
+describe("resolveHeroFocalX", () => {
+  // The shared render-time normalization every enrolled hero goes through.
+  // The portrait × edges exclusion is load-bearing: the editor only DISABLES
+  // "Both sides" under Portrait — the saved value persists, and this resolver
+  // is what keeps the blend off a portrait subject's face.
+  it("defaults unset to center", () => {
+    expect(resolveHeroFocalX(undefined, false)).toBe("center");
+    expect(resolveHeroFocalX(undefined, true)).toBe("center");
+  });
+
+  it("normalizes a stale edges to center while portrait is active", () => {
+    expect(resolveHeroFocalX("edges", true)).toBe("center");
+  });
+
+  it("passes edges through when portrait is not active", () => {
+    expect(resolveHeroFocalX("edges", false)).toBe("edges");
+  });
+
+  it("leaves left/right/center untouched regardless of portrait", () => {
+    for (const focal of ["left", "center", "right"] as const) {
+      expect(resolveHeroFocalX(focal, false)).toBe(focal);
+      expect(resolveHeroFocalX(focal, true)).toBe(focal);
+    }
   });
 });

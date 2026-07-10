@@ -1666,12 +1666,23 @@ export default function PageEditorPage() {
               A no-op on desktop, where the image already fills horizontally. */}
           {templateSupportsHeroFocalX(templateId) && config.hero.heroImageAssetId && (() => {
             const focalX = config.hero.backgroundFocalX ?? "center";
+            // "Both sides" blends the image's middle — exactly where a
+            // portrait's subject sits — so it's dead while the Portrait
+            // treatment is active (renderers normalize edges → center there).
+            // Disabled, not hidden: options that appear/disappear are more
+            // confusing than visibly dead ones. The capability check is
+            // load-bearing: a persisted "portrait" on a non-enrolled template
+            // (e.g. after a template switch) is ignored by its hero, so
+            // "Both sides" must stay selectable there.
+            const portraitActive =
+              templateSupportsHeroBackgroundTreatment(templateId) &&
+              (config.hero.backgroundTreatment ?? "ambience") === "portrait";
             return (
               <div className="space-y-2 pt-4 border-t">
                 <Label>Background Focal Point</Label>
                 <p className="text-xs text-muted-foreground">
-                  On phones the hero image crops to a tall strip. Choose the side
-                  your image&rsquo;s artwork sits on so florals or borders stay in
+                  On phones the hero image crops to a tall strip. Choose where
+                  your image&rsquo;s artwork sits so florals or borders stay in
                   frame.
                 </p>
                 <SegmentedRadioGroup
@@ -1680,6 +1691,7 @@ export default function PageEditorPage() {
                     { value: "left" as const, label: "Left" },
                     { value: "center" as const, label: "Center" },
                     { value: "right" as const, label: "Right" },
+                    { value: "edges" as const, label: "Both sides", disabled: portraitActive },
                   ]}
                   value={focalX}
                   onChange={(value) => updateHero({ backgroundFocalX: value })}
@@ -1688,8 +1700,19 @@ export default function PageEditorPage() {
                 <p className="text-xs text-muted-foreground">
                   {focalX === "center"
                     ? "Center keeps the middle of the image — best for full-bleed photos with the subject centered."
-                    : `The ${focalX} edge is pinned on phones; the opposite edge crops away. Pick the side with your decorative artwork.`}
+                    : focalX === "edges"
+                      ? "Keeps both edges in frame on phones and blends the middle. Best for floral or decorative artwork with a plain center. Not recommended for portraits or detailed photos."
+                      : `The ${focalX} edge is pinned on phones; the opposite edge crops away. Pick the side with your decorative artwork.`}
                 </p>
+                {portraitActive && (
+                  <p className="text-xs text-muted-foreground">
+                    Both sides is unavailable while the Background Treatment is
+                    Portrait — a portrait&rsquo;s subject sits in the middle,
+                    where this mode blends.
+                    {focalX === "edges" &&
+                      " Your saved choice is kept and re-applies on Ambience; until then the crop stays centered."}
+                  </p>
+                )}
               </div>
             );
           })()}
