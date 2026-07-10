@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { parseApiResponse } from "@/lib/api-client";
+import { PAGE_CONFIG_LIMITS } from "@/schemas/event-page";
 
 type Asset = {
   id: string;
@@ -30,7 +32,10 @@ type ImageAssetPickerProps = {
   assetKind?: "HERO" | "GALLERY";
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// Single source of truth in the schema — sized to what the upload route can
+// actually receive (Vercel's 4.5MB function-body cap), see PAGE_CONFIG_LIMITS.
+const MAX_FILE_SIZE = PAGE_CONFIG_LIMITS.maxFileSizeBytes;
+const MAX_FILE_SIZE_MB = MAX_FILE_SIZE / 1024 / 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function ImageAssetPicker({
@@ -110,7 +115,7 @@ export function ImageAssetPicker({
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setError("File too large. Maximum size is 5MB.");
+      setError(`File too large. Maximum size is ${MAX_FILE_SIZE_MB}MB.`);
       return;
     }
 
@@ -135,11 +140,11 @@ export function ImageAssetPicker({
         body: formData,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to upload image");
-      }
+      // Safe parse: a platform-level rejection (e.g. Vercel's 4.5MB body cap
+      // → plain-text 413) is not JSON and must surface a readable message.
+      const data = await parseApiResponse<{
+        data: { id: string; kind: string; publicUrl: string | null; width: number | null; height: number | null };
+      }>(response);
 
       const newAsset: Asset = {
         id: data.data.id,
@@ -301,7 +306,7 @@ export function ImageAssetPicker({
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          JPEG, PNG, or WebP. Max 5MB. Min 200x200px, max 4000x4000px.
+          JPEG, PNG, or WebP. Max {MAX_FILE_SIZE_MB}MB. Min 200x200px, max 4000x4000px.
         </p>
       </div>
 

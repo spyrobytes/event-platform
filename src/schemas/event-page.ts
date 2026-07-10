@@ -1039,7 +1039,13 @@ export const PAGE_CONFIG_LIMITS = {
   navLabelMaxLength: 20,
   heroTitleLength: 80,
   heroSubtitleLength: 120,
-  maxFileSizeBytes: 5 * 1024 * 1024, // 5MB
+  // 4MB, NOT 5: uploads travel as multipart bodies through Vercel serverless
+  // functions, which cap request bodies at 4.5MB — the platform bounces
+  // anything larger with a plain-text 413 before our validation runs, so an
+  // advertised limit above ~4.4MB is a promise the route can't keep (files in
+  // the old 4.5–5MB window failed with a JSON parse error). Raise this only
+  // after uploads move to signed direct-to-storage.
+  maxFileSizeBytes: 4 * 1024 * 1024,
   maxAssetsPerEvent: 50,
 } as const;
 
