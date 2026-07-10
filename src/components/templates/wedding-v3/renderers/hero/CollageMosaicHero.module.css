@@ -64,6 +64,49 @@
   object-position: right center;
 }
 
+/* Both sides (hero.backgroundFocalX = "edges") — artwork on BOTH edges, which
+   one cover-crop can't preserve. Two copies of the image: .imgPrimary (the
+   normal hero image) anchored left, .imgEdgeRight anchored right, each masked
+   to its half with a soft blend where they meet — the seam lands in the plain
+   middle these images have by design, under this hero's grade. Phone-only: on
+   desktop the X-anchor is inert, the extra copy stays hidden, and the primary
+   renders unmasked. Both copies inherit .bgImage img's geometry (identical
+   boxes — seam quality depends on it) and grade; only anchor + mask differ.
+   No drift and no portrait variant on this hero, so no animation handling and
+   no normalization — the simplest of the three enrolled heroes. Mask failure
+   degrades to the right-focal look, not breakage. mask-image authored
+   standard-only; Lightning CSS emits the -webkit- pair.
+   (Scoped `.bgImage .imgEdgeRight`: the base `.bgImage img` rule's (0,1,1)
+   specificity — with its display:block — would beat a bare class.) */
+.bgImage .imgEdgeRight {
+  display: none;
+}
+@media (max-width: 767px) {
+  .bgImage[data-focal="edges"] {
+    /* This hero's hand-tuned blend stops (shared by both masks) — internal
+       only, never organizer-facing. */
+    --edge-blend-start: 42%;
+    --edge-blend-end: 58%;
+  }
+  .bgImage[data-focal="edges"] .imgPrimary {
+    object-position: left center;
+    mask-image: linear-gradient(
+      to right,
+      black var(--edge-blend-start),
+      transparent var(--edge-blend-end)
+    );
+  }
+  .bgImage[data-focal="edges"] .imgEdgeRight {
+    display: block;
+    object-position: right center;
+    mask-image: linear-gradient(
+      to right,
+      transparent var(--edge-blend-start),
+      black var(--edge-blend-end)
+    );
+  }
+}
+
 .bgFallback {
   position: absolute;
   inset: 0;

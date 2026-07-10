@@ -115,6 +115,53 @@
   object-position: right top;
 }
 
+/* Both sides (hero.backgroundFocalX = "edges") — artwork on BOTH edges, which
+   one cover-crop can't preserve. Two copies of the image: .imgPrimary (the
+   normal hero image) anchored left, .imgEdgeRight anchored right, each masked
+   to its half with a soft blend where they meet — the seam lands in the plain
+   middle these images have by design, under this hero's dark grade. Phone-only:
+   on desktop the X-anchor is inert, the extra copy stays hidden, and the
+   primary runs unmasked with luxeDrift untouched. Both copies inherit
+   .bgImage img's geometry (identical boxes — seam quality depends on it) and
+   its brightness grade; only anchor + mask differ. luxeDrift is killed on
+   phones only — two drifting copies would shear at the seam (unlike left/right,
+   where the edge-origin pin lets it survive). Mask failure degrades to the
+   right-focal look, not breakage. mask-image authored standard-only; Lightning
+   CSS emits the -webkit- pair. Portrait never composes with these rules: the
+   renderer normalizes edges → center while portrait is active.
+   (Scoped `.bgImage .imgEdgeRight` so no (0,1,1) `.bgImage img` rule can ever
+   out-rank the hide — same convention as the other enrolled heroes.) */
+.bgImage .imgEdgeRight {
+  display: none;
+}
+@media (max-width: 767px) {
+  .bgImage[data-focal="edges"] {
+    /* This hero's hand-tuned blend stops (shared by both masks) — internal
+       only, never organizer-facing. */
+    --edge-blend-start: 42%;
+    --edge-blend-end: 58%;
+  }
+  .bgImage[data-focal="edges"] .imgPrimary {
+    object-position: left center;
+    mask-image: linear-gradient(
+      to right,
+      black var(--edge-blend-start),
+      transparent var(--edge-blend-end)
+    );
+    animation: none;
+  }
+  .bgImage[data-focal="edges"] .imgEdgeRight {
+    display: block;
+    object-position: right center;
+    mask-image: linear-gradient(
+      to right,
+      transparent var(--edge-blend-start),
+      black var(--edge-blend-end)
+    );
+    animation: none;
+  }
+}
+
 /* ===== COUPLE PHOTO — top-left portrait =====
  * Shape geometry (heart clip, circle radius, full-length aspect) comes from
  * the shared CouplePhotoFrame component; these classes own placement, size,

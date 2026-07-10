@@ -33,6 +33,7 @@ type PageProps = {
     weddingPartyStyle?: string;
     couplePhotoFrame?: string;
     backgroundTreatment?: string;
+    backgroundFocalX?: string;
     displayStyle?: string;
     sampleGallery?: string;
     sampleHero?: string;
@@ -316,6 +317,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     weddingPartyStyle,
     couplePhotoFrame,
     backgroundTreatment,
+    backgroundFocalX,
     displayStyle,
     sampleGallery,
     sampleHero,
@@ -402,6 +404,21 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     config = {
       ...config,
       hero: { ...config.hero, backgroundTreatment },
+    };
+  }
+
+  // Optionally exercise the hero focal anchor (?backgroundFocalX=left|center|
+  // right|edges — compose with ?sampleHero= for a hero image, and with
+  // ?backgroundTreatment=portrait to verify the edges → center normalization).
+  if (
+    backgroundFocalX === "left" ||
+    backgroundFocalX === "center" ||
+    backgroundFocalX === "right" ||
+    backgroundFocalX === "edges"
+  ) {
+    config = {
+      ...config,
+      hero: { ...config.hero, backgroundFocalX },
     };
   }
 

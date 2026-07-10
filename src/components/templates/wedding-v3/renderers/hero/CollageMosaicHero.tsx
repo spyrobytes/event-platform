@@ -49,8 +49,11 @@ export function CollageMosaicHero({
   // Horizontal focal point for the single full-bleed cover image — only bites
   // on phones (horizontal overflow), a no-op on desktop. Keeps a one-sided
   // motif in frame; CSS owns the per-side object-position. No portrait variant
-  // and no Ken Burns drift on this hero, so the wiring is simpler than V2/GL.
+  // and no Ken Burns drift on this hero, so the wiring is simpler than V2/GL:
+  // "edges" (both sides kept, blended middle — see the module's edges block)
+  // needs no portrait normalization here.
   const focalX = config.backgroundFocalX ?? "center";
+  const isEdges = focalX === "edges";
 
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
@@ -138,6 +141,7 @@ export function CollageMosaicHero({
       {hasImage ? (
         <div className={styles.bgImage} data-focal={focalX} aria-hidden="true">
           <EventImage
+            className={styles.imgPrimary}
             src={heroAsset!.publicUrl!}
             alt=""
             fill
@@ -146,6 +150,22 @@ export function CollageMosaicHero({
             blurDataURL={heroAsset!.blurDataUrl}
             renditionWidths={heroAsset!.renditionWidths}
           />
+          {/* "Both sides": right-anchored second copy, masked against the
+              primary on phones (desktop hides it in CSS). Identical
+              responsive-image inputs — same rendition, cache hit, no second
+              transfer. Eager but NOT priority: only the primary preloads. */}
+          {isEdges && (
+            <EventImage
+              className={styles.imgEdgeRight}
+              src={heroAsset!.publicUrl!}
+              alt=""
+              fill
+              sizes="100vw"
+              loading="eager"
+              blurDataURL={heroAsset!.blurDataUrl}
+              renditionWidths={heroAsset!.renditionWidths}
+            />
+          )}
         </div>
       ) : (
         <div className={styles.bgFallback} aria-hidden="true" />

@@ -64,7 +64,15 @@ export function FullscreenDramaticHero({
   // landscape image overflows horizontally there), a no-op on desktop. Keeps a
   // one-sided motif in frame; CSS owns the per-side object-position and the
   // luxeDrift-off, with the Y axis left to the treatment class.
-  const focalX = config.backgroundFocalX ?? "center";
+  // "edges" keeps BOTH sides: a second right-anchored copy is masked against
+  // the left-anchored primary (see the module's edges block). Portrait wins
+  // over a stale "edges" (its subject sits in the blend zone): normalize to
+  // center at render so the wrapper never carries data-focal="edges" under
+  // portrait and no second copy is mounted.
+  const rawFocalX = config.backgroundFocalX ?? "center";
+  const focalX =
+    isPortraitBackdrop && rawFocalX === "edges" ? "center" : rawFocalX;
+  const isEdges = focalX === "edges";
 
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
   // the ?? is a defensive fallback to this hero's original shape.
@@ -105,6 +113,7 @@ export function FullscreenDramaticHero({
           data-focal={focalX}
         >
           <EventImage
+            className={styles.imgPrimary}
             src={heroAsset.publicUrl}
             alt=""
             fill
@@ -113,6 +122,23 @@ export function FullscreenDramaticHero({
             blurDataURL={heroAsset.blurDataUrl}
             renditionWidths={heroAsset.renditionWidths}
           />
+          {/* "Both sides": right-anchored second copy, masked against the
+              primary on phones (desktop hides it in CSS). Identical
+              responsive-image inputs — same rendition, cache hit, no second
+              transfer. Eager but NOT priority: only the primary preloads. */}
+          {isEdges && (
+            <EventImage
+              className={styles.imgEdgeRight}
+              src={heroAsset.publicUrl}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="100vw"
+              loading="eager"
+              blurDataURL={heroAsset.blurDataUrl}
+              renditionWidths={heroAsset.renditionWidths}
+            />
+          )}
         </div>
       ) : (
         <div className={styles.bgFallback} aria-hidden="true" />

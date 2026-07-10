@@ -40,8 +40,8 @@ describe("templateSupportsHeroFocalX", () => {
 describe("heroSchema backgroundFocalX field", () => {
   const baseHero = { title: "Our Wedding", align: "center", overlay: "soft" };
 
-  it("accepts left, center, and right", () => {
-    for (const focal of ["left", "center", "right"]) {
+  it("accepts left, center, right, and edges", () => {
+    for (const focal of ["left", "center", "right", "edges"]) {
       expect(() =>
         heroSchema.parse({ ...baseHero, backgroundFocalX: focal })
       ).not.toThrow();
@@ -50,9 +50,13 @@ describe("heroSchema backgroundFocalX field", () => {
   });
 
   it("rejects unknown focal values", () => {
-    expect(() =>
-      heroSchema.parse({ ...baseHero, backgroundFocalX: "top" })
-    ).toThrow();
+    // "both" is the label-shaped mistake for "edges"; "top" is the axis
+    // mistake. Both must fail so a typo can't silently persist.
+    for (const bogus of ["top", "both"]) {
+      expect(() =>
+        heroSchema.parse({ ...baseHero, backgroundFocalX: bogus })
+      ).toThrow();
+    }
   });
 
   it("parses legacy configs without the field (backward compat — unset = center)", () => {

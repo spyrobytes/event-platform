@@ -90,7 +90,16 @@ export function CinematicHero({
   // one-sided motif (e.g. a floral border) in frame instead of cropping it off.
   // CSS owns the per-side object-position + drift-off; the Y axis stays driven
   // by the treatment class so portrait's top-anchor is untouched.
-  const focalX = config.backgroundFocalX ?? "center";
+  // "edges" keeps BOTH sides: a second right-anchored copy is masked against
+  // the left-anchored primary (see the module's edges block). Portrait wins
+  // over a stale "edges" (its subject sits in the blend zone): normalize to
+  // center at render so the wrapper never carries data-focal="edges" under
+  // portrait — the higher-specificity edges CSS can then never fight the
+  // portrait rules, and no second copy is mounted.
+  const rawFocalX = config.backgroundFocalX ?? "center";
+  const focalX =
+    isPortraitBackdrop && rawFocalX === "edges" ? "center" : rawFocalX;
+  const isEdges = focalX === "edges";
 
   // Organizer-selected frame shape; unset/unknown resolves to the first
   // curated option (circle — V2's original look).
@@ -139,6 +148,7 @@ export function CinematicHero({
           aria-hidden="true"
         >
           <img
+            className={styles.imgPrimary}
             src={heroAsset.publicUrl}
             srcSet={buildRenditionSrcSet(
               heroAsset.publicUrl,
@@ -149,6 +159,24 @@ export function CinematicHero({
             alt=""
             loading="eager"
           />
+          {/* "Both sides": right-anchored second copy, masked against the
+              primary on phones (desktop hides it in CSS). Identical
+              responsive-image inputs — same rendition, cache hit, no second
+              transfer. */}
+          {isEdges && (
+            <img
+              className={styles.imgEdgeRight}
+              src={heroAsset.publicUrl}
+              srcSet={buildRenditionSrcSet(
+                heroAsset.publicUrl,
+                heroAsset.renditionWidths,
+                heroAsset.width
+              )}
+              sizes="100vw"
+              alt=""
+              loading="eager"
+            />
+          )}
         </div>
       ) : (
         <div className={styles.heroFallback} aria-hidden="true" />

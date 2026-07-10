@@ -97,10 +97,17 @@ export type HeroBackgroundTreatment = z.infer<typeof heroBackgroundTreatmentSche
  *
  * - `center` (default, unset) — today's behavior.
  * - `left` / `right` — pin the crop to that side on phones.
+ * - `edges` — keep BOTH sides: the hero renders two copies of the image
+ *   (left- and right-anchored), each masked to its half with a soft blend
+ *   where they meet. For artwork on both edges with a plain middle (the
+ *   blend seam lands there). Phone-only like the rest; on desktop the
+ *   second copy is hidden and output is equivalent to `center`. Mutually
+ *   exclusive with the `portrait` treatment — renderers normalize
+ *   `edges` to `center` while portrait is active.
  *
  * Templates opt in via `templateSupportsHeroFocalX`.
  */
-export const heroFocalXSchema = z.enum(["left", "center", "right"]);
+export const heroFocalXSchema = z.enum(["left", "center", "right", "edges"]);
 export type HeroFocalX = z.infer<typeof heroFocalXSchema>;
 
 export const heroSchema = z.object({
