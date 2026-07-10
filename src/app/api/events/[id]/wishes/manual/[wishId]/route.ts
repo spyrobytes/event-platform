@@ -10,18 +10,6 @@ type RouteContext = {
   params: Promise<{ id: string; wishId: string }>;
 };
 
-/** Loads the wish and enforces that it belongs to the route's event. */
-async function findOwnedWish(eventId: string, wishId: string) {
-  const wish = await db.manualWish.findUnique({
-    where: { id: wishId },
-    select: { id: true, eventId: true },
-  });
-  if (!wish || wish.eventId !== eventId) {
-    throw new NotFoundError("Wish not found");
-  }
-  return wish;
-}
-
 /**
  * PATCH /api/events/[id]/wishes/manual/[wishId]
  * Organizer edits a manually added wish (author and/or message).
@@ -37,14 +25,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const body = await request.json();
     const data = manualWishSchema.parse(body);
 
-    await findOwnedWish(eventId, wishId);
-
-    const wish = await db.manualWish.update({
-      where: { id: wishId },
+    // Atomic eventId guard via the compound where — count=0 covers both
+    // "belongs to another event" and "deleted concurrently", surfaced as
+    // 404 instead of letting Prisma's P2025 bubble to a generic 500.
+    const result = await db.manualWish.updateMany({
+      where: { id: wishId, eventId },
       data: {
         authorName: data.authorName,
         message: data.message,
       },
+    });
+    if (result.count === 0) {
+      throw new NotFoundError("Wish not found");
+    }
+
+    const wish = await db.manualWish.findUnique({
+      where: { id: wishId },
       select: {
         id: true,
         authorName: true,
@@ -53,6 +49,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         updatedAt: true,
       },
     });
+    if (!wish) {
+      // Deleted between the write above and this read.
+      throw new NotFoundError("Wish not found");
+    }
 
     return successResponse({ wish });
   } catch (error) {
@@ -73,8 +73,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     const { id: eventId, wishId } = await context.params;
     await requireEventOwner(eventId, user.id);
 
-    await findOwnedWish(eventId, wishId);
-    await db.manualWish.delete({ where: { id: wishId } });
+    // Same atomic guard as PATCH: a concurrent double-delete gets a clean
+    // 404 on the second request, not a P2025-backed 500.
+    const result = await db.manualWish.deleteMany({
+      where: { id: wishId, eventId },
+    });
+    if (result.count === 0) {
+      throw new NotFoundError("Wish not found");
+    }
 
     return successResponse({ deleted: true });
   } catch (error) {

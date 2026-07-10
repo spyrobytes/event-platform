@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
@@ -122,79 +122,107 @@ export default function WishesModerationPage() {
     };
   }, [params.id, getIdToken]);
 
-  // `cursor` of null fetches a fresh first page (resets the list); a non-null
-  // cursor appends. Counts are always replaced — they're authoritative from
-  // the server's groupBy.
-  const loadMessages = useCallback(
-    async (currentFilter: FilterKey, cursor: string | null) => {
-      setError(null);
+  // Monotonic per-list request ids: a response only applies when it is
+  // still the newest request for its list, so a slow "Load more" resolving
+  // after a tab round-trip can't append page-2 rows onto a fresh reset.
+  const fetchGen = useRef({ messages: 0, manual: 0 });
+
+  // Shared page fetcher behind both tabs' loaders. `cursor` of null fetches
+  // a fresh first page (the `apply` callbacks reset their list); non-null
+  // appends. `background` is for the badge fetch on mount: it must not flip
+  // the page-level `loading` flag (it would race the event-metadata fetch
+  // into an "Event not found" flash) nor write the shared error banner over
+  // a moderation tab that loaded fine.
+  const fetchListPage = useCallback(
+    async <T,>(opts: {
+      kind: "messages" | "manual";
+      url: string;
+      cursor: string | null;
+      background?: boolean;
+      apply: (data: T) => void;
+    }) => {
+      const { kind, url, cursor, background, apply } = opts;
+      const gen = ++fetchGen.current[kind];
+      if (!background) setError(null);
       if (cursor) setLoadingMore(true);
       try {
         const token = await getIdToken();
         if (!token) {
-          setError("Not authenticated");
+          if (!background) setError("Not authenticated");
           return;
         }
-        const url = new URL(
-          `/api/events/${params.id}/wishes`,
-          window.location.origin
-        );
-        url.searchParams.set("status", currentFilter);
-        if (cursor) url.searchParams.set("cursor", cursor);
-        const res = await fetch(url.toString(), {
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Failed to load messages");
-        const { data } = await res.json();
-        const newMessages = data.messages as WishMessage[];
-        setCounts(data.counts as Counts);
-        setNextCursor(data.nextCursor as string | null);
-        setMessages((prev) => (cursor ? [...prev, ...newMessages] : newMessages));
+        const { data } = await parseApiResponse<{ data: T }>(res);
+        if (gen !== fetchGen.current[kind]) return; // stale — a newer fetch owns this list
+        apply(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load");
+        if (!background) {
+          setError(err instanceof Error ? err.message : "Failed to load");
+        }
       } finally {
-        setLoading(false);
+        if (!background) setLoading(false);
         setLoadingMore(false);
       }
     },
-    [params.id, getIdToken]
+    [getIdToken]
   );
 
-  // `cursor` semantics mirror loadMessages: null resets, non-null appends.
+  // Counts are always replaced — they're authoritative from the server's
+  // groupBy.
+  const loadMessages = useCallback(
+    async (currentFilter: FilterKey, cursor: string | null) => {
+      const url = new URL(
+        `/api/events/${params.id}/wishes`,
+        window.location.origin
+      );
+      url.searchParams.set("status", currentFilter);
+      if (cursor) url.searchParams.set("cursor", cursor);
+      await fetchListPage<{
+        counts: Counts;
+        messages: WishMessage[];
+        nextCursor: string | null;
+      }>({
+        kind: "messages",
+        url: url.toString(),
+        cursor,
+        apply: (data) => {
+          setCounts(data.counts);
+          setNextCursor(data.nextCursor);
+          setMessages((prev) =>
+            cursor ? [...prev, ...data.messages] : data.messages
+          );
+        },
+      });
+    },
+    [params.id, fetchListPage]
+  );
+
   // `total` is authoritative from the server on every call so the tab badge
   // stays correct after adds/deletes.
   const loadManualWishes = useCallback(
-    async (cursor: string | null) => {
-      setError(null);
-      if (cursor) setLoadingMore(true);
-      try {
-        const token = await getIdToken();
-        if (!token) {
-          setError("Not authenticated");
-          return;
-        }
-        const url = new URL(
-          `/api/events/${params.id}/wishes/manual`,
-          window.location.origin
-        );
-        if (cursor) url.searchParams.set("cursor", cursor);
-        const res = await fetch(url.toString(), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const { data } = await parseApiResponse<{ data: ManualListData }>(res);
-        setManualTotal(data.total);
-        setManualNextCursor(data.nextCursor);
-        setManualWishes((prev) =>
-          cursor ? [...prev, ...data.wishes] : data.wishes
-        );
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load");
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+    async (cursor: string | null, opts: { background?: boolean } = {}) => {
+      const url = new URL(
+        `/api/events/${params.id}/wishes/manual`,
+        window.location.origin
+      );
+      if (cursor) url.searchParams.set("cursor", cursor);
+      await fetchListPage<ManualListData>({
+        kind: "manual",
+        url: url.toString(),
+        cursor,
+        background: opts.background,
+        apply: (data) => {
+          setManualTotal(data.total);
+          setManualNextCursor(data.nextCursor);
+          setManualWishes((prev) =>
+            cursor ? [...prev, ...data.wishes] : data.wishes
+          );
+        },
+      });
     },
-    [params.id, getIdToken]
+    [params.id, fetchListPage]
   );
 
   // Reset and refetch whenever the active filter changes.
@@ -206,10 +234,11 @@ export default function WishesModerationPage() {
     }
   }, [loadMessages, loadManualWishes, filter]);
 
-  // One-time fetch so the "Added by you" tab badge is populated without
-  // visiting the tab (the moderation GET doesn't know about manual wishes).
+  // One-time background fetch so the "Added by you" tab badge is populated
+  // without visiting the tab (the moderation GET doesn't know about manual
+  // wishes).
   useEffect(() => {
-    loadManualWishes(null);
+    loadManualWishes(null, { background: true });
   }, [loadManualWishes]);
 
   const updateStatus = useCallback(
@@ -278,7 +307,11 @@ export default function WishesModerationPage() {
   );
 
   const authedJsonRequest = useCallback(
-    async (path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) => {
+    async <T,>(
+      path: string,
+      method: "POST" | "PATCH" | "DELETE",
+      body?: unknown
+    ): Promise<{ data: T }> => {
       const token = await getIdToken();
       if (!token) throw new Error("Not authenticated");
       const res = await fetch(path, {
@@ -289,7 +322,7 @@ export default function WishesModerationPage() {
         },
         ...(body !== undefined && { body: JSON.stringify(body) }),
       });
-      return parseApiResponse<{ data: unknown }>(res);
+      return parseApiResponse<{ data: T }>(res);
     },
     [getIdToken]
   );
@@ -322,17 +355,16 @@ export default function WishesModerationPage() {
       setPendingId(wishId);
       setError(null);
       try {
-        await authedJsonRequest(
+        // The PATCH returns the updated row — use the server's wish (with
+        // its authoritative updatedAt) rather than fabricating one from
+        // the client clock.
+        const { data } = await authedJsonRequest<{ wish: ManualWish }>(
           `/api/events/${params.id}/wishes/manual/${wishId}`,
           "PATCH",
           { authorName, message }
         );
         setManualWishes((prev) =>
-          prev.map((w) =>
-            w.id === wishId
-              ? { ...w, authorName, message, updatedAt: new Date().toISOString() }
-              : w
-          )
+          prev.map((w) => (w.id === wishId ? data.wish : w))
         );
         return true;
       } catch (err) {
@@ -358,15 +390,18 @@ export default function WishesModerationPage() {
           `/api/events/${params.id}/wishes/manual/${wishId}`,
           "DELETE"
         );
-        setManualWishes((prev) => prev.filter((w) => w.id !== wishId));
-        setManualTotal((t) => Math.max(0, t - 1));
+        // Server reload instead of a local splice: it refreshes total AND
+        // nextCursor together — deleting the row the cursor points at would
+        // otherwise make the next "Load more" paginate from a nonexistent
+        // id and silently drop the remaining pages.
+        await loadManualWishes(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to delete wish");
       } finally {
         setPendingId(null);
       }
     },
-    [params.id, authedJsonRequest]
+    [params.id, authedJsonRequest, loadManualWishes]
   );
 
   if (loading) {

@@ -1,19 +1,14 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner } from "@/lib/authorization";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
+import { cursorPaginationSchema } from "@/schemas/common";
 import { manualWishSchema } from "@/schemas/manual-wish";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
-
-const querySchema = z.object({
-  cursor: z.string().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
-});
 
 /**
  * GET /api/events/[id]/wishes/manual
@@ -31,7 +26,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     await requireEventOwner(eventId, user.id);
 
     const url = new URL(request.url);
-    const { cursor, limit } = querySchema.parse({
+    const { cursor, limit } = cursorPaginationSchema.parse({
       cursor: url.searchParams.get("cursor") ?? undefined,
       limit: url.searchParams.get("limit") ?? undefined,
     });

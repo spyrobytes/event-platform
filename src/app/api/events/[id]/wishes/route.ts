@@ -4,15 +4,14 @@ import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner } from "@/lib/authorization";
 import { successResponse, errorResponse, handleApiError } from "@/lib/api-response";
+import { cursorPaginationSchema } from "@/schemas/common";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-const querySchema = z.object({
+const querySchema = cursorPaginationSchema.extend({
   status: z.enum(["PENDING", "APPROVED", "HIDDEN", "ALL"]).default("PENDING"),
-  cursor: z.string().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
 /**

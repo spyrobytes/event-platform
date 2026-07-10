@@ -161,4 +161,19 @@ describe("getApprovedWishes — merge + ordering", () => {
       expect.objectContaining({ take: undefined })
     );
   });
+
+  it("orders the SQL fetch with nulls LAST so a limited take-window matches the JS merge key", async () => {
+    // Postgres DESC sorts NULLs first by default; without nulls:"last",
+    // legacy approved rows (null messageApprovedAt) would consume the
+    // take window while the JS coalesce ordering ranks them last.
+    await getApprovedWishes("evt_1", { limit: 6 });
+    expect(dbMock.rSVP.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [
+          { messageApprovedAt: { sort: "desc", nulls: "last" } },
+          { respondedAt: "desc" },
+        ],
+      })
+    );
+  });
 });

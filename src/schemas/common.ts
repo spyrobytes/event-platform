@@ -11,6 +11,18 @@ export const paginationSchema = z.object({
 export type PaginationInput = z.infer<typeof paginationSchema>;
 
 /**
+ * Cursor (seek) pagination for list endpoints ordered by a stable key:
+ * `cursor` is the id of the last row of the previous page. Shared by the
+ * wishes moderation and manual-wishes routes.
+ */
+export const cursorPaginationSchema = z.object({
+  cursor: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export type CursorPaginationInput = z.infer<typeof cursorPaginationSchema>;
+
+/**
  * ID parameter schema
  */
 export const idParamSchema = z.object({

@@ -57,7 +57,15 @@ export async function getApprovedWishes(
         messageApprovedAt: true,
         respondedAt: true,
       },
-      orderBy: [{ messageApprovedAt: "desc" }, { respondedAt: "desc" }],
+      // nulls:"last" keeps the SQL take-window aligned with the JS merge
+      // key below (messageApprovedAt ?? respondedAt): Postgres DESC sorts
+      // NULLs FIRST by default, so legacy approved rows without the
+      // timestamp would otherwise consume a limited fetch and crowd out
+      // the rows the display ordering ranks highest.
+      orderBy: [
+        { messageApprovedAt: { sort: "desc", nulls: "last" } },
+        { respondedAt: "desc" },
+      ],
       take,
     }),
     db.manualWish.findMany({
