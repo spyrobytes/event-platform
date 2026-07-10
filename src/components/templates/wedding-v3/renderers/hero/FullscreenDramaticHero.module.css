@@ -126,10 +126,9 @@
    center). Not viewport-gated — object-position self-arms exactly when the
    image overflows horizontally (tall phones AND tablets, matching the
    ungated left/right rules); where nothing overflows both copies show
-   identical pixels and the overlay is invisible. luxeDrift is off in edges
-   mode on every viewport: wherever the crop overflows, the copies show
-   different windows and motion shears the seam (unlike left/right, where the
-   edge-origin pin lets it survive). Both copies inherit .bgImage img's
+   identical pixels and the overlay is invisible. luxeDrift: off on touch
+   devices (rules below), restored on desktop-like devices (the hover+fine
+   block below — lockstep animation can't shear). Both copies inherit .bgImage img's
    geometry (identical boxes — seam quality depends on it) and its brightness
    grade; only anchor + mask differ. Mask failure degrades to the right-focal
    look, not breakage. mask-image authored standard-only; Lightning CSS emits
@@ -144,7 +143,10 @@
 }
 .bgImage[data-focal="edges"] .imgPrimary {
   object-position: left center;
-  animation: none;
+  /* animation-name (not the shorthand): the hover+fine block below re-enables
+     by name only, inheriting the base rule's timing — one source of truth for
+     the drift's duration/easing. */
+  animation-name: none;
 }
 .bgImage[data-focal="edges"] .imgEdgeRight {
   object-position: right center;
@@ -153,7 +155,28 @@
     transparent var(--edge-blend-start),
     black var(--edge-blend-end)
   );
-  animation: none;
+  animation-name: none;
+}
+
+/* Edges + desktop-like devices (mouse + hover): restore luxeDrift. Seam
+   shear only happens between INDEPENDENT animations — both copies here run
+   the same scale-only keyframes with the same timing and (default center)
+   transform-origin, so their transform fields are identical every frame and
+   the copies move in lockstep: the blend cannot shear even in a narrow
+   desktop window where the crop overflows. In that rare case the edge motifs
+   breathe ~6% at max zoom (scale 1.12, center origin); on a normal desktop
+   nothing overflows and this is pixel-identical to the single-image drift —
+   and the layered .couplePhoto (which shares luxeDrift) breathes back in
+   sync with the backdrop. Touch devices (hover:none/pointer:coarse — phones
+   AND tablets) keep the static rules above. animation-name only —
+   duration/easing inherit from the base .bgImage img shorthand, so a future
+   drift retune can't desync this block. Reduced motion: this file's media
+   block below re-kills these at equal specificity + later order. */
+@media (hover: hover) and (pointer: fine) {
+  .bgImage[data-focal="edges"] .imgPrimary,
+  .bgImage[data-focal="edges"] .imgEdgeRight {
+    animation-name: luxeDrift;
+  }
 }
 
 /* ===== COUPLE PHOTO — top-left portrait =====
@@ -542,8 +565,13 @@
 /* ===== REDUCED MOTION ===== */
 
 @media (prefers-reduced-motion: reduce) {
+  /* The edges desktop-drift rules sit at (0,3,0) (class + attr + class), so
+     their selectors are listed verbatim — equal specificity + this block's
+     later source order re-kills the restored drift. */
   .bgImage img,
-  .couplePhoto img {
+  .couplePhoto img,
+  .bgImage[data-focal="edges"] .imgPrimary,
+  .bgImage[data-focal="edges"] .imgEdgeRight {
     animation: none;
   }
 
