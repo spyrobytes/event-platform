@@ -180,6 +180,7 @@ model Event {
   galleries           EventGallery[]
   galleryImports      GalleryImportJob[]
   impersonationGrants ImpersonationGrant[]
+  manualWishes        ManualWish[]
 
   @@index([creatorId])
   @@index([city])
@@ -381,6 +382,27 @@ enum MessageStatus {
   PENDING
   APPROVED
   HIDDEN
+}
+
+// Wedding wishes the organizer adds by hand — collected outside the
+// invite/RSVP pipeline (paper cards, Google Docs, other tools). Kept
+// separate from RSVP.messageToHost on purpose: RSVP rows feed attendance
+// counts/analytics, so a wish-only RSVP would corrupt every headcount.
+// No moderation status — a wish the organizer typed is born approved;
+// delete replaces hide. Public readers merge both sources
+// (see src/lib/wishes.ts).
+model ManualWish {
+  id         String   @id @default(cuid())
+  eventId    String   @map("event_id")
+  authorName String   @map("author_name")
+  message    String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("manual_wishes")
 }
 
 // =============================================================================

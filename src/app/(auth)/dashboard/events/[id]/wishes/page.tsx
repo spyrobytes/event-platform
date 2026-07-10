@@ -1,15 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
 import { useAuthContext } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { parseApiResponse } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 type MessageStatus = "PENDING" | "APPROVED" | "HIDDEN";
-type FilterKey = MessageStatus | "ALL";
+type FilterKey = MessageStatus | "ALL" | "MANUAL";
 
 type WishMessage = {
   id: string;
@@ -25,11 +29,29 @@ type Counts = { pending: number; approved: number; hidden: number };
 
 type EventBasic = { id: string; title: string };
 
+// Organizer-entered wish collected outside the invite/RSVP pipeline
+// (Google Doc, paper cards, ...). Distinct entity from RSVP-backed
+// WishMessage: no moderation status, actions are edit/delete.
+type ManualWish = {
+  id: string;
+  authorName: string;
+  message: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ManualListData = {
+  total: number;
+  wishes: ManualWish[];
+  nextCursor: string | null;
+};
+
 const FILTER_TABS: { key: FilterKey; label: string; countKey?: keyof Counts }[] = [
   { key: "PENDING", label: "Pending", countKey: "pending" },
   { key: "APPROVED", label: "Approved", countKey: "approved" },
   { key: "HIDDEN", label: "Hidden", countKey: "hidden" },
   { key: "ALL", label: "All" },
+  { key: "MANUAL", label: "Added by you" },
 ];
 
 const STATUS_BADGE: Record<MessageStatus, { label: string; className: string }> = {
@@ -60,6 +82,14 @@ export default function WishesModerationPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  // Manually added wishes live in their own list — different entity,
+  // different endpoint, different actions (edit/delete vs moderate).
+  const [manualWishes, setManualWishes] = useState<ManualWish[]>([]);
+  const [manualTotal, setManualTotal] = useState(0);
+  const [manualNextCursor, setManualNextCursor] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [savingWish, setSavingWish] = useState(false);
 
   // Event metadata is fetched once on mount; the wishes list is fetched on
   // filter change and on "Load more". Splitting the two avoids a redundant
@@ -92,48 +122,124 @@ export default function WishesModerationPage() {
     };
   }, [params.id, getIdToken]);
 
-  // `cursor` of null fetches a fresh first page (resets the list); a non-null
-  // cursor appends. Counts are always replaced — they're authoritative from
-  // the server's groupBy.
-  const loadMessages = useCallback(
-    async (currentFilter: FilterKey, cursor: string | null) => {
-      setError(null);
+  // Monotonic per-list request ids: a response only applies when it is
+  // still the newest request for its list, so a slow "Load more" resolving
+  // after a tab round-trip can't append page-2 rows onto a fresh reset.
+  const fetchGen = useRef({ messages: 0, manual: 0 });
+
+  // Shared page fetcher behind both tabs' loaders. `cursor` of null fetches
+  // a fresh first page (the `apply` callbacks reset their list); non-null
+  // appends. `background` is for the badge fetch on mount: it must not flip
+  // the page-level `loading` flag (it would race the event-metadata fetch
+  // into an "Event not found" flash) nor write the shared error banner over
+  // a moderation tab that loaded fine.
+  const fetchListPage = useCallback(
+    async <T,>(opts: {
+      kind: "messages" | "manual";
+      url: string;
+      cursor: string | null;
+      background?: boolean;
+      apply: (data: T) => void;
+    }) => {
+      const { kind, url, cursor, background, apply } = opts;
+      const gen = ++fetchGen.current[kind];
+      if (!background) setError(null);
       if (cursor) setLoadingMore(true);
       try {
         const token = await getIdToken();
         if (!token) {
-          setError("Not authenticated");
+          if (!background) setError("Not authenticated");
           return;
         }
-        const url = new URL(
-          `/api/events/${params.id}/wishes`,
-          window.location.origin
-        );
-        url.searchParams.set("status", currentFilter);
-        if (cursor) url.searchParams.set("cursor", cursor);
-        const res = await fetch(url.toString(), {
+        const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Failed to load messages");
-        const { data } = await res.json();
-        const newMessages = data.messages as WishMessage[];
-        setCounts(data.counts as Counts);
-        setNextCursor(data.nextCursor as string | null);
-        setMessages((prev) => (cursor ? [...prev, ...newMessages] : newMessages));
+        const { data } = await parseApiResponse<{ data: T }>(res);
+        if (gen !== fetchGen.current[kind]) return; // stale — a newer fetch owns this list
+        apply(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load");
+        if (!background) {
+          setError(err instanceof Error ? err.message : "Failed to load");
+        }
       } finally {
-        setLoading(false);
+        if (!background) setLoading(false);
         setLoadingMore(false);
       }
     },
-    [params.id, getIdToken]
+    [getIdToken]
+  );
+
+  // Counts are always replaced — they're authoritative from the server's
+  // groupBy.
+  const loadMessages = useCallback(
+    async (currentFilter: FilterKey, cursor: string | null) => {
+      const url = new URL(
+        `/api/events/${params.id}/wishes`,
+        window.location.origin
+      );
+      url.searchParams.set("status", currentFilter);
+      if (cursor) url.searchParams.set("cursor", cursor);
+      await fetchListPage<{
+        counts: Counts;
+        messages: WishMessage[];
+        nextCursor: string | null;
+      }>({
+        kind: "messages",
+        url: url.toString(),
+        cursor,
+        apply: (data) => {
+          setCounts(data.counts);
+          setNextCursor(data.nextCursor);
+          setMessages((prev) =>
+            cursor ? [...prev, ...data.messages] : data.messages
+          );
+        },
+      });
+    },
+    [params.id, fetchListPage]
+  );
+
+  // `total` is authoritative from the server on every call so the tab badge
+  // stays correct after adds/deletes.
+  const loadManualWishes = useCallback(
+    async (cursor: string | null, opts: { background?: boolean } = {}) => {
+      const url = new URL(
+        `/api/events/${params.id}/wishes/manual`,
+        window.location.origin
+      );
+      if (cursor) url.searchParams.set("cursor", cursor);
+      await fetchListPage<ManualListData>({
+        kind: "manual",
+        url: url.toString(),
+        cursor,
+        background: opts.background,
+        apply: (data) => {
+          setManualTotal(data.total);
+          setManualNextCursor(data.nextCursor);
+          setManualWishes((prev) =>
+            cursor ? [...prev, ...data.wishes] : data.wishes
+          );
+        },
+      });
+    },
+    [params.id, fetchListPage]
   );
 
   // Reset and refetch whenever the active filter changes.
   useEffect(() => {
-    loadMessages(filter, null);
-  }, [loadMessages, filter]);
+    if (filter === "MANUAL") {
+      loadManualWishes(null);
+    } else {
+      loadMessages(filter, null);
+    }
+  }, [loadMessages, loadManualWishes, filter]);
+
+  // One-time background fetch so the "Added by you" tab badge is populated
+  // without visiting the tab (the moderation GET doesn't know about manual
+  // wishes).
+  useEffect(() => {
+    loadManualWishes(null, { background: true });
+  }, [loadManualWishes]);
 
   const updateStatus = useCallback(
     async (rsvpId: string, next: MessageStatus) => {
@@ -200,6 +306,104 @@ export default function WishesModerationPage() {
     [params.id, getIdToken, loadMessages, filter, messages, counts]
   );
 
+  const authedJsonRequest = useCallback(
+    async <T,>(
+      path: string,
+      method: "POST" | "PATCH" | "DELETE",
+      body?: unknown
+    ): Promise<{ data: T }> => {
+      const token = await getIdToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch(path, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body !== undefined && { "Content-Type": "application/json" }),
+        },
+        ...(body !== undefined && { body: JSON.stringify(body) }),
+      });
+      return parseApiResponse<{ data: T }>(res);
+    },
+    [getIdToken]
+  );
+
+  const createWish = useCallback(
+    async (authorName: string, message: string) => {
+      setSavingWish(true);
+      setError(null);
+      try {
+        await authedJsonRequest(
+          `/api/events/${params.id}/wishes/manual`,
+          "POST",
+          { authorName, message }
+        );
+        setShowAddForm(false);
+        // Server reload instead of optimistic prepend: keeps ordering and
+        // `total` authoritative, and the list is small.
+        await loadManualWishes(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to add wish");
+      } finally {
+        setSavingWish(false);
+      }
+    },
+    [params.id, authedJsonRequest, loadManualWishes]
+  );
+
+  const saveManualWish = useCallback(
+    async (wishId: string, authorName: string, message: string) => {
+      setPendingId(wishId);
+      setError(null);
+      try {
+        // The PATCH returns the updated row — use the server's wish (with
+        // its authoritative updatedAt) rather than fabricating one from
+        // the client clock.
+        const { data } = await authedJsonRequest<{ wish: ManualWish }>(
+          `/api/events/${params.id}/wishes/manual/${wishId}`,
+          "PATCH",
+          { authorName, message }
+        );
+        setManualWishes((prev) =>
+          prev.map((w) => (w.id === wishId ? data.wish : w))
+        );
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to save wish");
+        return false;
+      } finally {
+        setPendingId(null);
+      }
+    },
+    [params.id, authedJsonRequest]
+  );
+
+  const deleteManualWish = useCallback(
+    async (wishId: string) => {
+      const confirmed = window.confirm(
+        "Delete this wish? It will be removed from the event page."
+      );
+      if (!confirmed) return;
+      setPendingId(wishId);
+      setError(null);
+      try {
+        await authedJsonRequest(
+          `/api/events/${params.id}/wishes/manual/${wishId}`,
+          "DELETE"
+        );
+        // Server reload instead of a local splice: it refreshes total AND
+        // nextCursor together — deleting the row the cursor points at would
+        // otherwise make the next "Load more" paginate from a nonexistent
+        // id and silently drop the remaining pages.
+        await loadManualWishes(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete wish");
+      } finally {
+        setPendingId(null);
+      }
+    },
+    [params.id, authedJsonRequest, loadManualWishes]
+  );
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -233,15 +437,33 @@ export default function WishesModerationPage() {
             Moderate guest messages for {event.title}
           </p>
         </div>
-        <Link href={`/dashboard/events/${event.id}`}>
-          <Button variant="outline">Back to Event</Button>
-        </Link>
+        <div className="flex flex-shrink-0 gap-2">
+          <Button onClick={() => setShowAddForm((v) => !v)}>
+            {showAddForm ? "Close" : "Add wish"}
+          </Button>
+          <Link href={`/dashboard/events/${event.id}`}>
+            <Button variant="outline">Back to Event</Button>
+          </Link>
+        </div>
       </div>
+
+      {showAddForm && (
+        <AddWishForm
+          busy={savingWish}
+          onSubmit={createWish}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
 
       <div className="flex flex-wrap gap-1 rounded-lg border bg-surface-2 p-1">
         {FILTER_TABS.map((tab) => {
           const active = filter === tab.key;
-          const count = tab.countKey ? counts[tab.countKey] : undefined;
+          const count =
+            tab.key === "MANUAL"
+              ? manualTotal
+              : tab.countKey
+                ? counts[tab.countKey]
+                : undefined;
           return (
             <button
               key={tab.key}
@@ -278,7 +500,38 @@ export default function WishesModerationPage() {
         </div>
       )}
 
-      {messages.length === 0 ? (
+      {filter === "MANUAL" ? (
+        manualWishes.length === 0 ? (
+          <div className="rounded-lg border border-dashed p-12 text-center">
+            <p className="text-sm text-muted-foreground">{emptyCopy(filter)}</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {manualWishes.map((w) => (
+              <ManualWishCard
+                key={w.id}
+                wish={w}
+                busy={pendingId === w.id}
+                onSave={(authorName, message) =>
+                  saveManualWish(w.id, authorName, message)
+                }
+                onDelete={() => deleteManualWish(w.id)}
+              />
+            ))}
+            {manualNextCursor && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => loadManualWishes(manualNextCursor)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? "Loading..." : "Load more"}
+                </Button>
+              </div>
+            )}
+          </div>
+        )
+      ) : messages.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <p className="text-sm text-muted-foreground">{emptyCopy(filter)}</p>
         </div>
@@ -388,6 +641,187 @@ function MessageCard({
   );
 }
 
+/**
+ * Inline panel for entering a wish collected outside the RSVP form.
+ * Selected-panel styling follows the ThemePicker border-accent/bg-accent
+ * pattern used across dashboard toggles.
+ */
+function AddWishForm({
+  busy,
+  onSubmit,
+  onCancel,
+}: {
+  busy: boolean;
+  onSubmit: (authorName: string, message: string) => void;
+  onCancel: () => void;
+}) {
+  const [authorName, setAuthorName] = useState("");
+  const [message, setMessage] = useState("");
+  const canSubmit = authorName.trim().length > 0 && message.trim().length > 0;
+
+  return (
+    <form
+      className="space-y-4 rounded-lg border-2 border-accent bg-accent/5 p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canSubmit && !busy) onSubmit(authorName.trim(), message.trim());
+      }}
+    >
+      <div className="space-y-1">
+        <p className="font-medium">Add a wish</p>
+        <p className="text-sm text-muted-foreground">
+          For wishes collected outside the RSVP form (a shared doc, paper
+          cards, ...). It appears on the event page right away — no approval
+          step.
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="manual-wish-author">Guest name</Label>
+        <Input
+          id="manual-wish-author"
+          value={authorName}
+          onChange={(e) => setAuthorName(e.target.value)}
+          placeholder="Aunt May"
+          maxLength={200}
+          disabled={busy}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="manual-wish-message">Wish</Label>
+        <Textarea
+          id="manual-wish-message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Wishing you both a lifetime of love and laughter."
+          rows={3}
+          maxLength={1000}
+          disabled={busy}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={!canSubmit || busy}>
+          {busy ? "Adding..." : "Add wish"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function ManualWishCard({
+  wish,
+  busy,
+  onSave,
+  onDelete,
+}: {
+  wish: ManualWish;
+  busy: boolean;
+  onSave: (authorName: string, message: string) => Promise<boolean>;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [authorName, setAuthorName] = useState(wish.authorName);
+  const [message, setMessage] = useState(wish.message);
+  const canSave = authorName.trim().length > 0 && message.trim().length > 0;
+
+  const startEdit = () => {
+    // Re-seed from the wish on every open so a cancelled edit doesn't
+    // leak stale drafts into the next one.
+    setAuthorName(wish.authorName);
+    setMessage(wish.message);
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!canSave || busy) return;
+    const ok = await onSave(authorName.trim(), message.trim());
+    if (ok) setEditing(false);
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-surface-1 p-4 transition-opacity",
+        busy && "opacity-60"
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{wish.authorName}</span>
+            <span className="inline-flex rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium text-foreground">
+              Added by you
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Added {format(new Date(wish.createdAt), "MMM d, yyyy 'at' h:mm a")}
+            {wish.createdAt !== wish.updatedAt && (
+              <>
+                {" · edited "}
+                {format(new Date(wish.updatedAt), "MMM d, yyyy")}
+              </>
+            )}
+          </p>
+        </div>
+        {!editing && (
+          <div className="flex flex-shrink-0 gap-2">
+            <Button size="sm" variant="outline" onClick={startEdit} disabled={busy}>
+              Edit
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onDelete} disabled={busy}>
+              Delete
+            </Button>
+          </div>
+        )}
+      </div>
+      {editing ? (
+        <div className="mt-3 space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor={`edit-author-${wish.id}`}>Guest name</Label>
+            <Input
+              id={`edit-author-${wish.id}`}
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              maxLength={200}
+              disabled={busy}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`edit-message-${wish.id}`}>Wish</Label>
+            <Textarea
+              id={`edit-message-${wish.id}`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              disabled={busy}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={save} disabled={!canSave || busy}>
+              {busy ? "Saving..." : "Save"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setEditing(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">
+          {wish.message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function statusToCountKey(status: MessageStatus): keyof Counts {
   if (status === "PENDING") return "pending";
   if (status === "APPROVED") return "approved";
@@ -402,6 +836,8 @@ function emptyCopy(filter: FilterKey): string {
       return "No approved messages yet. Approve pending wishes to publish them on the event page.";
     case "HIDDEN":
       return "No hidden messages.";
+    case "MANUAL":
+      return "No manually added wishes yet. Use “Add wish” to enter wishes collected outside the RSVP form.";
     default:
       return "No messages yet. Guests can leave wishes when they RSVP.";
   }

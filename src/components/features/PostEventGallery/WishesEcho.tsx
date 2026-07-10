@@ -1,4 +1,5 @@
-// Server-only: imports Prisma's `db` (→ `pg` → Node `net`/`tls`).
+// Server-only: imports `getApprovedWishes` (→ Prisma's `db` → `pg` →
+// Node `net`/`tls`).
 //
 // DO NOT add this to the PostEventGallery barrel (`index.ts`). The
 // barrel is consumed by client components (notably the dashboard
@@ -6,7 +7,7 @@
 // the browser bundle — the CI build failure on PR #133's first push.
 // Server pages must import this file by its direct path.
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getApprovedWishes } from "@/lib/wishes";
 
 const WISHES_ECHO_LIMIT = 6;
 
@@ -19,42 +20,26 @@ type Props = {
 };
 
 /**
- * Compact preview of approved RSVP messages, rendered between the gallery
- * grid and the share CTA when `presentation.showWishesEcho` is true.
+ * Compact preview of approved wishes, rendered between the gallery grid
+ * and the share CTA when `presentation.showWishesEcho` is true.
  *
- * Queries the SAME shape as `/e/[slug]/wishes` (messageStatus=APPROVED,
- * messageToHost not null) but caps at WISHES_ECHO_LIMIT and links out to
- * the full page for the rest. We intentionally don't reuse a template's
- * wishes renderer here — the post-event page is template-agnostic shell,
- * so it has its own neutral card style.
+ * Reads the SAME merged source as `/e/[slug]/wishes` (guest RSVP messages
+ * + organizer-entered manual wishes, via `getApprovedWishes`) but caps at
+ * WISHES_ECHO_LIMIT and links out to the full page for the rest. We
+ * intentionally don't reuse a template's wishes renderer here — the
+ * post-event page is template-agnostic shell, so it has its own neutral
+ * card style.
  *
  * Renders nothing when no approved wishes exist; callers should still
  * conditionally render on `presentation.showWishesEcho` so an empty
  * query doesn't even hit the DB when the toggle is off.
  */
 export async function WishesEcho({ eventId, eventSlug, inviteToken }: Props) {
-  const rows = await db.rSVP.findMany({
-    where: {
-      eventId,
-      messageStatus: "APPROVED",
-      messageToHost: { not: null },
-    },
-    select: {
-      id: true,
-      guestName: true,
-      messageToHost: true,
-    },
-    orderBy: [
-      { messageApprovedAt: "desc" },
-      { respondedAt: "desc" },
-    ],
-    take: WISHES_ECHO_LIMIT + 1,
+  const { wishes, hasMore } = await getApprovedWishes(eventId, {
+    limit: WISHES_ECHO_LIMIT,
   });
 
-  if (rows.length === 0) return null;
-
-  const wishes = rows.slice(0, WISHES_ECHO_LIMIT);
-  const hasMore = rows.length > WISHES_ECHO_LIMIT;
+  if (wishes.length === 0) return null;
   const wishesHref = inviteToken
     ? `/e/${eventSlug}/wishes?tk=${encodeURIComponent(inviteToken)}`
     : `/e/${eventSlug}/wishes`;
@@ -87,10 +72,10 @@ export async function WishesEcho({ eventId, eventSlug, inviteToken }: Props) {
               className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-sm"
             >
               <p className="text-sm leading-relaxed text-foreground">
-                {wish.messageToHost}
+                {wish.message}
               </p>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                — {wish.guestName}
+                — {wish.authorName}
               </p>
             </li>
           ))}

@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO, type ApprovedWishDTO } from "@/components/templates";
 import { summarizeClaims } from "@/lib/registry-claims";
+import { getApprovedWishes } from "@/lib/wishes";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
 import {
   getEventBySlug,
@@ -227,29 +228,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
   let approvedWishes: ApprovedWishDTO[] | undefined;
   const hasWishes = filteredSections.some((s) => s.type === "wishes" && s.enabled);
   if (hasWishes) {
-    const rows = await db.rSVP.findMany({
-      where: {
-        eventId: event.id,
-        messageStatus: "APPROVED",
-        messageToHost: { not: null },
-      },
-      select: {
-        id: true,
-        guestName: true,
-        messageToHost: true,
-        messageApprovedAt: true,
-        respondedAt: true,
-      },
-      orderBy: [
-        { messageApprovedAt: "desc" },
-        { respondedAt: "desc" },
-      ],
-    });
-    approvedWishes = rows.map((r) => ({
-      id: r.id,
-      message: r.messageToHost ?? "",
-      authorName: r.guestName,
-    }));
+    ({ wishes: approvedWishes } = await getApprovedWishes(event.id));
   }
 
   // Surface a teaser at the bottom of the page when a post-event gallery is
