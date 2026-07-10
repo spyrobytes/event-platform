@@ -1,8 +1,8 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
-import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type ApprovedWishDTO } from "@/components/templates";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
+import { getApprovedWishes } from "@/lib/wishes";
 import {
   getEventBySlug,
   getRedirectForRetiredSlug,
@@ -127,29 +127,8 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
   const Template = TEMPLATES[resolvedTemplateId];
 
   // Fetch all approved wishes — no preview cap on the dedicated page.
-  const rows = await db.rSVP.findMany({
-    where: {
-      eventId: event.id,
-      messageStatus: "APPROVED",
-      messageToHost: { not: null },
-    },
-    select: {
-      id: true,
-      guestName: true,
-      messageToHost: true,
-      messageApprovedAt: true,
-      respondedAt: true,
-    },
-    orderBy: [
-      { messageApprovedAt: "desc" },
-      { respondedAt: "desc" },
-    ],
-  });
-  const approvedWishes: ApprovedWishDTO[] = rows.map((r) => ({
-    id: r.id,
-    message: r.messageToHost ?? "",
-    authorName: r.guestName,
-  }));
+  const { wishes: approvedWishes }: { wishes: ApprovedWishDTO[] } =
+    await getApprovedWishes(event.id);
 
   // Mirror the main page's gallery discovery — without this, guests
   // navigating to /wishes lose the Photos nav link the V3 template
