@@ -6,10 +6,14 @@ export type SegmentedRadioOption<T extends string> = {
   value: T;
   label: string;
   /**
-   * Disable just this option (OR-ed with the group-level `disabled`). For
-   * choices that are conditionally invalid — keep them visible-but-dead
-   * rather than appearing/disappearing (e.g. the focal point's "Both sides"
-   * while the Portrait background treatment is active).
+   * Disable just this option, for choices that are conditionally invalid —
+   * keep them visible-but-dead rather than appearing/disappearing (e.g. the
+   * focal point's "Both sides" while the Portrait background treatment is
+   * active). Rendered as `aria-disabled` + a click guard, NOT the native
+   * `disabled` attribute: the option may be the group's checked value, and a
+   * natively-disabled button leaves the tab order — a keyboard/screen-reader
+   * user could never reach the group's own selection. aria-disabled keeps it
+   * focusable and announceable while dead.
    */
   disabled?: boolean;
 };
@@ -49,12 +53,22 @@ export function SegmentedRadioGroup<T extends string>({
             type="button"
             role="radio"
             aria-checked={active}
-            disabled={optDisabled}
-            onClick={() => onChange(opt.value)}
+            /* Group-level disable is native (the whole control is dead, e.g.
+               while saving). Per-option disable is aria-disabled + a click
+               guard so the option — possibly the checked one — stays in the
+               tab order; see SegmentedRadioOption.disabled. */
+            disabled={disabled}
+            aria-disabled={optDisabled || undefined}
+            onClick={() => {
+              if (optDisabled) return;
+              onChange(opt.value);
+            }}
             className={cn(
               "flex-1 rounded-lg border px-4 py-2 text-sm font-medium transition-all",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 focus-visible:ring-offset-2",
-              active ? "border-foreground shadow-sm" : "border-border hover:border-foreground/30",
+              active
+                ? "border-foreground shadow-sm"
+                : cn("border-border", !optDisabled && "hover:border-foreground/30"),
               optDisabled && "cursor-not-allowed opacity-50",
             )}
           >

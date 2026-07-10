@@ -13,6 +13,7 @@ import type {
   WeddingPartyDisplayStyle,
   CouplePhotoFrameId,
 } from "@/schemas/event-page";
+import { heroFocalXSchema } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
 // Only allow in development/test
@@ -407,18 +408,16 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     };
   }
 
-  // Optionally exercise the hero focal anchor (?backgroundFocalX=left|center|
-  // right|edges — compose with ?sampleHero= for a hero image, and with
-  // ?backgroundTreatment=portrait to verify the edges → center normalization).
-  if (
-    backgroundFocalX === "left" ||
-    backgroundFocalX === "center" ||
-    backgroundFocalX === "right" ||
-    backgroundFocalX === "edges"
-  ) {
+  // Optionally exercise the hero focal anchor (?backgroundFocalX= any
+  // heroFocalXSchema value — compose with ?sampleHero= for a hero image, and
+  // with ?backgroundTreatment=portrait to verify the edges → center
+  // normalization). Validated against the schema itself so a future enum
+  // value is exercisable here the day it lands.
+  const focal = heroFocalXSchema.safeParse(backgroundFocalX);
+  if (focal.success) {
     config = {
       ...config,
-      hero: { ...config.hero, backgroundFocalX },
+      hero: { ...config.hero, backgroundFocalX: focal.data },
     };
   }
 

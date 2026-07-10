@@ -97,18 +97,41 @@ export type HeroBackgroundTreatment = z.infer<typeof heroBackgroundTreatmentSche
  *
  * - `center` (default, unset) — today's behavior.
  * - `left` / `right` — pin the crop to that side on phones.
- * - `edges` — keep BOTH sides: the hero renders two copies of the image
- *   (left- and right-anchored), each masked to its half with a soft blend
- *   where they meet. For artwork on both edges with a plain middle (the
- *   blend seam lands there). Phone-only like the rest; on desktop the
- *   second copy is hidden and output is equivalent to `center`. Mutually
- *   exclusive with the `portrait` treatment — renderers normalize
- *   `edges` to `center` while portrait is active.
+ * - `edges` — keep BOTH sides: the hero renders a second right-anchored copy
+ *   of the image, masked to fade in over the left-anchored primary with a
+ *   soft blend. For artwork on both edges with a plain middle (the blend
+ *   seam lands there). Like left/right it self-arms wherever the image
+ *   overflows horizontally (tall phones AND tablets); on wide viewports both
+ *   copies show identical pixels, so output is visually equivalent to
+ *   `center`. Mutually exclusive with the `portrait` treatment — renderers
+ *   normalize via `resolveHeroFocalX` below.
  *
  * Templates opt in via `templateSupportsHeroFocalX`.
  */
 export const heroFocalXSchema = z.enum(["left", "center", "right", "edges"]);
 export type HeroFocalX = z.infer<typeof heroFocalXSchema>;
+
+/**
+ * The focal value a hero should actually render. Unset means `center`, and
+ * `edges` is normalized to `center` while the hero renders the portrait
+ * treatment: a portrait's subject sits in the middle — exactly the blend
+ * zone — so portrait wins over a stale saved `edges` (the editor only
+ * disables the option; the saved value persists and re-applies on Ambience).
+ * Normalizing the value (rather than guarding in CSS) keeps the
+ * higher-specificity edges rules from ever fighting the portrait rules.
+ *
+ * `portraitActive` is whether THIS hero is actually rendering the portrait
+ * treatment — not just the persisted field: a hero that doesn't implement
+ * portrait (e.g. Celebration) ignores a stale persisted value and must pass
+ * `false` so `edges` still works there.
+ */
+export function resolveHeroFocalX(
+  focalX: HeroFocalX | undefined,
+  portraitActive: boolean,
+): HeroFocalX {
+  const raw = focalX ?? "center";
+  return portraitActive && raw === "edges" ? "center" : raw;
+}
 
 export const heroSchema = z.object({
   title: z.string().min(1, "Title is required").max(80, "Title must be 80 characters or less"),

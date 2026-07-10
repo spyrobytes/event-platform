@@ -13,6 +13,7 @@
  */
 
 import { EventImage } from "@/components/media/EventImage";
+import { resolveHeroFocalX } from "@/schemas/event-page";
 import type { HeroRendererProps } from "../../types";
 import { useTemporal } from "../../../shared";
 import { showHeroCountdown } from "../../hero-card-visibility";
@@ -46,13 +47,14 @@ export function CollageMosaicHero({
   const hasImage = !!heroAsset?.publicUrl;
   const hasCouplePhoto = !!couplePhotoAsset?.publicUrl;
 
-  // Horizontal focal point for the single full-bleed cover image — only bites
-  // on phones (horizontal overflow), a no-op on desktop. Keeps a one-sided
-  // motif in frame; CSS owns the per-side object-position. No portrait variant
-  // and no Ken Burns drift on this hero, so the wiring is simpler than V2/GL:
-  // "edges" (both sides kept, blended middle — see the module's edges block)
-  // needs no portrait normalization here.
-  const focalX = config.backgroundFocalX ?? "center";
+  // Horizontal focal point for the single full-bleed cover image — self-arms
+  // wherever the image overflows horizontally (tall phones and tablets).
+  // Keeps a one-sided motif in frame; CSS owns the per-side object-position.
+  // This hero never renders the portrait treatment (a stale persisted value
+  // is ignored), so portraitActive is hard false — resolveHeroFocalX then
+  // only supplies the unset → center default, and "edges" (both sides kept,
+  // blended middle — see the module's edges block) always works here.
+  const focalX = resolveHeroFocalX(config.backgroundFocalX, false);
   const isEdges = focalX === "edges";
 
   // Resolved by the factory from the definition's couplePhotoFrameOptions;
@@ -150,10 +152,10 @@ export function CollageMosaicHero({
             blurDataURL={heroAsset!.blurDataUrl}
             renditionWidths={heroAsset!.renditionWidths}
           />
-          {/* "Both sides": right-anchored second copy, masked against the
-              primary on phones (desktop hides it in CSS). Identical
-              responsive-image inputs — same rendition, cache hit, no second
-              transfer. Eager but NOT priority: only the primary preloads. */}
+          {/* "Both sides": right-anchored second copy that fades in over the
+              primary (mask in the module). Identical responsive-image inputs
+              — same rendition, cache hit, no second transfer. Eager but NOT
+              priority: only the primary preloads. */}
           {isEdges && (
             <EventImage
               className={styles.imgEdgeRight}

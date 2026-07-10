@@ -115,53 +115,49 @@
 /* Both sides (hero.backgroundFocalX = "edges") — artwork on BOTH edges, which
    one cover-crop can't preserve (object-position picks a single window). The
    hero renders the image twice: .imgPrimary (the normal hero image) anchored
-   left and .imgEdgeRight anchored right, each masked to its half with a soft
-   blend where they meet — the seam lands in the plain middle these images
-   have by design. Phone-only: on desktop the X-anchor is inert (the whole
-   width already shows), so the extra copy stays hidden and the primary runs
-   unmasked with the signature kenBurns untouched. Both copies inherit
-   .heroMedia img's geometry — identical boxes are what the seam quality
-   depends on; only anchor + mask differ. Drift is killed on phones only (two
-   drifting copies would shear at the seam); reduced motion needs no new
+   left, and .imgEdgeRight anchored right and masked so it fades in OVER the
+   primary across the blend zone — the seam lands in the plain middle these
+   images have by design. Only the TOP copy is masked: the primary stays fully
+   opaque underneath, so combined coverage never dips below 1 and the page
+   background can't bleed through the seam (complementary masks on both copies
+   compose to only ~75% alpha at the seam center — a visible translucent band).
+   Not viewport-gated: object-position self-arms exactly when the image
+   overflows horizontally (tall phones AND tablet portrait/landscape — the
+   same ungated behavior as the left/right rules above); on non-overflowing
+   viewports both copies render identical pixels and the overlay is invisible,
+   so wide-viewport output is visually unchanged. Drift is off in edges mode
+   on EVERY viewport — wherever the crop overflows, the two copies show
+   different windows and any motion shears the seam; a viewport-scoped
+   drift-kill would put a motion cliff at an arbitrary width. Both copies
+   inherit .heroMedia img's geometry — identical boxes are what the seam
+   quality depends on; only anchor + mask differ. Reduced motion needs no new
    selector — the existing `.heroMedia[data-focal] img` override matches the
-   attr's every value. If masks ever fail to apply, the copies overlap and the
-   top one wins — degrading to the existing right-focal look, not breakage.
-   mask-image is authored standard-only; Lightning CSS emits the -webkit-
-   pair. Portrait never composes with these rules: the renderer normalizes
-   edges → center while portrait is active.
-   (Scoped `.heroMedia .imgEdgeRight` so no (0,1,1) `.heroMedia img` rule can
-   ever out-rank the hide — same convention as the other enrolled heroes.) */
-.heroMedia .imgEdgeRight {
-  display: none;
+   attr's every value. If masks ever fail to apply, the top copy wins —
+   degrading to the existing right-focal look, not breakage. mask-image is
+   authored standard-only; Lightning CSS emits the -webkit- pair. Portrait
+   never composes with these rules: the renderer normalizes edges → center
+   while portrait is active (resolveHeroFocalX). */
+.heroMedia[data-focal="edges"] {
+  /* Blend stops — the shared default across all three enrolled heroes
+     (42/58). Internal only, never organizer-facing. Tune deliberately: keep
+     the three modules in sync, or leave a comment where one hero diverges. */
+  --edge-blend-start: 42%;
+  --edge-blend-end: 58%;
 }
-@media (max-width: 767px) {
-  .heroMedia[data-focal="edges"] {
-    /* This hero's hand-tuned blend stops (shared by both masks) — internal
-       only, never organizer-facing. */
-    --edge-blend-start: 42%;
-    --edge-blend-end: 58%;
-  }
-  .heroMedia[data-focal="edges"] .imgPrimary {
-    object-position: left 30%;
-    mask-image: linear-gradient(
-      to right,
-      black var(--edge-blend-start),
-      transparent var(--edge-blend-end)
-    );
-    animation: none;
-    will-change: auto;
-  }
-  .heroMedia[data-focal="edges"] .imgEdgeRight {
-    display: block;
-    object-position: right 30%;
-    mask-image: linear-gradient(
-      to right,
-      transparent var(--edge-blend-start),
-      black var(--edge-blend-end)
-    );
-    animation: none;
-    will-change: auto;
-  }
+.heroMedia[data-focal="edges"] .imgPrimary {
+  object-position: left 30%;
+  animation: none;
+  will-change: auto;
+}
+.heroMedia[data-focal="edges"] .imgEdgeRight {
+  object-position: right 30%;
+  mask-image: linear-gradient(
+    to right,
+    transparent var(--edge-blend-start),
+    black var(--edge-blend-end)
+  );
+  animation: none;
+  will-change: auto;
 }
 
 /* Complex gradient overlay fading to bg color (parameterized for dark variants) */
