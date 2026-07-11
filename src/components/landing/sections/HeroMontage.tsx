@@ -86,36 +86,23 @@ export function HeroMontage() {
             montage and fight the wave, which already owns the transition. */}
         <div className="absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-zinc-950/80 to-transparent" />
 
-        {/* Slide-synced captions: each chip shares its slide's animation
-            delay, so it always names the photo on screen. The names repeat
-            as real text in UseCaseGrid, so hiding these from AT is safe. */}
-        <div className="pointer-events-none absolute bottom-6 right-4 z-30 grid justify-items-end sm:bottom-8 sm:right-8">
-          {montage.map(({ caption }, i) => (
-            <span
-              key={caption}
-              className={cn(
-                "col-start-1 row-start-1 inline-flex items-center self-end rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white ring-1 ring-white/15",
-                styles.caption,
-                i === 0 && styles.firstVisible
-              )}
-              style={
-                {
-                  "--cycle": `${CYCLE_SECONDS}s`,
-                  "--delay": `${i * SLOT_SECONDS - FADE_IN_END_SECONDS}s`,
-                } as React.CSSProperties
-              }
-            >
-              {caption}
-            </span>
-          ))}
+        {/* Slide-synced captions, ≥lg only: anchored to the section's bottom
+            edge, which is only reliably inside the initial viewport on
+            desktop. Below lg the content column (plus real-device browser
+            chrome shrinking svh) can grow the section past 100svh, pushing
+            this stack below the fold — there the in-flow copy inside the
+            Container takes over. */}
+        <div className="pointer-events-none absolute bottom-8 right-8 z-30 hidden justify-items-end lg:grid">
+          <CaptionChips />
         </div>
       </div>
 
       {/* Decorative scroll cue — non-interactive so the hero can stay a
-          server component (smooth anchor scrolling would need the JS util). */}
+          server component (smooth anchor scrolling would need the JS util).
+          ≥lg only, same below-the-fold reasoning as the caption overlay. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-5 z-30 hidden justify-center sm:flex"
+        className="pointer-events-none absolute inset-x-0 bottom-5 z-30 hidden justify-center lg:flex"
       >
         <svg
           className={cn("size-6 text-white/60", styles.cueIcon)}
@@ -128,7 +115,10 @@ export function HeroMontage() {
         </svg>
       </div>
 
-      <Container className="relative z-30 flex flex-col justify-center pt-[calc(var(--site-header-height)+6rem)] pb-24 sm:pb-32">
+      {/* Mobile keeps the original tighter top rhythm (header + 1rem) so the
+          full content column — captions included — fits short phone
+          viewports; the airier +6rem is a desktop luxury from sm up. */}
+      <Container className="relative z-30 flex flex-col justify-center pt-[calc(var(--site-header-height)+1rem)] pb-24 sm:pt-[calc(var(--site-header-height)+6rem)] sm:pb-32">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white ring-1 ring-white/15">
             <StatusDot className="size-2" />
@@ -175,8 +165,47 @@ export function HeroMontage() {
               </li>
             ))}
           </ul>
+
+          {/* <lg: the slide-synced captions join the content flow, where
+              they're guaranteed inside the first viewport (see the overlay
+              copy above for why the bottom-anchored version can't work
+              here). Decorative like the overlay — the same names are real
+              text in UseCaseGrid. */}
+          <div aria-hidden="true" className="mt-6 grid justify-items-start sm:mt-8 lg:hidden">
+            <CaptionChips />
+          </div>
         </div>
       </Container>
     </section>
+  );
+}
+
+/* One chip per slide, stacked in a single grid cell; each shares its slide's
+   --delay so the visible chip always names the photo on screen. Rendered
+   twice (overlay ≥lg, in-flow <lg) — only one instance is displayed at a
+   time, and the grid cell always reserves one chip of height, so there is
+   no layout shift during the caption-free transition beats. */
+function CaptionChips() {
+  return (
+    <>
+      {montage.map(({ caption }, i) => (
+        <span
+          key={caption}
+          className={cn(
+            "col-start-1 row-start-1 inline-flex items-center self-end rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white ring-1 ring-white/15",
+            styles.caption,
+            i === 0 && styles.firstVisible
+          )}
+          style={
+            {
+              "--cycle": `${CYCLE_SECONDS}s`,
+              "--delay": `${i * SLOT_SECONDS - FADE_IN_END_SECONDS}s`,
+            } as React.CSSProperties
+          }
+        >
+          {caption}
+        </span>
+      ))}
+    </>
   );
 }
