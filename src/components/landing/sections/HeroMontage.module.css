@@ -61,8 +61,43 @@
   }
 }
 
-/* Reduced motion: no animation is ever attached, the montage is one static
-   image. */
+.caption {
+  opacity: 0;
+}
+
+/*
+ * Caption timing tracks its slide's timeline (same --delay/--cycle): in only
+ * after the image has fully faded in (8%), out by 33% — the instant the
+ * incoming slide covers this one — so a caption never lingers over the wrong
+ * photo. The next caption enters at its own 10–15%, leaving a deliberate
+ * caption-free beat during each transition.
+ */
+@keyframes captionCycle {
+  0%, 10% { opacity: 0; transform: translateY(0.5rem); }
+  15%  { opacity: 1; transform: translateY(0); }
+  30%  { opacity: 1; transform: translateY(0); }
+  33%  { opacity: 0; transform: translateY(0.35rem); }
+  100% { opacity: 0; transform: translateY(0.35rem); }
+}
+
+@keyframes cueBob {
+  0%, 100% { transform: translateY(0); opacity: 0.55; }
+  50%      { transform: translateY(0.4rem); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .caption {
+    animation: captionCycle var(--cycle, 20s) linear infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .cueIcon {
+    animation: cueBob 2.4s ease-in-out infinite;
+  }
+}
+
+/* Reduced motion: no animation is ever attached — the montage is one static
+   image with its caption, and the scroll cue holds still. */
 @media (prefers-reduced-motion: reduce) {
   .firstVisible {
     opacity: 1;
