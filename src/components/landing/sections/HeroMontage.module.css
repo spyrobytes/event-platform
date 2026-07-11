@@ -4,38 +4,67 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  will-change: opacity, transform;
 }
 
-/* Staggered fade loop */
-@keyframes heroFade {
-  0% { opacity: 0; }
-  8% { opacity: 1; }
-  25% { opacity: 1; }
-  33% { opacity: 0; }
-  100% { opacity: 0; }
+.image {
+  object-fit: cover;
+  object-position: var(--focal, 50% 50%);
 }
 
-/* Optional: subtle cinematic motion (very light) */
-@keyframes heroDrift {
-  0% { transform: scale(1) translate3d(0, 0, 0); }
-  100% { transform: scale(1.03) translate3d(0, -1%, 0); }
+/*
+ * Fade-over cycle (4 slides, slot = 25% of the cycle): each slide holds full
+ * opacity until 33% — past the end of its own slot — so the incoming slide (a
+ * later sibling, painted on top) is already opaque before this one fades out
+ * 33→41% hidden underneath it. At every instant at least one layer is fully
+ * opaque, so the dark backdrop never bleeds through mid-transition (a true
+ * crossfade dips to ~75% coverage). The wrap-around transition also works:
+ * slide 1's next cycle fades in beneath still-opaque slide 4, which then
+ * fades out on top to reveal it. The transform resets while the layer is
+ * hidden, so there is no visible snap between cycles.
+ *
+ * The drift spans 0→41% so most of it happens while the slide is visible;
+ * the two keyframe variants run it in opposite directions (grow vs settle)
+ * on alternating slides.
+ */
+@keyframes heroZoomIn {
+  0%   { opacity: 0; transform: scale(1) translate3d(0, 0, 0); }
+  8%   { opacity: 1; }
+  33%  { opacity: 1; }
+  41%  { opacity: 0; transform: scale(1.045) translate3d(0, -1%, 0); }
+  100% { opacity: 0; transform: scale(1.045) translate3d(0, -1%, 0); }
 }
 
-/* Only animate when motion is allowed */
+@keyframes heroZoomOut {
+  0%   { opacity: 0; transform: scale(1.045) translate3d(0, 1%, 0); }
+  8%   { opacity: 1; }
+  33%  { opacity: 1; }
+  41%  { opacity: 0; transform: scale(1) translate3d(0, 0, 0); }
+  100% { opacity: 0; transform: scale(1) translate3d(0, 0, 0); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .animate,
+  .animateAlt {
+    will-change: opacity, transform;
+    animation-duration: var(--cycle, 20s);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
   .animate {
-    animation:
-      heroFade 16s infinite,
-      heroDrift 16s linear infinite;
+    animation-name: heroZoomIn;
+  }
+
+  .animateAlt {
+    animation-name: heroZoomOut;
   }
 }
 
-/* Reduced motion: show only the first image (no animation) */
+/* Reduced motion: no animation is ever attached, the montage is one static
+   image. */
 @media (prefers-reduced-motion: reduce) {
   .firstVisible {
     opacity: 1;
   }
 }
-
-/* The status-dot pulse now lives in the shared ui/StatusDot. */

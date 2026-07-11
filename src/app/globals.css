@@ -1,6 +1,17 @@
 @import "tailwindcss";
 
 /* =============================================================================
+   LAYOUT TOKENS
+   ============================================================================= */
+
+:root {
+  /* Flow space reserved for the fixed GlassHeader capsule (its spacer div);
+     the landing hero cancels it with a matching negative margin to sit
+     underneath the glass. Both read this token — change it in one place. */
+  --site-header-height: 5rem;
+}
+
+/* =============================================================================
    THEME: Aurora Night (Dark-first design)
    See docs/css-implementation-guidelines.md Section 13
    ============================================================================= */
