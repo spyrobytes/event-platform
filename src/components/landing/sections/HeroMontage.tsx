@@ -16,7 +16,13 @@ const CYCLE_SECONDS = 20;
    Slide order is also paint order: each layer is a later sibling than the one
    before it, which the fade-over keyframes rely on (see the module CSS).
    Focal points keep each image's subject in frame when `object-fit: cover`
-   crops on narrow viewports. */
+   crops on narrow viewports.
+
+   CONTRACT: the module's keyframe percentages (heroZoom* and captionCycle)
+   assume exactly 4 slides — 25% slots, hold to 33%, fade out by 41%. Only
+   SLOT_SECONDS below derives from montage.length; the CSS does not. Adding
+   or removing a slide without retuning those keyframes silently breaks the
+   dip-free fade-over and desyncs captions from their photos. */
 const montage = [
   { image: heroWedding, focal: "50% 40%", caption: "Weddings & celebrations" },
   { image: heroGathering, focal: "50% 45%", caption: "Private gatherings" },
