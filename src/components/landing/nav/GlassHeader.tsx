@@ -380,7 +380,7 @@ export function GlassHeader({
         </div>
       )}
 
-      <div className="h-20" aria-hidden="true" />
+      <div className="h-[var(--site-header-height)]" aria-hidden="true" />
     </>
   );
 }
