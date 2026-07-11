@@ -4,22 +4,24 @@ import styles from "./HeroMontage.module.css";
 import { ButtonLink } from "../ui/ButtonLink";
 import { Container } from "../ui/Container";
 import { StatusDot } from "../ui/StatusDot";
-import hero01 from "../../../../public/landing/hero/01.jpg";
-import hero02 from "../../../../public/landing/hero/02.jpg";
-import hero03 from "../../../../public/landing/hero/03.jpg";
-import hero04 from "../../../../public/landing/hero/04.jpg";
+import heroWedding from "../../../../public/landing/hero/wedding.jpg";
+import heroGathering from "../../../../public/landing/hero/private-gathering.jpg";
+import heroConference from "../../../../public/landing/hero/conference.jpg";
+import heroCommunity from "../../../../public/landing/hero/community.jpg";
 
 const CYCLE_SECONDS = 20;
 
-/* Slide order is also paint order: each layer is a later sibling than the one
+/* One slide per UseCaseGrid row, same order — the montage is the four-beat
+   pitch of the section it foreshadows, so captions must match its titles.
+   Slide order is also paint order: each layer is a later sibling than the one
    before it, which the fade-over keyframes rely on (see the module CSS).
    Focal points keep each image's subject in frame when `object-fit: cover`
    crops on narrow viewports. */
 const montage = [
-  { image: hero01, focal: "50% 45%" },
-  { image: hero02, focal: "50% 55%" },
-  { image: hero03, focal: "50% 45%" },
-  { image: hero04, focal: "50% 45%" },
+  { image: heroWedding, focal: "50% 40%", caption: "Weddings & celebrations" },
+  { image: heroGathering, focal: "50% 45%", caption: "Private gatherings" },
+  { image: heroConference, focal: "50% 55%", caption: "Conferences & summits" },
+  { image: heroCommunity, focal: "55% 50%", caption: "Meetups & communities" },
 ];
 
 const SLOT_SECONDS = CYCLE_SECONDS / montage.length;
@@ -71,6 +73,53 @@ export function HeroMontage() {
         {/* Single static scrim above the whole stack — per-layer copies would
             double-darken while two slides overlap mid-transition. */}
         <div className="absolute inset-0 z-20 bg-gradient-to-b from-black/55 via-black/45 to-black/70" />
+
+        {/* Settle band: calms the imagery at the hero's foot so the
+            AssuranceStrip's cream wave lands on a quiet edge, not photo
+            noise. Deliberately dark — a fade *to white* here would fog the
+            montage and fight the wave, which already owns the transition. */}
+        <div className="absolute inset-x-0 bottom-0 z-20 h-24 bg-gradient-to-t from-zinc-950/80 to-transparent" />
+
+        {/* Slide-synced captions: each chip shares its slide's animation
+            delay, so it always names the photo on screen. The names repeat
+            as real text in UseCaseGrid, so hiding these from AT is safe. */}
+        <div className="pointer-events-none absolute bottom-6 right-4 z-30 grid justify-items-end sm:bottom-8 sm:right-8">
+          {montage.map(({ caption }, i) => (
+            <span
+              key={caption}
+              className={cn(
+                "col-start-1 row-start-1 inline-flex items-center self-end rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-white ring-1 ring-white/15",
+                styles.caption,
+                i === 0 && styles.firstVisible
+              )}
+              style={
+                {
+                  "--cycle": `${CYCLE_SECONDS}s`,
+                  "--delay": `${i * SLOT_SECONDS - FADE_IN_END_SECONDS}s`,
+                } as React.CSSProperties
+              }
+            >
+              {caption}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Decorative scroll cue — non-interactive so the hero can stay a
+          server component (smooth anchor scrolling would need the JS util). */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-5 z-30 hidden justify-center sm:flex"
+      >
+        <svg
+          className={cn("size-6 text-white/60", styles.cueIcon)}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
       </div>
 
       <Container className="relative z-30 flex flex-col justify-center pt-[calc(var(--site-header-height)+6rem)] pb-24 sm:pb-32">
