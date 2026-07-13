@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { WishesSection } from "@/schemas/event-page";
 import { WishCard } from "./WishCard";
 import { WishesGrid } from "./WishesGrid";
@@ -52,7 +53,11 @@ export function WishesRenderer({
   const heading = data.heading || "Wedding Wishes";
 
   return (
-    <section id="wishes" className={styles.section} aria-labelledby="wedding-wishes-heading">
+    <section
+      id="wishes"
+      className={cn(styles.wishVars, styles.section)}
+      aria-labelledby="wedding-wishes-heading"
+    >
       <div className={styles.header}>
         {data.eyebrow && <p className={styles.eyebrow}>{data.eyebrow}</p>}
         <h2 id="wedding-wishes-heading" className={styles.heading}>
