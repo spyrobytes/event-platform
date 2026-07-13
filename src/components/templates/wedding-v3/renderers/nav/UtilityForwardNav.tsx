@@ -8,7 +8,8 @@
  * Mobile-first with hamburger drawer.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useScrollThreshold } from "@/hooks/use-scroll-threshold";
 import type { NavRendererProps } from "../../types";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 import { MobileNavMenu } from "@/components/templates/shared/MobileNavMenu";
@@ -23,21 +24,12 @@ export function UtilityForwardNav({
   homeHref = "#top",
   mobileNavExpression,
 }: NavRendererProps) {
-  const [scrolled, setScrolled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.scrollY > 80;
-  });
+  // Scroll detection for frosted glass. Hydration-safe hook — a lazy
+  // window.scrollY initializer here mismatched the server HTML whenever the
+  // page hard-loaded on a `#section` anchor (the browser jumps to the
+  // fragment before React hydrates). Mirrors the V2 Topbar.
+  const scrolled = useScrollThreshold(80);
   const [activeSection, setActiveSection] = useState<string>("");
-
-  // Scroll detection for frosted glass
-  const handleScroll = useCallback(() => {
-    setScrolled(window.scrollY > 80);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
 
   // Active section tracking via IntersectionObserver
   // Observes the hero (#top) alongside all nav sections so that

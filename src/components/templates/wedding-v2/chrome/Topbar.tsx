@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useScrollThreshold } from "@/hooks/use-scroll-threshold";
 import { ShareButton } from "@/components/features/ShareButton";
 import { NavMoreDropdown } from "@/components/templates/shared/NavMoreDropdown";
 import {
@@ -66,21 +67,12 @@ export function Topbar({
   shareTitle,
   shareUrl,
 }: TopbarProps) {
-  const [scrolled, setScrolled] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.scrollY > 40;
-  });
+  // Scrolled state: frosted glass after 40px. Hydration-safe hook — the old
+  // lazy window.scrollY initializer mismatched the server HTML whenever the
+  // page hard-loaded on a `#section` anchor (the browser jumps to the
+  // fragment before React hydrates).
+  const scrolled = useScrollThreshold(40);
   const [activeSection, setActiveSection] = useState<string>("");
-
-  // Scrolled state: frosted glass after 40px
-  const handleScroll = useCallback(() => {
-    setScrolled(window.scrollY > 40);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
 
   // Active nav highlight via IntersectionObserver
   useEffect(() => {

@@ -45,9 +45,12 @@ export function WishesRenderer({
     return null;
   }
 
+  // The `#wishes` fragment matters: the sub-page renders the full hero above
+  // the wishes wall, and landing at the top reads as "there are no wishes
+  // here" — the anchor drops visitors straight onto the wall.
   const fullPageHref =
     wishesMode === "preview" && eventSlug && overflowCount > 0
-      ? `/e/${eventSlug}/wishes${inviteToken ? `?tk=${encodeURIComponent(inviteToken)}` : ""}`
+      ? `/e/${eventSlug}/wishes${inviteToken ? `?tk=${encodeURIComponent(inviteToken)}` : ""}#wishes`
       : null;
 
   const heading = data.heading || "Wedding Wishes";
