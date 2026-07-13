@@ -315,7 +315,6 @@ export function TemporalHeroOverlay({
     shouldShowCountdown,
     shouldShowLive,
     shouldShowPostEvent,
-    isOngoing,
     msUntilStart,
   } = useTemporal();
 
@@ -326,8 +325,10 @@ export function TemporalHeroOverlay({
   // Confetti in the seconds right after the countdown hits zero. Detected as
   // a time window (not a phase transition), so it's a pure derivation — no
   // effect/state — and a guest who loads the page within the window gets the
-  // burst too, which is a feature.
-  const justStarted = isOngoing && msUntilStart >= -JUST_STARTED_WINDOW_MS;
+  // burst too, which is a feature. Deliberately NOT gated on isOngoing:
+  // events without an endAt are "ended" the instant they start (effectiveEndAt
+  // = startAt) and would never burst.
+  const justStarted = msUntilStart <= 0 && msUntilStart >= -JUST_STARTED_WINDOW_MS;
 
   return (
     <div className={cn(styles.heroOverlay, className)}>

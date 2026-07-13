@@ -55,6 +55,16 @@ describe("getEventTemporalState", () => {
     expect(state.timeRemaining).toBeNull();
   });
 
+  it("zero-duration event (no endAt): ended immediately after start, still within the confetti window", () => {
+    const state = getEventTemporalState(startIn(-2 * SECOND));
+    // With no endAt, effectiveEndAt = startAt: there is no ongoing phase —
+    // which is why the confetti gate must not require isOngoing.
+    expect(state.phase).toBe("ended");
+    expect(state.isOngoing).toBe(false);
+    expect(state.msUntilStart).toBeLessThan(0);
+    expect(state.msUntilStart).toBeGreaterThanOrEqual(-JUST_STARTED_WINDOW_MS);
+  });
+
   it("ended: past phase with days since ended", () => {
     const state = getEventTemporalState(startIn(-3 * DAY), startIn(-3 * DAY + 4 * HOUR));
     expect(state.phase).toBe("ended");
