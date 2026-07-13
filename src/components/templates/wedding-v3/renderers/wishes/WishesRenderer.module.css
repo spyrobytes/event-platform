@@ -288,7 +288,7 @@
   justify-content: center;
   padding: 1.5rem;
   background: rgba(43, 32, 26, 0.55);
-  animation: spotlight-fade-in 180ms ease-out;
+  animation: spotlight-fade-in 240ms ease-out;
 }
 
 /* Double class beats the :nth-child variant rules (equal specificity,
@@ -310,7 +310,9 @@
   flex-direction: column;
   padding: 2.8rem 2.2rem 2.6rem;
   transform: none;
-  animation: spotlight-card-in 180ms ease-out;
+  /* Long decelerating tail (easeOutQuint-like) so the paper settles softly
+     instead of popping in. transform/opacity only — compositor-friendly. */
+  animation: spotlight-card-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
   filter: none;
   box-shadow:
     0 24px 48px rgba(30, 20, 12, 0.35),
@@ -375,6 +377,18 @@
   color: var(--wish-ink);
 }
 
+/* Exit — slightly quicker than the entrance (dismissals should feel
+   immediate); `forwards` holds the final transparent frame until React
+   unmounts on animationend. Keep the 200ms in sync with EXIT_MS in
+   WishSpotlight.tsx (its timer fallback for a dropped animationend). */
+.overlayClosing {
+  animation: spotlight-fade-out 200ms ease-in forwards;
+}
+
+.overlayClosing .card.spotlightCard {
+  animation: spotlight-card-out 200ms ease-in forwards;
+}
+
 @keyframes spotlight-fade-in {
   from { opacity: 0; }
 }
@@ -382,7 +396,18 @@
 @keyframes spotlight-card-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.94) translateY(16px);
+  }
+}
+
+@keyframes spotlight-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes spotlight-card-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
   }
 }
 
@@ -478,8 +503,12 @@
   .ctaLink {
     transition: none;
   }
+  /* Belt-and-braces: WishSpotlight already closes instantly under reduced
+     motion (animation:none would never fire the animationend it unmounts on). */
   .spotlightOverlay,
-  .card.spotlightCard {
+  .card.spotlightCard,
+  .overlayClosing,
+  .overlayClosing .card.spotlightCard {
     animation: none;
   }
 }
