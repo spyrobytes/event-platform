@@ -74,6 +74,12 @@ export default function WishesModerationPage() {
   const { getIdToken } = useAuthContext();
 
   const [event, setEvent] = useState<EventBasic | null>(null);
+  // The event fetch is split from the list fetches (see the effects below),
+  // so it owns its own settled flag: `!event` may only render the
+  // "Event not found" screen after this fetch has actually finished.
+  // Gating on the list-owned `loading` alone let the faster wishes-list
+  // response clear it first and flash the error screen on every visit.
+  const [eventLoading, setEventLoading] = useState(true);
   const [messages, setMessages] = useState<WishMessage[]>([]);
   const [counts, setCounts] = useState<Counts>({ pending: 0, approved: 0, hidden: 0 });
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -115,6 +121,8 @@ export default function WishesModerationPage() {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load event");
         }
+      } finally {
+        if (!cancelled) setEventLoading(false);
       }
     })();
     return () => {
@@ -404,7 +412,7 @@ export default function WishesModerationPage() {
     [params.id, authedJsonRequest, loadManualWishes]
   );
 
-  if (loading) {
+  if (loading || eventLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
