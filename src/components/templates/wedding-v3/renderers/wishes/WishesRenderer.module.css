@@ -26,14 +26,42 @@
   --wish-page-bg: #f7efe4;
   /* RGB triplet so per-card variants can tweak the tape color */
   --tape: 251, 233, 184;
+
+  /* Shell tokens — the wall AROUND the cards (section background, header
+     copy, CTA pill) adopts the organizer's `--lux-*` section theme when one
+     is set, same opt-in contract as the schedule/party/footer bands. Every
+     fallback is today's exact value, so an event without a section theme is
+     a zero-pixel change. The CARDS deliberately keep the fixed --wish-*
+     paper palette above: paper is physically cream, and cream scraps on a
+     themed panel read as a pinboard — that composition is the point. */
+  --wish-shell-bg: var(--lux-panel, var(--wish-page-bg));
+  --wish-shell-bg-soft: var(--lux-panel, #fffaf4);
+  --wish-shell-ink: var(--lux-ink, var(--wish-ink));
+  --wish-shell-muted: var(--lux-ink-soft, var(--wish-muted));
+  --wish-shell-accent: var(--lux-accent, var(--wish-accent));
+  /* Text on an accent fill — the theme generator computes a readable pair
+     (mostReadable); unthemed keeps today's white. */
+  --wish-shell-accent-ink: var(--lux-accent-ink, #fff);
+  /* The heading's unthemed color comes from the template-wide
+     `.wedding-template-v2 h2 { color: var(--night) }` cascade — mirror it
+     exactly so the themed override below is invisible until a theme is set. */
+  --wish-shell-heading-ink: var(--lux-ink, var(--night, #1e1b17));
 }
 
 .section {
   padding: 5rem 1.25rem;
+  /* Unthemed, the color-mix glow computes to exactly the old
+     rgba(181, 139, 95, 0.18) (accent at 18% alpha) and the gradient runs
+     #fffaf4 → --wish-page-bg; themed, both shell stops resolve to the flat
+     panel with the live accent as the corner glow. */
   background:
-    radial-gradient(circle at top left, rgba(181, 139, 95, 0.18), transparent 30%),
-    linear-gradient(180deg, #fffaf4, var(--wish-page-bg));
-  color: var(--wish-ink);
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--wish-shell-accent) 18%, transparent),
+      transparent 30%
+    ),
+    linear-gradient(180deg, var(--wish-shell-bg-soft), var(--wish-shell-bg));
+  color: var(--wish-shell-ink);
 }
 
 .header {
@@ -47,8 +75,16 @@
   font-size: 0.78rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--wish-accent);
+  color: var(--wish-shell-accent);
   font-weight: 700;
+}
+
+/* Two classes to outrank the template-wide
+   `.wedding-template-v2 h2 { color: var(--night) }` cascade — unthemed the
+   token mirrors var(--night), so this only bites when a section theme sets
+   --lux-ink (a dark heading on a midnight panel would be illegible). */
+.section .heading {
+  color: var(--wish-shell-heading-ink);
 }
 
 .heading {
@@ -62,7 +98,7 @@
 .intro {
   margin: 1rem auto 0;
   max-width: 540px;
-  color: var(--wish-muted);
+  color: var(--wish-shell-muted);
   font-size: 1rem;
   line-height: 1.7;
 }
@@ -479,9 +515,9 @@
 .ctaLink {
   display: inline-block;
   padding: 0.6rem 1.4rem;
-  border: 1px solid var(--wish-accent);
+  border: 1px solid var(--wish-shell-accent);
   border-radius: 999px;
-  color: var(--wish-accent);
+  color: var(--wish-shell-accent);
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
@@ -489,8 +525,10 @@
 }
 
 .ctaLink:hover {
-  background-color: var(--wish-accent);
-  color: #fff;
+  background-color: var(--wish-shell-accent);
+  /* Theme-computed readable ink on the accent fill (light panels pin a
+     near-ink accent where white would wash out); unthemed stays white. */
+  color: var(--wish-shell-accent-ink);
 }
 
 /* ============================================================
