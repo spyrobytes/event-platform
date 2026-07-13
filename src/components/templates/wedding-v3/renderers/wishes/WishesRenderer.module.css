@@ -74,6 +74,11 @@
   gap: 2.5rem 2rem;
   /* Top room so the tape sitting above each card has space to breathe */
   padding-top: 1.25rem;
+  /* Paper hugs its content: the grid default (stretch) would inflate short
+     wishes to the row's tallest card, and the ::before paper layer (inset: 0)
+     fills that stretched box — reading as empty paper. Top-aligning also
+     keeps the %-based clip-path tear at its designed proportions. */
+  align-items: start;
 }
 
 /* ============================================================
@@ -222,6 +227,35 @@
   /* Preserve guest line breaks without allowing arbitrary HTML */
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Collapsed state for long wishes — applied only when wish-clamp.ts says the
+   message overflows, so a heuristic miss degrades to a taller card, never to
+   hidden text without a toggle. pre-wrap forced breaks count as lines here. */
+.messageClamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* Keep in sync with WISH_CLAMP_LINES in wish-clamp.ts */
+  -webkit-line-clamp: 7;
+  overflow: hidden;
+}
+
+.readMore {
+  margin-top: 0.9rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--wish-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.readMore:hover {
+  color: var(--wish-ink);
 }
 
 .author {
