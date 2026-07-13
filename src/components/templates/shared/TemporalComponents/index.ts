@@ -12,3 +12,4 @@ export {
   RsvpUrgency,
   TemporalHeroOverlay,
 } from "./TemporalComponents";
+export { ConfettiBurst } from "./ConfettiBurst";

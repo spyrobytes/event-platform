@@ -276,6 +276,75 @@
 }
 
 /* ==========================================================================
+   Confetti Burst
+   ========================================================================== */
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.confettiPiece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--temporal-accent, hsl(var(--primary)));
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  will-change: transform, opacity;
+  animation: confettiPop var(--cf-duration, 1.4s) cubic-bezier(0.16, 1, 0.3, 1)
+    var(--cf-delay, 0s) forwards;
+}
+
+/* Shape + tone variety from index alone — stays in the accent's family so
+   the burst is theme-safe on any section palette. */
+.confettiPiece:nth-child(3n) {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.confettiPiece:nth-child(4n + 1) {
+  filter: brightness(1.35);
+}
+
+.confettiPiece:nth-child(4n + 3) {
+  filter: brightness(0.72);
+}
+
+@keyframes confettiPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.5);
+  }
+
+  /* Pieces stay solid while they fly (the expo-out travel front-loads the
+     motion); only the last stretch fades, so the burst reads as a burst. */
+  8% {
+    opacity: 1;
+  }
+
+  70% {
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--cf-dx, 0px)),
+        calc(-50% + var(--cf-dy, -80px))
+      )
+      rotate(var(--cf-rot, 360deg)) scale(1);
+  }
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 
@@ -297,6 +366,11 @@
   .liveIndicator,
   .liveDot,
   .liveDotSmall {
+    animation: none;
+  }
+
+  /* Base opacity is 0; without the animation the burst never appears. */
+  .confettiPiece {
     animation: none;
   }
 }

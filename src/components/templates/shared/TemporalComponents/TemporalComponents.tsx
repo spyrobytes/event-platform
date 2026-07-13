@@ -1,7 +1,9 @@
 "use client";
 
 import { useTemporal } from "../TemporalContext";
+import { JUST_STARTED_WINDOW_MS } from "@/hooks/use-event-temporal";
 import { cn } from "@/lib/utils";
+import { ConfettiBurst } from "./ConfettiBurst";
 import styles from "./TemporalComponents.module.css";
 
 /**
@@ -24,7 +26,7 @@ export function CountdownDisplay({
   variant = "default",
   accentColor,
 }: CountdownDisplayProps) {
-  const { shouldShowCountdown, countdownText, daysUntil, timeRemaining, phase } = useTemporal();
+  const { shouldShowCountdown, countdownText, timeRemaining, phase } = useTemporal();
 
   if (!shouldShowCountdown || !timeRemaining) {
     return null;
@@ -45,33 +47,39 @@ export function CountdownDisplay({
 
   // Hero variant - large, prominent display
   if (variant === "hero") {
+    // Leading-unit tiers, floored like a countdown clock: days → hours →
+    // minutes → seconds. Tier off timeRemaining (floored), not daysUntil
+    // (ceiled for phase math) — otherwise day 0 still reads "1 day".
+    const { days, hours, minutes, seconds } = timeRemaining;
+    let value: number;
+    let unit: string;
+    let sub: string | null = null;
+    if (days > 0) {
+      value = days;
+      unit = days === 1 ? "day" : "days";
+      if (days === 1 && hours > 0) sub = `${hours} hour${hours === 1 ? "" : "s"}`;
+    } else if (hours > 0) {
+      value = hours;
+      unit = hours === 1 ? "hour" : "hours";
+      if (minutes > 0) sub = `${minutes} min`;
+    } else if (minutes > 0) {
+      value = minutes;
+      unit = minutes === 1 ? "minute" : "minutes";
+    } else {
+      value = seconds;
+      unit = seconds === 1 ? "second" : "seconds";
+    }
+
     return (
       <div className={cn(styles.countdownHero, className)} style={style}>
         <div className={styles.countdownLabel}>
           {phase === "today" ? "Today" : phase === "imminent" ? "Coming Soon" : "Counting Down"}
         </div>
         <div className={styles.countdownValue}>
-          {daysUntil > 0 ? (
-            <>
-              <span className={styles.countdownNumber}>{daysUntil}</span>
-              <span className={styles.countdownUnit}>
-                {daysUntil === 1 ? "day" : "days"}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className={styles.countdownNumber}>{timeRemaining.hours}</span>
-              <span className={styles.countdownUnit}>
-                {timeRemaining.hours === 1 ? "hour" : "hours"}
-              </span>
-            </>
-          )}
+          <span className={styles.countdownNumber}>{value}</span>
+          <span className={styles.countdownUnit}>{unit}</span>
         </div>
-        {daysUntil <= 1 && timeRemaining.hours > 0 && (
-          <div className={styles.countdownSub}>
-            {timeRemaining.minutes > 0 && `${timeRemaining.minutes} min`}
-          </div>
-        )}
+        {sub && <div className={styles.countdownSub}>{sub}</div>}
       </div>
     );
   }
@@ -302,11 +310,24 @@ export function TemporalHeroOverlay({
   accentColor,
   postEventMessage,
 }: TemporalHeroOverlayProps) {
-  const { phase, shouldShowCountdown, shouldShowLive, shouldShowPostEvent } = useTemporal();
+  const {
+    phase,
+    shouldShowCountdown,
+    shouldShowLive,
+    shouldShowPostEvent,
+    isOngoing,
+    msUntilStart,
+  } = useTemporal();
 
   if (phase === "unknown") {
     return null;
   }
+
+  // Confetti in the seconds right after the countdown hits zero. Detected as
+  // a time window (not a phase transition), so it's a pure derivation — no
+  // effect/state — and a guest who loads the page within the window gets the
+  // burst too, which is a feature.
+  const justStarted = isOngoing && msUntilStart >= -JUST_STARTED_WINDOW_MS;
 
   return (
     <div className={cn(styles.heroOverlay, className)}>
@@ -314,6 +335,7 @@ export function TemporalHeroOverlay({
         <CountdownDisplay variant="hero" accentColor={accentColor} />
       )}
       {shouldShowLive && <LiveIndicator accentColor={accentColor} />}
+      {justStarted && <ConfettiBurst accentColor={accentColor} />}
       {shouldShowPostEvent && (
         <PostEventMessage message={postEventMessage} accentColor={accentColor} />
       )}
