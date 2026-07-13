@@ -396,6 +396,13 @@
   animation: spotlight-content-in 220ms 90ms ease-out both;
 }
 
+/* Keyboard-focusable scroll container (body scroll is locked, so this is
+   the only way keyboard users reach overflowing text). */
+.spotlightScroll:focus-visible {
+  outline: 2px solid var(--wish-accent);
+  outline-offset: 2px;
+}
+
 @keyframes spotlight-content-in {
   from {
     opacity: 0;
@@ -551,6 +558,14 @@
   }
   .card {
     transform: none;
+    /* Cap single-column paper width: a ~530px-wide scrap looks stretched,
+       and the cap keeps real chars-per-line ≤ ~44 everywhere so the clamp
+       heuristic's 50-chars/line assumption genuinely errs low (see
+       wish-clamp.ts — without this, 490–620px viewports could show a
+       "Read more" on text that already fits). */
+    width: 100%;
+    max-width: 26rem;
+    margin-inline: auto;
   }
 }
 
@@ -563,12 +578,20 @@
   }
   /* Belt-and-braces: WishSpotlight already closes instantly under reduced
      motion (animation:none would never fire the animationend it unmounts on),
-     and WishCard skips the view-transition morph entirely. */
+     and WishCard re-checks the preference before every morph — but if a
+     morph does start (e.g. the preference flips mid-transition), the
+     view-transition pseudos must not animate either. */
   .spotlightOverlay,
   .card.spotlightCard,
   .overlayClosing,
   .overlayClosing .card.spotlightCard,
   .spotlightScroll {
+    animation: none;
+  }
+
+  ::view-transition-group(active-wish),
+  ::view-transition-old(active-wish),
+  ::view-transition-new(active-wish) {
     animation: none;
   }
 }

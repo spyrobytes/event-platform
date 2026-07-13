@@ -66,6 +66,18 @@ export function WishesRenderer({
         {data.intro && <p className={styles.intro}>{data.intro}</p>}
       </div>
 
+      {/* No-JS fallback: the clamp ships in the server HTML and the only way
+          past it is the JS-only spotlight — without scripting the tail of a
+          long wish would be permanently unreachable. Unclamp every message
+          and hide the inert buttons. Attribute selectors because module
+          class names are hashed; a <style> in <noscript> is the one surface
+          module CSS can't reach (approved inline-style exception). Rendered
+          in <body> after the stylesheets, so equal specificity wins the tie
+          without !important. */}
+      <noscript>
+        <style>{`[data-wish-clamped]{display:block;overflow:visible;-webkit-line-clamp:unset}[data-wish-readmore]{display:none}`}</style>
+      </noscript>
+
       {wishesMode === "full" ? (
         // Full page can render the whole wall; cap + reveal on mobile only.
         <WishesGrid wishes={visibleWishes} />

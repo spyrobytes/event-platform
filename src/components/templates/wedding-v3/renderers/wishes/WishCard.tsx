@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
+import { getReducedMotionPreference } from "@/hooks/use-reduced-motion";
 import { wishNeedsClamp } from "./wish-clamp";
 import { WishSpotlight } from "./WishSpotlight";
 import type { ApprovedWish } from "./WishesRenderer";
@@ -12,10 +13,7 @@ import styles from "./WishesRenderer.module.css";
  *  reduced motion) the spotlight falls back to WishSpotlight's own
  *  fade/scale entrance and exit choreography. */
 function canMorph(): boolean {
-  return (
-    "startViewTransition" in document &&
-    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
+  return "startViewTransition" in document && !getReducedMotionPreference();
 }
 
 /**
@@ -40,6 +38,12 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
   // True when the open ran as a morph — the spotlight then suppresses its
   // fallback entrance animation and routes close back through closeMorph.
   const [morphOpen, setMorphOpen] = useState(false);
+  // Bumped by every morph. A transition's finished-cleanup only runs when no
+  // newer morph superseded it: focus returns to this button synchronously
+  // during a close, so a reopen can land inside the 300ms reverse morph, and
+  // the skipped close transition's finally would otherwise clobber the
+  // reopened spotlight's morphOpen/morphSource.
+  const morphGen = useRef(0);
   const clampable = wishNeedsClamp(wish.message);
 
   const openSpotlight = () => {
@@ -47,6 +51,7 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
       setSpotlightOpen(true);
       return;
     }
+    const gen = ++morphGen.current;
     // The old-state capture must see the grid card carrying the name.
     flushSync(() => setMorphSource(true));
     const transition = document.startViewTransition(() => {
@@ -57,10 +62,22 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
       });
     });
     // finished also resolves for skipped/interrupted transitions.
-    transition.finished.finally(() => setMorphSource(false));
+    transition.finished.finally(() => {
+      if (morphGen.current === gen) setMorphSource(false);
+    });
   };
 
   const closeMorph = () => {
+    // Re-check at close time: the OS preference may have flipped while the
+    // spotlight was open — never animate a close for a user who now asks
+    // for reduced motion.
+    if (getReducedMotionPreference()) {
+      setSpotlightOpen(false);
+      setMorphOpen(false);
+      setMorphSource(false);
+      return;
+    }
+    const gen = ++morphGen.current;
     const transition = document.startViewTransition(() => {
       flushSync(() => {
         setSpotlightOpen(false);
@@ -68,6 +85,7 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
       });
     });
     transition.finished.finally(() => {
+      if (morphGen.current !== gen) return;
       setMorphSource(false);
       setMorphOpen(false);
     });
@@ -75,7 +93,12 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
 
   return (
     <article className={cn(styles.card, morphSource && styles.morphSource)}>
-      <p className={cn(styles.message, clampable && styles.messageClamped)}>
+      <p
+        className={cn(styles.message, clampable && styles.messageClamped)}
+        // Hook for the no-JS unclamp in WishesRenderer's <noscript> style —
+        // attribute selector because module class names are hashed.
+        data-wish-clamped={clampable ? "" : undefined}
+      >
         {wish.message}
       </p>
       {clampable && (
@@ -83,6 +106,7 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
           type="button"
           className={styles.readMore}
           aria-haspopup="dialog"
+          data-wish-readmore=""
           onClick={openSpotlight}
         >
           Read more
@@ -94,8 +118,7 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
       {spotlightOpen && (
         <WishSpotlight
           wish={wish}
-          morph={morphOpen}
-          onMorphClose={closeMorph}
+          onMorphClose={morphOpen ? closeMorph : undefined}
           onClose={() => setSpotlightOpen(false)}
         />
       )}
