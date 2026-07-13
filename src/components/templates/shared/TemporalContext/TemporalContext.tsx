@@ -42,7 +42,8 @@ type TemporalProviderProps = {
   endAt?: string | Date | null;
   /** Event timezone (for display purposes) */
   timezone?: string;
-  /** Update interval in ms (default: 60000 = 1 minute) */
+  /** Fixed update interval in ms. Omit for adaptive cadence (hourly while
+   *  days show, per-minute inside 24h, per-second in the final minute). */
   updateInterval?: number;
 };
 
@@ -66,7 +67,7 @@ export function TemporalProvider({
   startAt,
   endAt,
   timezone,
-  updateInterval = 60000,
+  updateInterval,
 }: TemporalProviderProps) {
   // Get base temporal state from hook
   const temporalState = useEventTemporal({
@@ -135,6 +136,7 @@ export function useTemporal(): TemporalContextValue {
       phase: "unknown",
       daysUntil: 0,
       hoursUntil: 0,
+      msUntilStart: 0,
       timeRemaining: null,
       isToday: false,
       isFuture: true,

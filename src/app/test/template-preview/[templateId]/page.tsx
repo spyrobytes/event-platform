@@ -6,7 +6,7 @@
  */
 
 import { notFound } from "next/navigation";
-import { TEMPLATES } from "@/components/templates";
+import { TEMPLATES, type TemporalData } from "@/components/templates";
 import { makeSampleAsset } from "@/lib/sample-asset";
 import type {
   EventPageConfigV1,
@@ -28,7 +28,9 @@ type PageProps = {
    *  sample couple photo with that frame shape (plus the cinematic hero fields
    *  it needs). `?backgroundTreatment=<ambience|portrait>` exercises the hero
    *  background treatment (e.g. ?backgroundTreatment=portrait on
-   *  wedding_grand_luxe). Dev/test only. */
+   *  wedding_grand_luxe). `?sampleStartIn=<seconds>` injects temporal data
+   *  with the event starting that many seconds from now (countdown strip QA).
+   *  Dev/test only. */
   searchParams: Promise<{
     sectionTheme?: string;
     weddingPartyStyle?: string;
@@ -42,6 +44,7 @@ type PageProps = {
     sampleTitle?: string;
     sampleSubtitle?: string;
     sampleWishes?: string;
+    sampleStartIn?: string;
   }>;
 };
 
@@ -368,6 +371,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     sampleTitle,
     sampleSubtitle,
     sampleWishes,
+    sampleStartIn,
   } = await searchParams;
 
   // Verify template exists
@@ -552,6 +556,25 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     };
   }
 
+  // Optionally exercise the temporal strip (?sampleStartIn=<seconds until
+  // start> — e.g. ?sampleStartIn=90 watches minutes → seconds → confetti →
+  // "Happening Now"; negative values land mid-event or, below -14400, past
+  // the 4-hour sample end). Dev/test only.
+  let temporal: TemporalData | undefined;
+  if (sampleStartIn !== undefined) {
+    const seconds = Number(sampleStartIn);
+    if (Number.isFinite(seconds)) {
+      // eslint-disable-next-line react-hooks/purity -- dev-only force-dynamic QA route; the point is anchoring the sample event relative to request time
+      const startMs = Date.now() + seconds * 1000;
+      temporal = {
+        startAt: new Date(startMs).toISOString(),
+        endAt: new Date(startMs + 4 * 60 * 60 * 1000).toISOString(),
+        timezone: "UTC",
+        rsvpDeadline: null,
+      };
+    }
+  }
+
   return (
     <Template
       config={config}
@@ -559,6 +582,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
       eventId={SAMPLE_EVENT_ID}
       approvedWishes={sampleWishes ? SAMPLE_WISHES : undefined}
       wishesMode="full"
+      temporal={temporal}
     />
   );
 }

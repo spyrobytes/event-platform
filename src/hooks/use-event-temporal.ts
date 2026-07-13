@@ -39,6 +39,8 @@ export type EventTemporalState = {
   daysUntil: number;
   /** Hours until event starts (negative if past) */
   hoursUntil: number;
+  /** Milliseconds until event starts (negative once started) */
+  msUntilStart: number;
   /** Granular time remaining until event starts */
   timeRemaining: TimeRemaining | null;
   /** Whether the event is happening today */
@@ -62,11 +64,44 @@ type UseEventTemporalOptions = {
   startAt: Date | string | null | undefined;
   /** Event end date/time (defaults to startAt if not provided) */
   endAt?: Date | string | null;
-  /** Update interval in ms (default: 60000 = 1 minute) */
+  /** Fixed update interval in ms. Omit for adaptive cadence (see getNextTickDelay). */
   updateInterval?: number;
   /** Whether to enable live countdown updates */
   enableLiveUpdates?: boolean;
 };
+
+const SECOND = 1_000;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/**
+ * Window after the start instant during which the event counts as "just
+ * started" — keeps second-ticks running across the boundary so the
+ * countdown → live swap (and the confetti burst) land promptly.
+ */
+export const JUST_STARTED_WINDOW_MS = 4 * SECOND;
+
+/**
+ * Adaptive tick delay: the display only changes when its leading unit flips,
+ * so schedule each tick just past the next flip boundary instead of polling.
+ *
+ * - days on the board (> 24h out): tick on remaining-hour boundaries
+ * - hours/minutes on the board (1 min – 24h): tick on minute boundaries
+ * - final minute: tick every second
+ * - just started: keep second-ticks through JUST_STARTED_WINDOW_MS, then
+ *   relax to minutes until the event ends
+ */
+export function getNextTickDelay(msUntilStart: number): number {
+  if (msUntilStart <= 0) {
+    return msUntilStart > -JUST_STARTED_WINDOW_MS ? SECOND : MINUTE;
+  }
+  const unit = msUntilStart > DAY ? HOUR : msUntilStart > MINUTE ? MINUTE : SECOND;
+  const untilBoundary = msUntilStart % unit || unit;
+  // Land 50ms past the boundary so the recompute sees the flipped value;
+  // floor at 250ms so clock jitter can't produce a hot loop.
+  return Math.max(untilBoundary + 50, 250);
+}
 
 /**
  * Parse a date value to a Date object
@@ -157,6 +192,7 @@ function calculateTemporalState(
       phase: "unknown",
       daysUntil: 0,
       hoursUntil: 0,
+      msUntilStart: 0,
       timeRemaining: null,
       isToday: false,
       isFuture: false,
@@ -205,6 +241,7 @@ function calculateTemporalState(
     phase,
     daysUntil: Math.ceil(daysUntil),
     hoursUntil: Math.ceil(hoursUntil),
+    msUntilStart,
     timeRemaining,
     isToday,
     isFuture,
@@ -237,7 +274,7 @@ function calculateTemporalState(
 export function useEventTemporal({
   startAt,
   endAt,
-  updateInterval = 60000, // 1 minute default
+  updateInterval,
   enableLiveUpdates = true,
 }: UseEventTemporalOptions): EventTemporalState {
   const parsedStartAt = useMemo(() => parseDate(startAt), [startAt]);
@@ -245,16 +282,52 @@ export function useEventTemporal({
 
   const [now, setNow] = useState(() => new Date());
 
-  // Set up interval for live updates
+  // Live updates: fixed interval when updateInterval is set, otherwise a
+  // self-scheduling timeout aligned to the next display-flip boundary.
   useEffect(() => {
-    if (!enableLiveUpdates) return;
+    if (!enableLiveUpdates || !parsedStartAt) return;
 
-    const interval = setInterval(() => {
+    const startMs = parsedStartAt.getTime();
+    const endMs = (parsedEndAt ?? parsedStartAt).getTime();
+
+    let timer: ReturnType<typeof setTimeout>;
+
+    function schedule() {
+      let delay: number;
+      if (updateInterval !== undefined) {
+        delay = updateInterval;
+      } else {
+        const nowMs = Date.now();
+        delay =
+          endMs - nowMs < -JUST_STARTED_WINDOW_MS
+            ? HOUR // ended: only daysSinceEnded can change
+            : getNextTickDelay(startMs - nowMs);
+      }
+      timer = setTimeout(tick, delay);
+    }
+
+    function tick() {
       setNow(new Date());
-    }, updateInterval);
+      schedule();
+    }
 
-    return () => clearInterval(interval);
-  }, [updateInterval, enableLiveUpdates]);
+    schedule();
+
+    // Background tabs throttle timers; on return, snap to the correct value
+    // immediately instead of waiting out a stale long tick.
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        clearTimeout(timer);
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [parsedStartAt, parsedEndAt, updateInterval, enableLiveUpdates]);
 
   // Calculate temporal state
   const state = useMemo(
