@@ -200,6 +200,13 @@ export function WeddingTemplateV2({
     const accent = active.accent ?? primaryColor;
     if (accent && HEX6_RE.test(accent)) {
       vars["--lux-accent-ink"] = mostReadable(accent, "#ffffff", vars["--lux-panel"]);
+      // Emit the resolved accent itself, not just its ink. Consumers that
+      // chain `var(--lux-accent, var(--accent, …))` resolve the same value
+      // either way; emitting it lets surfaces whose UNTHEMED fallback is NOT
+      // the live accent (the wishes shell's paper-tan) still follow the
+      // organizer's accent when a theme is active. `??=` keeps the
+      // generator's pinned accent (light panels) authoritative.
+      vars["--lux-accent"] ??= accent;
       // The hero glass is always dark, so its accent (float-card tag, schedule
       // day labels) must read light. A dark primaryColor would vanish there —
       // the generator only mirrors a *pinned* light accent onto the hero, so

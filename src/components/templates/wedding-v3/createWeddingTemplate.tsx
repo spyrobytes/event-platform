@@ -201,6 +201,13 @@ export function createWeddingTemplate(definition: TemplateDefinition) {
       const accent = active.accent ?? primaryColor;
       if (accent && HEX6_RE.test(accent)) {
         vars["--lux-accent-ink"] = mostReadable(accent, "#ffffff", vars["--lux-panel"]);
+        // Emit the resolved accent itself — same value existing consumers
+        // already resolve via `var(--lux-accent, var(--accent, …))`, but it
+        // lets surfaces whose unthemed fallback is NOT the live accent (the
+        // wishes shell's paper-tan) follow the organizer's accent when a
+        // theme is active. `??=` keeps a generator-pinned accent (light
+        // panels) authoritative. Mirrors the V2 memo.
+        vars["--lux-accent"] ??= accent;
       }
       return vars;
       // definition is a stable factory-closure constant, not a reactive dep.
