@@ -276,7 +276,35 @@
    page (opened by "Read more"). Portaled to <body>: the grid
    card's ancestors carry transforms (rotation, reveal wrappers)
    that would hijack position:fixed containment.
+
+   Open/close is a shared-element morph (View Transitions API,
+   orchestrated in WishCard): the grid card visually grows into
+   the panel and contracts back. Only ONE element may carry the
+   view-transition-name per captured state — the panel holds it
+   statically (unsupported browsers ignore the property), and the
+   grid card gets .morphSource only around the snapshot instants.
+   Browsers without the API (and prefers-reduced-motion) use the
+   fade/scale entrance + .overlayClosing exit below instead.
    ============================================================ */
+
+.morphSource {
+  view-transition-name: active-wish;
+}
+
+::view-transition-group(active-wish) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Snapshots fill the interpolating group box, so the paper reads as one
+   surface growing/contracting instead of two images sliding past. */
+::view-transition-old(active-wish),
+::view-transition-new(active-wish) {
+  width: 100%;
+  height: 100%;
+  animation-duration: inherit;
+  animation-timing-function: inherit;
+}
 
 .spotlightOverlay {
   position: fixed;
@@ -311,8 +339,10 @@
   padding: 2.8rem 2.2rem 2.6rem;
   transform: none;
   /* Long decelerating tail (easeOutQuint-like) so the paper settles softly
-     instead of popping in. transform/opacity only — compositor-friendly. */
+     instead of popping in. transform/opacity only — compositor-friendly.
+     Fallback path only: .spotlightNoEnter suppresses it during a morph. */
   animation: spotlight-card-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  view-transition-name: active-wish;
   filter: none;
   box-shadow:
     0 24px 48px rgba(30, 20, 12, 0.35),
@@ -348,11 +378,29 @@
   filter: none;
 }
 
+/* During a morph the panel's own entrance would double-animate on top of
+   the view-transition group. Kept for the whole open lifetime — removing
+   the class re-applies (and restarts) the entrance animation. */
+.card.spotlightCard.spotlightNoEnter {
+  animation: none;
+}
+
 /* Scroll backstop for a schema-max wish on a short viewport. min-height: 0
-   so the flex item is allowed to shrink below its content and scroll. */
+   so the flex item is allowed to shrink below its content and scroll.
+   The full text fades in after the panel begins expanding, so the morph
+   reads as paper growing — no visible line-rewrap mid-resize. */
 .spotlightScroll {
   overflow-y: auto;
   min-height: 0;
+  overscroll-behavior: contain;
+  animation: spotlight-content-in 220ms 90ms ease-out both;
+}
+
+@keyframes spotlight-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .spotlightCard .message {
@@ -448,6 +496,16 @@
   }
 }
 
+/* Restrained backdrop blur, desktop/tablet only — a full-viewport blur is
+   real GPU work on phones (#180 lesson), and the rgba dim carries the modal
+   state on its own. Standard property only: Lightning CSS emits the -webkit-
+   pair (hand-writing both breaks Firefox). */
+@media (min-width: 768px) {
+  .spotlightOverlay {
+    backdrop-filter: blur(4px);
+  }
+}
+
 /* ------------------------------------------------------------
    Mobile performance (phones, ≤767px — matches the JS mobile
    breakpoint used by the full-page reveal). Desktop/tablet keep
@@ -504,11 +562,13 @@
     transition: none;
   }
   /* Belt-and-braces: WishSpotlight already closes instantly under reduced
-     motion (animation:none would never fire the animationend it unmounts on). */
+     motion (animation:none would never fire the animationend it unmounts on),
+     and WishCard skips the view-transition morph entirely. */
   .spotlightOverlay,
   .card.spotlightCard,
   .overlayClosing,
-  .overlayClosing .card.spotlightCard {
+  .overlayClosing .card.spotlightCard,
+  .spotlightScroll {
     animation: none;
   }
 }

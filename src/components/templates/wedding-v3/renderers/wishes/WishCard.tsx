@@ -1,26 +1,80 @@
 "use client";
 
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
 import { wishNeedsClamp } from "./wish-clamp";
 import { WishSpotlight } from "./WishSpotlight";
 import type { ApprovedWish } from "./WishesRenderer";
 import styles from "./WishesRenderer.module.css";
 
+/** Shared-element morph gate. Without the View Transitions API (or with
+ *  reduced motion) the spotlight falls back to WishSpotlight's own
+ *  fade/scale entrance and exit choreography. */
+function canMorph(): boolean {
+  return (
+    "startViewTransition" in document &&
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 /**
  * A single ripped-paper wish card. The paper hugs its content (the grid
  * top-aligns cards instead of stretching them); long messages stay uniformly
- * clamped and "Read more" opens the full wish in a spotlight (WishSpotlight)
- * above the page. Shared by the preview grid (WishesRenderer) and the
- * full-page client grid (WishesGrid). The list key is owned by the caller's
- * `.map`, not here.
+ * clamped and "Read more" opens the full wish in a spotlight (WishSpotlight).
+ *
+ * This card owns the card→panel shared-element morph: it carries the
+ * view-transition-name (.morphSource) ONLY around the snapshot instants —
+ * before the open capture and inside the close update — because the panel
+ * holds the same name statically and two live elements must never share it.
+ * The flushSync calls make the React commit synchronous inside
+ * startViewTransition's DOM-update callback, which is what the API requires
+ * to capture old/new states (same pattern as the mobile-nav portal unmount).
+ *
+ * Shared by the preview grid (WishesRenderer) and the full-page client grid
+ * (WishesGrid). The list key is owned by the caller's `.map`, not here.
  */
 export function WishCard({ wish }: { wish: ApprovedWish }) {
   const [spotlightOpen, setSpotlightOpen] = useState(false);
+  const [morphSource, setMorphSource] = useState(false);
+  // True when the open ran as a morph — the spotlight then suppresses its
+  // fallback entrance animation and routes close back through closeMorph.
+  const [morphOpen, setMorphOpen] = useState(false);
   const clampable = wishNeedsClamp(wish.message);
 
+  const openSpotlight = () => {
+    if (!canMorph()) {
+      setSpotlightOpen(true);
+      return;
+    }
+    // The old-state capture must see the grid card carrying the name.
+    flushSync(() => setMorphSource(true));
+    const transition = document.startViewTransition(() => {
+      flushSync(() => {
+        setMorphSource(false);
+        setMorphOpen(true);
+        setSpotlightOpen(true);
+      });
+    });
+    // finished also resolves for skipped/interrupted transitions.
+    transition.finished.finally(() => setMorphSource(false));
+  };
+
+  const closeMorph = () => {
+    const transition = document.startViewTransition(() => {
+      flushSync(() => {
+        setSpotlightOpen(false);
+        setMorphSource(true);
+      });
+    });
+    transition.finished.finally(() => {
+      setMorphSource(false);
+      setMorphOpen(false);
+    });
+  };
+
   return (
-    <article className={styles.card}>
+    <article className={cn(styles.card, morphSource && styles.morphSource)}>
       <p className={cn(styles.message, clampable && styles.messageClamped)}>
         {wish.message}
       </p>
@@ -29,7 +83,7 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
           type="button"
           className={styles.readMore}
           aria-haspopup="dialog"
-          onClick={() => setSpotlightOpen(true)}
+          onClick={openSpotlight}
         >
           Read more
         </button>
@@ -38,7 +92,12 @@ export function WishCard({ wish }: { wish: ApprovedWish }) {
         <footer className={styles.author}>— {wish.authorName}</footer>
       )}
       {spotlightOpen && (
-        <WishSpotlight wish={wish} onClose={() => setSpotlightOpen(false)} />
+        <WishSpotlight
+          wish={wish}
+          morph={morphOpen}
+          onMorphClose={closeMorph}
+          onClose={() => setSpotlightOpen(false)}
+        />
       )}
     </article>
   );

@@ -20,19 +20,28 @@ const EXIT_MS = 200;
  * containment if the overlay rendered in place. The overlay re-applies
  * `.wishVars` because the --wish-* palette doesn't reach the portal.
  *
- * Closing plays a CSS exit animation first: every dismissal path routes
- * through beginClose(), which flips the `closing` class; the real onClose
- * (unmount) fires on the overlay's animationend, with a timer fallback for
- * a dropped event (throttled background tab). Under prefers-reduced-motion
- * the exit is instant — animation:none would never fire animationend.
- * useFocusTrap returns focus to the originating "Read more" button.
+ * Every dismissal path (ESC / backdrop / ✕) routes through beginClose().
+ * When the open ran as a shared-element morph (`morph`), close is handed
+ * back to WishCard's closeMorph — the reverse view transition contracts the
+ * panel into the grid card and unmounts synchronously. Otherwise the CSS
+ * exit choreography runs: the `closing` class plays a fade/sink and the
+ * real onClose (unmount) fires on the overlay's animationend, with a timer
+ * fallback for a dropped event (throttled background tab). Under
+ * prefers-reduced-motion the exit is instant — animation:none would never
+ * fire animationend. useFocusTrap returns focus to the originating
+ * "Read more" button either way.
  */
 export function WishSpotlight({
   wish,
   onClose,
+  morph = false,
+  onMorphClose,
 }: {
   wish: ApprovedWish;
   onClose: () => void;
+  /** True when WishCard opened this spotlight via a view-transition morph. */
+  morph?: boolean;
+  onMorphClose?: () => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   // Backdrop dismissal arms on pointerdown: a press that starts on the card
@@ -43,12 +52,16 @@ export function WishSpotlight({
 
   const beginClose = useCallback(() => {
     if (closing) return;
+    if (morph && onMorphClose) {
+      onMorphClose();
+      return;
+    }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       onClose();
       return;
     }
     setClosing(true);
-  }, [closing, onClose]);
+  }, [closing, morph, onMorphClose, onClose]);
 
   useFocusTrap(dialogRef);
   useBodyScrollLock(true);
@@ -92,7 +105,11 @@ export function WishSpotlight({
         aria-modal="true"
         aria-label={wish.authorName ? `Wish from ${wish.authorName}` : "Wedding wish"}
         tabIndex={-1}
-        className={cn(styles.card, styles.spotlightCard)}
+        className={cn(
+          styles.card,
+          styles.spotlightCard,
+          morph && styles.spotlightNoEnter,
+        )}
       >
         <button
           type="button"
