@@ -41,6 +41,7 @@ type PageProps = {
     sampleParty?: string;
     sampleTitle?: string;
     sampleSubtitle?: string;
+    sampleWishes?: string;
   }>;
 };
 
@@ -302,6 +303,47 @@ const SAMPLE_HERO_BG_ASSETS: Record<string, MediaAsset> = {
   }),
 };
 
+// Sample approved wishes for `?sampleWishes=1` — lengths span the schema's
+// full range (one-liner → a 995-char letter, effectively at the manual-wish
+// 1000-char cap, plus a manual-line-break "poem") so card sizing, the
+// long-message clamp, and the spotlight's scroll backstop are visually
+// checkable without DB rows. Rendered in "full" mode so the whole wall shows
+// at once. Only wishes-capable templates (wedding_v2, V3 weddings) render
+// the section.
+const SAMPLE_WISHES = [
+  { id: "wish-1", authorName: "Auntie Rosa", message: "Congratulations! ❤️" },
+  {
+    id: "wish-2",
+    authorName: "The Okafor Family",
+    message: "Wishing you a lifetime of love and laughter.\nWe are so happy for you both!",
+  },
+  {
+    id: "wish-3",
+    authorName: "Denise & Mark",
+    message:
+      "From the moment we saw you two together at the lake house, we knew this day would come. May your marriage be filled with all the right ingredients: a heap of love, a dash of humor, a touch of romance, and a spoonful of understanding.",
+  },
+  {
+    id: "wish-4",
+    authorName: "Grandpa Joe",
+    message:
+      "Sixty-two years ago I stood where you stand today, and if I could pass along one thing it would be this: marriage is not about finding a person you can live with, it is about finding the person you cannot imagine living without — and then proving it to them, quietly, in a thousand small ways, year after year. Bring each other coffee. Learn to lose arguments you could win. Dance in the kitchen when no one is watching. Keep choosing each other on the ordinary days, because the ordinary days are the marriage. We are so very proud of the people you have become, and prouder still of who you are when you are together. All our love, always. Your grandmother would have adored this day — she always said you two argue like people who plan to stay. Take care of the quiet things: the last slice offered first, the long drive home made short by good company, the grace to forgive quickly. And when the years pile up and the photographs fade, look at each other the way you did today. All of us do.",
+  },
+  {
+    id: "wish-5",
+    authorName: "Chidi",
+    message: "Two hearts,\none home.\n\nTwo stories,\none book.\n\nTwo lives,\none love.\n\nCongratulations, my friends.",
+  },
+  { id: "wish-6", authorName: "Priya N.", message: "So happy for you two — see you on the dance floor! 🎉" },
+  {
+    id: "wish-7",
+    authorName: "Coach Bell",
+    message:
+      "Marriage advice from the sidelines: communicate like your season depends on it, celebrate every small win, and never leave the field angry. You two are the best team I've ever seen.",
+  },
+  { id: "wish-8", authorName: "Nina", message: "Forever starts now. Love you both!" },
+];
+
 function resolveHeroBg(choice: string | undefined, fallback: "couple" | "florals") {
   return SAMPLE_HERO_BG_ASSETS[choice ?? ""] ?? SAMPLE_HERO_BG_ASSETS[fallback];
 }
@@ -325,6 +367,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     sampleParty,
     sampleTitle,
     sampleSubtitle,
+    sampleWishes,
   } = await searchParams;
 
   // Verify template exists
@@ -488,5 +531,34 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     };
   }
 
-  return <Template config={config} assets={assets} eventId={SAMPLE_EVENT_ID} />;
+  // Optionally append an enabled wishes section fed with the sample wishes
+  // (?sampleWishes=1). "full" mode renders the whole wall (no preview slice).
+  if (sampleWishes) {
+    config = {
+      ...config,
+      sections: [
+        ...config.sections,
+        {
+          type: "wishes",
+          enabled: true,
+          data: {
+            heading: "Wedding Wishes",
+            intro: "A few words from the people we love.",
+            previewCount: 3,
+            enableSubmissions: true,
+          },
+        },
+      ],
+    };
+  }
+
+  return (
+    <Template
+      config={config}
+      assets={assets}
+      eventId={SAMPLE_EVENT_ID}
+      approvedWishes={sampleWishes ? SAMPLE_WISHES : undefined}
+      wishesMode="full"
+    />
+  );
 }

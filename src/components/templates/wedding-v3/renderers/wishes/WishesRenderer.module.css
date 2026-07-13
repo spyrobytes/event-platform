@@ -14,7 +14,10 @@
    root) and are referenced via url(#ww-...).
    ============================================================ */
 
-.section {
+/* Palette scope — applied to BOTH .section and .spotlightOverlay. The
+   spotlight portals to <body> (outside the section's subtree), so vars
+   defined only on .section would never reach the portaled paper card. */
+.wishVars {
   --wish-bg: #fffaf1;
   --wish-bg-warm: #fdf2dd;
   --wish-ink: #3b2f2f;
@@ -23,7 +26,9 @@
   --wish-page-bg: #f7efe4;
   /* RGB triplet so per-card variants can tweak the tape color */
   --tape: 251, 233, 184;
+}
 
+.section {
   padding: 5rem 1.25rem;
   background:
     radial-gradient(circle at top left, rgba(181, 139, 95, 0.18), transparent 30%),
@@ -74,6 +79,11 @@
   gap: 2.5rem 2rem;
   /* Top room so the tape sitting above each card has space to breathe */
   padding-top: 1.25rem;
+  /* Paper hugs its content: the grid default (stretch) would inflate short
+     wishes to the row's tallest card, and the ::before paper layer (inset: 0)
+     fills that stretched box — reading as empty paper. Top-aligning also
+     keeps the %-based clip-path tear at its designed proportions. */
+  align-items: start;
 }
 
 /* ============================================================
@@ -224,11 +234,236 @@
   word-break: break-word;
 }
 
+/* Clamped state for long wishes — applied only when wish-clamp.ts says the
+   message overflows, so a heuristic miss degrades to a taller card, never to
+   hidden text without a toggle. pre-wrap forced breaks count as lines here.
+   The full message lives in the spotlight (WishSpotlight), not in-place. */
+.messageClamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  /* Keep in sync with WISH_CLAMP_LINES in wish-clamp.ts */
+  -webkit-line-clamp: 7;
+  overflow: hidden;
+}
+
+.readMore {
+  margin-top: 0.9rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--wish-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.readMore:hover {
+  color: var(--wish-ink);
+}
+
 .author {
   margin-top: 1.4rem;
   color: var(--wish-muted);
   font-size: 0.92rem;
   font-weight: 600;
+}
+
+/* ============================================================
+   Spotlight — full wish on a larger paper card above a dimmed
+   page (opened by "Read more"). Portaled to <body>: the grid
+   card's ancestors carry transforms (rotation, reveal wrappers)
+   that would hijack position:fixed containment.
+
+   Open/close is a shared-element morph (View Transitions API,
+   orchestrated in WishCard): the grid card visually grows into
+   the panel and contracts back. Only ONE element may carry the
+   view-transition-name per captured state — the panel holds it
+   statically (unsupported browsers ignore the property), and the
+   grid card gets .morphSource only around the snapshot instants.
+   Browsers without the API (and prefers-reduced-motion) use the
+   fade/scale entrance + .overlayClosing exit below instead.
+   ============================================================ */
+
+.morphSource {
+  view-transition-name: active-wish;
+}
+
+::view-transition-group(active-wish) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Snapshots fill the interpolating group box, so the paper reads as one
+   surface growing/contracting instead of two images sliding past. */
+::view-transition-old(active-wish),
+::view-transition-new(active-wish) {
+  width: 100%;
+  height: 100%;
+  animation-duration: inherit;
+  animation-timing-function: inherit;
+}
+
+.spotlightOverlay {
+  position: fixed;
+  inset: 0;
+  /* Matches the gallery-lightbox z ladder (300/301) */
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(43, 32, 26, 0.55);
+  animation: spotlight-fade-in 240ms ease-out;
+}
+
+/* Double class beats the :nth-child variant rules (equal specificity,
+   later in file) so the spotlight paper sits straight and un-tinted
+   regardless of its child position inside the overlay.
+
+   The spotlight is deliberately FILTER-FREE on all viewports (the mobile
+   degradation from #180, promoted to a design choice here): the fixed,
+   z-indexed overlay composites its subtree, where Chromium renders the
+   url(#ww-…) reference filters inert (verified: computed style carries the
+   filter, defs resolve, no fray paints) — and a ~640px filtered surface is
+   exactly the rasterization workload that blanked mobile GPUs. box-shadow
+   replaces the double drop-shadow, and the denser clip-path below keeps
+   the tear at its designed notch width at spotlight scale. */
+.card.spotlightCard {
+  width: min(640px, 92vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 2.8rem 2.2rem 2.6rem;
+  transform: none;
+  /* Long decelerating tail (easeOutQuint-like) so the paper settles softly
+     instead of popping in. transform/opacity only — compositor-friendly.
+     Fallback path only: .spotlightNoEnter suppresses it during a morph. */
+  animation: spotlight-card-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  view-transition-name: active-wish;
+  filter: none;
+  box-shadow:
+    0 24px 48px rgba(30, 20, 12, 0.35),
+    0 4px 10px rgba(30, 20, 12, 0.18);
+}
+
+/* Tear tuned for the ~640px card: same silhouette language as the grid
+   polygon but ~2x bottom-notch density, so notches keep their designed
+   width instead of stretching. Generated deterministically (seed 7). */
+.card.spotlightCard::before {
+  filter: none;
+  clip-path: polygon(
+    0.0% 0.1%, 4.7% 1.0%, 10.9% 0.6%, 16.4% 0.5%, 21.5% 0.6%,
+    27.8% 0.3%, 32.7% 0.8%, 38.5% 0.3%, 43.9% 0.4%, 49.8% 0.4%,
+    56.7% 0.3%, 63.4% 0.3%, 68.3% 0.2%, 73.5% 0.6%, 79.9% 0.2%,
+    86.7% 0.6%, 92.8% 0.7%, 99.7% 0.7%, 100.0% 0.8%, 99.4% 12%,
+    99.6% 29%, 99.4% 46%, 99.9% 63%, 99.7% 80%, 100.0% 95.5%,
+    98.2% 99.7%, 95.9% 96.1%, 93.9% 99.2%, 92.0% 95.5%, 89.5% 99.1%,
+    87.7% 96.1%, 85.6% 98.8%, 83.3% 96.4%, 81.1% 99.6%, 78.8% 96.4%,
+    77.0% 99.3%, 74.8% 96.4%, 72.2% 99.6%, 70.0% 96.5%, 67.4% 99.3%,
+    65.0% 95.3%, 62.8% 99.1%, 60.4% 96.0%, 58.1% 99.8%, 55.9% 96.3%,
+    53.8% 99.4%, 51.4% 96.0%, 49.4% 99.0%, 47.7% 95.3%, 45.2% 99.6%,
+    42.9% 95.3%, 40.6% 99.4%, 38.3% 96.5%, 36.3% 99.8%, 34.1% 96.3%,
+    31.8% 99.6%, 30.0% 96.5%, 27.8% 99.4%, 26.0% 95.8%, 24.1% 99.6%,
+    21.6% 96.2%, 19.3% 99.8%, 17.1% 96.2%, 14.5% 99.3%, 12.6% 96.0%,
+    10.2% 99.7%, 8.3% 96.0%, 6.2% 99.3%, 4.3% 95.6%, 2.2% 99.3%,
+    0.0% 95.8%, 0.0% 80%, 0.0% 63%, 0.5% 47%, 0.0% 27%,
+    0.2% 10%
+  );
+}
+
+.card.spotlightCard::after {
+  filter: none;
+}
+
+/* During a morph the panel's own entrance would double-animate on top of
+   the view-transition group. Kept for the whole open lifetime — removing
+   the class re-applies (and restarts) the entrance animation. */
+.card.spotlightCard.spotlightNoEnter {
+  animation: none;
+}
+
+/* Scroll backstop for a schema-max wish on a short viewport. min-height: 0
+   so the flex item is allowed to shrink below its content and scroll.
+   The full text fades in after the panel begins expanding, so the morph
+   reads as paper growing — no visible line-rewrap mid-resize. */
+.spotlightScroll {
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+  animation: spotlight-content-in 220ms 90ms ease-out both;
+}
+
+/* Keyboard-focusable scroll container (body scroll is locked, so this is
+   the only way keyboard users reach overflowing text). */
+.spotlightScroll:focus-visible {
+  outline: 2px solid var(--wish-accent);
+  outline-offset: 2px;
+}
+
+@keyframes spotlight-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.spotlightCard .message {
+  font-size: 1.15rem;
+}
+
+.spotlightClose {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.9rem;
+  z-index: 1;
+  padding: 0.3rem;
+  border: none;
+  background: none;
+  color: var(--wish-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.spotlightClose:hover {
+  color: var(--wish-ink);
+}
+
+/* Exit — slightly quicker than the entrance (dismissals should feel
+   immediate); `forwards` holds the final transparent frame until React
+   unmounts on animationend. Keep the 200ms in sync with EXIT_MS in
+   WishSpotlight.tsx (its timer fallback for a dropped animationend). */
+.overlayClosing {
+  animation: spotlight-fade-out 200ms ease-in forwards;
+}
+
+.overlayClosing .card.spotlightCard {
+  animation: spotlight-card-out 200ms ease-in forwards;
+}
+
+@keyframes spotlight-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes spotlight-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(16px);
+  }
+}
+
+@keyframes spotlight-fade-out {
+  to { opacity: 0; }
+}
+
+@keyframes spotlight-card-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
 }
 
 /* ============================================================
@@ -265,6 +500,16 @@
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Restrained backdrop blur, desktop/tablet only — a full-viewport blur is
+   real GPU work on phones (#180 lesson), and the rgba dim carries the modal
+   state on its own. Standard property only: Lightning CSS emits the -webkit-
+   pair (hand-writing both breaks Firefox). */
+@media (min-width: 768px) {
+  .spotlightOverlay {
+    backdrop-filter: blur(4px);
   }
 }
 
@@ -313,6 +558,14 @@
   }
   .card {
     transform: none;
+    /* Cap single-column paper width: a ~530px-wide scrap looks stretched,
+       and the cap keeps real chars-per-line ≤ ~44 everywhere so the clamp
+       heuristic's 50-chars/line assumption genuinely errs low (see
+       wish-clamp.ts — without this, 490–620px viewports could show a
+       "Read more" on text that already fits). */
+    width: 100%;
+    max-width: 26rem;
+    margin-inline: auto;
   }
 }
 
@@ -322,5 +575,23 @@
   }
   .ctaLink {
     transition: none;
+  }
+  /* Belt-and-braces: WishSpotlight already closes instantly under reduced
+     motion (animation:none would never fire the animationend it unmounts on),
+     and WishCard re-checks the preference before every morph — but if a
+     morph does start (e.g. the preference flips mid-transition), the
+     view-transition pseudos must not animate either. */
+  .spotlightOverlay,
+  .card.spotlightCard,
+  .overlayClosing,
+  .overlayClosing .card.spotlightCard,
+  .spotlightScroll {
+    animation: none;
+  }
+
+  ::view-transition-group(active-wish),
+  ::view-transition-old(active-wish),
+  ::view-transition-new(active-wish) {
+    animation: none;
   }
 }
