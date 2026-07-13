@@ -67,9 +67,11 @@ describe("WishesModerationPage load race", () => {
   it("keeps the spinner (no 'Event not found' flash) while only the event fetch is pending", async () => {
     render(<WishesModerationPage />);
 
-    // Let the wishes-list fetch complete while the event fetch hangs.
+    // All three fetches (event + wishes list + manual badge) must have fired
+    // before the key assertion — otherwise "spinner present" could pass
+    // trivially on the very first render, before the race window opens.
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalled();
+      expect(vi.mocked(fetch)).toHaveBeenCalledTimes(3);
     });
     // The regression: with `loading` cleared by the list fetch, the page
     // used to fall through to the error screen here.
