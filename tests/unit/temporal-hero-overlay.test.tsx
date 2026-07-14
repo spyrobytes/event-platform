@@ -28,7 +28,7 @@ describe("TemporalHeroOverlay confetti gate", () => {
     expect(confettiIn(container)).not.toBeNull();
   });
 
-  it("bursts right after start even when endAt is null (zero-duration → 'ended' instantly)", () => {
+  it("bursts right after start even when endAt is null (assumed-duration ongoing)", () => {
     const { container } = renderOverlay(-2 * SECOND, null);
     expect(confettiIn(container)).not.toBeNull();
   });

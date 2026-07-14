@@ -40,7 +40,9 @@ type TemporalProviderProps = {
   startAt: string | Date | null | undefined;
   /** Event end date/time */
   endAt?: string | Date | null;
-  /** Event timezone (for display purposes) */
+  /** Venue IANA timezone — drives calendar-day phases ("Today", post-event
+   *  "yesterday"): temporal state is viewed from the venue's wall clock, not
+   *  the visitor's. Omit to fall back to the viewer's local calendar. */
   timezone?: string;
   /** Fixed update interval in ms. Omit for adaptive cadence (hourly while
    *  days show, per-minute inside 24h, per-second in the final minute). */
@@ -73,6 +75,7 @@ export function TemporalProvider({
   const temporalState = useEventTemporal({
     startAt,
     endAt,
+    timezone,
     updateInterval,
     enableLiveUpdates: true,
   });
