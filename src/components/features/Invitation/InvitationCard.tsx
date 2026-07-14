@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn, formatEventDateLong } from "@/lib/utils";
 import { InviteeGreeting } from "./InviteeGreeting";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { InvitationData } from "@/schemas/invitation";
@@ -61,13 +61,7 @@ export function InvitationCard({
   const subtitle = eventTypeText || eventTitle;
 
   // Format date for display
-  const formattedDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: timezone,
-  }).format(eventDate);
+  const formattedDate = formatEventDateLong(eventDate, timezone);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 

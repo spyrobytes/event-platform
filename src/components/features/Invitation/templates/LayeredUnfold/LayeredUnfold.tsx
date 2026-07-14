@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatEventDateLong } from "@/lib/utils";
 import { useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
@@ -336,13 +336,7 @@ export function LayeredUnfold({
   // Formatted data
   // -----------------------------------------------------------------------
 
-  const formattedDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: data.timezone,
-  }).format(data.eventDate);
+  const formattedDate = formatEventDateLong(data.eventDate, data.timezone);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 

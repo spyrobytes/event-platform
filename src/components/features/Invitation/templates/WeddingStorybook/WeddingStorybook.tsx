@@ -30,13 +30,8 @@ import styles from "./WeddingStorybook.module.css";
  */
 function mapToStorybook(data: InvitationData): StorybookData {
   const eventDate = new Date(data.eventDate);
-  const dateFormatter = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: data.timezone,
-  });
-  const formattedDate = dateFormatter.format(eventDate);
+  // Storybook shows the year on its own line, so this is the no-year long form
+  const formattedDate = formatInTimeZone(eventDate, data.timezone, "EEEE, MMMM d");
   const year = formatInTimeZone(eventDate, data.timezone, "yyyy");
 
   return {
