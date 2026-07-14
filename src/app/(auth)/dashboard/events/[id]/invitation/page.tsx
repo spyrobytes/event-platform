@@ -24,7 +24,6 @@ import {
 } from "@/schemas/invitation";
 import { templateSupportsField, type TemplateField } from "@/components/features/Invitation/templates";
 import { classifyInvitationDensity } from "@/lib/invitation-density";
-import { fromDatetimeLocalInTz, toDatetimeLocalInTz } from "@/lib/datetime";
 
 type TimelineEntry = {
   date: string;
@@ -139,12 +138,10 @@ export default function InvitationConfigPage() {
   // Wedding Storybook fields
   const [couplePhotoUrl, setCouplePhotoUrl] = useState("");
   const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
-  const [ceremonyStartAt, setCeremonyStartAt] = useState("");
   const [ceremonyDate, setCeremonyDate] = useState("");
   const [ceremonyTime, setCeremonyTime] = useState("");
   const [ceremonyVenue, setCeremonyVenue] = useState("");
   const [ceremonyAddress, setCeremonyAddress] = useState("");
-  const [receptionStartAt, setReceptionStartAt] = useState("");
   const [receptionDate, setReceptionDate] = useState("");
   const [receptionTime, setReceptionTime] = useState("");
   const [receptionVenue, setReceptionVenue] = useState("");
@@ -235,12 +232,10 @@ export default function InvitationConfigPage() {
             // Wedding Storybook fields
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
-            setCeremonyStartAt(toDatetimeLocalInTz(configData.data.ceremonyStartAt, eventData.data.timezone || "UTC"));
             setCeremonyDate(configData.data.ceremonyDate || "");
             setCeremonyTime(configData.data.ceremonyTime || "");
             setCeremonyVenue(configData.data.ceremonyVenue || "");
             setCeremonyAddress(configData.data.ceremonyAddress || "");
-            setReceptionStartAt(toDatetimeLocalInTz(configData.data.receptionStartAt, eventData.data.timezone || "UTC"));
             setReceptionDate(configData.data.receptionDate || "");
             setReceptionTime(configData.data.receptionTime || "");
             setReceptionVenue(configData.data.receptionVenue || "");
@@ -326,16 +321,12 @@ export default function InvitationConfigPage() {
           // Wedding Storybook fields
           couplePhotoUrl: couplePhotoUrl || undefined,
           venuePhotoUrl: venuePhotoUrl || undefined,
-          ceremonyStartAt: ceremonyStartAt
-            ? fromDatetimeLocalInTz(ceremonyStartAt, event?.timezone || "UTC")?.toISOString()
-            : undefined,
+          // ceremonyStartAt/receptionStartAt no longer sent: typed timing is
+          // edited in the Event Schedule editor (canonical-schedule PR 4).
           ceremonyDate: ceremonyDate || undefined,
           ceremonyTime: ceremonyTime || undefined,
           ceremonyVenue: ceremonyVenue || undefined,
           ceremonyAddress: ceremonyAddress || undefined,
-          receptionStartAt: receptionStartAt
-            ? fromDatetimeLocalInTz(receptionStartAt, event?.timezone || "UTC")?.toISOString()
-            : undefined,
           receptionDate: receptionDate || undefined,
           receptionTime: receptionTime || undefined,
           receptionVenue: receptionVenue || undefined,
@@ -958,23 +949,21 @@ export default function InvitationConfigPage() {
               <p className="text-sm text-muted-foreground">
                 Fill in either or both sections. Empty sections are automatically hidden on the card.
               </p>
+              <p className="text-sm text-muted-foreground">
+                Dates &amp; times for emails and guest passes now live in the{" "}
+                <Link
+                  href={`/dashboard/events/${params.id}/schedule`}
+                  className="font-medium text-accent underline underline-offset-2"
+                >
+                  Event Schedule
+                </Link>
+                . The fields below only style the invitation card.
+              </p>
             </CardHeader>
             <CardContent className="space-y-8">
               {/* Ceremony */}
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-foreground">Ceremony</h4>
-                <div className="space-y-3">
-                  <Label htmlFor="ceremonyStartAt">Ceremony Date &amp; Time</Label>
-                  <Input
-                    id="ceremonyStartAt"
-                    type="datetime-local"
-                    value={ceremonyStartAt}
-                    onChange={(e) => handleFieldChange(setCeremonyStartAt)(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Used in invitation emails. The stylized text below is for the invitation card only.
-                  </p>
-                </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-3">
                     <Label htmlFor="ceremonyDate">Card Display Date</Label>
@@ -1020,18 +1009,6 @@ export default function InvitationConfigPage() {
               {/* Reception */}
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-foreground">Reception</h4>
-                <div className="space-y-3">
-                  <Label htmlFor="receptionStartAt">Reception Date &amp; Time</Label>
-                  <Input
-                    id="receptionStartAt"
-                    type="datetime-local"
-                    value={receptionStartAt}
-                    onChange={(e) => handleFieldChange(setReceptionStartAt)(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Used in invitation emails. The stylized text below is for the invitation card only.
-                  </p>
-                </div>
                 <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-3">
                     <Label htmlFor="receptionDate">Card Display Date</Label>

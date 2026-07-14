@@ -2236,6 +2236,7 @@ export default function PageEditorPage() {
                     data: { ...section.data, groups },
                   })}
                   templateId={templateId}
+                  eventId={params.id}
                 />
               </div>
             )}

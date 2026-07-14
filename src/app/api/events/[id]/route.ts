@@ -181,6 +181,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           data: {
             ...restData,
             schedule: nullableJsonInput(schedule),
+            // Saving a schedule is an implicit acknowledgment of the
+            // backfill banner — the organizer has seen and owned the data.
+            ...(schedule !== undefined ? { scheduleAutoPopulatedAt: null } : {}),
             ...coverPatch,
             ...(renameInfo ? { slug: renameInfo.to } : {}),
           },
