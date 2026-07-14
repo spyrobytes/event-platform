@@ -5,6 +5,7 @@ import { hashToken } from "@/lib/tokens";
 import { TEMPLATES } from "@/components/templates";
 import { lenientValidateAndMigrate, createMinimalConfig } from "@/lib/config-migrations";
 import { MEDIA_ASSET_SELECT } from "@/lib/event-page-loader";
+import { applyTypedScheduleToSections } from "@/lib/schedule-section-data";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -38,6 +39,8 @@ async function getEventByPreviewToken(token: string) {
       description: true,
       startAt: true,
       endAt: true,
+      timezone: true,
+      schedule: true,
       venueName: true,
       city: true,
       pageConfig: true,
@@ -144,6 +147,18 @@ export default async function PreviewPage({ params }: PageProps) {
   } else {
     config = createMinimalConfig(event.title);
   }
+
+  // Typed Event.schedule drives the schedule section when present — same
+  // substitution as /e/[slug] so the preview matches the live page
+  // (canonical-schedule PR 3d).
+  config = {
+    ...config,
+    sections: applyTypedScheduleToSections(
+      config.sections,
+      event.schedule,
+      event.timezone
+    ),
+  };
 
   // Cast media assets to the expected type
   const assets = event.mediaAssets.map((asset: {

@@ -145,6 +145,8 @@ type EventPrefill = {
   city: string | null;
   country: string | null;
   timezone: string;
+  /** Raw typed Event.schedule Json — drives the schedule section (PR 3d). */
+  schedule?: unknown;
 };
 
 // Builds the default map section, prefilling venueName + formattedAddress
@@ -2235,8 +2237,8 @@ export default function PageEditorPage() {
                   onChangeGroups={(groups) => updateSection(index, {
                     data: { ...section.data, groups },
                   })}
-                  templateId={templateId}
                   eventId={params.id}
+                  eventSchedule={pageData?.event?.schedule}
                 />
               </div>
             )}

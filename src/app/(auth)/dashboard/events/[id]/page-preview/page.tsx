@@ -8,6 +8,7 @@ import { useImpersonation, isImpersonationInvalid } from "@/components/providers
 import { Button } from "@/components/ui/button";
 import { getTemplate, type TemporalData } from "@/components/templates";
 import { filterSectionsByVisibility, type AccessLevel } from "@/lib/guest-access";
+import { applyTypedScheduleToSections } from "@/lib/schedule-section-data";
 import type { EventPageConfigV1 } from "@/schemas/event-page";
 import type { MediaAsset } from "@prisma/client";
 
@@ -36,6 +37,7 @@ export default function PagePreviewPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [eventSlug, setEventSlug] = useState<string | null>(null);
   const [temporal, setTemporal] = useState<TemporalData | null>(null);
+  const [eventSchedule, setEventSchedule] = useState<unknown>(null);
   const [viewAs, setViewAs] = useState<"public" | "guest">("public");
 
   useEffect(() => {
@@ -80,6 +82,7 @@ export default function PagePreviewPage() {
 
         setPageData(configData.data);
         setEventSlug(eventInfo.slug ?? null);
+        setEventSchedule(eventInfo.schedule ?? null);
 
         setTemporal({
           startAt: eventInfo.startAt ?? null,
@@ -185,13 +188,20 @@ export default function PagePreviewPage() {
     return getTemplate(pageData.templateId) || getTemplate("wedding_v1");
   }, [pageData]);
 
-  // Filter config sections by visibility (same logic as live view)
+  // Filter config sections by visibility (same logic as live view), then
+  // substitute the typed Event.schedule into the schedule section — the
+  // preview must match /e/[slug] exactly (canonical-schedule PR 3d).
   const filteredConfig = useMemo(() => {
     if (!pageData) return null;
     const accessLevel: AccessLevel = viewAs;
     const filteredSections = filterSectionsByVisibility(pageData.config.sections, accessLevel);
-    return { ...pageData.config, sections: filteredSections };
-  }, [pageData, viewAs]);
+    const sections = applyTypedScheduleToSections(
+      filteredSections,
+      eventSchedule,
+      temporal?.timezone ?? "UTC"
+    );
+    return { ...pageData.config, sections };
+  }, [pageData, viewAs, eventSchedule, temporal]);
 
   if (loading) {
     return (

@@ -5,6 +5,7 @@ import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO, type Approv
 import { summarizeClaims } from "@/lib/registry-claims";
 import { getApprovedWishes } from "@/lib/wishes";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
+import { applyTypedScheduleToSections } from "@/lib/schedule-section-data";
 import {
   getEventBySlug,
   getRedirectForRetiredSlug,
@@ -163,7 +164,14 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
 
   // Filter sections by visibility BEFORE passing to template
   const filteredSections = filterSectionsByVisibility(config.sections, accessLevel);
-  const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
+  // Typed Event.schedule drives the schedule section when present; free-text
+  // page-config items are the legacy fallback (canonical-schedule PR 3d).
+  const sectionsWithTypedSchedule = applyTypedScheduleToSections(
+    filteredSections,
+    event.schedule,
+    event.timezone
+  );
+  const filteredConfig: EventPageConfigV1 = { ...config, sections: sectionsWithTypedSchedule };
 
   // Cast media assets to the expected type
   const assets = event.mediaAssets.map((asset: {
