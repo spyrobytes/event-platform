@@ -1,5 +1,7 @@
 // Filename starts with `_` so Next.js's App Router doesn't treat this as a route segment.
 
+import { parseSchedule, findScheduleEntry } from "@/lib/schedule-read";
+
 export type RsvpResponse = "YES" | "NO" | "MAYBE";
 
 export type AccessState =
@@ -75,9 +77,9 @@ export function resolvePartyMembers(invite: {
 }
 
 export type PassMoment = {
-  // "Reception" when sourced from the wedding reception fields; null when the
-  // moment is the Event row's own startAt (in which case the event title alone
-  // is the label).
+  // Entry label ("Reception") when sourced from the typed schedule or the
+  // legacy wedding reception fields; null when the moment is the Event row's
+  // own startAt (in which case the event title alone is the label).
   label: string | null;
   startAt: Date;
   venue: string | null;
@@ -85,8 +87,14 @@ export type PassMoment = {
 };
 
 // Pass admits to the reception when one is configured; otherwise to the
-// event's primary moment. Mirrors the rule already applied by the invite-email
-// pipeline (`src/app/api/events/[id]/invites/route.ts:99-131`). The full
+// event's primary moment. Rung ladder (canonical-schedule plan §3), typed
+// first with legacy fallback:
+//   1. Event.schedule entry with role "reception"
+//   2. first Event.schedule entry flagged isAccessPassGated
+//   3. legacy InvitationConfig.reception* fields
+//   4. the Event row's own startAt
+// Rung 3 mirrors the rule applied by the invite-email pipeline
+// (`src/app/api/events/[id]/invites/route.ts:99-131`). The full
 // multi-gated-event design is deferred — see
 // `internal-docs/access-pass-gated-events-plan.md`.
 export function resolvePassMoment(invite: {
@@ -94,6 +102,8 @@ export function resolvePassMoment(invite: {
     startAt: Date;
     venueName: string | null;
     address: string | null;
+    /** Raw Event.schedule Json column (unknown until parseSchedule vets it) */
+    schedule?: unknown;
     invitationConfig: {
       receptionStartAt: Date | null;
       receptionVenue: string | null;
@@ -101,6 +111,24 @@ export function resolvePassMoment(invite: {
     } | null;
   };
 }): PassMoment {
+  const entries = parseSchedule(invite.event.schedule);
+  if (entries) {
+    const target =
+      findScheduleEntry(entries, "reception") ??
+      entries.find((e) => e.isAccessPassGated) ??
+      null;
+    if (target) {
+      return {
+        // Organizer-controlled entry label — also what makes this rung
+        // translatable, unlike the legacy rung's hardcoded English below.
+        label: target.label,
+        startAt: new Date(target.startAt),
+        venue: target.venue ?? null,
+        address: target.address ?? null,
+      };
+    }
+  }
+
   const config = invite.event.invitationConfig;
   if (config?.receptionStartAt) {
     return {
