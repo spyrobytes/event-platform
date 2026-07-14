@@ -12,6 +12,8 @@ import { AnalyticsSnapshot, RSVPFunnel, VelocityChart } from "@/components/featu
 import { RSVPDeadlineInfo, SlugEditor } from "@/components/features";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { isPostEventGalleryEnabledClient } from "@/lib/gallery-feature-flag";
+import { SchedulePopulatedBanner } from "@/components/features/Schedule";
+import type { ScheduleEntry } from "@/schemas/event";
 
 type EventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED" | "COMPLETED";
 type EventVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
@@ -37,6 +39,8 @@ type EventDetail = {
   rsvpDeadline?: string | null;
   reminderEnabled?: boolean;
   reminderDays?: number | null;
+  schedule?: ScheduleEntry[] | null;
+  scheduleAutoPopulatedAt?: string | null;
   creator: {
     id: string;
     name?: string | null;
@@ -313,6 +317,19 @@ export default function EventDetailPage() {
         confirmLabel="Delete"
         variant="destructive"
       />
+
+      {event.scheduleAutoPopulatedAt && (event.schedule?.length ?? 0) > 0 && (
+        <SchedulePopulatedBanner
+          eventId={event.id}
+          timezone={event.timezone}
+          schedule={event.schedule!}
+          onAcknowledged={() =>
+            setEvent((prev) =>
+              prev ? { ...prev, scheduleAutoPopulatedAt: null } : null
+            )
+          }
+        />
+      )}
 
       {event.coverImageUrl && (
         <div className="relative aspect-video max-h-[400px] overflow-hidden rounded-lg">
