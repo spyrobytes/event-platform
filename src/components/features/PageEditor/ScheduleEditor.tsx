@@ -27,6 +27,9 @@ type ScheduleEditorProps = {
   onChangeGroups?: (groups: ScheduleGroup[] | undefined) => void;
   templateId?: string;
   maxItems?: number;
+  /** When set, shows a pointer to the canonical Event Schedule editor
+   *  (emails/passes read that; this section is the page's display list). */
+  eventId?: string;
 };
 
 /**
@@ -40,9 +43,25 @@ export function ScheduleEditor({
   onChangeGroups,
   templateId,
   maxItems = 20,
+  eventId,
 }: ScheduleEditorProps) {
   const isV2 = templateId === "wedding_v2";
   const hasGroups = groups && groups.length > 0;
+
+  const canonicalPointer = eventId ? (
+    <p className="text-xs text-muted-foreground">
+      Official dates &amp; times (emails, guest passes) are edited in the{" "}
+      <a
+        href={`/dashboard/events/${eventId}/schedule`}
+        className="font-medium underline underline-offset-2"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Event Schedule
+      </a>
+      . This section controls the page&apos;s display list.
+    </p>
+  ) : null;
 
   // --- Flat item operations (legacy) ---
   const addItem = useCallback(() => {
@@ -172,6 +191,7 @@ export function ScheduleEditor({
   if (isV2 && onChangeGroups) {
     return (
       <div className="space-y-4">
+        {canonicalPointer}
         {/* Grouped editor */}
         {hasGroups ? (
           <div className="space-y-6">
@@ -309,6 +329,7 @@ export function ScheduleEditor({
   // Non-V2: flat items only
   return (
     <div className="space-y-4">
+      {canonicalPointer}
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No schedule items yet. Add your first item below.
