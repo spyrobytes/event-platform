@@ -46,23 +46,31 @@ describe("formatEventTimeFormal", () => {
     ); // 7:00 PM
   });
 
-  it("handles quarter-hour wording", () => {
+  it("handles quarter-hour wording (lowercase connectors, like 'in the')", () => {
     expect(formatEventTimeFormal("2026-08-22T15:15:00Z", TZ)).toBe(
-      "Quarter Past Nine in the Morning"
+      "Quarter past Nine in the Morning"
     );
     expect(formatEventTimeFormal("2026-08-23T00:30:00Z", TZ)).toBe(
-      "Half Past Six in the Evening"
+      "Half past Six in the Evening"
     ); // 6:30 PM
     expect(formatEventTimeFormal("2026-08-22T22:45:00Z", TZ)).toBe(
       "Quarter to Five in the Evening"
     ); // 4:45 PM → next hour 5 PM = evening
   });
 
-  it("takes the day period from the upcoming hour for quarter-to", () => {
-    // 11:45 AM → "Quarter to Twelve" and noon is afternoon
+  it("anchors quarter-hour phrases on Noon and Midnight", () => {
     expect(formatEventTimeFormal("2026-08-22T17:45:00Z", TZ)).toBe(
-      "Quarter to Twelve in the Afternoon"
-    );
+      "Quarter to Noon"
+    ); // 11:45 AM
+    expect(formatEventTimeFormal("2026-08-23T05:45:00Z", TZ)).toBe(
+      "Quarter to Midnight"
+    ); // 11:45 PM — never "Twelve in the Morning"
+    expect(formatEventTimeFormal("2026-08-22T06:15:00Z", TZ)).toBe(
+      "Quarter past Midnight"
+    ); // 12:15 AM
+    expect(formatEventTimeFormal("2026-08-22T18:30:00Z", TZ)).toBe(
+      "Half past Noon"
+    ); // 12:30 PM
   });
 
   it("special-cases Noon and Midnight", () => {

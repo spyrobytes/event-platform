@@ -156,6 +156,17 @@ function formalDayPeriod(hour24: number): string {
 }
 
 /**
+ * The hour a formal time phrase anchors on: "Midnight", "Noon", or
+ * "Four in the Afternoon". Shared by the o'clock and quarter-hour branches
+ * so 11:45 PM reads "Quarter to Midnight", never "…Twelve in the Morning".
+ */
+function formalHourPhrase(hour24: number): string {
+  if (hour24 === 0) return "Midnight";
+  if (hour24 === 12) return "Noon";
+  return `${HOUR_WORDS[hour24 % 12]} ${formalDayPeriod(hour24)}`;
+}
+
+/**
  * Formal invitation date wording: "Saturday, the Twenty-First of June".
  * Deterministic spelled-out counterpart to `formatEventDateLong`, used when
  * an invitation's date-wording style is "formal" (canonical-schedule plan
@@ -173,10 +184,11 @@ export function formatEventDateFormal(
 
 /**
  * Formal invitation time wording: "Four O'Clock in the Afternoon",
- * "Half Past Six in the Evening". Covers on-the-hour and quarter-hour
+ * "Half past Six in the Evening". Covers on-the-hour and quarter-hour
  * times (the invitation register); anything else degrades to the numeric
- * `formatEventTime` rather than invent wording like "Twenty-Three Past
- * Four". Always pass `event.timezone`.
+ * `formatEventTime` rather than invent wording like "Twenty-Three past
+ * Four". Connector words stay lowercase, matching "in the Afternoon".
+ * Always pass `event.timezone`.
  */
 export function formatEventTimeFormal(
   date: Date | string | number,
@@ -191,14 +203,13 @@ export function formatEventTimeFormal(
     return `${HOUR_WORDS[hour24 % 12]} O'Clock ${formalDayPeriod(hour24)}`;
   }
   if (minute === 15) {
-    return `Quarter Past ${HOUR_WORDS[hour24 % 12]} ${formalDayPeriod(hour24)}`;
+    return `Quarter past ${formalHourPhrase(hour24)}`;
   }
   if (minute === 30) {
-    return `Half Past ${HOUR_WORDS[hour24 % 12]} ${formalDayPeriod(hour24)}`;
+    return `Half past ${formalHourPhrase(hour24)}`;
   }
   if (minute === 45) {
-    const nextHour = (hour24 + 1) % 24;
-    return `Quarter to ${HOUR_WORDS[nextHour % 12]} ${formalDayPeriod(nextHour)}`;
+    return `Quarter to ${formalHourPhrase((hour24 + 1) % 24)}`;
   }
   return formatEventTime(date, timezone);
 }

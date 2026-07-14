@@ -110,7 +110,9 @@ const TEXT_DIRECTION_OPTIONS: { value: TextDirection; label: string }[] = [
  * Legacy hand-typed schedule text on InvitationConfig (free-text is
  * end-of-life, canonical-schedule plan §4.3). No longer editable here —
  * saved values keep rendering as overrides until the organizer removes
- * them (button below) or PR 6 drops the columns.
+ * them (button below) or PR 6 drops the columns. rsvpDeadline is NOT in
+ * this set: it still has its own input (kept until PR 6) and must survive
+ * the remove-hand-typed-text action.
  */
 const LEGACY_SCHEDULE_TEXT_KEYS = [
   "ceremonyDate",
@@ -121,7 +123,6 @@ const LEGACY_SCHEDULE_TEXT_KEYS = [
   "receptionTime",
   "receptionVenue",
   "receptionAddress",
-  "rsvpDeadline",
 ] as const;
 
 export default function InvitationConfigPage() {
@@ -166,6 +167,7 @@ export default function InvitationConfigPage() {
   const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
   const [dateWordingStyle, setDateWordingStyle] =
     useState<DateWordingStyle>("standard");
+  const [rsvpDeadline, setRsvpDeadline] = useState("");
   // Marks legacy hand-typed schedule text (LEGACY_SCHEDULE_TEXT_KEYS) for
   // removal on save. Presence itself is derived from `config` below.
   const [clearLegacyScheduleText, setClearLegacyScheduleText] = useState(false);
@@ -184,12 +186,15 @@ export default function InvitationConfigPage() {
   const [person2Quote, setPerson2Quote] = useState("");
   const [person2QuoteAttr, setPerson2QuoteAttr] = useState("");
 
-  // Track if form has been modified
+  // Track if form has been modified. The pending remove-hand-typed-text
+  // flag counts as an unsaved change on its own, so undoing it (Keep
+  // hand-typed text) doesn't leave a phantom dirty state behind.
   const [isDirty, setIsDirty] = useState(false);
+  const hasUnsavedChanges = isDirty || clearLegacyScheduleText;
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
   const { requestLeave, discardDialogProps } = useUnsavedChangesGuard({
-    isDirty,
+    isDirty: hasUnsavedChanges,
     redirectTo: `/dashboard/events/${params.id}`,
   });
 
@@ -276,6 +281,7 @@ export default function InvitationConfigPage() {
                 ? "formal"
                 : "standard"
             );
+            setRsvpDeadline(configData.data.rsvpDeadline || "");
             setStoryHeading(configData.data.storyHeading || "");
             setStoryParagraphs(configData.data.storyParagraphs?.length ? configData.data.storyParagraphs : [""]);
             setTimelineEntries(configData.data.timelineJson?.length ? configData.data.timelineJson : [{ date: "", label: "", description: "" }]);
@@ -358,11 +364,15 @@ export default function InvitationConfigPage() {
           venuePhotoUrl: venuePhotoUrl || undefined,
           // ceremonyStartAt/receptionStartAt no longer sent: typed timing is
           // edited in the Event Schedule editor (canonical-schedule PR 4).
-          // Legacy hand-typed schedule text (ceremony*/reception*/rsvpDeadline)
-          // is no longer offered either (PR 3c): omitted = preserved by the
-          // API; explicit "" = removed (the button in the Ceremony &
-          // Reception card).
+          // Legacy hand-typed schedule text (ceremony*/reception*) is no
+          // longer offered either (PR 3c): omitted = preserved by the API;
+          // explicit "" = removed (the button in the Ceremony & Reception
+          // card).
           dateWordingStyle,
+          // Sent unconditionally ("" clears): the API preserves absent
+          // legacy fields, so omitting on empty would make the input
+          // impossible to clear.
+          rsvpDeadline,
           ...(clearLegacyScheduleText
             ? Object.fromEntries(
                 LEGACY_SCHEDULE_TEXT_KEYS.map((k) => [k, ""])
@@ -404,7 +414,7 @@ export default function InvitationConfigPage() {
   };
 
   const handlePreview = () => {
-    if (isDirty) {
+    if (hasUnsavedChanges) {
       setShowPreviewDialog(true);
     } else {
       openPreview();
@@ -471,6 +481,7 @@ export default function InvitationConfigPage() {
       setCouplePhotoUrl("");
       setVenuePhotoUrl("");
       setDateWordingStyle("standard");
+      setRsvpDeadline("");
       setClearLegacyScheduleText(false);
       setStoryHeading("");
       setStoryParagraphs([""]);
@@ -1040,9 +1051,11 @@ export default function InvitationConfigPage() {
               {hasLegacyScheduleText && !clearLegacyScheduleText && (
                 <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
                   <p className="text-sm text-muted-foreground">
-                    This invitation still shows schedule text that was typed by
-                    hand before the Event Schedule existed. Wherever present,
-                    it overrides the schedule and the wording style above.
+                    This invitation still contains schedule text that was typed
+                    by hand before the Event Schedule existed. Hand-typed dates
+                    and times override the schedule and the wording style
+                    above; hand-typed venues and addresses show only where the
+                    schedule entry doesn&apos;t provide one.
                   </p>
                   <Button
                     type="button"
@@ -1050,7 +1063,6 @@ export default function InvitationConfigPage() {
                     size="sm"
                     onClick={() => {
                       setClearLegacyScheduleText(true);
-                      setIsDirty(true);
                       setSuccessMessage(null);
                     }}
                   >
@@ -1075,6 +1087,21 @@ export default function InvitationConfigPage() {
                   </Button>
                 </div>
               )}
+
+              <div className="space-y-3">
+                <Label htmlFor="rsvpDeadline">RSVP Deadline Wording</Label>
+                <Input
+                  id="rsvpDeadline"
+                  value={rsvpDeadline}
+                  onChange={(e) => handleFieldChange(setRsvpDeadline)(e.target.value)}
+                  placeholder="the First of May, 2026"
+                  maxLength={60}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional wording override for the RSVP spread — leave blank
+                  to show the event&apos;s RSVP deadline.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1378,7 +1405,7 @@ export default function InvitationConfigPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {isDirty && (
+          {hasUnsavedChanges && (
             <span className="text-sm text-muted-foreground">Unsaved changes</span>
           )}
           <Button onClick={handleSave} disabled={saving} isLoading={saving}>

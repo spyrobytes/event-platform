@@ -94,14 +94,18 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       // Wedding Storybook fields
       couplePhotoUrl: data.couplePhotoUrl || null,
       venuePhotoUrl: data.venuePhotoUrl || null,
-      ceremonyStartAt: data.ceremonyStartAt || null,
-      receptionStartAt: data.receptionStartAt || null,
-      // Legacy free-text display fields are preserve-if-absent: the editor
-      // stopped offering them (canonical-schedule PR 3c), so an ordinary
-      // save must not wipe wording saved before that — existing invitations
-      // keep displaying unchanged until PR 6 removes the columns (plan
-      // §4.3). An explicit "" still clears (the editor's remove-hand-typed-
-      // text action sends empty strings).
+      // Legacy timing/display fields are preserve-if-absent: the editor
+      // stopped offering them (StartAt in PR 4, free-text in PR 3c), so an
+      // ordinary save must not wipe values saved before that — they are the
+      // fallback rungs of the card/email/pass ladders until PR 6 removes
+      // the columns (plan §4.3). An explicit "" still clears (the editor's
+      // remove-hand-typed-text action sends empty strings).
+      ...(data.ceremonyStartAt !== undefined
+        ? { ceremonyStartAt: data.ceremonyStartAt || null }
+        : {}),
+      ...(data.receptionStartAt !== undefined
+        ? { receptionStartAt: data.receptionStartAt || null }
+        : {}),
       ...(data.ceremonyDate !== undefined
         ? { ceremonyDate: data.ceremonyDate || null }
         : {}),
