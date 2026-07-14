@@ -32,6 +32,18 @@ export const TEXT_DIRECTIONS = ["LTR", "RTL"] as const;
 
 export const HEADER_MODES = ["modern", "traditional"] as const;
 
+/**
+ * How schedule-derived dates/times render on the invitation card (and, via
+ * the invite-page-verbatim rule, in the invite email): "standard" is
+ * numeric ("Saturday, June 21, 2026" / "4:00 PM"), "formal" is spelled-out
+ * invitation wording ("Saturday, the Twenty-First of June" / "Four O'Clock
+ * in the Afternoon"). A rendering choice — the data stays typed
+ * (canonical-schedule plan §3.3).
+ */
+export const DATE_WORDING_STYLES = ["standard", "formal"] as const;
+
+export type DateWordingStyle = (typeof DATE_WORDING_STYLES)[number];
+
 // =============================================================================
 // CONTENT CONSTRAINTS
 // =============================================================================
@@ -120,6 +132,7 @@ export const invitationConfigSchema = z.object({
   // Customizable invitation wording
   headerText: z.string().max(CONTENT_LIMITS.headerText.max).optional(),
   headerMode: z.enum(HEADER_MODES).default("modern"),
+  dateWordingStyle: z.enum(DATE_WORDING_STYLES).default("standard"),
   // Traditional header fields (family names displayed above couple names)
   person1FamilyName: z.string().max(CONTENT_LIMITS.familyName.max).optional(),
   person2FamilyName: z.string().max(CONTENT_LIMITS.familyName.max).optional(),

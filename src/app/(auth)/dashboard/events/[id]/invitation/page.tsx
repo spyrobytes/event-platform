@@ -19,11 +19,13 @@ import { ImageAssetPicker } from "@/components/features/ImageAssetPicker";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import {
   CONTENT_LIMITS,
+  type DateWordingStyle,
   type InvitationTemplate,
   type TextDirection,
 } from "@/schemas/invitation";
 import { templateSupportsField, type TemplateField } from "@/components/features/Invitation/templates";
 import { classifyInvitationDensity } from "@/lib/invitation-density";
+import { parseSchedule, findScheduleEntry } from "@/lib/schedule-read";
 
 type TimelineEntry = {
   date: string;
@@ -48,6 +50,12 @@ type InvitationConfig = {
   heroImageUrl: string | null;
   couplePhotoUrl: string | null;
   venuePhotoUrl: string | null;
+  dateWordingStyle: string;
+  ceremonyDate: string | null;
+  ceremonyTime: string | null;
+  ceremonyVenue: string | null;
+  ceremonyAddress: string | null;
+  receptionDate: string | null;
   receptionTime: string | null;
   receptionVenue: string | null;
   receptionAddress: string | null;
@@ -98,6 +106,24 @@ const TEXT_DIRECTION_OPTIONS: { value: TextDirection; label: string }[] = [
   { value: "RTL", label: "Right to Left" },
 ];
 
+/**
+ * Legacy hand-typed schedule text on InvitationConfig (free-text is
+ * end-of-life, canonical-schedule plan §4.3). No longer editable here —
+ * saved values keep rendering as overrides until the organizer removes
+ * them (button below) or PR 6 drops the columns.
+ */
+const LEGACY_SCHEDULE_TEXT_KEYS = [
+  "ceremonyDate",
+  "ceremonyTime",
+  "ceremonyVenue",
+  "ceremonyAddress",
+  "receptionDate",
+  "receptionTime",
+  "receptionVenue",
+  "receptionAddress",
+  "rsvpDeadline",
+] as const;
+
 export default function InvitationConfigPage() {
   const params = useParams<{ id: string }>();
   const { getIdToken } = useAuthContext();
@@ -138,15 +164,18 @@ export default function InvitationConfigPage() {
   // Wedding Storybook fields
   const [couplePhotoUrl, setCouplePhotoUrl] = useState("");
   const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
-  const [ceremonyDate, setCeremonyDate] = useState("");
-  const [ceremonyTime, setCeremonyTime] = useState("");
-  const [ceremonyVenue, setCeremonyVenue] = useState("");
-  const [ceremonyAddress, setCeremonyAddress] = useState("");
-  const [receptionDate, setReceptionDate] = useState("");
-  const [receptionTime, setReceptionTime] = useState("");
-  const [receptionVenue, setReceptionVenue] = useState("");
-  const [receptionAddress, setReceptionAddress] = useState("");
-  const [rsvpDeadline, setRsvpDeadline] = useState("");
+  const [dateWordingStyle, setDateWordingStyle] =
+    useState<DateWordingStyle>("standard");
+  // Marks legacy hand-typed schedule text (LEGACY_SCHEDULE_TEXT_KEYS) for
+  // removal on save. Presence itself is derived from `config` below.
+  const [clearLegacyScheduleText, setClearLegacyScheduleText] = useState(false);
+  // Typed Event.schedule roles — the card renders ceremony/reception blocks
+  // whenever a typed entry exists, so the Split Reveal density hint must see
+  // them even with no hand-typed text.
+  const [typedScheduleRoles, setTypedScheduleRoles] = useState({
+    ceremony: false,
+    reception: false,
+  });
   const [storyHeading, setStoryHeading] = useState("");
   const [storyParagraphs, setStoryParagraphs] = useState<string[]>([""]);
   const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[]>([{ date: "", label: "", description: "" }]);
@@ -200,6 +229,16 @@ export default function InvitationConfigPage() {
           timezone: eventData.data.timezone || "UTC",
         });
 
+        const scheduleEntries = parseSchedule(eventData.data.schedule);
+        setTypedScheduleRoles({
+          ceremony: scheduleEntries
+            ? !!findScheduleEntry(scheduleEntries, "ceremony")
+            : false,
+          reception: scheduleEntries
+            ? !!findScheduleEntry(scheduleEntries, "reception")
+            : false,
+        });
+
         // Fetch invitation config
         const configResponse = await fetch(
           `/api/events/${params.id}/invitation-config`,
@@ -232,15 +271,11 @@ export default function InvitationConfigPage() {
             // Wedding Storybook fields
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
-            setCeremonyDate(configData.data.ceremonyDate || "");
-            setCeremonyTime(configData.data.ceremonyTime || "");
-            setCeremonyVenue(configData.data.ceremonyVenue || "");
-            setCeremonyAddress(configData.data.ceremonyAddress || "");
-            setReceptionDate(configData.data.receptionDate || "");
-            setReceptionTime(configData.data.receptionTime || "");
-            setReceptionVenue(configData.data.receptionVenue || "");
-            setReceptionAddress(configData.data.receptionAddress || "");
-            setRsvpDeadline(configData.data.rsvpDeadline || "");
+            setDateWordingStyle(
+              configData.data.dateWordingStyle === "formal"
+                ? "formal"
+                : "standard"
+            );
             setStoryHeading(configData.data.storyHeading || "");
             setStoryParagraphs(configData.data.storyParagraphs?.length ? configData.data.storyParagraphs : [""]);
             setTimelineEntries(configData.data.timelineJson?.length ? configData.data.timelineJson : [{ date: "", label: "", description: "" }]);
@@ -323,15 +358,16 @@ export default function InvitationConfigPage() {
           venuePhotoUrl: venuePhotoUrl || undefined,
           // ceremonyStartAt/receptionStartAt no longer sent: typed timing is
           // edited in the Event Schedule editor (canonical-schedule PR 4).
-          ceremonyDate: ceremonyDate || undefined,
-          ceremonyTime: ceremonyTime || undefined,
-          ceremonyVenue: ceremonyVenue || undefined,
-          ceremonyAddress: ceremonyAddress || undefined,
-          receptionDate: receptionDate || undefined,
-          receptionTime: receptionTime || undefined,
-          receptionVenue: receptionVenue || undefined,
-          receptionAddress: receptionAddress || undefined,
-          rsvpDeadline: rsvpDeadline || undefined,
+          // Legacy hand-typed schedule text (ceremony*/reception*/rsvpDeadline)
+          // is no longer offered either (PR 3c): omitted = preserved by the
+          // API; explicit "" = removed (the button in the Ceremony &
+          // Reception card).
+          dateWordingStyle,
+          ...(clearLegacyScheduleText
+            ? Object.fromEntries(
+                LEGACY_SCHEDULE_TEXT_KEYS.map((k) => [k, ""])
+              )
+            : {}),
           storyHeading: storyHeading || undefined,
           storyParagraphs: storyParagraphs.filter((p) => p.trim()) || undefined,
           timelineJson: timelineEntries.filter((e) => e.label.trim()) || undefined,
@@ -351,6 +387,7 @@ export default function InvitationConfigPage() {
 
       const result = await response.json();
       setConfig(result.data);
+      setClearLegacyScheduleText(false);
       setIsDirty(false);
       setSuccessMessage("Configuration saved successfully");
       return true;
@@ -433,10 +470,8 @@ export default function InvitationConfigPage() {
       setTextDirection("LTR");
       setCouplePhotoUrl("");
       setVenuePhotoUrl("");
-      setReceptionTime("");
-      setReceptionVenue("");
-      setReceptionAddress("");
-      setRsvpDeadline("");
+      setDateWordingStyle("standard");
+      setClearLegacyScheduleText(false);
       setStoryHeading("");
       setStoryParagraphs([""]);
       setTimelineEntries([{ date: "", label: "", description: "" }]);
@@ -499,8 +534,17 @@ export default function InvitationConfigPage() {
     );
   }
 
+  // Legacy hand-typed schedule text still saved on the config (free-text is
+  // end-of-life, plan §4.3) — it overrides the typed schedule until removed.
+  const hasLegacyScheduleText = LEGACY_SCHEDULE_TEXT_KEYS.some(
+    (k) => !!config?.[k]
+  );
+
   // Density check for Split Reveal — surfaces a hint to switch templates when
-  // the form content would crowd V1's fixed-size card.
+  // the form content would crowd V1's fixed-size card. Ceremony/reception
+  // blocks render when a typed schedule entry or legacy display date exists.
+  const legacyKept = (value: string | null | undefined) =>
+    !clearLegacyScheduleText && !!value;
   const splitRevealDensity =
     template === "SPLIT_REVEAL"
       ? classifyInvitationDensity({
@@ -509,8 +553,10 @@ export default function InvitationConfigPage() {
           person1FamilyName,
           person2FamilyName,
           headerMode,
-          hasCeremonyDate: !!ceremonyDate,
-          hasReceptionDate: !!receptionDate,
+          hasCeremonyDate:
+            typedScheduleRoles.ceremony || legacyKept(config?.ceremonyDate),
+          hasReceptionDate:
+            typedScheduleRoles.reception || legacyKept(config?.receptionDate),
         })
       : null;
 
@@ -947,121 +993,88 @@ export default function InvitationConfigPage() {
             <CardHeader>
               <CardTitle>Ceremony &amp; Reception</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Fill in either or both sections. Empty sections are automatically hidden on the card.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Dates &amp; times for emails and guest passes now live in the{" "}
+                Dates, times, venues and addresses come from the{" "}
                 <Link
                   href={`/dashboard/events/${params.id}/schedule`}
                   className="font-medium text-accent underline underline-offset-2"
                 >
                   Event Schedule
-                </Link>
-                . The fields below only style the invitation card.
+                </Link>{" "}
+                — edit them there and the invitation card, guest passes and
+                emails all update together. Sections without a schedule entry
+                are automatically hidden on the card.
               </p>
             </CardHeader>
-            <CardContent className="space-y-8">
-              {/* Ceremony */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-foreground">Ceremony</h4>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <Label htmlFor="ceremonyDate">Card Display Date</Label>
-                    <Input
-                      id="ceremonyDate"
-                      value={ceremonyDate}
-                      onChange={(e) => handleFieldChange(setCeremonyDate)(e.target.value)}
-                      placeholder="Saturday, the Twenty-First of June"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="ceremonyTime">Ceremony Time</Label>
-                    <Input
-                      id="ceremonyTime"
-                      value={ceremonyTime}
-                      onChange={(e) => handleFieldChange(setCeremonyTime)(e.target.value)}
-                      placeholder="Four O'Clock in the Afternoon"
-                    />
-                  </div>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label>Date &amp; Time Wording</Label>
+                <div className="flex gap-3">
+                  {(["standard", "formal"] as const).map((style) => {
+                    const isSelected = dateWordingStyle === style;
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        className={cn(
+                          "flex-1 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
+                          isSelected
+                            ? "border-accent bg-accent/5 text-foreground"
+                            : "border-border hover:border-accent/50 bg-surface text-muted-foreground"
+                        )}
+                        onClick={() =>
+                          handleFieldChange(setDateWordingStyle)(style)
+                        }
+                      >
+                        {style === "standard" ? "Standard" : "Formal"}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="mt-4 grid gap-6 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <Label htmlFor="ceremonyVenue">Ceremony Venue</Label>
-                    <Input
-                      id="ceremonyVenue"
-                      value={ceremonyVenue}
-                      onChange={(e) => handleFieldChange(setCeremonyVenue)(e.target.value)}
-                      placeholder="St. Mary's Cathedral"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="ceremonyAddress">Ceremony Address</Label>
-                    <Input
-                      id="ceremonyAddress"
-                      value={ceremonyAddress}
-                      onChange={(e) => handleFieldChange(setCeremonyAddress)(e.target.value)}
-                      placeholder="61 York Place, Edinburgh"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Reception */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-foreground">Reception</h4>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <Label htmlFor="receptionDate">Card Display Date</Label>
-                    <Input
-                      id="receptionDate"
-                      value={receptionDate}
-                      onChange={(e) => handleFieldChange(setReceptionDate)(e.target.value)}
-                      placeholder="Saturday, the Twenty-First of June"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="receptionTime">Reception Time</Label>
-                    <Input
-                      id="receptionTime"
-                      value={receptionTime}
-                      onChange={(e) => handleFieldChange(setReceptionTime)(e.target.value)}
-                      placeholder="Six O'Clock in the Evening"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <Label htmlFor="receptionVenue">Reception Venue</Label>
-                    <Input
-                      id="receptionVenue"
-                      value={receptionVenue}
-                      onChange={(e) => handleFieldChange(setReceptionVenue)(e.target.value)}
-                      placeholder="The Glasshouse at Royal Botanic"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="receptionAddress">Reception Address</Label>
-                    <Input
-                      id="receptionAddress"
-                      value={receptionAddress}
-                      onChange={(e) => handleFieldChange(setReceptionAddress)(e.target.value)}
-                      placeholder="20A Inverleith Row, Edinburgh"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 space-y-3">
-                <Label htmlFor="rsvpDeadline">RSVP Deadline</Label>
-                <Input
-                  id="rsvpDeadline"
-                  value={rsvpDeadline}
-                  onChange={(e) => handleFieldChange(setRsvpDeadline)(e.target.value)}
-                  placeholder="the First of May, 2026"
-                />
                 <p className="text-xs text-muted-foreground">
-                  Displayed on the RSVP spread
+                  {dateWordingStyle === "standard"
+                    ? "Numeric dates and times — “Saturday, June 21, 2026” at “4:00 PM”"
+                    : "Spelled-out invitation wording — “Saturday, the Twenty-First of June” at “Four O'Clock in the Afternoon”. Times on the hour or quarter-hour are spelled out; others stay numeric."}
                 </p>
               </div>
+
+              {hasLegacyScheduleText && !clearLegacyScheduleText && (
+                <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
+                  <p className="text-sm text-muted-foreground">
+                    This invitation still shows schedule text that was typed by
+                    hand before the Event Schedule existed. Wherever present,
+                    it overrides the schedule and the wording style above.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setClearLegacyScheduleText(true);
+                      setIsDirty(true);
+                      setSuccessMessage(null);
+                    }}
+                  >
+                    Remove hand-typed text
+                  </Button>
+                </div>
+              )}
+              {clearLegacyScheduleText && (
+                <div className="space-y-3 rounded-lg border border-warning/50 bg-warning/10 p-4">
+                  <p className="text-sm text-foreground">
+                    Hand-typed schedule text will be permanently removed when
+                    you save. The card will derive dates, times and venues from
+                    the Event Schedule instead.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setClearLegacyScheduleText(false)}
+                  >
+                    Keep hand-typed text
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

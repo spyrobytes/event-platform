@@ -44,6 +44,7 @@ async function buildInviteEmailContext(eventId: string) {
     db.invitationConfig.findUnique({
       where: { eventId },
       select: {
+        dateWordingStyle: true,
         ceremonyStartAt: true,
         ceremonyDate: true,
         ceremonyTime: true,
@@ -83,6 +84,8 @@ async function buildInviteEmailContext(eventId: string) {
     eventAddress: event.address,
     schedule: event.schedule,
     invitationConfig,
+    wordingStyle:
+      invitationConfig?.dateWordingStyle === "formal" ? "formal" : "standard",
   });
 
   const rsvpDeadline =

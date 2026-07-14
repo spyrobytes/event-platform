@@ -1,5 +1,7 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { parseSchedule, findScheduleEntry } from "@/lib/schedule-read";
+import { formatEventDateFormal, formatEventTimeFormal } from "@/lib/utils";
+import type { DateWordingStyle } from "@/schemas/invitation";
 
 /**
  * Sub-event block assembly for the invite email (canonical-schedule plan §3,
@@ -60,8 +62,20 @@ export function buildSubEventBlocks(input: {
   /** Raw Event.schedule Json column */
   schedule: unknown;
   invitationConfig: InviteSubEventConfig | null;
+  /**
+   * The invitation's date-wording style (InvitationConfig.dateWordingStyle):
+   * applies to the derived rungs only (typed + legacy StartAt) so the email
+   * keeps matching the card when the organizer picks formal wording.
+   * Free-text renders verbatim either way.
+   */
+  wordingStyle?: DateWordingStyle;
 }): InviteSubEventBlocks {
   const { tz, invitationConfig: cfg } = input;
+  const formal = input.wordingStyle === "formal";
+  const fmtDate = (d: Date | string) =>
+    formal ? formatEventDateFormal(d, tz) : formatInTimeZone(d, tz, DATE_FMT);
+  const fmtTime = (d: Date | string) =>
+    formal ? formatEventTimeFormal(d, tz) : formatInTimeZone(d, tz, TIME_FMT);
 
   const entries = parseSchedule(input.schedule);
   const typedCeremony = entries ? findScheduleEntry(entries, "ceremony") : null;
@@ -78,16 +92,16 @@ export function buildSubEventBlocks(input: {
         ceremonyDate:
           cfg?.ceremonyDate ||
           (typedCeremony
-            ? formatInTimeZone(typedCeremony.startAt, tz, DATE_FMT)
+            ? fmtDate(typedCeremony.startAt)
             : cfg?.ceremonyStartAt
-              ? formatInTimeZone(cfg.ceremonyStartAt, tz, DATE_FMT)
+              ? fmtDate(cfg.ceremonyStartAt)
               : undefined),
         ceremonyTime:
           cfg?.ceremonyTime ||
           (typedCeremony
-            ? formatInTimeZone(typedCeremony.startAt, tz, TIME_FMT)
+            ? fmtTime(typedCeremony.startAt)
             : cfg?.ceremonyStartAt
-              ? formatInTimeZone(cfg.ceremonyStartAt, tz, TIME_FMT)
+              ? fmtTime(cfg.ceremonyStartAt)
               : undefined),
         ceremonyVenue: typedCeremony?.venue || cfg?.ceremonyVenue || undefined,
         ceremonyAddress:
@@ -131,16 +145,16 @@ export function buildSubEventBlocks(input: {
         receptionDate:
           cfg?.receptionDate ||
           (typedReception
-            ? formatInTimeZone(typedReception.startAt, tz, DATE_FMT)
+            ? fmtDate(typedReception.startAt)
             : cfg?.receptionStartAt
-              ? formatInTimeZone(cfg.receptionStartAt, tz, DATE_FMT)
+              ? fmtDate(cfg.receptionStartAt)
               : undefined),
         receptionTime:
           cfg?.receptionTime ||
           (typedReception
-            ? formatInTimeZone(typedReception.startAt, tz, TIME_FMT)
+            ? fmtTime(typedReception.startAt)
             : cfg?.receptionStartAt
-              ? formatInTimeZone(cfg.receptionStartAt, tz, TIME_FMT)
+              ? fmtTime(cfg.receptionStartAt)
               : undefined),
         receptionVenue: typedReception?.venue || cfg?.receptionVenue || undefined,
         receptionAddress:

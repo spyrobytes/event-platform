@@ -21,7 +21,8 @@ import {
   type TemplateId,
 } from "@/components/features/Invitation";
 import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
-import { formatEventTime } from "@/lib/utils";
+import { formatEventTime, resolveRsvpDeadlineDisplay } from "@/lib/utils";
+import { buildInvitationScheduleFields } from "@/lib/invitation-schedule-fields";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
 
@@ -49,6 +50,7 @@ async function getInviteWithConfig(token: string) {
           startAt: true,
           endAt: true,
           timezone: true,
+          schedule: true,
           venueName: true,
           address: true,
           city: true,
@@ -182,6 +184,17 @@ export default async function InvitationPage({ params }: PageProps) {
   // Format time
   const eventTime = formatEventTime(new Date(event.startAt), event.timezone);
 
+  // Ceremony/reception strings: typed Event.schedule first, saved free-text
+  // wording as the transitional override (shared ladder — see
+  // invitation-schedule-fields.ts).
+  const scheduleFields = buildInvitationScheduleFields({
+    tz: event.timezone,
+    schedule: event.schedule,
+    config: invitationConfig,
+    wordingStyle:
+      invitationConfig?.dateWordingStyle === "formal" ? "formal" : "standard",
+  });
+
   const invitationData: InvitationData = {
     coupleNames: invitationConfig?.coupleDisplayName || event.title,
     eventTitle: event.title,
@@ -208,15 +221,12 @@ export default async function InvitationPage({ params }: PageProps) {
     // Wedding Storybook extended fields
     couplePhotoUrl: invitationConfig?.couplePhotoUrl || undefined,
     venuePhotoUrl: invitationConfig?.venuePhotoUrl || undefined,
-    ceremonyDate: invitationConfig?.ceremonyDate || undefined,
-    ceremonyTime: invitationConfig?.ceremonyTime || undefined,
-    ceremonyVenue: invitationConfig?.ceremonyVenue || undefined,
-    ceremonyAddress: invitationConfig?.ceremonyAddress || undefined,
-    receptionDate: invitationConfig?.receptionDate || undefined,
-    receptionTime: invitationConfig?.receptionTime || undefined,
-    receptionVenue: invitationConfig?.receptionVenue || undefined,
-    receptionAddress: invitationConfig?.receptionAddress || undefined,
-    rsvpDeadline: invitationConfig?.rsvpDeadline || undefined,
+    ...scheduleFields,
+    rsvpDeadline: resolveRsvpDeadlineDisplay(
+      invitationConfig?.rsvpDeadline || undefined,
+      event.rsvpDeadline?.toISOString(),
+      event.timezone
+    ),
     storyHeading: invitationConfig?.storyHeading || undefined,
     storyParagraphs: invitationConfig?.storyParagraphs?.length ? invitationConfig.storyParagraphs : undefined,
     timeline: invitationConfig?.timelineJson as InvitationData["timeline"] ?? undefined,

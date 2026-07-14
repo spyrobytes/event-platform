@@ -99,6 +99,110 @@ export function formatEventDateTimeMedium(
   return formatInTimeZone(date, timezone, "EEE, MMM d, yyyy 'at' h:mm a");
 }
 
+const ORDINAL_WORDS = [
+  "First",
+  "Second",
+  "Third",
+  "Fourth",
+  "Fifth",
+  "Sixth",
+  "Seventh",
+  "Eighth",
+  "Ninth",
+  "Tenth",
+  "Eleventh",
+  "Twelfth",
+  "Thirteenth",
+  "Fourteenth",
+  "Fifteenth",
+  "Sixteenth",
+  "Seventeenth",
+  "Eighteenth",
+  "Nineteenth",
+  "Twentieth",
+  "Twenty-First",
+  "Twenty-Second",
+  "Twenty-Third",
+  "Twenty-Fourth",
+  "Twenty-Fifth",
+  "Twenty-Sixth",
+  "Twenty-Seventh",
+  "Twenty-Eighth",
+  "Twenty-Ninth",
+  "Thirtieth",
+  "Thirty-First",
+] as const;
+
+const HOUR_WORDS = [
+  "Twelve",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+] as const;
+
+/** Formal day period for a 24h venue-clock hour. Evening starts at 5 PM. */
+function formalDayPeriod(hour24: number): string {
+  if (hour24 < 12) return "in the Morning";
+  if (hour24 < 17) return "in the Afternoon";
+  return "in the Evening";
+}
+
+/**
+ * Formal invitation date wording: "Saturday, the Twenty-First of June".
+ * Deterministic spelled-out counterpart to `formatEventDateLong`, used when
+ * an invitation's date-wording style is "formal" (canonical-schedule plan
+ * §3.3). Always pass `event.timezone`.
+ */
+export function formatEventDateFormal(
+  date: Date | string | number,
+  timezone: string
+): string {
+  const weekday = formatInTimeZone(date, timezone, "EEEE");
+  const day = Number(formatInTimeZone(date, timezone, "d"));
+  const month = formatInTimeZone(date, timezone, "MMMM");
+  return `${weekday}, the ${ORDINAL_WORDS[day - 1]} of ${month}`;
+}
+
+/**
+ * Formal invitation time wording: "Four O'Clock in the Afternoon",
+ * "Half Past Six in the Evening". Covers on-the-hour and quarter-hour
+ * times (the invitation register); anything else degrades to the numeric
+ * `formatEventTime` rather than invent wording like "Twenty-Three Past
+ * Four". Always pass `event.timezone`.
+ */
+export function formatEventTimeFormal(
+  date: Date | string | number,
+  timezone: string
+): string {
+  const hour24 = Number(formatInTimeZone(date, timezone, "H"));
+  const minute = Number(formatInTimeZone(date, timezone, "m"));
+
+  if (minute === 0) {
+    if (hour24 === 0) return "Midnight";
+    if (hour24 === 12) return "Noon";
+    return `${HOUR_WORDS[hour24 % 12]} O'Clock ${formalDayPeriod(hour24)}`;
+  }
+  if (minute === 15) {
+    return `Quarter Past ${HOUR_WORDS[hour24 % 12]} ${formalDayPeriod(hour24)}`;
+  }
+  if (minute === 30) {
+    return `Half Past ${HOUR_WORDS[hour24 % 12]} ${formalDayPeriod(hour24)}`;
+  }
+  if (minute === 45) {
+    const nextHour = (hour24 + 1) % 24;
+    return `Quarter to ${HOUR_WORDS[nextHour % 12]} ${formalDayPeriod(nextHour)}`;
+  }
+  return formatEventTime(date, timezone);
+}
+
 /**
  * Formats a date range for display.
  */
