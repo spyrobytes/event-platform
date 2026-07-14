@@ -3,6 +3,7 @@ import {
   getEventTemporalState,
   getNextTickDelay,
   JUST_STARTED_WINDOW_MS,
+  ASSUMED_EVENT_DURATION_MS,
 } from "@/hooks/use-event-temporal";
 
 const SECOND = 1_000;
@@ -55,18 +56,35 @@ describe("getEventTemporalState", () => {
     expect(state.timeRemaining).toBeNull();
   });
 
-  it("zero-duration event (no endAt): ended immediately after start, still within the confetti window", () => {
-    const state = getEventTemporalState(startIn(-2 * SECOND));
-    // With no endAt, effectiveEndAt = startAt: there is no ongoing phase —
-    // which is why the confetti gate must not require isOngoing.
-    expect(state.phase).toBe("ended");
-    expect(state.isOngoing).toBe(false);
-    expect(state.msUntilStart).toBeLessThan(0);
-    expect(state.msUntilStart).toBeGreaterThanOrEqual(-JUST_STARTED_WINDOW_MS);
+  it("no endAt: assumed duration gives a real ongoing phase instead of ending instantly", () => {
+    // Just started: ongoing (previously effectiveEndAt = startAt made this
+    // "ended" the instant the celebration began).
+    const justStarted = getEventTemporalState(startIn(-2 * SECOND));
+    expect(justStarted.phase).toBe("ongoing");
+    expect(justStarted.isOngoing).toBe(true);
+    expect(justStarted.msUntilStart).toBeGreaterThanOrEqual(-JUST_STARTED_WINDOW_MS);
+
+    // Still ongoing near the end of the assumed window...
+    const lateOngoing = getEventTemporalState(
+      startIn(-(ASSUMED_EVENT_DURATION_MS - MINUTE))
+    );
+    expect(lateOngoing.phase).toBe("ongoing");
+
+    // ...and ended once the assumed duration has fully elapsed.
+    const after = getEventTemporalState(
+      startIn(-(ASSUMED_EVENT_DURATION_MS + MINUTE))
+    );
+    expect(after.phase).toBe("ended");
   });
 
-  it("ended: past phase with days since ended", () => {
-    const state = getEventTemporalState(startIn(-3 * DAY), startIn(-3 * DAY + 4 * HOUR));
+  it("ended: past phase with venue-calendar days since ended", () => {
+    // daysSinceEnded counts venue midnights crossed, so the fixture must pin
+    // `now` and a timezone — deriving it from the live clock made this
+    // assertion flip with the hour the suite ran (2 vs 3 midnights in 68h).
+    const startAt = new Date("2026-01-08T00:00:00Z");
+    const endAt = new Date("2026-01-08T04:00:00Z");
+    const now = new Date("2026-01-10T12:00:00Z"); // two UTC midnights later
+    const state = getEventTemporalState(startAt, endAt, { timezone: "UTC", now });
     expect(state.phase).toBe("ended");
     expect(state.daysSinceEnded).toBe(2);
   });
@@ -75,6 +93,80 @@ describe("getEventTemporalState", () => {
     const state = getEventTemporalState(null);
     expect(state.phase).toBe("unknown");
     expect(state.hasValidDates).toBe(false);
+  });
+});
+
+describe("venue-timezone calendar days", () => {
+  // 2026-01-02T00:30Z: Jan 2 in UTC/Tokyo, but Jan 1 evening in New York.
+  const startAt = new Date("2026-01-02T00:30:00Z");
+  // 4.5h before start: Jan 1 in UTC, Jan 1 afternoon in New York.
+  const now = new Date("2026-01-01T20:00:00Z");
+
+  it("'today' follows the venue's wall clock, not the viewer's", () => {
+    // New York venue: event is Jan 1 19:30 local; at Jan 1 15:00 local it IS today.
+    const ny = getEventTemporalState(startAt, null, {
+      timezone: "America/New_York",
+      now,
+    });
+    expect(ny.isToday).toBe(true);
+    expect(ny.phase).toBe("today");
+
+    // UTC venue: event is Jan 2; at Jan 1 20:00 it is NOT yet today.
+    const utc = getEventTemporalState(startAt, null, { timezone: "UTC", now });
+    expect(utc.isToday).toBe(false);
+    expect(utc.phase).toBe("imminent");
+  });
+
+  it("daysSinceEnded counts venue calendar days, so 'yesterday' can arrive within 24h", () => {
+    // Ended Jan 1 23:00 New York (= Jan 2 04:00Z); viewed Jan 2 09:00 New York.
+    const endAt = new Date("2026-01-02T04:00:00Z");
+    const morningAfter = new Date("2026-01-02T14:00:00Z");
+
+    const ny = getEventTemporalState(endAt, endAt, {
+      timezone: "America/New_York",
+      now: morningAfter,
+    });
+    expect(ny.phase).toBe("ended");
+    expect(ny.daysSinceEnded).toBe(1); // venue's "yesterday", though only 10h elapsed
+
+    // Tokyo venue: ended Jan 2 13:00 local, viewed Jan 2 23:00 local — same day.
+    const tokyo = getEventTemporalState(endAt, endAt, {
+      timezone: "Asia/Tokyo",
+      now: morningAfter,
+    });
+    expect(tokyo.daysSinceEnded).toBe(0);
+  });
+
+  it("counts calendar days correctly across a DST transition", () => {
+    // US spring-forward: Sunday 2026-03-08 (23-hour day in America/New_York).
+    // Ended Saturday 21:00 ET; viewed Monday 09:00 EDT — only ~59 wall hours,
+    // but exactly 2 venue midnights. A duration-based count would waver here.
+    const endAt = new Date("2026-03-08T02:00:00Z"); // Sat Mar 7, 21:00 EST
+    const now = new Date("2026-03-09T13:00:00Z"); // Mon Mar 9, 09:00 EDT
+    const state = getEventTemporalState(endAt, endAt, {
+      timezone: "America/New_York",
+      now,
+    });
+    expect(state.daysSinceEnded).toBe(2);
+  });
+
+  it("invalid timezone falls back to the viewer's calendar instead of throwing", () => {
+    const bad = getEventTemporalState(startAt, null, {
+      timezone: "Not/AZone",
+      now,
+    });
+    const local = getEventTemporalState(startAt, null, { now });
+    expect(bad.isToday).toBe(local.isToday);
+    expect(bad.phase).toBe(local.phase);
+  });
+
+  it("no timezone preserves viewer-local behavior", () => {
+    const state = getEventTemporalState(startAt, null, { now });
+    const sameLocalDay =
+      startAt.getFullYear() === now.getFullYear() &&
+      startAt.getMonth() === now.getMonth() &&
+      startAt.getDate() === now.getDate();
+    expect(state.isToday).toBe(sameLocalDay);
   });
 });
 

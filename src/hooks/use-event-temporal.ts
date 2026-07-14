@@ -43,7 +43,7 @@ export type EventTemporalState = {
   msUntilStart: number;
   /** Granular time remaining until event starts */
   timeRemaining: TimeRemaining | null;
-  /** Whether the event is happening today */
+  /** Whether the event is happening today on the venue's calendar */
   isToday: boolean;
   /** Whether the event has not yet started */
   isFuture: boolean;
@@ -51,7 +51,7 @@ export type EventTemporalState = {
   isPast: boolean;
   /** Whether the event is currently happening */
   isOngoing: boolean;
-  /** Days since event ended (0 if not ended) */
+  /** Venue-calendar days since the event ended (0 if not ended) */
   daysSinceEnded: number;
   /** Formatted countdown string (e.g., "3 days, 4 hours") */
   countdownText: string;
@@ -64,6 +64,9 @@ type UseEventTemporalOptions = {
   startAt: Date | string | null | undefined;
   /** Event end date/time (defaults to startAt if not provided) */
   endAt?: Date | string | null;
+  /** Venue IANA timezone — calendar-day phases ("today", "yesterday") follow
+   *  the venue's wall clock. Omit to fall back to the viewer's calendar. */
+  timezone?: string;
   /** Fixed update interval in ms. Omit for adaptive cadence (see getNextTickDelay). */
   updateInterval?: number;
   /** Whether to enable live countdown updates */
@@ -81,6 +84,14 @@ const DAY = 24 * HOUR;
  * countdown → live swap (and the confetti burst) land promptly.
  */
 export const JUST_STARTED_WINDOW_MS = 4 * SECOND;
+
+/**
+ * Assumed duration for events without an explicit end, used for phase
+ * purposes only (nothing is stored). Without it the ongoing phase is
+ * zero-length: "Happening Now" never shows and the page thanks guests the
+ * instant the celebration starts. Six hours covers a typical reception.
+ */
+export const ASSUMED_EVENT_DURATION_MS = 6 * HOUR;
 
 /**
  * Adaptive tick delay: the display only changes when its leading unit flips,
@@ -114,13 +125,43 @@ function parseDate(value: Date | string | null | undefined): Date | null {
 }
 
 /**
- * Check if two dates are on the same calendar day
+ * Calendar Y/M/D of an instant, on the venue's wall clock when an IANA
+ * timezone is given (the product rule: temporal phases are viewed from the
+ * venue's perspective, matching formatEventDate in lib/utils). Falls back to
+ * the viewer's local calendar when the timezone is missing or invalid.
  */
-function isSameDay(date1: Date, date2: Date): boolean {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
+function getCalendarParts(
+  date: Date,
+  timeZone?: string
+): { y: number; m: number; d: number } {
+  if (timeZone) {
+    try {
+      // en-CA renders as "YYYY-MM-DD"
+      const formatted = new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(date);
+      const [y, m, d] = formatted.split("-").map(Number);
+      return { y, m, d };
+    } catch {
+      // Unknown IANA id — fall through to the viewer's local calendar
+    }
+  }
+  return { y: date.getFullYear(), m: date.getMonth() + 1, d: date.getDate() };
+}
+
+/**
+ * Whole calendar days from `from` to `to` in the given timezone (negative
+ * when `to` is on an earlier calendar day). DST-safe: the diff is taken
+ * between the UTC-anchored calendar dates, not between instants.
+ */
+function calendarDaysBetween(from: Date, to: Date, timeZone?: string): number {
+  const a = getCalendarParts(from, timeZone);
+  const b = getCalendarParts(to, timeZone);
+  return Math.round(
+    (Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / DAY
   );
 }
 
@@ -184,7 +225,8 @@ function formatCountdownText(timeRemaining: TimeRemaining | null, phase: EventPh
 function calculateTemporalState(
   startAt: Date | null,
   endAt: Date | null,
-  now: Date
+  now: Date,
+  timezone?: string
 ): EventTemporalState {
   // No valid start date - return unknown state
   if (!startAt) {
@@ -204,21 +246,27 @@ function calculateTemporalState(
     };
   }
 
-  // Use startAt as endAt if not provided
-  const effectiveEndAt = endAt || startAt;
+  // No explicit end: assume a duration so the event has a real ongoing phase
+  const effectiveEndAt =
+    endAt ?? new Date(startAt.getTime() + ASSUMED_EVENT_DURATION_MS);
 
   const msUntilStart = startAt.getTime() - now.getTime();
   const msUntilEnd = effectiveEndAt.getTime() - now.getTime();
-  const msSinceEnded = now.getTime() - effectiveEndAt.getTime();
 
   const daysUntil = msUntilStart / (1000 * 60 * 60 * 24);
   const hoursUntil = msUntilStart / (1000 * 60 * 60);
-  const daysSinceEnded = Math.max(0, msSinceEnded / (1000 * 60 * 60 * 24));
 
-  const isToday = isSameDay(startAt, now);
+  // Calendar-day determinations follow the venue's wall clock: "Today" means
+  // today at the venue, and "yesterday" in post-event copy means the venue's
+  // previous calendar day — not the viewer's.
+  const isToday = calendarDaysBetween(now, startAt, timezone) === 0;
   const isFuture = msUntilStart > 0;
   const isPast = msUntilEnd < 0;
   const isOngoing = !isFuture && !isPast;
+
+  const daysSinceEnded = isPast
+    ? Math.max(0, calendarDaysBetween(effectiveEndAt, now, timezone))
+    : 0;
 
   // Determine phase
   let phase: EventPhase;
@@ -247,7 +295,7 @@ function calculateTemporalState(
     isFuture,
     isPast,
     isOngoing,
-    daysSinceEnded: Math.floor(daysSinceEnded),
+    daysSinceEnded,
     countdownText,
     hasValidDates: true,
   };
@@ -274,6 +322,7 @@ function calculateTemporalState(
 export function useEventTemporal({
   startAt,
   endAt,
+  timezone,
   updateInterval,
   enableLiveUpdates = true,
 }: UseEventTemporalOptions): EventTemporalState {
@@ -288,7 +337,9 @@ export function useEventTemporal({
     if (!enableLiveUpdates || !parsedStartAt) return;
 
     const startMs = parsedStartAt.getTime();
-    const endMs = (parsedEndAt ?? parsedStartAt).getTime();
+    // Mirror calculateTemporalState's assumed duration so the tick cadence
+    // agrees with the phase (minute ticks while "ongoing", hourly after).
+    const endMs = parsedEndAt?.getTime() ?? startMs + ASSUMED_EVENT_DURATION_MS;
 
     let timer: ReturnType<typeof setTimeout>;
 
@@ -331,8 +382,8 @@ export function useEventTemporal({
 
   // Calculate temporal state
   const state = useMemo(
-    () => calculateTemporalState(parsedStartAt, parsedEndAt, now),
-    [parsedStartAt, parsedEndAt, now]
+    () => calculateTemporalState(parsedStartAt, parsedEndAt, now, timezone),
+    [parsedStartAt, parsedEndAt, now, timezone]
   );
 
   return state;
@@ -340,13 +391,20 @@ export function useEventTemporal({
 
 /**
  * Static version for server-side rendering
- * Does not set up intervals - just calculates once
+ * Does not set up intervals - just calculates once.
+ * `opts.now` exists for deterministic tests; production callers omit it.
  */
 export function getEventTemporalState(
   startAt: Date | string | null | undefined,
-  endAt?: Date | string | null
+  endAt?: Date | string | null,
+  opts?: { timezone?: string; now?: Date }
 ): EventTemporalState {
   const parsedStartAt = parseDate(startAt);
   const parsedEndAt = parseDate(endAt);
-  return calculateTemporalState(parsedStartAt, parsedEndAt, new Date());
+  return calculateTemporalState(
+    parsedStartAt,
+    parsedEndAt,
+    opts?.now ?? new Date(),
+    opts?.timezone
+  );
 }
