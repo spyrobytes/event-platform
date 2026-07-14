@@ -93,6 +93,10 @@ export type PassMoment = {
 //   2. first Event.schedule entry flagged isAccessPassGated
 //   3. legacy InvitationConfig.reception* fields
 //   4. the Event row's own startAt
+// NOTE: rungs 1/2 should likely swap once isAccessPassGated becomes
+// user-settable (the flag literally means "what the pass admits to", so it
+// should outrank the role heuristic) — revisit when the access-pass-gated
+// -events plan revives. Today nothing sets the flag, so the order is moot.
 // Rung 3 mirrors the rule applied by the invite-email pipeline
 // (`src/app/api/events/[id]/invites/route.ts:99-131`). The full
 // multi-gated-event design is deferred — see

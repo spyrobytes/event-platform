@@ -299,6 +299,33 @@ describe("resolvePassMoment", () => {
     expect(result.startAt).toEqual(T("2026-06-20T18:00:00Z"));
   });
 
+  it("reception role outranks a gated entry under today's ladder (revisit when the flag is user-settable)", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        schedule: [
+          {
+            id: "e1",
+            label: "Ceremony",
+            role: "ceremony",
+            startAt: "2026-06-21T14:00:00.000Z",
+            isAccessPassGated: true, // gated — but rung 1 wins today
+          },
+          {
+            id: "e2",
+            label: "Reception",
+            role: "reception",
+            startAt: "2026-06-21T19:00:00.000Z",
+            isAccessPassGated: false,
+          },
+        ],
+        invitationConfig: null,
+      },
+    });
+    expect(result.label).toBe("Reception");
+    expect(result.startAt).toEqual(T("2026-06-21T19:00:00Z"));
+  });
+
   it("falls through to legacy config when the schedule has no reception or gated entry", () => {
     const result = resolvePassMoment({
       event: {
