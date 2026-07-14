@@ -77,8 +77,14 @@ describe("getEventTemporalState", () => {
     expect(after.phase).toBe("ended");
   });
 
-  it("ended: past phase with days since ended", () => {
-    const state = getEventTemporalState(startIn(-3 * DAY), startIn(-3 * DAY + 4 * HOUR));
+  it("ended: past phase with venue-calendar days since ended", () => {
+    // daysSinceEnded counts venue midnights crossed, so the fixture must pin
+    // `now` and a timezone — deriving it from the live clock made this
+    // assertion flip with the hour the suite ran (2 vs 3 midnights in 68h).
+    const startAt = new Date("2026-01-08T00:00:00Z");
+    const endAt = new Date("2026-01-08T04:00:00Z");
+    const now = new Date("2026-01-10T12:00:00Z"); // two UTC midnights later
+    const state = getEventTemporalState(startAt, endAt, { timezone: "UTC", now });
     expect(state.phase).toBe("ended");
     expect(state.daysSinceEnded).toBe(2);
   });
@@ -129,6 +135,19 @@ describe("venue-timezone calendar days", () => {
       now: morningAfter,
     });
     expect(tokyo.daysSinceEnded).toBe(0);
+  });
+
+  it("counts calendar days correctly across a DST transition", () => {
+    // US spring-forward: Sunday 2026-03-08 (23-hour day in America/New_York).
+    // Ended Saturday 21:00 ET; viewed Monday 09:00 EDT — only ~59 wall hours,
+    // but exactly 2 venue midnights. A duration-based count would waver here.
+    const endAt = new Date("2026-03-08T02:00:00Z"); // Sat Mar 7, 21:00 EST
+    const now = new Date("2026-03-09T13:00:00Z"); // Mon Mar 9, 09:00 EDT
+    const state = getEventTemporalState(endAt, endAt, {
+      timezone: "America/New_York",
+      now,
+    });
+    expect(state.daysSinceEnded).toBe(2);
   });
 
   it("invalid timezone falls back to the viewer's calendar instead of throwing", () => {
