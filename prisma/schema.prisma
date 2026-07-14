@@ -844,8 +844,9 @@ model InvitationConfig {
   person2Name String? @map("person2_name") // e.g., "James Oliver Smith"
 
   // Customizable invitation wording
-  headerText    String? @map("header_text") // e.g., "Together with their families"
-  headerMode    String  @default("modern") @map("header_mode") // "modern" | "traditional"
+  headerText       String? @map("header_text") // e.g., "Together with their families"
+  headerMode       String  @default("modern") @map("header_mode") // "modern" | "traditional"
+  dateWordingStyle String  @default("standard") @map("date_wording_style") // "standard" | "formal" — how schedule-derived dates/times render on the card (canonical-schedule plan §3.3)
   eventTypeText String? @map("event_type_text") // e.g., "Request the pleasure of your company"
   monogram      String? @map("monogram") // e.g., "E&J" (auto-generated if empty)
 

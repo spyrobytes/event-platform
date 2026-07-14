@@ -132,6 +132,24 @@ describe("buildSubEventBlocks", () => {
     expect(result.ceremonyDate).toBeUndefined();
   });
 
+  it("formal wording style spells out derived rungs; free-text stays verbatim", () => {
+    const result = buildSubEventBlocks({
+      ...base,
+      schedule: typedSchedule,
+      wordingStyle: "formal",
+      invitationConfig: {
+        ...emptyConfig,
+        ceremonyDate: "The Longest Day of Summer", // verbatim override
+      },
+    });
+    expect(result.ceremonyDate).toBe("The Longest Day of Summer");
+    expect(result.ceremonyTime).toBe("Ten O'Clock in the Morning");
+    expect(result.receptionDate).toBe("Saturday, the Twenty-Second of August");
+    expect(result.receptionTime).toBe("One O'Clock in the Afternoon");
+    // venue text unaffected by wording style
+    expect(result.receptionVenue).toBe("Convention Centre");
+  });
+
   it("malformed schedule degrades to legacy-only behavior", () => {
     const result = buildSubEventBlocks({
       ...base,

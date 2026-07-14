@@ -24,6 +24,8 @@ import {
 } from "@/components/features/Invitation";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
+import { formatEventTime, resolveRsvpDeadlineDisplay } from "@/lib/utils";
+import { buildInvitationScheduleFields } from "@/lib/invitation-schedule-fields";
 
 type EventData = {
   id: string;
@@ -34,6 +36,8 @@ type EventData = {
   address: string | null;
   city: string | null;
   coverImageUrl: string | null;
+  schedule: unknown;
+  rsvpDeadline: string | null;
 };
 
 type InvitationConfigData = {
@@ -46,6 +50,7 @@ type InvitationConfigData = {
   person2Name: string | null;
   headerText: string | null;
   headerMode: string;
+  dateWordingStyle: string;
   person1FamilyName: string | null;
   person2FamilyName: string | null;
   familyInviteText: string | null;
@@ -56,6 +61,8 @@ type InvitationConfigData = {
   heroImageUrl: string | null;
   couplePhotoUrl: string | null;
   venuePhotoUrl: string | null;
+  ceremonyStartAt: string | null;
+  receptionStartAt: string | null;
   ceremonyDate: string | null;
   ceremonyTime: string | null;
   ceremonyVenue: string | null;
@@ -172,11 +179,16 @@ export default function InvitationPreviewPage() {
     zipCode: undefined,
   };
 
-  const eventTime = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: event.timezone,
-  }).format(new Date(event.startAt));
+  const eventTime = formatEventTime(new Date(event.startAt), event.timezone);
+
+  // Same ceremony/reception ladder as the guest page — shared helper keeps
+  // preview and /invite/[token] byte-identical (see invitation-schedule-fields.ts).
+  const scheduleFields = buildInvitationScheduleFields({
+    tz: event.timezone,
+    schedule: event.schedule,
+    config: config,
+    wordingStyle: config.dateWordingStyle === "formal" ? "formal" : "standard",
+  });
 
   const invitationData: InvitationData = {
     coupleNames: config.coupleDisplayName || event.title,
@@ -204,15 +216,12 @@ export default function InvitationPreviewPage() {
     // Wedding Storybook extended fields
     couplePhotoUrl: config.couplePhotoUrl || undefined,
     venuePhotoUrl: config.venuePhotoUrl || undefined,
-    ceremonyDate: config.ceremonyDate || undefined,
-    ceremonyTime: config.ceremonyTime || undefined,
-    ceremonyVenue: config.ceremonyVenue || undefined,
-    ceremonyAddress: config.ceremonyAddress || undefined,
-    receptionDate: config.receptionDate || undefined,
-    receptionTime: config.receptionTime || undefined,
-    receptionVenue: config.receptionVenue || undefined,
-    receptionAddress: config.receptionAddress || undefined,
-    rsvpDeadline: config.rsvpDeadline || undefined,
+    ...scheduleFields,
+    rsvpDeadline: resolveRsvpDeadlineDisplay(
+      config.rsvpDeadline || undefined,
+      event.rsvpDeadline || undefined,
+      event.timezone
+    ),
     storyHeading: config.storyHeading || undefined,
     storyParagraphs: config.storyParagraphs?.length ? config.storyParagraphs : undefined,
     timeline: config.timelineJson ?? undefined,
