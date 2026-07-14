@@ -12,6 +12,7 @@ import {
   clearEventCoversForAssets,
   COVER_ASSET_SELECT,
 } from "@/lib/cover-media-asset";
+import { nullableJsonInput } from "@/lib/nullable-json";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -95,7 +96,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Slug rename has special handling: history insert + uniqueness check.
     // Strip slug from `data` so the generic update doesn't touch it; the
     // transaction below applies the new slug only after the history row exists.
-    const { slug: requestedSlug, ...restData } = data;
+    // Schedule is stripped too: Json? columns need the null→DbNull triage
+    // (see nullableJsonInput).
+    const { slug: requestedSlug, schedule, ...restData } = data;
 
     // When the cover changes, re-resolve its MediaAsset link so render sites can
     // read the cover's responsive renditionWidths (issue #211). Resolved before
@@ -177,6 +180,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           where: { id },
           data: {
             ...restData,
+            schedule: nullableJsonInput(schedule),
             ...coverPatch,
             ...(renameInfo ? { slug: renameInfo.to } : {}),
           },
@@ -188,6 +192,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             startAt: true,
             endAt: true,
             timezone: true,
+            schedule: true,
             venueName: true,
             address: true,
             city: true,
