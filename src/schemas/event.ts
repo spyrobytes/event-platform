@@ -50,6 +50,63 @@ export type SlugAvailability =
   | { available: false; reason: "invalid" | "reserved" | "taken" };
 
 /**
+ * Canonical schedule — typed sub-event list stored on Event.schedule.
+ * Single source of truth for the day's timing; every render surface derives
+ * from it (see internal-docs/canonical-schedule-source-of-truth.md §2).
+ *
+ * `role` is the semantic contract: surfaces find "the ceremony" by role, not
+ * by matching the organizer-editable label. `startAt`/`endAt` are UTC ISO
+ * instants; display always formats them in Event.timezone (venue wall clock).
+ */
+export const SCHEDULE_ENTRY_ROLES = [
+  "ceremony",
+  "reception",
+  "welcome",
+  "rehearsal",
+  "afterparty",
+  "session",
+  "banquet",
+  "other",
+] as const;
+
+export const scheduleEntrySchema = z
+  .object({
+    id: z.string().min(1).max(64),
+    label: z.string().min(1, "Label is required").max(80, "Label must be 80 characters or less"),
+    role: z.enum(SCHEDULE_ENTRY_ROLES).optional(),
+    startAt: z.string().datetime({ message: "startAt must be a UTC ISO datetime" }),
+    endAt: z.string().datetime({ message: "endAt must be a UTC ISO datetime" }).optional(),
+    venue: z.string().max(120).nullable().optional(),
+    address: z.string().max(200).nullable().optional(),
+    description: z.string().max(500).optional(),
+    isAccessPassGated: z.boolean().default(false),
+  })
+  .refine((e) => !e.endAt || e.endAt >= e.startAt, {
+    message: "endAt must not be before startAt",
+    path: ["endAt"],
+  });
+
+export const scheduleSchema = z
+  .array(scheduleEntrySchema)
+  .max(20, "Maximum 20 schedule entries allowed")
+  .superRefine((entries, ctx) => {
+    const seen = new Set<string>();
+    for (const [i, entry] of entries.entries()) {
+      if (seen.has(entry.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate schedule entry id "${entry.id}"`,
+          path: [i, "id"],
+        });
+      }
+      seen.add(entry.id);
+    }
+  });
+
+export type ScheduleEntry = z.infer<typeof scheduleEntrySchema>;
+export type Schedule = z.infer<typeof scheduleSchema>;
+
+/**
  * Schema for creating a new event
  */
 export const createEventSchema = z.object({
@@ -83,6 +140,7 @@ export const createEventSchema = z.object({
   attachQrToConfirmation: z.boolean().default(true),
   passBackdropStyle: z.enum(PASS_BACKDROP_STYLES).default("NONE"),
   passBackdropImageUrl: z.string().url().optional().or(z.literal("")),
+  schedule: scheduleSchema.optional(),
 });
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
@@ -125,6 +183,8 @@ export const updateEventSchema = z.object({
   attachQrToConfirmation: z.boolean().optional(),
   passBackdropStyle: z.enum(PASS_BACKDROP_STYLES).optional(),
   passBackdropImageUrl: z.string().url().nullable().optional().or(z.literal("")),
+  // Canonical schedule (null clears it)
+  schedule: scheduleSchema.nullable().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

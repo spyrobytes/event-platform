@@ -111,6 +111,12 @@ model Event {
   endAt    DateTime? @map("end_at")
   timezone String    @default("UTC")
 
+  // Canonical sub-event list (ceremony, reception, sessions, ...) — the
+  // single source of truth for the day's timing. Shape is validated by
+  // scheduleSchema in src/schemas/event.ts; entries carry UTC instants and
+  // render in Event.timezone. See internal-docs/canonical-schedule-source-of-truth.md.
+  schedule Json?
+
   venueName String? @map("venue_name")
   address   String?
   city      String?

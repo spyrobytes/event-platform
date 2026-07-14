@@ -95,7 +95,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Slug rename has special handling: history insert + uniqueness check.
     // Strip slug from `data` so the generic update doesn't touch it; the
     // transaction below applies the new slug only after the history row exists.
-    const { slug: requestedSlug, ...restData } = data;
+    // Schedule is stripped too: Prisma Json? columns need explicit DbNull for
+    // "clear it" (plain null is rejected as ambiguous).
+    const { slug: requestedSlug, schedule, ...restData } = data;
+
+    const schedulePatch =
+      schedule === undefined
+        ? {}
+        : {
+            schedule:
+              schedule === null
+                ? Prisma.DbNull
+                : (schedule as Prisma.InputJsonValue),
+          };
 
     // When the cover changes, re-resolve its MediaAsset link so render sites can
     // read the cover's responsive renditionWidths (issue #211). Resolved before
@@ -177,6 +189,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           where: { id },
           data: {
             ...restData,
+            ...schedulePatch,
             ...coverPatch,
             ...(renameInfo ? { slug: renameInfo.to } : {}),
           },
@@ -188,6 +201,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             startAt: true,
             endAt: true,
             timezone: true,
+            schedule: true,
             venueName: true,
             address: true,
             city: true,
