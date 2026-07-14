@@ -13,6 +13,7 @@ import {
   scheduleEmailProcessing,
   buildUnsubscribeUrl,
 } from "@/lib/email";
+import { buildSubEventBlocks } from "@/lib/invite-email-payload";
 import { ConflictError } from "@/lib/errors";
 
 // Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
@@ -36,6 +37,7 @@ async function buildInviteEmailContext(eventId: string) {
         address: true,
         city: true,
         rsvpDeadline: true,
+        schedule: true,
         creator: { select: { name: true, email: true } },
       },
     }),
@@ -69,76 +71,19 @@ async function buildInviteEmailContext(eventId: string) {
   const eventLocation = event.venueName || event.city || undefined;
   const hostName = event.creator.name || event.creator.email;
 
-  // Prefer the user-typed wording from the Invitation Design panel
-  // (e.g. "Saturday, the Twenty-First of June") over a date-fns reformat
-  // of the structured datetime — this is what guests see on the invite page,
-  // and the email must match it verbatim.
-  const ceremonyHasAny =
-    invitationConfig?.ceremonyStartAt ||
-    invitationConfig?.ceremonyDate ||
-    invitationConfig?.ceremonyTime ||
-    invitationConfig?.ceremonyVenue;
-  const ceremony = ceremonyHasAny
-    ? {
-        ceremonyDate:
-          invitationConfig?.ceremonyDate ||
-          (invitationConfig?.ceremonyStartAt
-            ? formatInTimeZone(invitationConfig.ceremonyStartAt, tz, "EEEE, MMMM d, yyyy")
-            : undefined),
-        ceremonyTime:
-          invitationConfig?.ceremonyTime ||
-          (invitationConfig?.ceremonyStartAt
-            ? formatInTimeZone(invitationConfig.ceremonyStartAt, tz, "h:mm a")
-            : undefined),
-        ceremonyVenue: invitationConfig?.ceremonyVenue || undefined,
-        ceremonyAddress: invitationConfig?.ceremonyAddress || undefined,
-      }
-    : {};
-
-  // Surface the main Event row's start time as a "Traditional" sub-event
-  // when (a) wedding sub-events are configured AND (b) the main event
-  // precedes the ceremony by at least 30 minutes. Captures the common case
-  // of a separate cultural / traditional ceremony preceding the formal one;
-  // the 30-minute threshold avoids treating "guests please arrive early"
-  // padding as a distinct event. If there's no ceremonyStartAt to compare
-  // against, fall back to receptionStartAt; if neither, skip — there's
-  // nothing reliable to anchor the precedes-by-X check against.
-  const ceremonyAnchor =
-    invitationConfig?.ceremonyStartAt ?? invitationConfig?.receptionStartAt ?? null;
-  const TRADITIONAL_MIN_LEAD_MS = 30 * 60 * 1000;
-  const isMainEventDistinct =
-    ceremonyAnchor !== null &&
-    event.startAt.getTime() + TRADITIONAL_MIN_LEAD_MS <= ceremonyAnchor.getTime();
-  const traditional = isMainEventDistinct
-    ? {
-        traditionalDate: eventDate,
-        traditionalTime: eventTime,
-        traditionalVenue: event.venueName || undefined,
-        traditionalAddress: event.address || undefined,
-      }
-    : {};
-
-  const receptionHasAny =
-    invitationConfig?.receptionStartAt ||
-    invitationConfig?.receptionDate ||
-    invitationConfig?.receptionTime ||
-    invitationConfig?.receptionVenue;
-  const reception = receptionHasAny
-    ? {
-        receptionDate:
-          invitationConfig?.receptionDate ||
-          (invitationConfig?.receptionStartAt
-            ? formatInTimeZone(invitationConfig.receptionStartAt, tz, "EEEE, MMMM d, yyyy")
-            : undefined),
-        receptionTime:
-          invitationConfig?.receptionTime ||
-          (invitationConfig?.receptionStartAt
-            ? formatInTimeZone(invitationConfig.receptionStartAt, tz, "h:mm a")
-            : undefined),
-        receptionVenue: invitationConfig?.receptionVenue || undefined,
-        receptionAddress: invitationConfig?.receptionAddress || undefined,
-      }
-    : {};
+  // Sub-event blocks (ceremony / traditional / reception): typed-first with
+  // free-text wording override — precedence ladders + the "Traditional"
+  // heuristic live in buildSubEventBlocks (unit-tested).
+  const subEvents = buildSubEventBlocks({
+    tz,
+    eventStartAt: event.startAt,
+    eventDate,
+    eventTime,
+    eventVenueName: event.venueName,
+    eventAddress: event.address,
+    schedule: event.schedule,
+    invitationConfig,
+  });
 
   const rsvpDeadline =
     invitationConfig?.rsvpDeadline ||
@@ -155,9 +100,7 @@ async function buildInviteEmailContext(eventId: string) {
     publicRsvpUrl: `${baseUrl}/e/${event.slug}/rsvp`,
     logoUrl: `${baseUrl}/brand/eventfxr-logo.png`,
     rsvpDeadline,
-    ...traditional,
-    ...ceremony,
-    ...reception,
+    ...subEvents,
   };
 }
 
