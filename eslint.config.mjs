@@ -27,6 +27,9 @@ const eslintConfig = defineConfig([
       "src/emails/**",
       "src/app/invite/**",
       "src/app/e/**",
+      "src/app/rsvp/**",
+      "src/app/(public)/**",
+      "src/app/(marketing)/**",
     ],
     rules: {
       "no-restricted-syntax": [
@@ -34,6 +37,14 @@ const eslintConfig = defineConfig([
         {
           selector:
             "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
+          message:
+            "Use the formatEvent* helpers from @/lib/utils (or date-fns-tz formatInTimeZone) — raw Intl.DateTimeFormat defaults to the viewer's timezone; the venue timezone must be explicit.",
+        },
+        {
+          // Intl.DateTimeFormat is constructible without `new` — same result,
+          // so the same ban.
+          selector:
+            "CallExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
           message:
             "Use the formatEvent* helpers from @/lib/utils (or date-fns-tz formatInTimeZone) — raw Intl.DateTimeFormat defaults to the viewer's timezone; the venue timezone must be explicit.",
         },
