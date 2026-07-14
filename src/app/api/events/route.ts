@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
         startAt: true,
         endAt: true,
         timezone: true,
+        schedule: true,
         venueName: true,
         address: true,
         city: true,

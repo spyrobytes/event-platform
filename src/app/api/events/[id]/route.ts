@@ -12,6 +12,7 @@ import {
   clearEventCoversForAssets,
   COVER_ASSET_SELECT,
 } from "@/lib/cover-media-asset";
+import { nullableJsonInput } from "@/lib/nullable-json";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -95,19 +96,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     // Slug rename has special handling: history insert + uniqueness check.
     // Strip slug from `data` so the generic update doesn't touch it; the
     // transaction below applies the new slug only after the history row exists.
-    // Schedule is stripped too: Prisma Json? columns need explicit DbNull for
-    // "clear it" (plain null is rejected as ambiguous).
+    // Schedule is stripped too: Json? columns need the null→DbNull triage
+    // (see nullableJsonInput).
     const { slug: requestedSlug, schedule, ...restData } = data;
-
-    const schedulePatch =
-      schedule === undefined
-        ? {}
-        : {
-            schedule:
-              schedule === null
-                ? Prisma.DbNull
-                : (schedule as Prisma.InputJsonValue),
-          };
 
     // When the cover changes, re-resolve its MediaAsset link so render sites can
     // read the cover's responsive renditionWidths (issue #211). Resolved before
@@ -189,7 +180,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           where: { id },
           data: {
             ...restData,
-            ...schedulePatch,
+            schedule: nullableJsonInput(schedule),
             ...coverPatch,
             ...(renameInfo ? { slug: renameInfo.to } : {}),
           },

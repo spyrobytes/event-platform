@@ -81,7 +81,9 @@ export const scheduleEntrySchema = z
     description: z.string().max(500).optional(),
     isAccessPassGated: z.boolean().default(false),
   })
-  .refine((e) => !e.endAt || e.endAt >= e.startAt, {
+  // Compare as instants, not strings: lexicographic ISO comparison misorders
+  // mixed-precision timestamps ("…00.500Z" sorts before "…00Z" since '.' < 'Z').
+  .refine((e) => !e.endAt || Date.parse(e.endAt) >= Date.parse(e.startAt), {
     message: "endAt must not be before startAt",
     path: ["endAt"],
   });

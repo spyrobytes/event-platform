@@ -60,6 +60,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         templateId: true,
         themePreset: true,
         pageConfig: true,
+        schedule: true,
       },
     });
 
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         templateId: originalEvent.templateId,
         themePreset: originalEvent.themePreset,
         pageConfig: originalEvent.pageConfig ?? undefined,
+        schedule: originalEvent.schedule ?? undefined,
         creatorId: user.id,
         status: "DRAFT",
         configVersion: 1,

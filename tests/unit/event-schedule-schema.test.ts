@@ -4,6 +4,7 @@ import {
   scheduleEntrySchema,
   SCHEDULE_ENTRY_ROLES,
   updateEventSchema,
+  createEventSchema,
 } from "@/schemas/event";
 
 const ceremony = {
@@ -64,6 +65,32 @@ describe("scheduleEntrySchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("orders mixed-precision instants as instants, not strings", () => {
+    // Lexicographically "…00.500Z" < "…00Z" ('.' < 'Z') — both directions
+    // must be decided by the actual instants.
+    expect(
+      scheduleEntrySchema.safeParse({
+        ...ceremony,
+        startAt: "2026-09-19T15:00:00Z",
+        endAt: "2026-09-19T15:00:00.500Z", // genuinely later — must pass
+      }).success
+    ).toBe(true);
+    expect(
+      scheduleEntrySchema.safeParse({
+        ...ceremony,
+        startAt: "2026-09-19T15:00:00.500Z",
+        endAt: "2026-09-19T15:00:00Z", // genuinely earlier — must fail
+      }).success
+    ).toBe(false);
+    expect(
+      scheduleEntrySchema.safeParse({
+        ...ceremony,
+        startAt: "2026-09-19T15:00:00Z",
+        endAt: "2026-09-19T15:00:00.000Z", // same instant — must pass
+      }).success
+    ).toBe(true);
+  });
+
   it("rejects unknown roles (the enum is the semantic contract)", () => {
     expect(
       scheduleEntrySchema.safeParse({ ...ceremony, role: "flashmob" }).success
@@ -112,6 +139,27 @@ describe("updateEventSchema.schedule", () => {
     expect(
       updateEventSchema.safeParse({ schedule: [{ label: "No id or start" }] })
         .success
+    ).toBe(false);
+  });
+});
+
+describe("createEventSchema.schedule", () => {
+  const baseCreate = {
+    title: "Sample Wedding",
+    startAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+
+  it("accepts a schedule array and absence", () => {
+    expect(
+      createEventSchema.safeParse({ ...baseCreate, schedule: [ceremony] })
+        .success
+    ).toBe(true);
+    expect(createEventSchema.safeParse(baseCreate).success).toBe(true);
+  });
+
+  it("rejects null (create has nothing to clear — null would reach Prisma as an ambiguous Json? input)", () => {
+    expect(
+      createEventSchema.safeParse({ ...baseCreate, schedule: null }).success
     ).toBe(false);
   });
 });
