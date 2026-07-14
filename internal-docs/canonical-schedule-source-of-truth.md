@@ -155,6 +155,18 @@ Sequenced as: (a) editors stop *offering* free-text inputs as soon as their type
 
 One PR per row; merged strictly in order within a lane (the main-branch ruleset requires up-to-date branches + green checks, so sequential siblings need update-branch + re-run — never `--admin`). Every consumer PR (C-lane) ships a read-side helper that prefers typed schedule → falls back to legacy, so there is no flag-day and each PR is independently revertible.
 
+> **Resequenced 2026-07-14 (during 3b review):** 3c and 3d moved to AFTER
+> PR 4. Reason: typed-first reads shadow legacy-field edits until the
+> schedule editor exists (the invitation panel and page editor still write
+> legacy/free-text fields). That exposure is tolerable on *output* surfaces
+> (Pass #288, email #289 — not in anyone's edit loop, single organizer
+> pre-GA), but 3c/3d are the **preview surfaces of the very panels whose
+> edits would be shadowed** — an organizer would edit a venue and watch the
+> adjacent preview not change. PR 4 closes the window (schedule editor
+> becomes the edit path; legacy timing inputs removed), after which 3c/3d
+> are safe. Interim sync-on-write was considered and rejected as throwaway.
+> Effective order: 0 → 1 → 2 → 3a → 3b → **4** → 3c → 3d → 5 → 6.
+
 | PR | Contents | Depends on | Notes |
 |----|----------|------------|-------|
 | **PR 0** | Formatter centralization (§9): route all renderers through `formatEventDate*` helpers in `lib/utils`; lint guard against raw `Intl.DateTimeFormat`/`toLocale*` in renderer files | none — **can ship today**, independent of the gate | Hardens the venue-timezone rule the rest builds on; ~12 files, mechanical |
