@@ -107,7 +107,6 @@ async function main() {
     select: {
       id: true,
       title: true,
-      timezone: true,
       invitationConfig: {
         select: {
           ceremonyStartAt: true,
@@ -153,13 +152,22 @@ async function main() {
           `entr${entries.length === 1 ? "y" : "ies"} (${entries.map((e) => e.role).join(", ")})`
       );
     } else {
-      await prisma.event.update({
-        where: { id: event.id },
+      // Conditional write: the DbNull guard re-checks eligibility atomically,
+      // so a schedule set between the findMany and this write (organizer
+      // edit, concurrent run) is never clobbered — the row is skipped.
+      const result = await prisma.event.updateMany({
+        where: { id: event.id, schedule: { equals: Prisma.DbNull } },
         data: {
           schedule: nullableJsonInput(entries),
           scheduleAutoPopulatedAt: new Date(),
         },
       });
+      if (result.count === 0) {
+        console.log(
+          `skipped ${event.id} (${event.title}): schedule was set by someone else since the scan`
+        );
+        continue;
+      }
       console.log(
         `populated ${event.id} (${event.title}): ${entries.length} entr${entries.length === 1 ? "y" : "ies"}`
       );
