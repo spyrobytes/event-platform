@@ -116,6 +116,10 @@ model Event {
   // scheduleSchema in src/schemas/event.ts; entries carry UTC instants and
   // render in Event.timezone. See internal-docs/canonical-schedule-source-of-truth.md.
   schedule Json?
+  // Set by the backfill script when it derives `schedule` from
+  // InvitationConfig timing fields; drives the dashboard "please verify"
+  // banner. Cleared when the organizer acknowledges (or saves a schedule).
+  scheduleAutoPopulatedAt DateTime? @map("schedule_auto_populated_at")
 
   venueName String? @map("venue_name")
   address   String?
