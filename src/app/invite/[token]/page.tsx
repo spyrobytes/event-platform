@@ -21,6 +21,7 @@ import {
   type TemplateId,
 } from "@/components/features/Invitation";
 import { PageViewTracker, MarkOpenedBeacon } from "@/components/features/Analytics";
+import { formatEventTime } from "@/lib/utils";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
 
@@ -179,11 +180,7 @@ export default async function InvitationPage({ params }: PageProps) {
   };
 
   // Format time
-  const eventTime = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: event.timezone,
-  }).format(new Date(event.startAt));
+  const eventTime = formatEventTime(new Date(event.startAt), event.timezone);
 
   const invitationData: InvitationData = {
     coupleNames: invitationConfig?.coupleDisplayName || event.title,

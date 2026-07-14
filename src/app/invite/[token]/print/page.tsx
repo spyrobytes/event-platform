@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { truncateWithEllipsis, CONTENT_LIMITS } from "@/schemas/invitation";
 import type { ThemeId } from "@/lib/invitation-themes";
 import { themes } from "@/lib/invitation-themes";
+import { formatEventDateLong, formatEventTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -103,19 +104,8 @@ export default async function PrintInvitationPage({ params }: PageProps) {
   const themeColors = themes[themeId];
 
   // Format date
-  const formattedDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: event.timezone,
-  }).format(new Date(event.startAt));
-
-  const formattedTime = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: event.timezone,
-  }).format(new Date(event.startAt));
+  const formattedDate = formatEventDateLong(new Date(event.startAt), event.timezone);
+  const formattedTime = formatEventTime(new Date(event.startAt), event.timezone);
 
   const coupleNames = invitationConfig?.coupleDisplayName || event.title;
 

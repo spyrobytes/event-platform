@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
+import { cn, formatEventDateLong } from "@/lib/utils";
 import { useFitScale, useReducedMotion, type InvitationState } from "@/hooks";
 import { ReplayButton } from "../../ReplayButton";
 import { truncateWithEllipsis, CONTENT_LIMITS, NAME_CONNECTORS } from "@/schemas/invitation";
@@ -183,13 +183,7 @@ export function SplitRevealCard({
   const eventTypeText = isTraditional ? null : (data.eventTypeText || "Request the pleasure of your company");
 
   // Format date for display
-  const formattedDate = new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: data.timezone,
-  }).format(data.eventDate);
+  const formattedDate = formatEventDateLong(data.eventDate, data.timezone);
 
   const hasCeremonyReception = !!(data.ceremonyDate || data.receptionDate);
 

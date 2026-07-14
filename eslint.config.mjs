@@ -13,6 +13,59 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Guest-facing renderers: event dates must show the VENUE's wall clock.
+    // Raw formatters default to the machine's timezone, so a copy-pasted
+    // block that drops `timeZone` silently reintroduces the viewer-local
+    // bug. Route through the formatEvent* helpers in @/lib/utils (or
+    // date-fns-tz formatInTimeZone, whose signature forces a timezone).
+    // Calendar *math* (getCalendarParts in use-event-temporal.ts) lives in
+    // src/hooks and is deliberately outside these globs.
+    files: [
+      "src/components/templates/**",
+      "src/components/features/Invitation/**",
+      "src/emails/**",
+      "src/app/invite/**",
+      "src/app/e/**",
+      "src/app/rsvp/**",
+      "src/app/(public)/**",
+      "src/app/(marketing)/**",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
+          message:
+            "Use the formatEvent* helpers from @/lib/utils (or date-fns-tz formatInTimeZone) — raw Intl.DateTimeFormat defaults to the viewer's timezone; the venue timezone must be explicit.",
+        },
+        {
+          // Intl.DateTimeFormat is constructible without `new` — same result,
+          // so the same ban.
+          selector:
+            "CallExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
+          message:
+            "Use the formatEvent* helpers from @/lib/utils (or date-fns-tz formatInTimeZone) — raw Intl.DateTimeFormat defaults to the viewer's timezone; the venue timezone must be explicit.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleDateString']",
+          message:
+            "Use the formatEvent* helpers from @/lib/utils — toLocaleDateString renders the viewer's timezone, not the venue's.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleTimeString']",
+          message:
+            "Use the formatEvent* helpers from @/lib/utils — toLocaleTimeString renders the viewer's timezone, not the venue's.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='toLocaleString']",
+          message:
+            "Use the formatEvent* helpers from @/lib/utils — toLocaleString renders the viewer's timezone, not the venue's.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
