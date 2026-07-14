@@ -91,6 +91,7 @@ describe("InvitePassPage — 404 paths", () => {
             templateId: true,
             passBackdropStyle: true,
             passBackdropImageUrl: true,
+            schedule: true,
             invitationConfig: {
               select: {
                 receptionStartAt: true,

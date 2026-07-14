@@ -73,6 +73,7 @@ export default async function InvitePassPage({ params }: PageProps) {
           templateId: true,
           passBackdropStyle: true,
           passBackdropImageUrl: true,
+          schedule: true,
           invitationConfig: {
             select: {
               receptionStartAt: true,

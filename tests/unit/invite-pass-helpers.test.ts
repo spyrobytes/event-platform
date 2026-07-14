@@ -242,6 +242,130 @@ describe("resolvePassMoment", () => {
     });
   });
 
+  it("prefers the typed schedule's reception entry over legacy config (rung 1)", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        schedule: [
+          {
+            id: "e1",
+            label: "Ceremony",
+            role: "ceremony",
+            startAt: "2026-06-21T14:00:00.000Z",
+            isAccessPassGated: false,
+          },
+          {
+            id: "e2",
+            label: "Evening Reception",
+            role: "reception",
+            startAt: "2026-06-21T19:00:00.000Z",
+            venue: "The Orangery",
+            address: "5 Garden Walk",
+            isAccessPassGated: false,
+          },
+        ],
+        invitationConfig: {
+          receptionStartAt: RECEPTION, // legacy disagrees — typed must win
+          receptionVenue: "The Royal Hall",
+          receptionAddress: "123 Main St",
+        },
+      },
+    });
+    expect(result).toEqual({
+      label: "Evening Reception", // organizer's label, not hardcoded English
+      startAt: T("2026-06-21T19:00:00Z"),
+      venue: "The Orangery",
+      address: "5 Garden Walk",
+    });
+  });
+
+  it("uses the first isAccessPassGated entry when no reception role exists (rung 2)", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        schedule: [
+          {
+            id: "e1",
+            label: "Welcome Dinner",
+            role: "welcome",
+            startAt: "2026-06-20T18:00:00.000Z",
+            isAccessPassGated: true,
+          },
+        ],
+        invitationConfig: null,
+      },
+    });
+    expect(result.label).toBe("Welcome Dinner");
+    expect(result.startAt).toEqual(T("2026-06-20T18:00:00Z"));
+  });
+
+  it("reception role outranks a gated entry under today's ladder (revisit when the flag is user-settable)", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        schedule: [
+          {
+            id: "e1",
+            label: "Ceremony",
+            role: "ceremony",
+            startAt: "2026-06-21T14:00:00.000Z",
+            isAccessPassGated: true, // gated — but rung 1 wins today
+          },
+          {
+            id: "e2",
+            label: "Reception",
+            role: "reception",
+            startAt: "2026-06-21T19:00:00.000Z",
+            isAccessPassGated: false,
+          },
+        ],
+        invitationConfig: null,
+      },
+    });
+    expect(result.label).toBe("Reception");
+    expect(result.startAt).toEqual(T("2026-06-21T19:00:00Z"));
+  });
+
+  it("falls through to legacy config when the schedule has no reception or gated entry", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        schedule: [
+          {
+            id: "e1",
+            label: "Ceremony",
+            role: "ceremony",
+            startAt: "2026-06-21T14:00:00.000Z",
+            isAccessPassGated: false,
+          },
+        ],
+        invitationConfig: {
+          receptionStartAt: RECEPTION,
+          receptionVenue: "The Royal Hall",
+          receptionAddress: "123 Main St",
+        },
+      },
+    });
+    expect(result.label).toBe("Reception");
+    expect(result.startAt).toBe(RECEPTION);
+  });
+
+  it("treats a malformed schedule column as absent (legacy fallback, no throw)", () => {
+    const result = resolvePassMoment({
+      event: {
+        ...eventBase,
+        schedule: [{ nonsense: true }],
+        invitationConfig: {
+          receptionStartAt: RECEPTION,
+          receptionVenue: "The Royal Hall",
+          receptionAddress: "123 Main St",
+        },
+      },
+    });
+    expect(result.label).toBe("Reception");
+    expect(result.startAt).toBe(RECEPTION);
+  });
+
   it("falls back to event.startAt when receptionStartAt is null", () => {
     const result = resolvePassMoment({
       event: {
