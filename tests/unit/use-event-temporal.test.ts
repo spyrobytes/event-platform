@@ -211,3 +211,148 @@ describe("getNextTickDelay", () => {
     expect(getNextTickDelay(0)).toBeGreaterThanOrEqual(SECOND);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Schedule segments (canonical-schedule plan §3.6, PR 5). Every case pins
+// `now` and (where calendar-relevant) `timezone` — live-clock fixtures flip
+// with the hour the suite runs (see #284's CI failure).
+// ---------------------------------------------------------------------------
+describe("getEventTemporalState — schedule segments", () => {
+  const TZ = "America/Edmonton"; // UTC-6 in summer
+  const START = "2026-08-22T16:00:00Z"; // 10:00 AM venue
+  const SCHEDULE = [
+    {
+      id: "ceremony",
+      label: "Ceremony",
+      role: "ceremony",
+      startAt: "2026-08-22T16:00:00.000Z",
+      endAt: "2026-08-22T16:30:00.000Z",
+      isAccessPassGated: false,
+    },
+    {
+      id: "reception",
+      label: "Reception",
+      role: "reception",
+      startAt: "2026-08-22T22:00:00.000Z", // 4:00 PM venue — 5.5h gap
+      endAt: "2026-08-23T04:00:00.000Z",
+      isAccessPassGated: false,
+    },
+  ];
+
+  it("no schedule stays byte-identical to whole-span behavior", () => {
+    const now = new Date("2026-08-22T17:00:00Z");
+    const bare = getEventTemporalState(START, null, { now, timezone: TZ });
+    for (const schedule of [undefined, null, [], [{ nonsense: true }]]) {
+      expect(
+        getEventTemporalState(START, null, { now, timezone: TZ, schedule })
+      ).toEqual(bare);
+    }
+    expect(bare.segments).toEqual([]);
+    expect(bare.currentSegment).toBeNull();
+    expect(bare.nextSegment).toBeNull();
+  });
+
+  it("identifies the segment underway, with venue-tz display times", () => {
+    const state = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T16:10:00Z"),
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(state.currentSegment?.label).toBe("Ceremony");
+    expect(state.nextSegment?.label).toBe("Reception");
+    expect(state.nextSegment?.startTimeDisplay).toBe("4:00 PM");
+    expect(state.isOngoing).toBe(true);
+  });
+
+  it("a gap between segments has no currentSegment but a nextSegment", () => {
+    const state = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T18:00:00Z"),
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(state.currentSegment).toBeNull();
+    expect(state.nextSegment?.label).toBe("Reception");
+    expect(state.isOngoing).toBe(true); // ladder keeps the event live through the gap
+  });
+
+  it("effectiveEndAt ladder: entries extend an endAt-less event past the 6h assumption", () => {
+    // 27:00Z = 11h after start — the 6h assumption alone would say "ended",
+    // but the reception (ends 28:00Z) keeps the event ongoing.
+    const now = new Date("2026-08-23T03:00:00Z");
+    const withSchedule = getEventTemporalState(START, null, {
+      now,
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(withSchedule.phase).toBe("ongoing");
+    expect(withSchedule.currentSegment?.label).toBe("Reception");
+
+    const without = getEventTemporalState(START, null, { now, timezone: TZ });
+    expect(without.phase).toBe("ended");
+  });
+
+  it("explicit Event.endAt outranks the last segment's end", () => {
+    const state = getEventTemporalState(START, "2026-08-22T18:00:00Z", {
+      now: new Date("2026-08-22T23:00:00Z"), // mid-reception, past explicit end
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(state.phase).toBe("ended");
+  });
+
+  it("an entry without endAt runs until the next entry; the last falls back to the assumption", () => {
+    const openEnded = [
+      { id: "a", label: "Welcome", startAt: "2026-08-22T16:00:00.000Z", isAccessPassGated: false },
+      { id: "b", label: "Dinner", startAt: "2026-08-22T18:00:00.000Z", isAccessPassGated: false },
+    ];
+    const during = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T17:00:00Z"), // between the two starts
+      timezone: TZ,
+      schedule: openEnded,
+    });
+    // Welcome chains to Dinner's start — no artificial gap
+    expect(during.currentSegment?.label).toBe("Welcome");
+
+    const late = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T23:00:00Z"), // 5h into Dinner
+      timezone: TZ,
+      schedule: openEnded,
+    });
+    // Last entry gets the assumed duration (ends 18:00Z + 6h = 24:00Z)
+    expect(late.currentSegment?.label).toBe("Dinner");
+    expect(late.phase).toBe("ongoing");
+  });
+
+  it("prefixes the next-up display with the venue day across midnight", () => {
+    const multiDay = [
+      SCHEDULE[0], // ceremony, Aug 22
+      {
+        id: "brunch",
+        label: "Farewell Brunch",
+        startAt: "2026-08-23T17:00:00.000Z", // 11:00 AM venue, next day
+        isAccessPassGated: false,
+      },
+    ];
+    const state = getEventTemporalState(START, "2026-08-24T04:00:00Z", {
+      now: new Date("2026-08-23T01:00:00Z"), // Aug 22, 7:00 PM venue — in the gap
+      timezone: TZ,
+      schedule: multiDay,
+    });
+    expect(state.currentSegment).toBeNull();
+    expect(state.nextSegment?.startTimeDisplay).toBe("Aug 23 · 11:00 AM");
+    // Same-day next-up stays a bare time (asserted above: "4:00 PM")
+  });
+
+  it("sorts segments as instants, not ISO strings (mixed precision)", () => {
+    const mixed = [
+      { id: "later", label: "Later", startAt: "2026-08-22T16:00:00.500Z", isAccessPassGated: false },
+      { id: "earlier", label: "Earlier", startAt: "2026-08-22T16:00:00Z", isAccessPassGated: false },
+    ];
+    const state = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T15:00:00Z"),
+      timezone: TZ,
+      schedule: mixed,
+    });
+    expect(state.segments.map((s) => s.label)).toEqual(["Earlier", "Later"]);
+  });
+});

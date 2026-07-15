@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { formatInTimeZone } from "date-fns-tz";
+import { parseSchedule } from "@/lib/schedule-read";
+import { formatEventTime } from "@/lib/utils";
 
 /**
  * Event temporal phases
@@ -27,6 +30,26 @@ export type TimeRemaining = {
   minutes: number;
   seconds: number;
   totalMilliseconds: number;
+};
+
+/**
+ * A typed Event.schedule entry resolved to instants (canonical-schedule
+ * plan §3.6). Segment math is timezone-free — the venue timezone is used
+ * only for the precomputed display time.
+ */
+export type ScheduleSegment = {
+  id: string;
+  label: string;
+  startMs: number;
+  /** entry.endAt → next entry's start → start + ASSUMED_EVENT_DURATION_MS */
+  endMs: number;
+  /** Start time in the venue timezone, e.g. "4:00 PM" — for "Next: …" copy.
+   *  On `nextSegment`, gains an "Aug 23 · " prefix when the segment falls on
+   *  a different venue calendar day than now (same "MMM d" convention as the
+   *  page schedule's flat lists). */
+  startTimeDisplay: string;
+  /** Venue calendar day of the start, e.g. "Aug 23" */
+  startDayDisplay: string;
 };
 
 /**
@@ -57,6 +80,12 @@ export type EventTemporalState = {
   countdownText: string;
   /** Whether we have valid date data */
   hasValidDates: boolean;
+  /** Typed schedule entries as instant segments (empty without a schedule) */
+  segments: ScheduleSegment[];
+  /** Segment containing `now`, if any ("Ceremony underway") */
+  currentSegment: ScheduleSegment | null;
+  /** First segment starting after `now`, if any ("Next: Reception · 5 PM") */
+  nextSegment: ScheduleSegment | null;
 };
 
 type UseEventTemporalOptions = {
@@ -67,6 +96,9 @@ type UseEventTemporalOptions = {
   /** Venue IANA timezone — calendar-day phases ("today", "yesterday") follow
    *  the venue's wall clock. Omit to fall back to the viewer's calendar. */
   timezone?: string;
+  /** Raw Event.schedule Json — enables segment-aware state (plan §3.6).
+   *  Absent/empty/malformed keeps whole-span behavior byte-identical. */
+  schedule?: unknown;
   /** Fixed update interval in ms. Omit for adaptive cadence (see getNextTickDelay). */
   updateInterval?: number;
   /** Whether to enable live countdown updates */
@@ -112,6 +144,66 @@ export function getNextTickDelay(msUntilStart: number): number {
   // Land 50ms past the boundary so the recompute sees the flipped value;
   // floor at 250ms so clock jitter can't produce a hot loop.
   return Math.max(untilBoundary + 50, 250);
+}
+
+/**
+ * Resolves the raw Event.schedule Json into ordered instant segments.
+ * An entry without endAt runs until the next entry starts (no artificial
+ * gap); the last entry falls back to the event-level assumed duration.
+ * Returns [] for absent/empty/malformed schedules so callers keep the
+ * whole-span behavior unchanged.
+ */
+export function deriveScheduleSegments(
+  schedule: unknown,
+  timezone?: string
+): ScheduleSegment[] {
+  const entries = parseSchedule(schedule);
+  if (!entries) return [];
+
+  // Compare as instants, never as ISO strings (mixed precision misorders).
+  const sorted = [...entries].sort(
+    (a, b) => Date.parse(a.startAt) - Date.parse(b.startAt)
+  );
+
+  // Production always passes the venue timezone (TemporalData.timezone is
+  // required). The UTC fallback is for tz-less direct hook consumers and is
+  // deliberately deterministic — unlike the calendar-day helpers below, a
+  // display string can't silently follow the viewer's clock without
+  // contradicting the venue-timezone product rule.
+  const displayTz = timezone ?? "UTC";
+
+  return sorted.map((entry, i) => {
+    const startMs = Date.parse(entry.startAt);
+    const next = sorted[i + 1];
+    const endMs = entry.endAt
+      ? Date.parse(entry.endAt)
+      : next
+        ? Date.parse(next.startAt)
+        : startMs + ASSUMED_EVENT_DURATION_MS;
+    return {
+      id: entry.id,
+      label: entry.label,
+      startMs,
+      endMs,
+      startTimeDisplay: formatEventTime(entry.startAt, displayTz),
+      startDayDisplay: formatInTimeZone(entry.startAt, displayTz, "MMM d"),
+    };
+  });
+}
+
+/** ms until the next segment start/end boundary after `nowMs` (Infinity if none). */
+function msToNextSegmentBoundary(
+  segments: ScheduleSegment[],
+  nowMs: number
+): number {
+  let min = Infinity;
+  for (const seg of segments) {
+    for (const boundary of [seg.startMs, seg.endMs]) {
+      const delta = boundary - nowMs;
+      if (delta > 0 && delta < min) min = delta;
+    }
+  }
+  return min;
 }
 
 /**
@@ -226,7 +318,8 @@ function calculateTemporalState(
   startAt: Date | null,
   endAt: Date | null,
   now: Date,
-  timezone?: string
+  timezone?: string,
+  segments: ScheduleSegment[] = []
 ): EventTemporalState {
   // No valid start date - return unknown state
   if (!startAt) {
@@ -243,12 +336,24 @@ function calculateTemporalState(
       daysSinceEnded: 0,
       countdownText: "",
       hasValidDates: false,
+      segments: [],
+      currentSegment: null,
+      nextSegment: null,
     };
   }
 
-  // No explicit end: assume a duration so the event has a real ongoing phase
+  // effectiveEndAt ladder (plan §3.6): explicit Event.endAt → last schedule
+  // segment's end (which itself embeds "entry endAt or start + assumption")
+  // → startAt + ASSUMED_EVENT_DURATION_MS. Guarded to never precede startAt
+  // so malformed entries can't make the event end before it begins.
+  const lastSegmentEndMs = segments.length
+    ? segments[segments.length - 1].endMs
+    : null;
   const effectiveEndAt =
-    endAt ?? new Date(startAt.getTime() + ASSUMED_EVENT_DURATION_MS);
+    endAt ??
+    (lastSegmentEndMs !== null
+      ? new Date(Math.max(lastSegmentEndMs, startAt.getTime()))
+      : new Date(startAt.getTime() + ASSUMED_EVENT_DURATION_MS));
 
   const msUntilStart = startAt.getTime() - now.getTime();
   const msUntilEnd = effectiveEndAt.getTime() - now.getTime();
@@ -285,6 +390,25 @@ function calculateTemporalState(
   const timeRemaining = isFuture ? calculateTimeRemaining(startAt, now) : null;
   const countdownText = formatCountdownText(timeRemaining, phase);
 
+  // Segment lookup — pure instant math. Overlapping segments resolve to the
+  // earliest (organizer order after the sort); a gap has no currentSegment.
+  const nowMs = now.getTime();
+  const currentSegment =
+    segments.find((s) => s.startMs <= nowMs && nowMs < s.endMs) ?? null;
+  let nextSegment = segments.find((s) => s.startMs > nowMs) ?? null;
+  // A next-up segment on another venue day carries its day in the display
+  // ("Next: Brunch · Aug 23 · 11:00 AM") — a bare time would be ambiguous
+  // across midnight.
+  if (
+    nextSegment &&
+    calendarDaysBetween(now, new Date(nextSegment.startMs), timezone) !== 0
+  ) {
+    nextSegment = {
+      ...nextSegment,
+      startTimeDisplay: `${nextSegment.startDayDisplay} · ${nextSegment.startTimeDisplay}`,
+    };
+  }
+
   return {
     phase,
     daysUntil: Math.ceil(daysUntil),
@@ -298,6 +422,9 @@ function calculateTemporalState(
     daysSinceEnded,
     countdownText,
     hasValidDates: true,
+    segments,
+    currentSegment,
+    nextSegment,
   };
 }
 
@@ -323,11 +450,16 @@ export function useEventTemporal({
   startAt,
   endAt,
   timezone,
+  schedule,
   updateInterval,
   enableLiveUpdates = true,
 }: UseEventTemporalOptions): EventTemporalState {
   const parsedStartAt = useMemo(() => parseDate(startAt), [startAt]);
   const parsedEndAt = useMemo(() => parseDate(endAt), [endAt]);
+  const segments = useMemo(
+    () => deriveScheduleSegments(schedule, timezone),
+    [schedule, timezone]
+  );
 
   const [now, setNow] = useState(() => new Date());
 
@@ -337,32 +469,47 @@ export function useEventTemporal({
     if (!enableLiveUpdates || !parsedStartAt) return;
 
     const startMs = parsedStartAt.getTime();
-    // Mirror calculateTemporalState's assumed duration so the tick cadence
-    // agrees with the phase (minute ticks while "ongoing", hourly after).
-    const endMs = parsedEndAt?.getTime() ?? startMs + ASSUMED_EVENT_DURATION_MS;
+    // Mirror calculateTemporalState's effectiveEndAt ladder so the tick
+    // cadence agrees with the phase (minute ticks while "ongoing", hourly
+    // after): explicit endAt → last segment end → assumed duration.
+    const lastSegmentEndMs = segments.length
+      ? Math.max(segments[segments.length - 1].endMs, startMs)
+      : null;
+    const endMs =
+      parsedEndAt?.getTime() ??
+      lastSegmentEndMs ??
+      startMs + ASSUMED_EVENT_DURATION_MS;
 
     let timer: ReturnType<typeof setTimeout>;
 
-    function schedule() {
+    function scheduleTick() {
       let delay: number;
       if (updateInterval !== undefined) {
         delay = updateInterval;
       } else {
         const nowMs = Date.now();
-        delay =
-          endMs - nowMs < -JUST_STARTED_WINDOW_MS
-            ? HOUR // ended: only daysSinceEnded can change
-            : getNextTickDelay(startMs - nowMs);
+        if (endMs - nowMs < -JUST_STARTED_WINDOW_MS) {
+          delay = HOUR; // ended: only daysSinceEnded can change
+        } else {
+          delay = getNextTickDelay(startMs - nowMs);
+          // Segment transitions (underway ↔ gap ↔ next-up) must land on
+          // time too — tick just past the nearest segment boundary when it
+          // comes sooner than the countdown boundary.
+          const boundaryDelta = msToNextSegmentBoundary(segments, nowMs);
+          if (boundaryDelta !== Infinity) {
+            delay = Math.max(Math.min(delay, boundaryDelta + 50), 250);
+          }
+        }
       }
       timer = setTimeout(tick, delay);
     }
 
     function tick() {
       setNow(new Date());
-      schedule();
+      scheduleTick();
     }
 
-    schedule();
+    scheduleTick();
 
     // Background tabs throttle timers; on return, snap to the correct value
     // immediately instead of waiting out a stale long tick.
@@ -378,12 +525,12 @@ export function useEventTemporal({
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [parsedStartAt, parsedEndAt, updateInterval, enableLiveUpdates]);
+  }, [parsedStartAt, parsedEndAt, segments, updateInterval, enableLiveUpdates]);
 
   // Calculate temporal state
   const state = useMemo(
-    () => calculateTemporalState(parsedStartAt, parsedEndAt, now, timezone),
-    [parsedStartAt, parsedEndAt, now, timezone]
+    () => calculateTemporalState(parsedStartAt, parsedEndAt, now, timezone, segments),
+    [parsedStartAt, parsedEndAt, now, timezone, segments]
   );
 
   return state;
@@ -397,7 +544,7 @@ export function useEventTemporal({
 export function getEventTemporalState(
   startAt: Date | string | null | undefined,
   endAt?: Date | string | null,
-  opts?: { timezone?: string; now?: Date }
+  opts?: { timezone?: string; now?: Date; schedule?: unknown }
 ): EventTemporalState {
   const parsedStartAt = parseDate(startAt);
   const parsedEndAt = parseDate(endAt);
@@ -405,6 +552,7 @@ export function getEventTemporalState(
     parsedStartAt,
     parsedEndAt,
     opts?.now ?? new Date(),
-    opts?.timezone
+    opts?.timezone,
+    deriveScheduleSegments(opts?.schedule, opts?.timezone)
   );
 }

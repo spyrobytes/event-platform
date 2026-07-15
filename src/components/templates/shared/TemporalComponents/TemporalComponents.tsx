@@ -100,7 +100,7 @@ export function CountdownDisplay({
 type LiveIndicatorProps = {
   /** Additional CSS classes */
   className?: string;
-  /** Custom text (default: "Happening Now") */
+  /** Custom text (default: "{segment} underway" or "Happening Now") */
   text?: string;
   /** Accent color */
   accentColor?: string;
@@ -108,10 +108,10 @@ type LiveIndicatorProps = {
 
 export function LiveIndicator({
   className,
-  text = "Happening Now",
+  text,
   accentColor,
 }: LiveIndicatorProps) {
-  const { shouldShowLive } = useTemporal();
+  const { shouldShowLive, currentSegment } = useTemporal();
 
   if (!shouldShowLive) {
     return null;
@@ -121,10 +121,50 @@ export function LiveIndicator({
     ? ({ "--temporal-accent": accentColor } as React.CSSProperties)
     : undefined;
 
+  // Segment-aware copy (plan §3.6): name what's underway when the typed
+  // schedule says so; the generic pill remains for whole-span events.
+  const label =
+    text ?? (currentSegment ? `${currentSegment.label} underway` : "Happening Now");
+
   return (
     <div className={cn(styles.liveIndicator, className)} style={style}>
       <span className={styles.liveDot} aria-hidden="true" />
-      <span className={styles.liveText}>{text}</span>
+      <span className={styles.liveText}>{label}</span>
+    </div>
+  );
+}
+
+/**
+ * Next-Up Indicator
+ *
+ * Calm (non-pulsing) pill for the gap between schedule segments while the
+ * event is ongoing: "Next: Reception · 5:00 PM". Renders only when the
+ * event is live, no segment is underway, and a later segment exists —
+ * a next-up pointer beats a live pill pulsing through a 4-hour gap
+ * (plan §3.6).
+ */
+type NextUpIndicatorProps = {
+  /** Additional CSS classes */
+  className?: string;
+  /** Accent color */
+  accentColor?: string;
+};
+
+export function NextUpIndicator({ className, accentColor }: NextUpIndicatorProps) {
+  const { shouldShowLive, currentSegment, nextSegment } = useTemporal();
+
+  if (!shouldShowLive || currentSegment || !nextSegment) {
+    return null;
+  }
+
+  const style = accentColor
+    ? ({ "--temporal-accent": accentColor } as React.CSSProperties)
+    : undefined;
+
+  return (
+    <div className={cn(styles.nextUp, className)} style={style}>
+      <span className={styles.nextUpLabel}>Next: {nextSegment.label}</span>
+      <span className={styles.nextUpTime}>· {nextSegment.startTimeDisplay}</span>
     </div>
   );
 }
@@ -316,11 +356,19 @@ export function TemporalHeroOverlay({
     shouldShowLive,
     shouldShowPostEvent,
     msUntilStart,
+    currentSegment,
+    nextSegment,
   } = useTemporal();
 
   if (phase === "unknown") {
     return null;
   }
+
+  // Segment gap (plan §3.6): live but between typed segments with more to
+  // come → show the calm next-up pointer instead of the pulsing live pill.
+  // Whole-span events (no segments) and trailing gaps (no next segment)
+  // keep the generic pill.
+  const inSegmentGap = shouldShowLive && !currentSegment && !!nextSegment;
 
   // Confetti in the seconds right after the countdown hits zero. Detected as
   // a time window (not a phase transition), so it's a pure derivation — no
@@ -335,7 +383,10 @@ export function TemporalHeroOverlay({
       {shouldShowCountdown && (
         <CountdownDisplay variant="hero" accentColor={accentColor} />
       )}
-      {shouldShowLive && <LiveIndicator accentColor={accentColor} />}
+      {shouldShowLive && !inSegmentGap && (
+        <LiveIndicator accentColor={accentColor} />
+      )}
+      {inSegmentGap && <NextUpIndicator accentColor={accentColor} />}
       {justStarted && <ConfettiBurst accentColor={accentColor} />}
       {shouldShowPostEvent && (
         <PostEventMessage message={postEventMessage} accentColor={accentColor} />

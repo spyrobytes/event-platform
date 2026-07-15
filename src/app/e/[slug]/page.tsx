@@ -199,6 +199,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     endAt: event.endAt?.toISOString() ?? null,
     timezone: event.timezone,
     rsvpDeadline: event.rsvpDeadline?.toISOString() ?? null,
+    schedule: event.schedule,
   };
 
   // Use direct component reference from TEMPLATES to satisfy static component rules

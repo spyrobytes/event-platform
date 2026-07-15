@@ -584,6 +584,7 @@ export function WeddingTemplateV2({
       startAt={temporal?.startAt}
       endAt={temporal?.endAt}
       timezone={temporal?.timezone}
+      schedule={temporal?.schedule}
     >
       <SectionNavProvider>
         <AnimationProvider

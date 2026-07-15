@@ -6,16 +6,44 @@ import { TemporalHeroOverlay } from "@/components/templates/shared/TemporalCompo
 const SECOND = 1_000;
 const HOUR = 3_600_000;
 
-function renderOverlay(startOffsetMs: number, endOffsetMs?: number | null) {
+function renderOverlay(
+  startOffsetMs: number,
+  endOffsetMs?: number | null,
+  schedule?: unknown,
+) {
   const now = Date.now();
   return render(
     <TemporalProvider
       startAt={new Date(now + startOffsetMs)}
       endAt={endOffsetMs == null ? null : new Date(now + endOffsetMs)}
+      schedule={schedule}
     >
       <TemporalHeroOverlay />
     </TemporalProvider>,
   );
+}
+
+/** Two segments anchored to the render clock: a 30-min first block starting
+ *  at `firstStartOffsetMs`, a 30-min gap, then a 2-hour second block. */
+function sampleSchedule(firstStartOffsetMs: number) {
+  const now = Date.now();
+  const first = now + firstStartOffsetMs;
+  return [
+    {
+      id: "ceremony",
+      label: "Ceremony",
+      startAt: new Date(first).toISOString(),
+      endAt: new Date(first + 30 * 60_000).toISOString(),
+      isAccessPassGated: false,
+    },
+    {
+      id: "reception",
+      label: "Reception",
+      startAt: new Date(first + 60 * 60_000).toISOString(),
+      endAt: new Date(first + 180 * 60_000).toISOString(),
+      isAccessPassGated: false,
+    },
+  ];
 }
 
 function confettiIn(container: HTMLElement) {
@@ -41,5 +69,47 @@ describe("TemporalHeroOverlay confetti gate", () => {
   it("does not burst while still counting down", () => {
     const { container } = renderOverlay(60 * SECOND, 2 * HOUR);
     expect(confettiIn(container)).toBeNull();
+  });
+});
+
+describe("TemporalHeroOverlay segment states (plan §3.6)", () => {
+  it("names the segment underway instead of the generic live pill", () => {
+    // 10 min into the ceremony (which started 10 min ago)
+    const { getByText, queryByText } = renderOverlay(
+      -10 * 60 * SECOND,
+      4 * HOUR,
+      sampleSchedule(-10 * 60 * SECOND),
+    );
+    expect(getByText("Ceremony underway")).toBeTruthy();
+    expect(queryByText("Happening Now")).toBeNull();
+  });
+
+  it("shows the next-up pointer in a gap between segments", () => {
+    // 45 min after the first segment started → 15 min into the gap
+    const { getByText, queryByText } = renderOverlay(
+      -45 * 60 * SECOND,
+      4 * HOUR,
+      sampleSchedule(-45 * 60 * SECOND),
+    );
+    expect(getByText(/Next: Reception/)).toBeTruthy();
+    expect(queryByText(/underway/)).toBeNull();
+    expect(queryByText("Happening Now")).toBeNull();
+  });
+
+  it("keeps the generic pill for whole-span events (no schedule)", () => {
+    const { getByText } = renderOverlay(-10 * 60 * SECOND, 4 * HOUR);
+    expect(getByText("Happening Now")).toBeTruthy();
+  });
+
+  it("keeps the generic pill in a trailing gap (past the last segment, before the explicit end)", () => {
+    // 3.5h after the first segment start: reception ended at 3h, but the
+    // event's explicit endAt is 8h out — live with nothing scheduled next.
+    const { getByText, queryByText } = renderOverlay(
+      -210 * 60 * SECOND,
+      8 * HOUR,
+      sampleSchedule(-210 * 60 * SECOND),
+    );
+    expect(getByText("Happening Now")).toBeTruthy();
+    expect(queryByText(/Next:/)).toBeNull();
   });
 });

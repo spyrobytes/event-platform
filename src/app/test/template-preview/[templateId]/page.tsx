@@ -45,6 +45,7 @@ type PageProps = {
     sampleSubtitle?: string;
     sampleWishes?: string;
     sampleStartIn?: string;
+    sampleSegments?: string;
   }>;
 };
 
@@ -372,6 +373,7 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
     sampleSubtitle,
     sampleWishes,
     sampleStartIn,
+    sampleSegments,
   } = await searchParams;
 
   // Verify template exists
@@ -559,18 +561,44 @@ export default async function TemplatePreviewPage({ params, searchParams }: Page
   // Optionally exercise the temporal strip (?sampleStartIn=<seconds until
   // start> — e.g. ?sampleStartIn=90 watches minutes → seconds → confetti →
   // "Happening Now"; negative values land mid-event or, below -14400, past
-  // the 4-hour sample end). Dev/test only.
+  // the 4-hour sample end). Add &sampleSegments=1 for a typed schedule:
+  // 30-min Ceremony at start, 30-min gap, Reception at +1h — so
+  // sampleStartIn=-60 shows "Ceremony underway", -2100 the gap's
+  // "Next: Reception · …", -3900 "Reception underway". Dev/test only.
   let temporal: TemporalData | undefined;
   if (sampleStartIn !== undefined) {
     const seconds = Number(sampleStartIn);
     if (Number.isFinite(seconds)) {
       // eslint-disable-next-line react-hooks/purity -- dev-only force-dynamic QA route; the point is anchoring the sample event relative to request time
       const startMs = Date.now() + seconds * 1000;
+      const HOUR_MS = 60 * 60 * 1000;
       temporal = {
         startAt: new Date(startMs).toISOString(),
-        endAt: new Date(startMs + 4 * 60 * 60 * 1000).toISOString(),
+        endAt: new Date(startMs + 4 * HOUR_MS).toISOString(),
         timezone: "UTC",
         rsvpDeadline: null,
+        ...(sampleSegments
+          ? {
+              schedule: [
+                {
+                  id: "sample-ceremony",
+                  label: "Ceremony",
+                  role: "ceremony",
+                  startAt: new Date(startMs).toISOString(),
+                  endAt: new Date(startMs + 0.5 * HOUR_MS).toISOString(),
+                  isAccessPassGated: false,
+                },
+                {
+                  id: "sample-reception",
+                  label: "Reception",
+                  role: "reception",
+                  startAt: new Date(startMs + HOUR_MS).toISOString(),
+                  endAt: new Date(startMs + 4 * HOUR_MS).toISOString(),
+                  isAccessPassGated: false,
+                },
+              ],
+            }
+          : {}),
       };
     }
   }
