@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   toDraft,
   fromDraft,
+  sortDrafts,
 } from "@/components/features/Schedule/ScheduleEditorPanel";
 import { scheduleEntrySchema, type ScheduleEntry } from "@/schemas/event";
 
@@ -54,5 +55,48 @@ describe("schedule editor draft round-trip", () => {
     );
     expect(restored.venue).toBeNull();
     expect(restored.address).toBeNull();
+  });
+});
+
+describe("sortDrafts", () => {
+  const at = (startLocal: string, label: string) => ({
+    id: label,
+    label,
+    role: "" as const,
+    startLocal,
+    endLocal: "",
+    venue: "",
+    address: "",
+    description: "",
+    isAccessPassGated: false,
+  });
+
+  it("orders drafts chronologically by wall-clock start", () => {
+    const sorted = sortDrafts([
+      at("2026-08-22T10:00", "church"),
+      at("2026-08-20T13:00", "traditional"),
+      at("2026-08-22T13:00", "reception"),
+    ]);
+    expect(sorted.map((d) => d.label)).toEqual([
+      "traditional",
+      "church",
+      "reception",
+    ]);
+  });
+
+  it("keeps drafts without a start time at the end, in insertion order", () => {
+    const sorted = sortDrafts([
+      at("", "new-b"),
+      at("2026-08-22T10:00", "church"),
+      at("", "new-a"),
+    ]);
+    expect(sorted.map((d) => d.label)).toEqual(["church", "new-b", "new-a"]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [at("2026-08-22T13:00", "b"), at("2026-08-22T10:00", "a")];
+    const copy = [...input];
+    sortDrafts(input);
+    expect(input).toEqual(copy);
   });
 });

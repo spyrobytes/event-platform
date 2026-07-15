@@ -80,6 +80,9 @@ export function buildSubEventBlocks(input: {
   const entries = parseSchedule(input.schedule);
   const typedCeremony = entries ? findScheduleEntry(entries, "ceremony") : null;
   const typedReception = entries ? findScheduleEntry(entries, "reception") : null;
+  const typedTraditional = entries
+    ? findScheduleEntry(entries, "traditional")
+    : null;
 
   const ceremonyHasAny =
     typedCeremony ||
@@ -109,12 +112,13 @@ export function buildSubEventBlocks(input: {
       }
     : {};
 
-  // Surface the main Event row's start time as a "Traditional" sub-event
-  // when (a) wedding sub-events are configured AND (b) the main event
-  // precedes the ceremony by at least the threshold. Captures the common
-  // case of a separate cultural / traditional ceremony preceding the formal
-  // one. Anchor preference mirrors the field ladders: typed ceremony →
-  // typed reception → legacy config equivalents; with no anchor, skip.
+  // Traditional block: an explicit role="traditional" schedule entry wins —
+  // the organizer named the cultural ceremony directly. Without one, fall
+  // back to the heuristic: surface the main Event row's start time as a
+  // "Traditional" sub-event when (a) wedding sub-events are configured AND
+  // (b) the main event precedes the ceremony by at least the threshold.
+  // Anchor preference mirrors the field ladders: typed ceremony → typed
+  // reception → legacy config equivalents; with no anchor, skip.
   const ceremonyAnchor =
     (typedCeremony ? new Date(typedCeremony.startAt) : null) ??
     (typedReception ? new Date(typedReception.startAt) : null) ??
@@ -125,14 +129,21 @@ export function buildSubEventBlocks(input: {
     ceremonyAnchor !== null &&
     input.eventStartAt.getTime() + TRADITIONAL_MIN_LEAD_MS <=
       ceremonyAnchor.getTime();
-  const traditional = isMainEventDistinct
+  const traditional = typedTraditional
     ? {
-        traditionalDate: input.eventDate,
-        traditionalTime: input.eventTime,
-        traditionalVenue: input.eventVenueName || undefined,
-        traditionalAddress: input.eventAddress || undefined,
+        traditionalDate: fmtDate(typedTraditional.startAt),
+        traditionalTime: fmtTime(typedTraditional.startAt),
+        traditionalVenue: typedTraditional.venue || undefined,
+        traditionalAddress: typedTraditional.address || undefined,
       }
-    : {};
+    : isMainEventDistinct
+      ? {
+          traditionalDate: input.eventDate,
+          traditionalTime: input.eventTime,
+          traditionalVenue: input.eventVenueName || undefined,
+          traditionalAddress: input.eventAddress || undefined,
+        }
+      : {};
 
   const receptionHasAny =
     typedReception ||
