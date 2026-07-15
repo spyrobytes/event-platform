@@ -44,6 +44,10 @@ type TemporalProviderProps = {
    *  "yesterday"): temporal state is viewed from the venue's wall clock, not
    *  the visitor's. Omit to fall back to the viewer's local calendar. */
   timezone?: string;
+  /** Raw Event.schedule Json — enables segment-aware strip states
+   *  ("Ceremony underway", "Next: Reception · 5:00 PM"). Optional; absent
+   *  keeps whole-span behavior unchanged (plan §3.6). */
+  schedule?: unknown;
   /** Fixed update interval in ms. Omit for adaptive cadence (hourly while
    *  days show, per-minute inside 24h, per-second in the final minute). */
   updateInterval?: number;
@@ -69,6 +73,7 @@ export function TemporalProvider({
   startAt,
   endAt,
   timezone,
+  schedule,
   updateInterval,
 }: TemporalProviderProps) {
   // Get base temporal state from hook
@@ -76,6 +81,7 @@ export function TemporalProvider({
     startAt,
     endAt,
     timezone,
+    schedule,
     updateInterval,
     enableLiveUpdates: true,
   });
@@ -148,6 +154,9 @@ export function useTemporal(): TemporalContextValue {
       daysSinceEnded: 0,
       countdownText: "",
       hasValidDates: false,
+      segments: [],
+      currentSegment: null,
+      nextSegment: null,
       isTemporalEnabled: false,
       getPhaseContent: <T,>(_content: Partial<Record<EventPhase, T>>, fallback: T): T => fallback,
       shouldShowCountdown: false,

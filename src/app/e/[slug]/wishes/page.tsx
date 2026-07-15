@@ -132,6 +132,7 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
     endAt: event.endAt?.toISOString() ?? null,
     timezone: event.timezone,
     rsvpDeadline: event.rsvpDeadline?.toISOString() ?? null,
+    schedule: event.schedule,
   };
 
   const Template = TEMPLATES[resolvedTemplateId];

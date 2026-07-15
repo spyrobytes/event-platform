@@ -47,6 +47,7 @@ export {
 export {
   CountdownDisplay,
   LiveIndicator,
+  NextUpIndicator,
   PostEventMessage,
   TemporalBadge,
   RsvpUrgency,

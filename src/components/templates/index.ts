@@ -35,6 +35,8 @@ export type TemporalData = {
   timezone: string;
   /** RSVP deadline date/time (ISO string) */
   rsvpDeadline: string | null;
+  /** Raw typed Event.schedule Json — segment-aware strip states (plan §3.6) */
+  schedule?: unknown;
 };
 
 /**
