@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import {
+  useImpersonation,
+  isImpersonationInvalid,
+} from "@/components/providers/ImpersonationProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,6 +123,7 @@ export function ScheduleEditorPanel({
   onDirtyChange,
 }: ScheduleEditorPanelProps) {
   const { getIdToken } = useAuthContext();
+  const { actAsHeaders, clearGrant } = useImpersonation();
 
   const [timezone, setTimezone] = useState("UTC");
   const [eventTitle, setEventTitle] = useState("");
@@ -139,8 +144,20 @@ export function ScheduleEditorPanel({
           return;
         }
         const res = await fetch(`/api/events/${eventId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...actAsHeaders(eventId),
+          },
         });
+        if (!res.ok) {
+          const body = await res.clone().json().catch(() => ({}));
+          if (isImpersonationInvalid(body)) {
+            clearGrant();
+            throw new Error(
+              "Your editing session ended. Return to admin tools and start a new one."
+            );
+          }
+        }
         const { data } = await parseApiResponse<{
           data: {
             title: string;
@@ -167,7 +184,7 @@ export function ScheduleEditorPanel({
     return () => {
       cancelled = true;
     };
-  }, [eventId, getIdToken]);
+  }, [eventId, getIdToken, actAsHeaders, clearGrant]);
 
   const updateDraft = useCallback((id: string, patch: Partial<DraftEntry>) => {
     setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
@@ -212,11 +229,21 @@ export function ScheduleEditorPanel({
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          ...actAsHeaders(eventId),
         },
         body: JSON.stringify({
           schedule: parsed.data.length > 0 ? parsed.data : null,
         }),
       });
+      if (!res.ok) {
+        const body = await res.clone().json().catch(() => ({}));
+        if (isImpersonationInvalid(body)) {
+          clearGrant();
+          throw new Error(
+            "Your editing session ended. Return to admin tools and start a new one."
+          );
+        }
+      }
       await parseApiResponse(res);
       // Settle into the order every read surface renders (chronological).
       setDrafts((prev) => sortDrafts(prev));
@@ -227,7 +254,7 @@ export function ScheduleEditorPanel({
     } finally {
       setSaving(false);
     }
-  }, [drafts, timezone, eventId, getIdToken]);
+  }, [drafts, timezone, eventId, getIdToken, actAsHeaders, clearGrant]);
 
   // Mirror dirty transitions to the host page (navigation guard). Effect,
   // not inline calls: `dirty` flips in five places and this keeps them in

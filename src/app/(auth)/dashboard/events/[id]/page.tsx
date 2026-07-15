@@ -5,6 +5,10 @@ import Link from "next/link";
 import { EventImage, type EventCoverAsset } from "@/components/media/EventImage";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import {
+  useImpersonation,
+  isImpersonationInvalid,
+} from "@/components/providers/ImpersonationProvider";
 import { formatEventDateTimeLong } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +67,7 @@ export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { getIdToken } = useAuthContext();
+  const { actAsHeaders, clearGrant } = useImpersonation();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [pendingWishes, setPendingWishes] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -108,13 +113,26 @@ export default function EventDetailPage() {
           return;
         }
 
+        // Act-as honored: the hub is the navigation path to the schedule and
+        // event editors when an admin edits on behalf of an organizer.
+        // Action routes reached from here (publish, delete, duplicate, the
+        // invite flow) stay non-honored server-side and will 403 under
+        // act-as — deny-by-omission holds regardless of what the UI shows.
         const response = await fetch(`/api/events/${params.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
+            ...actAsHeaders(params.id),
           },
         });
 
         if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          if (isImpersonationInvalid(body)) {
+            clearGrant();
+            throw new Error(
+              "Your editing session ended. Return to admin tools and start a new one."
+            );
+          }
           if (response.status === 404) {
             throw new Error("Event not found");
           }
@@ -131,7 +149,7 @@ export default function EventDetailPage() {
     }
 
     fetchEvent();
-  }, [params.id, getIdToken]);
+  }, [params.id, getIdToken, actAsHeaders, clearGrant]);
 
   const handlePublish = async () => {
     if (!event || isPublishing) return;

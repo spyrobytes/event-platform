@@ -251,8 +251,10 @@ export default function AdminEventsPage() {
                 <span className="font-medium text-foreground">
                   {actAsTarget.title}
                 </span>{" "}
-                as the organizer (template editing only). This is recorded in the
-                audit log — add a reason or support-ticket reference.
+                as the organizer (template, schedule &amp; event-details editing —
+                no publishing, invites, or guest communication). This is
+                recorded in the audit log — add a reason or support-ticket
+                reference.
               </p>
               <textarea
                 value={actAsReason}
