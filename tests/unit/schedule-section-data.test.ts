@@ -23,6 +23,7 @@ const singleDay = [
     role: "ceremony",
     startAt: "2026-08-22T16:00:00.000Z", // 10:00 AM local
     venue: "Celebration Church",
+    address: "7544 Argyll Road",
     description: "Doors open half an hour early.",
     isAccessPassGated: false,
   },
@@ -52,7 +53,8 @@ describe("deriveScheduleSectionData", () => {
         {
           time: "10:00 AM",
           title: "Ceremony",
-          location: "Celebration Church",
+          // venue + address join into the page item's single location field
+          location: "Celebration Church, 7544 Argyll Road",
           description: "Doors open half an hour early.",
         },
         {
@@ -62,6 +64,20 @@ describe("deriveScheduleSectionData", () => {
         },
       ],
     });
+  });
+
+  it("location handles venue-only, address-only, and neither", () => {
+    const entries = [
+      { id: "a", label: "Venue Only", startAt: "2026-08-22T16:00:00Z", venue: "The Hall", isAccessPassGated: false },
+      { id: "b", label: "Address Only", startAt: "2026-08-22T17:00:00Z", address: "12 Side St", isAccessPassGated: false },
+      { id: "c", label: "Neither", startAt: "2026-08-22T18:00:00Z", isAccessPassGated: false },
+    ];
+    const result = deriveScheduleSectionData(entries, TZ);
+    expect(result?.items.map((i) => i.location)).toEqual([
+      "The Hall",
+      "12 Side St",
+      undefined,
+    ]);
   });
 
   it("sorts as instants, not ISO strings (mixed precision)", () => {
