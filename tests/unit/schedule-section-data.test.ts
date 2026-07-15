@@ -90,12 +90,48 @@ describe("deriveScheduleSectionData", () => {
         items: [expect.objectContaining({ time: "11:00 AM", title: "Farewell Brunch" })],
       },
     ]);
-    // Flat list carries the day (and drops end times) for flat-only renderers
+    // Flat list carries the day (and drops end times) for flat-only
+    // renderers — "MMM d" not weekday, so twice-occurring weekdays stay
+    // unambiguous.
     expect(result?.items.map((i) => i.time)).toEqual([
-      "Sat · 10:00 AM",
-      "Sat · 1:00 PM",
-      "Sun · 11:00 AM",
+      "Aug 22 · 10:00 AM",
+      "Aug 22 · 1:00 PM",
+      "Aug 23 · 11:00 AM",
     ]);
+  });
+
+  it("falls back to flat-only when derivation would exceed the group caps", () => {
+    // 7 venue days — one past the schema's 6-group cap the group-aware
+    // renderers were built under.
+    const week = Array.from({ length: 7 }, (_, i) => ({
+      id: `d${i}`,
+      label: `Day ${i + 1} Event`,
+      startAt: `2026-08-${String(17 + i).padStart(2, "0")}T16:00:00.000Z`,
+      isAccessPassGated: false,
+    }));
+    const result = deriveScheduleSectionData(week, TZ);
+    expect(result?.groups).toBeUndefined();
+    expect(result?.items).toHaveLength(7);
+    expect(result?.items[0].time).toBe("Aug 17 · 10:00 AM");
+
+    // 2 days with 11 entries on one of them — over the 10-items-per-group cap.
+    const crowded = [
+      ...Array.from({ length: 11 }, (_, i) => ({
+        id: `c${i}`,
+        label: `Session ${i + 1}`,
+        startAt: `2026-08-22T${String(10 + i).padStart(2, "0")}:00:00.000Z`,
+        isAccessPassGated: false,
+      })),
+      {
+        id: "next-day",
+        label: "Wrap-up",
+        startAt: "2026-08-23T17:00:00.000Z",
+        isAccessPassGated: false,
+      },
+    ];
+    const crowdedResult = deriveScheduleSectionData(crowded, TZ);
+    expect(crowdedResult?.groups).toBeUndefined();
+    expect(crowdedResult?.items).toHaveLength(12);
   });
 
   it("splits days on the venue's midnight, not UTC", () => {

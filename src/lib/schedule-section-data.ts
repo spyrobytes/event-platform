@@ -1,6 +1,6 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { parseSchedule } from "@/lib/schedule-read";
-import { formatEventTime } from "@/lib/utils";
+import { formatEventTime, formatEventDateMedium } from "@/lib/utils";
 import type { ScheduleEntry } from "@/schemas/event";
 import type { Section, ScheduleSection, ScheduleGroup } from "@/schemas/event-page";
 
@@ -31,10 +31,12 @@ function toItem(
 ): ScheduleItem {
   const start = formatEventTime(entry.startAt, tz);
   // Flat lists on multi-day schedules carry the day in the time string
-  // (the flat-only renderers have nowhere else to show it); the end time is
-  // dropped there to stay within the shape's 20-char display budget.
+  // (the flat-only renderers have nowhere else to show it) — as "Aug 22",
+  // not a weekday, so schedules spanning the same weekday twice stay
+  // unambiguous. The end time is dropped there to stay within the shape's
+  // 20-char display budget.
   const time = opts.dayPrefix
-    ? `${formatInTimeZone(entry.startAt, tz, "EEE")} · ${start}`
+    ? `${formatInTimeZone(entry.startAt, tz, "MMM d")} · ${start}`
     : entry.endAt
       ? `${start} – ${formatEventTime(entry.endAt, tz)}`
       : start;
@@ -77,16 +79,32 @@ export function deriveScheduleSectionData(
     };
   }
 
+  // Renderer contract: the page-config schema caps groups at 6 and items
+  // per group at 10, and the group-aware renderers (tab bars, stacked day
+  // headers) were built under those caps — but derivation runs after
+  // validation, and a 20-entry typed schedule can exceed both. When it
+  // would, emit the day-prefixed flat list only (every renderer handles
+  // flat data) instead of silently truncating entries.
+  const withinGroupCaps =
+    days.size <= 6 &&
+    [...days.values()].every((dayEntries) => dayEntries.length <= 10);
+  const dayPrefixedItems = sorted.map((e) =>
+    toItem(e, timezone, { dayPrefix: true })
+  );
+  if (!withinGroupCaps) {
+    return { items: dayPrefixedItems };
+  }
+
   // Multi-day: groups labelled by venue weekday + date for the groups-aware
   // renderers, plus a day-prefixed flat list for the flat-only ones.
   const groups: ScheduleGroup[] = [...days.values()].map((dayEntries) => ({
     label: formatInTimeZone(dayEntries[0].startAt, timezone, "EEEE"),
-    date: formatInTimeZone(dayEntries[0].startAt, timezone, "MMMM d, yyyy"),
+    date: formatEventDateMedium(dayEntries[0].startAt, timezone),
     items: dayEntries.map((e) => toItem(e, timezone, { dayPrefix: false })),
   }));
 
   return {
-    items: sorted.map((e) => toItem(e, timezone, { dayPrefix: true })),
+    items: dayPrefixedItems,
     groups,
   };
 }

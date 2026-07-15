@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { TEMPLATES, type TemporalData, type RegistryClaimSummaryDTO } from "@/components/templates";
 import { summarizeClaims } from "@/lib/registry-claims";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
+import { applyTypedScheduleToSections } from "@/lib/schedule-section-data";
 import {
   getEventBySlug,
   getRedirectForRetiredSlug,
@@ -96,7 +97,16 @@ export default async function FullRegistryPage({ params, searchParams }: PagePro
   const hasRegistry = filteredSections.some((s) => s.type === "registry" && s.enabled);
   if (!hasRegistry) notFound();
 
-  const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
+  // Same typed-schedule substitution as /e/[slug] — this route renders the
+  // full template (nav parity), so the schedule section must match it.
+  const filteredConfig: EventPageConfigV1 = {
+    ...config,
+    sections: applyTypedScheduleToSections(
+      filteredSections,
+      event.schedule,
+      event.timezone
+    ),
+  };
   const navLinkBase = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
 
   const assets = event.mediaAssets.map((asset: {

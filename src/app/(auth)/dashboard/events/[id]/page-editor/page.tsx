@@ -279,6 +279,43 @@ export default function PageEditorPage() {
     fetchPageConfig();
   }, [params.id, getIdToken, actAsHeaders, clearGrant]);
 
+  // The schedule panel links to the Event Schedule editor in a new tab;
+  // refresh the typed-schedule payload when the organizer comes back so the
+  // panel's typed/legacy messaging reflects their edits. Only pageData.event
+  // is replaced — the draft config must never be clobbered by a refetch.
+  useEffect(() => {
+    let inFlight = false;
+    async function refreshEventPayload() {
+      if (inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try {
+        const token = await getIdToken();
+        if (!token) return;
+        const response = await fetch(`/api/events/${params.id}/page-config`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...actAsHeaders(params.id),
+          },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const freshEvent = data.data?.event;
+        if (!freshEvent) return;
+        setPageData((prev) => (prev ? { ...prev, event: freshEvent } : prev));
+      } catch {
+        // Silent: a stale panel is the acceptable fallback, not an error.
+      } finally {
+        inFlight = false;
+      }
+    }
+    window.addEventListener("focus", refreshEventPayload);
+    document.addEventListener("visibilitychange", refreshEventPayload);
+    return () => {
+      window.removeEventListener("focus", refreshEventPayload);
+      document.removeEventListener("visibilitychange", refreshEventPayload);
+    };
+  }, [params.id, getIdToken, actAsHeaders]);
+
   const handleTemplateChange = useCallback((newTemplateId: string) => {
     if (config) {
       const supported = TEMPLATE_SUPPORTED_SECTIONS[newTemplateId];
@@ -2231,11 +2268,8 @@ export default function PageEditorPage() {
                 <ScheduleEditor
                   items={section.data.items}
                   groups={section.data.groups}
-                  onChange={(items) => updateSection(index, {
-                    data: { ...section.data, items },
-                  })}
-                  onChangeGroups={(groups) => updateSection(index, {
-                    data: { ...section.data, groups },
+                  onRemoveLegacy={() => updateSection(index, {
+                    data: { ...section.data, items: [], groups: undefined },
                   })}
                   eventId={params.id}
                   eventSchedule={pageData?.event?.schedule}
