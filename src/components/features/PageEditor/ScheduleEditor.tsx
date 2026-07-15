@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { parseSchedule } from "@/lib/schedule-read";
 
 type ScheduleItem = {
   time: string;
@@ -22,433 +20,136 @@ type ScheduleGroup = {
 
 type ScheduleEditorProps = {
   items: ScheduleItem[];
-  onChange: (items: ScheduleItem[]) => void;
   groups?: ScheduleGroup[];
-  onChangeGroups?: (groups: ScheduleGroup[] | undefined) => void;
-  templateId?: string;
-  maxItems?: number;
-  /** When set, shows a pointer to the canonical Event Schedule editor
-   *  (emails/passes read that; this section is the page's display list). */
-  eventId?: string;
+  /**
+   * Clears items AND groups in one state update. Must be a single
+   * setState/updateSection call in the host — two sequential calls that
+   * each spread the same render's section.data resurrect the cleared half.
+   */
+  onRemoveLegacy: () => void;
+  eventId: string;
+  /** Raw Event.schedule Json (from the page-config GET's event payload). */
+  eventSchedule?: unknown;
 };
 
 /**
- * Editor for schedule/agenda items.
- * V2 wedding template supports grouped mode (multi-day events).
+ * Page-editor panel for the schedule section (canonical-schedule PR 3d).
+ * The section's list now derives from the typed Event.schedule — free-text
+ * item/group editing is no longer offered (free-text is end-of-life, plan
+ * §4.3). Saved hand-typed items are shown read-only, with removal offered
+ * only once a typed schedule exists (before that they are the only content
+ * the section can render). Section heading/description stay editable in
+ * the host page.
  */
 export function ScheduleEditor({
   items,
-  onChange,
   groups,
-  onChangeGroups,
-  templateId,
-  maxItems = 20,
+  onRemoveLegacy,
   eventId,
+  eventSchedule,
 }: ScheduleEditorProps) {
-  const isV2 = templateId === "wedding_v2";
-  const hasGroups = groups && groups.length > 0;
+  // Full Zod parse — memoized off the editor's keystroke re-render path.
+  const typedEntries = useMemo(
+    () => parseSchedule(eventSchedule),
+    [eventSchedule]
+  );
+  const legacyGroups = groups && groups.length > 0 ? groups : null;
+  const hasLegacyText = items.length > 0 || !!legacyGroups;
 
-  const canonicalPointer = eventId ? (
-    <p className="text-xs text-muted-foreground">
-      Official dates &amp; times (emails, guest passes) are edited in the{" "}
-      <a
-        href={`/dashboard/events/${eventId}/schedule`}
-        className="font-medium underline underline-offset-2"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Event Schedule
-      </a>
-      . This section controls the page&apos;s display list.
-    </p>
-  ) : null;
-
-  // --- Flat item operations (legacy) ---
-  const addItem = useCallback(() => {
-    if (items.length >= maxItems) return;
-    onChange([...items, { time: "", title: "" }]);
-  }, [items, maxItems, onChange]);
-
-  const updateItem = useCallback(
-    (index: number, updates: Partial<ScheduleItem>) => {
-      const newItems = [...items];
-      newItems[index] = { ...newItems[index], ...updates };
-      onChange(newItems);
-    },
-    [items, onChange]
+  const scheduleLink = (
+    <a
+      href={`/dashboard/events/${eventId}/schedule`}
+      className="font-medium underline underline-offset-2"
+      target="_blank"
+      rel="noreferrer"
+    >
+      Event Schedule
+    </a>
   );
 
-  const removeItem = useCallback(
-    (index: number) => {
-      onChange(items.filter((_, i) => i !== index));
-    },
-    [items, onChange]
-  );
-
-  const moveItem = useCallback(
-    (index: number, direction: "up" | "down") => {
-      const newIndex = direction === "up" ? index - 1 : index + 1;
-      if (newIndex < 0 || newIndex >= items.length) return;
-      const newItems = [...items];
-      [newItems[index], newItems[newIndex]] = [newItems[newIndex], newItems[index]];
-      onChange(newItems);
-    },
-    [items, onChange]
-  );
-
-  // --- Group operations (V2) ---
-  const addGroup = useCallback(() => {
-    if (!onChangeGroups) return;
-    const current = groups || [];
-    if (current.length >= 6) return;
-    onChangeGroups([...current, { label: "", items: [] }]);
-  }, [groups, onChangeGroups]);
-
-  const updateGroup = useCallback(
-    (gi: number, updates: Partial<ScheduleGroup>) => {
-      if (!onChangeGroups || !groups) return;
-      const newGroups = [...groups];
-      newGroups[gi] = { ...newGroups[gi], ...updates };
-      onChangeGroups(newGroups);
-    },
-    [groups, onChangeGroups]
-  );
-
-  const removeGroup = useCallback(
-    (gi: number) => {
-      if (!onChangeGroups || !groups) return;
-      const filtered = groups.filter((_, i) => i !== gi);
-      onChangeGroups(filtered.length > 0 ? filtered : undefined);
-    },
-    [groups, onChangeGroups]
-  );
-
-  const moveGroup = useCallback(
-    (gi: number, direction: "up" | "down") => {
-      if (!onChangeGroups || !groups) return;
-      const newIndex = direction === "up" ? gi - 1 : gi + 1;
-      if (newIndex < 0 || newIndex >= groups.length) return;
-      const newGroups = [...groups];
-      [newGroups[gi], newGroups[newIndex]] = [newGroups[newIndex], newGroups[gi]];
-      onChangeGroups(newGroups);
-    },
-    [groups, onChangeGroups]
-  );
-
-  const addGroupItem = useCallback(
-    (gi: number) => {
-      if (!onChangeGroups || !groups) return;
-      const group = groups[gi];
-      if (group.items.length >= 10) return;
-      const newGroups = [...groups];
-      newGroups[gi] = { ...group, items: [...group.items, { time: "", title: "" }] };
-      onChangeGroups(newGroups);
-    },
-    [groups, onChangeGroups]
-  );
-
-  const updateGroupItem = useCallback(
-    (gi: number, ii: number, updates: Partial<ScheduleItem>) => {
-      if (!onChangeGroups || !groups) return;
-      const newGroups = [...groups];
-      const newItems = [...newGroups[gi].items];
-      newItems[ii] = { ...newItems[ii], ...updates };
-      newGroups[gi] = { ...newGroups[gi], items: newItems };
-      onChangeGroups(newGroups);
-    },
-    [groups, onChangeGroups]
-  );
-
-  const removeGroupItem = useCallback(
-    (gi: number, ii: number) => {
-      if (!onChangeGroups || !groups) return;
-      const newGroups = [...groups];
-      newGroups[gi] = {
-        ...newGroups[gi],
-        items: newGroups[gi].items.filter((_, i) => i !== ii),
-      };
-      onChangeGroups(newGroups);
-    },
-    [groups, onChangeGroups]
-  );
-
-  const moveGroupItem = useCallback(
-    (gi: number, ii: number, direction: "up" | "down") => {
-      if (!onChangeGroups || !groups) return;
-      const newIndex = direction === "up" ? ii - 1 : ii + 1;
-      const groupItems = groups[gi].items;
-      if (newIndex < 0 || newIndex >= groupItems.length) return;
-      const newItems = [...groupItems];
-      [newItems[ii], newItems[newIndex]] = [newItems[newIndex], newItems[ii]];
-      const newGroups = [...groups];
-      newGroups[gi] = { ...newGroups[gi], items: newItems };
-      onChangeGroups(newGroups);
-    },
-    [groups, onChangeGroups]
-  );
-
-  // V2 grouped mode
-  if (isV2 && onChangeGroups) {
-    return (
-      <div className="space-y-4">
-        {canonicalPointer}
-        {/* Grouped editor */}
-        {hasGroups ? (
-          <div className="space-y-6">
-            {groups!.map((group, gi) => (
-              <div key={gi} className="rounded-lg border-2 border-dashed p-4 space-y-4">
-                {/* Group header */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">
-                    Day / Event {gi + 1}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Button type="button" variant="ghost" size="sm" onClick={() => moveGroup(gi, "up")} disabled={gi === 0} className="h-8 w-8 p-0" aria-label="Move group up">↑</Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => moveGroup(gi, "down")} disabled={gi === groups!.length - 1} className="h-8 w-8 p-0" aria-label="Move group down">↓</Button>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeGroup(gi)} className="h-8 w-8 p-0 text-destructive hover:text-destructive" aria-label="Remove group">×</Button>
-                  </div>
-                </div>
-
-                {/* Group meta fields */}
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Label</Label>
-                    <Input
-                      value={group.label}
-                      onChange={(e) => updateGroup(gi, { label: e.target.value })}
-                      placeholder="e.g., Traditional Ceremony"
-                      maxLength={100}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Date (optional)</Label>
-                    <Input
-                      value={group.date || ""}
-                      onChange={(e) => updateGroup(gi, { date: e.target.value || undefined })}
-                      placeholder="e.g., Friday, Dec 13"
-                      maxLength={40}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Venue (optional)</Label>
-                    <Input
-                      value={group.location || ""}
-                      onChange={(e) => updateGroup(gi, { location: e.target.value || undefined })}
-                      placeholder="e.g., Grand Hotel Ballroom"
-                      maxLength={200}
-                    />
-                  </div>
-                </div>
-
-                {/* Group items */}
-                <div className="space-y-3 pl-3 border-l-2 border-muted">
-                  {group.items.map((item, ii) => (
-                    <ScheduleItemRow
-                      key={ii}
-                      item={item}
-                      index={ii}
-                      total={group.items.length}
-                      prefix={`g${gi}-`}
-                      onUpdate={(updates) => updateGroupItem(gi, ii, updates)}
-                      onRemove={() => removeGroupItem(gi, ii)}
-                      onMove={(dir) => moveGroupItem(gi, ii, dir)}
-                      showLocation
-                    />
-                  ))}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => addGroupItem(gi)}
-                    disabled={group.items.length >= 10}
-                    className="w-full text-xs"
-                  >
-                    + Add Item{group.items.length >= 10 && " (max 10)"}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-4">
+        {typedEntries ? (
+          <p className="text-sm text-muted-foreground">
+            This section displays the {scheduleLink} ({typedEntries.length}{" "}
+            {typedEntries.length === 1 ? "entry" : "entries"}), grouped by day
+            for multi-day events. Edit times, venues and descriptions there —
+            the page, emails and guest passes all update together.
+          </p>
         ) : (
-          /* Flat items (legacy data or not yet grouped) */
-          <>
-            {items.length > 0 && (
-              <div className="space-y-4">
-                {items.map((item, index) => (
-                  <ScheduleItemRow
-                    key={index}
-                    item={item}
-                    index={index}
-                    total={items.length}
-                    prefix=""
-                    onUpdate={(updates) => updateItem(index, updates)}
-                    onRemove={() => removeItem(index)}
-                    onMove={(dir) => moveItem(index, dir)}
-                  />
-                ))}
-              </div>
-            )}
-            {items.length === 0 && !hasGroups && (
-              <p className="text-sm text-muted-foreground">
-                No schedule items yet. Add individual items or create day groups for multi-day celebrations.
-              </p>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addItem}
-              disabled={items.length >= maxItems}
-              className="w-full"
-            >
-              + Add Schedule Item
-              {items.length >= maxItems && ` (max ${maxItems})`}
-            </Button>
-          </>
-        )}
-
-        {/* Add group button */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={addGroup}
-          disabled={(groups || []).length >= 6}
-          className="w-full"
-        >
-          + Add Day / Event Group
-          {(groups || []).length >= 6 && " (max 6)"}
-        </Button>
-        {!hasGroups && items.length > 0 && (
-          <p className="text-center text-xs text-muted-foreground">
-            Tip: Add a day group to organize a multi-day celebration. Flat items above will still display if no groups are added.
+          <p className="text-sm text-muted-foreground">
+            This section is populated from the {scheduleLink}. Add entries
+            there to build the page&apos;s schedule list.
           </p>
         )}
       </div>
-    );
-  }
 
-  // Non-V2: flat items only
-  return (
-    <div className="space-y-4">
-      {canonicalPointer}
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No schedule items yet. Add your first item below.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {items.map((item, index) => (
-            <ScheduleItemRow
-              key={index}
-              item={item}
-              index={index}
-              total={items.length}
-              prefix=""
-              onUpdate={(updates) => updateItem(index, updates)}
-              onRemove={() => removeItem(index)}
-              onMove={(dir) => moveItem(index, dir)}
-            />
-          ))}
+      {hasLegacyText && (
+        <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
+          <p className="text-sm text-muted-foreground">
+            {typedEntries
+              ? "Hand-typed schedule items saved earlier are no longer shown — the Event Schedule has taken over this section."
+              : "The hand-typed items below still display until Event Schedule entries exist. Editing them is no longer offered here — re-create them as Event Schedule entries."}
+          </p>
+
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            {legacyGroups
+              ? legacyGroups.map((group, gi) => (
+                  <li key={gi}>
+                    <span className="font-medium">
+                      {group.label || `Day ${gi + 1}`}
+                      {group.date ? ` — ${group.date}` : ""}
+                      {group.location ? ` · ${group.location}` : ""}
+                    </span>
+                    <ul className="ml-4 list-disc space-y-1">
+                      {group.items.map((item, ii) => (
+                        <li key={ii}>
+                          <LegacyItem item={item} />
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))
+              : items.map((item, i) => (
+                  <li key={i} className="ml-4 list-disc">
+                    <LegacyItem item={item} />
+                  </li>
+                ))}
+          </ul>
+
+          {typedEntries && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onRemoveLegacy}
+              >
+                Remove hand-typed items
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Removal is applied when you save the page.
+              </p>
+            </>
+          )}
         </div>
       )}
-
-      <Button
-        type="button"
-        variant="outline"
-        onClick={addItem}
-        disabled={items.length >= maxItems}
-        className="w-full"
-      >
-        + Add Schedule Item
-        {items.length >= maxItems && ` (max ${maxItems})`}
-      </Button>
     </div>
   );
 }
 
-/** Reusable schedule item row used in both flat and grouped modes */
-function ScheduleItemRow({
-  item,
-  index,
-  total,
-  prefix,
-  onUpdate,
-  onRemove,
-  onMove,
-  showLocation,
-}: {
-  item: ScheduleItem;
-  index: number;
-  total: number;
-  prefix: string;
-  onUpdate: (updates: Partial<ScheduleItem>) => void;
-  onRemove: () => void;
-  onMove: (direction: "up" | "down") => void;
-  showLocation?: boolean;
-}) {
+/** Every saved field is shown — the organizer decides whether to remove
+ *  this data, so none of it may be hidden from the review list. */
+function LegacyItem({ item }: { item: ScheduleItem }) {
   return (
-    <div className="relative rounded-lg border bg-card p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          Item {index + 1}
-        </span>
-        <div className="flex items-center gap-1">
-          <Button type="button" variant="ghost" size="sm" onClick={() => onMove("up")} disabled={index === 0} className="h-8 w-8 p-0" aria-label="Move up">↑</Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => onMove("down")} disabled={index === total - 1} className="h-8 w-8 p-0" aria-label="Move down">↓</Button>
-          <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-8 w-8 p-0 text-destructive hover:text-destructive" aria-label="Remove item">×</Button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor={`${prefix}schedule-time-${index}`}>Time</Label>
-          <Input
-            id={`${prefix}schedule-time-${index}`}
-            value={item.time}
-            onChange={(e) => onUpdate({ time: e.target.value })}
-            placeholder="e.g., 9:00 AM"
-            maxLength={20}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`${prefix}schedule-title-${index}`}>Title</Label>
-          <Input
-            id={`${prefix}schedule-title-${index}`}
-            value={item.title}
-            onChange={(e) => onUpdate({ title: e.target.value })}
-            placeholder="e.g., Registration"
-            maxLength={100}
-          />
-        </div>
-      </div>
-
-      {showLocation && (
-        <div className="mt-3 space-y-2">
-          <Label htmlFor={`${prefix}schedule-loc-${index}`}>
-            Location <span className="text-muted-foreground">(optional — overrides day venue)</span>
-          </Label>
-          <Input
-            id={`${prefix}schedule-loc-${index}`}
-            value={item.location || ""}
-            onChange={(e) => onUpdate({ location: e.target.value || undefined })}
-            placeholder="e.g., St. Mary's Cathedral"
-            maxLength={200}
-          />
-        </div>
-      )}
-
-      <div className="mt-4 space-y-2">
-        <Label htmlFor={`${prefix}schedule-desc-${index}`}>
-          Description <span className="text-muted-foreground">(optional)</span>
-        </Label>
-        <Textarea
-          id={`${prefix}schedule-desc-${index}`}
-          value={item.description || ""}
-          onChange={(e) => onUpdate({ description: e.target.value || undefined })}
-          placeholder="Additional details..."
-          rows={2}
-          maxLength={500}
-        />
-      </div>
-    </div>
+    <>
+      {item.time ? `${item.time} — ` : ""}
+      {item.title}
+      {item.location ? ` · ${item.location}` : ""}
+      {item.description ? (
+        <span className="block text-xs italic">{item.description}</span>
+      ) : null}
+    </>
   );
 }

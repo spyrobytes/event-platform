@@ -2,6 +2,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Metadata } from "next";
 import { TEMPLATES, type TemporalData, type ApprovedWishDTO } from "@/components/templates";
 import { filterSectionsByVisibility } from "@/lib/guest-access";
+import { applyTypedScheduleToSections } from "@/lib/schedule-section-data";
 import { getApprovedWishes } from "@/lib/wishes";
 import {
   getEventBySlug,
@@ -95,7 +96,16 @@ export default async function FullWishesPage({ params, searchParams }: PageProps
   const hasWishes = filteredSections.some((s) => s.type === "wishes" && s.enabled);
   if (!hasWishes) notFound();
 
-  const filteredConfig: EventPageConfigV1 = { ...config, sections: filteredSections };
+  // Same typed-schedule substitution as /e/[slug] — this route renders the
+  // full template (nav parity), so the schedule section must match it.
+  const filteredConfig: EventPageConfigV1 = {
+    ...config,
+    sections: applyTypedScheduleToSections(
+      filteredSections,
+      event.schedule,
+      event.timezone
+    ),
+  };
   const navLinkBase = `/e/${slug}${tk ? `?tk=${encodeURIComponent(tk)}` : ""}`;
 
   const assets = event.mediaAssets.map((asset: {

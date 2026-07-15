@@ -101,6 +101,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         pageConfig: true,
         templateId: true,
         publishedAt: true,
+        schedule: true,
         mediaAssets: {
           select: { ...MEDIA_ASSET_SELECT, tags: true },
         },
@@ -164,6 +165,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         startAt: fullEvent.startAt,
         endAt: fullEvent.endAt,
         rsvpDeadline: fullEvent.rsvpDeadline,
+        // Raw typed schedule: the preview + editor derive the schedule
+        // section's display from this (canonical-schedule PR 3d).
+        schedule: fullEvent.schedule,
       },
     });
   } catch (error) {

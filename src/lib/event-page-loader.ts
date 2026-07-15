@@ -57,6 +57,7 @@ export async function getEventBySlug(slug: string, tk: string | undefined) {
       templateId: true,
       publishedAt: true,
       rsvpDeadline: true,
+      schedule: true,
       // Surfaced for EventJsonLd structured data on the page route.
       creator: { select: { name: true } },
       organization: { select: { name: true } },
