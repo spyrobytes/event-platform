@@ -3,6 +3,11 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { verifyAuth } from "@/lib/auth";
 import { requireEventOwner, assertCanMutate } from "@/lib/authorization";
+import {
+  resolveEffectiveUser,
+  requireEffectiveMutator,
+  auditImpersonatedEdit,
+} from "@/lib/impersonation";
 import { successResponse, handleApiError, errorResponse } from "@/lib/api-response";
 import { updateEventSchema } from "@/schemas/event";
 import { NotFoundError } from "@/lib/errors";
@@ -35,7 +40,11 @@ const SLUG_RENAME_WINDOW_DAYS = 7;
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = await verifyAuth(request);
+    // Act-as honored (scope expanded 2026-07-15: schedule + event editors —
+    // previously template-only): ownership below checks the EFFECTIVE user.
+    // Without an X-Act-As header this behaves exactly like verifyAuth.
+    const ctx = await resolveEffectiveUser(request, id);
+    const user = ctx?.effective ?? null;
 
     const event = await db.event.findUnique({
       where: { id },
@@ -81,14 +90,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const user = await verifyAuth(request);
+    // Act-as honored (scope expanded 2026-07-15): event-details editing —
+    // timezone/schedule fixes and requested edits — now allowed on behalf of
+    // the organizer, with the admin recorded in the audit log. Event publish
+    // (discovery) and DELETE remain non-honored (deny-by-omission).
+    const ctx = await requireEffectiveMutator(request, id);
+    if (ctx instanceof Response) return ctx;
+    const { effective } = ctx;
 
-    if (!user) {
-      return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
-    }
-
-    await requireEventOwner(id, user.id);
-    assertCanMutate(user);
+    await requireEventOwner(id, effective.id);
 
     const body = await request.json();
     const data = updateEventSchema.parse(body);
@@ -221,6 +231,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
       throw err;
     }
+
+    // Audit before revalidation (durability — the audit row must survive a
+    // revalidation failure). No-op unless acting-as.
+    await auditImpersonatedEdit(ctx, request, id, {
+      route: "events.PATCH",
+      fields: Object.keys(data).join(","),
+    });
 
     if (renameInfo) {
       // Bust any cached responses for the old + new path. The /e routes are

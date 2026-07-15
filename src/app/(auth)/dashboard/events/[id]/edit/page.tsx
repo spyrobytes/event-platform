@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useAuthContext } from "@/components/providers/AuthProvider";
+import {
+  useImpersonation,
+  isImpersonationInvalid,
+} from "@/components/providers/ImpersonationProvider";
 import { EventForm } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import type { CreateEventInput, PassBackdropStyle } from "@/schemas/event";
@@ -35,6 +39,7 @@ export default function EditEventPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { getIdToken } = useAuthContext();
+  const { actAsHeaders, clearGrant } = useImpersonation();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,10 +58,18 @@ export default function EditEventPage() {
         const response = await fetch(`/api/events/${params.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
+            ...actAsHeaders(params.id),
           },
         });
 
         if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          if (isImpersonationInvalid(body)) {
+            clearGrant();
+            throw new Error(
+              "Your editing session ended. Return to admin tools and start a new one."
+            );
+          }
           if (response.status === 404) {
             throw new Error("Event not found");
           }
@@ -73,7 +86,7 @@ export default function EditEventPage() {
     }
 
     fetchEvent();
-  }, [params.id, getIdToken]);
+  }, [params.id, getIdToken, actAsHeaders, clearGrant]);
 
   const handleSubmit = async (data: CreateEventInput): Promise<void> => {
     if (!event) return;
@@ -90,12 +103,19 @@ export default function EditEventPage() {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...actAsHeaders(event.id),
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (isImpersonationInvalid(errorData)) {
+          clearGrant();
+          throw new Error(
+            "Your editing session ended. Return to admin tools and start a new one."
+          );
+        }
         throw new Error(errorData.error || "Failed to update event");
       }
 
