@@ -1,6 +1,6 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { parseSchedule } from "@/lib/schedule-read";
-import { formatEventTime, formatEventDateMedium } from "@/lib/utils";
+import { formatEventTime, formatEventDateMedium, truncate } from "@/lib/utils";
 import type { ScheduleEntry } from "@/schemas/event";
 import type { Section, ScheduleSection, ScheduleGroup } from "@/schemas/event-page";
 
@@ -40,10 +40,18 @@ function toItem(
     : entry.endAt
       ? `${start} – ${formatEventTime(entry.endAt, tz)}`
       : start;
+  // The page item has a single `location` field; typed entries split
+  // venue/address, so join them — the hand-typed items this replaces always
+  // carried "Venue, Address" in one string, and guests need the address to
+  // find the place. Truncated to the shape's 200-char display budget.
+  const location = [entry.venue, entry.address]
+    .filter(Boolean)
+    .join(", ");
+
   return {
     time,
     title: entry.label,
-    ...(entry.venue ? { location: entry.venue } : {}),
+    ...(location ? { location: truncate(location, 200) } : {}),
     ...(entry.description ? { description: entry.description } : {}),
   };
 }
