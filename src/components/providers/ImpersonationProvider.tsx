@@ -70,11 +70,11 @@ export function isImpersonationInvalid(body: unknown): boolean {
 function readStoredGrant(): ActiveGrant | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const g = JSON.parse(raw) as ActiveGrant;
     if (!g?.grantId || new Date(g.expiresAt).getTime() <= Date.now()) {
-      window.sessionStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(STORAGE_KEY);
       return null;
     }
     return g;
@@ -85,10 +85,16 @@ function readStoredGrant(): ActiveGrant | null {
 
 /**
  * Tracks the admin's active act-as grant across the app. Persisted in
- * sessionStorage so it survives both a reload and the /efx-ctrl → /dashboard
- * navigation (the admin starts a grant in the admin area, then edits in the
- * organizer dashboard). Wraps the whole app (inside AuthProvider) because the
- * banner lives in the dashboard layout while the start action lives in /efx-ctrl.
+ * localStorage — NOT sessionStorage — so the grant follows the admin across
+ * tabs: the schedule and invitation editors are deliberately opened via
+ * target="_blank" links, and sessionStorage does not copy into a
+ * noreferrer/noopener tab (prod incident 2026-07-15: the new tab silently
+ * degraded to plain-admin requests — published-event GETs still worked while
+ * saves failed ownership). The client-side expiry check plus the server's
+ * 30-min TTL still bound the grant's life; localStorage only widens WHERE the
+ * header is available, not for how long. Wraps the whole app (inside
+ * AuthProvider) because the banner lives in the dashboard layout while the
+ * start action lives in /efx-ctrl.
  */
 export function ImpersonationProvider({ children }: { children: ReactNode }) {
   const { getIdToken } = useAuthContext();
@@ -114,10 +120,23 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
     if (ms <= 0) return; // readStoredGrant already drops expired grants
     const timer = setTimeout(() => {
       setGrant(null);
-      window.sessionStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(STORAGE_KEY);
     }, ms);
     return () => clearTimeout(timer);
   }, [grant]);
+
+  // Cross-tab sync: starting/exiting a grant in one tab updates every other
+  // tab's banner state (the `storage` event fires only in OTHER tabs).
+  // actAsHeaders already reads the store imperatively, so header behavior is
+  // correct regardless — this keeps the visible state honest too.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      setGrant(readStoredGrant());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const startActAs = useCallback(
     async (input: StartActAsInput): Promise<ActiveGrant> => {
@@ -141,7 +160,7 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
         expiresAt: body.data.expiresAt,
         target: body.data.target,
       };
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       setGrant(next);
       return next;
     },
@@ -152,7 +171,7 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
     const current = grant;
     // Clear locally first so the UI exits act-as immediately.
     setGrant(null);
-    window.sessionStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(STORAGE_KEY);
     if (!current) return;
     try {
       const token = await getIdToken();
@@ -170,14 +189,14 @@ export function ImpersonationProvider({ children }: { children: ReactNode }) {
   // already invalidated it (403 IMPERSONATION_INVALID: expired / ended / forged).
   const clearGrant = useCallback(() => {
     setGrant(null);
-    window.sessionStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(STORAGE_KEY);
   }, []);
 
   // Reads the persisted grant at call time instead of closing over `grant`
   // state, so its identity is STABLE across grant transitions. Editing effects
   // that list it in their deps therefore don't re-run (and re-fetch) when a
   // grant is restored, cleared, or expires — and on a reload the header is
-  // available synchronously from sessionStorage, before React restores the
+  // available synchronously from localStorage, before React restores the
   // banner state, so the first fetch already carries it (no double-fetch race).
   const actAsHeaders = useCallback((eventId: string): Record<string, string> => {
     const active = readStoredGrant();
