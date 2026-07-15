@@ -323,6 +323,26 @@ describe("getEventTemporalState — schedule segments", () => {
     expect(late.phase).toBe("ongoing");
   });
 
+  it("prefixes the next-up display with the venue day across midnight", () => {
+    const multiDay = [
+      SCHEDULE[0], // ceremony, Aug 22
+      {
+        id: "brunch",
+        label: "Farewell Brunch",
+        startAt: "2026-08-23T17:00:00.000Z", // 11:00 AM venue, next day
+        isAccessPassGated: false,
+      },
+    ];
+    const state = getEventTemporalState(START, "2026-08-24T04:00:00Z", {
+      now: new Date("2026-08-23T01:00:00Z"), // Aug 22, 7:00 PM venue — in the gap
+      timezone: TZ,
+      schedule: multiDay,
+    });
+    expect(state.currentSegment).toBeNull();
+    expect(state.nextSegment?.startTimeDisplay).toBe("Aug 23 · 11:00 AM");
+    // Same-day next-up stays a bare time (asserted above: "4:00 PM")
+  });
+
   it("sorts segments as instants, not ISO strings (mixed precision)", () => {
     const mixed = [
       { id: "later", label: "Later", startAt: "2026-08-22T16:00:00.500Z", isAccessPassGated: false },

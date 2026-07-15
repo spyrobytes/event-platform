@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { formatInTimeZone } from "date-fns-tz";
 import { parseSchedule } from "@/lib/schedule-read";
 import { formatEventTime } from "@/lib/utils";
 
@@ -42,8 +43,13 @@ export type ScheduleSegment = {
   startMs: number;
   /** entry.endAt → next entry's start → start + ASSUMED_EVENT_DURATION_MS */
   endMs: number;
-  /** Start time in the venue timezone, e.g. "4:00 PM" — for "Next: …" copy */
+  /** Start time in the venue timezone, e.g. "4:00 PM" — for "Next: …" copy.
+   *  On `nextSegment`, gains an "Aug 23 · " prefix when the segment falls on
+   *  a different venue calendar day than now (same "MMM d" convention as the
+   *  page schedule's flat lists). */
   startTimeDisplay: string;
+  /** Venue calendar day of the start, e.g. "Aug 23" */
+  startDayDisplay: string;
 };
 
 /**
@@ -159,6 +165,13 @@ export function deriveScheduleSegments(
     (a, b) => Date.parse(a.startAt) - Date.parse(b.startAt)
   );
 
+  // Production always passes the venue timezone (TemporalData.timezone is
+  // required). The UTC fallback is for tz-less direct hook consumers and is
+  // deliberately deterministic — unlike the calendar-day helpers below, a
+  // display string can't silently follow the viewer's clock without
+  // contradicting the venue-timezone product rule.
+  const displayTz = timezone ?? "UTC";
+
   return sorted.map((entry, i) => {
     const startMs = Date.parse(entry.startAt);
     const next = sorted[i + 1];
@@ -172,7 +185,8 @@ export function deriveScheduleSegments(
       label: entry.label,
       startMs,
       endMs,
-      startTimeDisplay: formatEventTime(entry.startAt, timezone ?? "UTC"),
+      startTimeDisplay: formatEventTime(entry.startAt, displayTz),
+      startDayDisplay: formatInTimeZone(entry.startAt, displayTz, "MMM d"),
     };
   });
 }
@@ -381,7 +395,19 @@ function calculateTemporalState(
   const nowMs = now.getTime();
   const currentSegment =
     segments.find((s) => s.startMs <= nowMs && nowMs < s.endMs) ?? null;
-  const nextSegment = segments.find((s) => s.startMs > nowMs) ?? null;
+  let nextSegment = segments.find((s) => s.startMs > nowMs) ?? null;
+  // A next-up segment on another venue day carries its day in the display
+  // ("Next: Brunch · Aug 23 · 11:00 AM") — a bare time would be ambiguous
+  // across midnight.
+  if (
+    nextSegment &&
+    calendarDaysBetween(now, new Date(nextSegment.startMs), timezone) !== 0
+  ) {
+    nextSegment = {
+      ...nextSegment,
+      startTimeDisplay: `${nextSegment.startDayDisplay} · ${nextSegment.startTimeDisplay}`,
+    };
+  }
 
   return {
     phase,
