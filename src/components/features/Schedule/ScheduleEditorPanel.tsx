@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 const ROLE_LABELS: Record<(typeof SCHEDULE_ENTRY_ROLES)[number], string> = {
   ceremony: "Ceremony",
   reception: "Reception",
+  traditional: "Traditional Ceremony",
   welcome: "Welcome",
   rehearsal: "Rehearsal",
   afterparty: "Afterparty",
@@ -75,6 +76,22 @@ export function fromDraft(draft: DraftEntry, timezone: string): ScheduleEntry {
   };
 }
 
+/**
+ * Chronological draft order, matching what every read surface renders
+ * (page section, segments, emails all sort by instant). datetime-local
+ * strings compare lexicographically = chronologically within one timezone;
+ * drafts without a start time sink to the end (stable, so newly added
+ * moments stay where they were appended).
+ */
+export function sortDrafts(drafts: DraftEntry[]): DraftEntry[] {
+  return [...drafts].sort((a, b) => {
+    if (!a.startLocal || !b.startLocal) {
+      return a.startLocal ? -1 : b.startLocal ? 1 : 0;
+    }
+    return a.startLocal < b.startLocal ? -1 : a.startLocal > b.startLocal ? 1 : 0;
+  });
+}
+
 function newDraft(role: DraftEntry["role"], label: string): DraftEntry {
   return {
     id: crypto.randomUUID(),
@@ -91,9 +108,16 @@ function newDraft(role: DraftEntry["role"], label: string): DraftEntry {
 
 type ScheduleEditorPanelProps = {
   eventId: string;
+  /** Reports dirty-state transitions so the host page can guard navigation
+   *  (Back button + beforeunload) — the panel owns the state, the page owns
+   *  the chrome. */
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
-export function ScheduleEditorPanel({ eventId }: ScheduleEditorPanelProps) {
+export function ScheduleEditorPanel({
+  eventId,
+  onDirtyChange,
+}: ScheduleEditorPanelProps) {
   const { getIdToken } = useAuthContext();
 
   const [timezone, setTimezone] = useState("UTC");
@@ -127,7 +151,11 @@ export function ScheduleEditorPanel({ eventId }: ScheduleEditorPanelProps) {
         if (cancelled) return;
         setEventTitle(data.title);
         setTimezone(data.timezone || "UTC");
-        setDrafts((data.schedule ?? []).map((e) => toDraft(e, data.timezone || "UTC")));
+        setDrafts(
+          sortDrafts(
+            (data.schedule ?? []).map((e) => toDraft(e, data.timezone || "UTC"))
+          )
+        );
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load event");
@@ -190,6 +218,8 @@ export function ScheduleEditorPanel({ eventId }: ScheduleEditorPanelProps) {
         }),
       });
       await parseApiResponse(res);
+      // Settle into the order every read surface renders (chronological).
+      setDrafts((prev) => sortDrafts(prev));
       setDirty(false);
       setSavedAt(Date.now());
     } catch (err) {
@@ -198,6 +228,13 @@ export function ScheduleEditorPanel({ eventId }: ScheduleEditorPanelProps) {
       setSaving(false);
     }
   }, [drafts, timezone, eventId, getIdToken]);
+
+  // Mirror dirty transitions to the host page (navigation guard). Effect,
+  // not inline calls: `dirty` flips in five places and this keeps them in
+  // lockstep with one subscription.
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   if (loading) {
     return (
@@ -229,6 +266,15 @@ export function ScheduleEditorPanel({ eventId }: ScheduleEditorPanelProps) {
         {!hasRole("reception") && (
           <Button variant="outline" size="sm" onClick={() => addEntry("reception", "Reception")}>
             + Add reception
+          </Button>
+        )}
+        {!hasRole("traditional") && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => addEntry("traditional", "Traditional Ceremony")}
+          >
+            + Add traditional ceremony
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => addEntry("", "")}>
@@ -283,7 +329,8 @@ export function ScheduleEditorPanel({ eventId }: ScheduleEditorPanelProps) {
                 </select>
                 <p className="text-xs text-muted-foreground">
                   &quot;Ceremony&quot; and &quot;Reception&quot; drive emails
-                  and guest passes.
+                  and guest passes; &quot;Traditional Ceremony&quot; adds its
+                  own line to the invite email.
                 </p>
               </div>
             </div>

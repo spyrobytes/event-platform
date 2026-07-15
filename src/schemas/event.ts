@@ -61,6 +61,11 @@ export type SlugAvailability =
 export const SCHEDULE_ENTRY_ROLES = [
   "ceremony",
   "reception",
+  // Cultural/traditional ceremony held as a prelude to the main wedding
+  // ceremony (common in e.g. Yoruba, Igbo, South Asian weddings). The
+  // invite email's "Traditional" block prefers this role over its
+  // start-time heuristic.
+  "traditional",
   "welcome",
   "rehearsal",
   "afterparty",

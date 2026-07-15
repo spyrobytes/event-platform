@@ -150,6 +150,52 @@ describe("buildSubEventBlocks", () => {
     expect(result.receptionVenue).toBe("Convention Centre");
   });
 
+  it("an explicit traditional-role entry drives the Traditional block over the heuristic", () => {
+    const withTraditional = [
+      {
+        id: "t1",
+        label: "Traditional Ceremony",
+        role: "traditional",
+        startAt: "2026-08-20T18:00:00.000Z", // Thursday, 12:00 PM local
+        venue: "10 Degrees Event Centre",
+        address: "Oregun Road, Ikeja",
+        isAccessPassGated: false,
+      },
+      ...typedSchedule,
+    ];
+    const result = buildSubEventBlocks({
+      ...base,
+      // Main event 30+ min before ceremony → the heuristic WOULD fire with
+      // the main-event strings; the typed entry must win instead.
+      eventStartAt: new Date("2026-08-22T15:00:00Z"),
+      schedule: withTraditional,
+    });
+    expect(result.traditionalDate).toBe("Thursday, August 20, 2026");
+    expect(result.traditionalTime).toBe("12:00 PM");
+    expect(result.traditionalVenue).toBe("10 Degrees Event Centre");
+    expect(result.traditionalAddress).toBe("Oregun Road, Ikeja");
+  });
+
+  it("formal wording applies to the traditional-role block too", () => {
+    const withTraditional = [
+      {
+        id: "t1",
+        label: "Traditional Ceremony",
+        role: "traditional",
+        startAt: "2026-08-20T18:00:00.000Z",
+        isAccessPassGated: false,
+      },
+      ...typedSchedule,
+    ];
+    const result = buildSubEventBlocks({
+      ...base,
+      schedule: withTraditional,
+      wordingStyle: "formal",
+    });
+    expect(result.traditionalDate).toBe("Thursday, the Twentieth of August");
+    expect(result.traditionalTime).toBe("Noon");
+  });
+
   it("malformed schedule degrades to legacy-only behavior", () => {
     const result = buildSubEventBlocks({
       ...base,
