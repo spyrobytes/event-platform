@@ -14,6 +14,7 @@ import {
   buildUnsubscribeUrl,
 } from "@/lib/email";
 import { buildSubEventBlocks } from "@/lib/invite-email-payload";
+import { normalizeDateWordingStyle } from "@/schemas/invitation";
 import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import { ConflictError } from "@/lib/errors";
 
@@ -65,15 +66,12 @@ async function buildInviteEmailContext(eventId: string) {
   // Sub-event blocks (ceremony / traditional / reception): derived from the
   // typed Event.schedule — the derivation + the "Traditional" heuristic live
   // in buildSubEventBlocks (unit-tested).
-  const wordingStyle =
-    invitationConfig?.dateWordingStyle === "formal"
-      ? ("formal" as const)
-      : ("standard" as const);
+  const wordingStyle = normalizeDateWordingStyle(
+    invitationConfig?.dateWordingStyle
+  );
   const subEvents = buildSubEventBlocks({
     tz,
     eventStartAt: event.startAt,
-    eventDate,
-    eventTime,
     eventVenueName: event.venueName,
     eventAddress: event.address,
     schedule: event.schedule,

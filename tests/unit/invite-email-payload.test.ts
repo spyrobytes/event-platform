@@ -6,8 +6,6 @@ const TZ = "America/Edmonton"; // UTC-6 in summer
 const base = {
   tz: TZ,
   eventStartAt: new Date("2026-08-22T15:00:00Z"), // 9:00 AM local
-  eventDate: "Saturday, August 22, 2026",
-  eventTime: "9:00 AM",
   eventVenueName: "Main Venue",
   eventAddress: "1 Main St",
   schedule: null as unknown,
@@ -46,8 +44,8 @@ describe("buildSubEventBlocks", () => {
       ceremonyVenue: "Celebration Church",
       ceremonyAddress: "7544 Argyll Road",
       // main event (9:00) precedes typed ceremony (10:00) by 1h → Traditional
-      traditionalDate: base.eventDate,
-      traditionalTime: base.eventTime,
+      traditionalDate: "Saturday, August 22, 2026",
+      traditionalTime: "9:00 AM",
       traditionalVenue: "Main Venue",
       traditionalAddress: "1 Main St",
       receptionDate: "Saturday, August 22, 2026",
@@ -71,7 +69,7 @@ describe("buildSubEventBlocks", () => {
       ...base, // main event 9:00, reception 1:00 PM → distinct
       schedule: receptionOnly,
     });
-    expect(result.traditionalDate).toBe(base.eventDate);
+    expect(result.traditionalDate).toBe("Saturday, August 22, 2026");
     expect(result.ceremonyDate).toBeUndefined();
   });
 
@@ -87,6 +85,11 @@ describe("buildSubEventBlocks", () => {
     expect(result.receptionTime).toBe("One O'Clock in the Afternoon");
     // venue text unaffected by wording style
     expect(result.receptionVenue).toBe("Convention Centre");
+    // the heuristic Traditional block (main event 9:00, distinct from the
+    // 10:00 ceremony) must use the same formal formatters — a formal email
+    // never mixes wording styles across blocks
+    expect(result.traditionalDate).toBe("Saturday, the Twenty-Second of August");
+    expect(result.traditionalTime).toBe("Nine O'Clock in the Morning");
   });
 
   it("an explicit traditional-role entry drives the Traditional block over the heuristic", () => {

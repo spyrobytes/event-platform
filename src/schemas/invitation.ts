@@ -44,6 +44,17 @@ export const DATE_WORDING_STYLES = ["standard", "formal"] as const;
 
 export type DateWordingStyle = (typeof DATE_WORDING_STYLES)[number];
 
+/**
+ * Narrows a stored dateWordingStyle string (DB rows and API payloads type it
+ * as plain string) to the union, defaulting anything unrecognized to
+ * "standard" — the one normalization rule shared by every consumer.
+ */
+export function normalizeDateWordingStyle(
+  value: string | null | undefined
+): DateWordingStyle {
+  return value === "formal" ? "formal" : "standard";
+}
+
 // =============================================================================
 // CONTENT CONSTRAINTS
 // =============================================================================

@@ -24,6 +24,7 @@ import {
 } from "@/components/features/Invitation";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
+import { normalizeDateWordingStyle } from "@/schemas/invitation";
 import { formatEventTime, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import { buildInvitationScheduleFields } from "@/lib/invitation-schedule-fields";
 
@@ -172,10 +173,7 @@ export default function InvitationPreviewPage() {
 
   // Same ceremony/reception derivation as the guest page — shared helper keeps
   // preview and /invite/[token] byte-identical (see invitation-schedule-fields.ts).
-  const wordingStyle =
-    config.dateWordingStyle === "formal"
-      ? ("formal" as const)
-      : ("standard" as const);
+  const wordingStyle = normalizeDateWordingStyle(config.dateWordingStyle);
   const scheduleFields = buildInvitationScheduleFields({
     tz: event.timezone,
     schedule: event.schedule,

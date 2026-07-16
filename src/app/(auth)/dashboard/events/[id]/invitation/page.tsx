@@ -19,6 +19,7 @@ import { ImageAssetPicker } from "@/components/features/ImageAssetPicker";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import {
   CONTENT_LIMITS,
+  normalizeDateWordingStyle,
   type DateWordingStyle,
   type InvitationTemplate,
   type TextDirection,
@@ -243,9 +244,7 @@ export default function InvitationConfigPage() {
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
             setDateWordingStyle(
-              configData.data.dateWordingStyle === "formal"
-                ? "formal"
-                : "standard"
+              normalizeDateWordingStyle(configData.data.dateWordingStyle)
             );
             setStoryHeading(configData.data.storyHeading || "");
             setStoryParagraphs(configData.data.storyParagraphs?.length ? configData.data.storyParagraphs : [""]);
