@@ -43,6 +43,14 @@ export type ScheduleSegment = {
   startMs: number;
   /** entry.endAt → next entry's start → start + ASSUMED_EVENT_DURATION_MS */
   endMs: number;
+  /**
+   * Which rung of the endMs ladder fired: "explicit" (entry.endAt),
+   * "chained" (next entry's start — an organizer-stated boundary too), or
+   * "assumed" (the fallback duration). Trust signal for consumers: the
+   * elapsed counter renders only on non-assumed segments — a precise
+   * counter on an assumed window reads as broken long after the real end.
+   */
+  endSource: "explicit" | "chained" | "assumed";
   /** Start time in the venue timezone, e.g. "4:00 PM" — for "Next: …" copy.
    *  On `nextSegment`, gains an "Aug 23 · " prefix when the segment falls on
    *  a different venue calendar day than now (same "MMM d" convention as the
@@ -86,6 +94,13 @@ export type EventTemporalState = {
   currentSegment: ScheduleSegment | null;
   /** First segment starting after `now`, if any ("Next: Reception · 5 PM") */
   nextSegment: ScheduleSegment | null;
+  /**
+   * Milliseconds since the current segment started — the live pill's
+   * "· 12 min" elapsed counter. Null when no segment is underway OR the
+   * segment's end is assumption-derived (endSource "assumed"): the counter
+   * implies a confidence in the window that an assumed end doesn't have.
+   */
+  currentSegmentElapsedMs: number | null;
 };
 
 type UseEventTemporalOptions = {
@@ -172,23 +187,55 @@ export function deriveScheduleSegments(
   // contradicting the venue-timezone product rule.
   const displayTz = timezone ?? "UTC";
 
-  return sorted.map((entry, i) => {
+  return sorted.map((entry, i): ScheduleSegment => {
     const startMs = Date.parse(entry.startAt);
     const next = sorted[i + 1];
-    const endMs = entry.endAt
-      ? Date.parse(entry.endAt)
-      : next
-        ? Date.parse(next.startAt)
-        : startMs + ASSUMED_EVENT_DURATION_MS;
+    const [endMs, endSource]: [number, ScheduleSegment["endSource"]] =
+      entry.endAt
+        ? [Date.parse(entry.endAt), "explicit"]
+        : next
+          ? [Date.parse(next.startAt), "chained"]
+          : [startMs + ASSUMED_EVENT_DURATION_MS, "assumed"];
     return {
       id: entry.id,
       label: entry.label,
       startMs,
       endMs,
+      endSource,
       startTimeDisplay: formatEventTime(entry.startAt, displayTz),
       startDayDisplay: formatInTimeZone(entry.startAt, displayTz, "MMM d"),
     };
   });
+}
+
+/**
+ * ms until the underway counter-eligible segment's next elapsed-minute
+ * boundary (Infinity when no eligible segment is underway). Boundaries are
+ * anchored to the segment's start so the "· N min" counter flips exactly in
+ * wall-clock sync, not up to 59s late on a drifting minute tick.
+ */
+export function msToNextElapsedMinuteBoundary(
+  segments: ScheduleSegment[],
+  nowMs: number
+): number {
+  const seg = segments.find((s) => s.startMs <= nowMs && nowMs < s.endMs);
+  if (!seg || seg.endSource === "assumed") return Infinity;
+  return MINUTE - ((nowMs - seg.startMs) % MINUTE);
+}
+
+/**
+ * "12 min" / "1 hr 25 min" elapsed suffix for the live pill. Null under one
+ * minute — the pill's arrival is its own signal, and "0 min" reads oddly.
+ * Minute granularity by design: a seconds counter would turn the calm pill
+ * into a stopwatch.
+ */
+export function formatElapsedMinutes(elapsedMs: number): string | null {
+  const totalMinutes = Math.floor(elapsedMs / MINUTE);
+  if (totalMinutes < 1) return null;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
 }
 
 /** ms until the next segment start/end boundary after `nowMs` (Infinity if none). */
@@ -339,6 +386,7 @@ function calculateTemporalState(
       segments: [],
       currentSegment: null,
       nextSegment: null,
+      currentSegmentElapsedMs: null,
     };
   }
 
@@ -395,6 +443,12 @@ function calculateTemporalState(
   const nowMs = now.getTime();
   const currentSegment =
     segments.find((s) => s.startMs <= nowMs && nowMs < s.endMs) ?? null;
+  // Elapsed counter only where the window is organizer-stated (explicit
+  // endAt or chained to the next entry's start) — see endSource docs.
+  const currentSegmentElapsedMs =
+    currentSegment && currentSegment.endSource !== "assumed"
+      ? nowMs - currentSegment.startMs
+      : null;
   let nextSegment = segments.find((s) => s.startMs > nowMs) ?? null;
   // A next-up segment on another venue day carries its day in the display
   // ("Next: Brunch · Aug 23 · 11:00 AM") — a bare time would be ambiguous
@@ -425,6 +479,7 @@ function calculateTemporalState(
     segments,
     currentSegment,
     nextSegment,
+    currentSegmentElapsedMs,
   };
 }
 
@@ -498,6 +553,17 @@ export function useEventTemporal({
           const boundaryDelta = msToNextSegmentBoundary(segments, nowMs);
           if (boundaryDelta !== Infinity) {
             delay = Math.max(Math.min(delay, boundaryDelta + 50), 250);
+          }
+          // While a counter-eligible segment is underway, align ticks to
+          // its elapsed-minute boundaries so "· N min" flips in wall-clock
+          // sync. Same frequency as the existing post-start minute ticks —
+          // this only fixes their phase.
+          const elapsedBoundaryDelta = msToNextElapsedMinuteBoundary(
+            segments,
+            nowMs
+          );
+          if (elapsedBoundaryDelta !== Infinity) {
+            delay = Math.max(Math.min(delay, elapsedBoundaryDelta + 50), 250);
           }
         }
       }

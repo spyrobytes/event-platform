@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   getEventTemporalState,
   getNextTickDelay,
+  deriveScheduleSegments,
+  msToNextElapsedMinuteBoundary,
+  formatElapsedMinutes,
   JUST_STARTED_WINDOW_MS,
   ASSUMED_EVENT_DURATION_MS,
 } from "@/hooks/use-event-temporal";
@@ -354,5 +357,123 @@ describe("getEventTemporalState — schedule segments", () => {
       schedule: mixed,
     });
     expect(state.segments.map((s) => s.label)).toEqual(["Earlier", "Later"]);
+  });
+});
+
+describe("underway elapsed counter", () => {
+  const TZ = "America/Edmonton";
+  const START = "2026-08-22T16:00:00Z";
+  // explicit end → chained to next start → last is assumption-derived
+  const SCHEDULE = [
+    {
+      id: "traditional",
+      label: "Traditional Ceremony",
+      role: "traditional",
+      startAt: "2026-08-22T16:00:00.000Z",
+      endAt: "2026-08-22T16:30:00.000Z",
+      isAccessPassGated: false,
+    },
+    {
+      id: "ceremony",
+      label: "Ceremony",
+      role: "ceremony",
+      startAt: "2026-08-22T17:00:00.000Z",
+      isAccessPassGated: false,
+    },
+    {
+      id: "reception",
+      label: "Reception",
+      role: "reception",
+      startAt: "2026-08-22T22:00:00.000Z",
+      isAccessPassGated: false,
+    },
+  ];
+
+  it("derives endSource per ladder rung: explicit, chained, assumed", () => {
+    const segments = deriveScheduleSegments(SCHEDULE, TZ);
+    expect(segments.map((s) => s.endSource)).toEqual([
+      "explicit",
+      "chained",
+      "assumed",
+    ]);
+  });
+
+  it("exposes elapsed ms while an explicit-end segment is underway", () => {
+    const state = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T16:12:00Z"), // 12 min into Traditional
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(state.currentSegment?.label).toBe("Traditional Ceremony");
+    expect(state.currentSegmentElapsedMs).toBe(12 * MINUTE);
+  });
+
+  it("chained segments get the counter too — the boundary is organizer-stated", () => {
+    const state = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T18:25:00Z"), // 1 hr 25 min into Ceremony
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(state.currentSegment?.label).toBe("Ceremony");
+    expect(state.currentSegmentElapsedMs).toBe(85 * MINUTE);
+  });
+
+  it("assumption-derived segments never get a counter", () => {
+    const state = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T23:00:00Z"), // 1h into Reception (assumed end)
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(state.currentSegment?.label).toBe("Reception");
+    expect(state.currentSegmentElapsedMs).toBeNull();
+  });
+
+  it("gaps and schedule-less events have no elapsed value", () => {
+    const inGap = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T16:45:00Z"), // between Traditional and Ceremony
+      timezone: TZ,
+      schedule: SCHEDULE,
+    });
+    expect(inGap.currentSegment).toBeNull();
+    expect(inGap.currentSegmentElapsedMs).toBeNull();
+
+    const bare = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T17:00:00Z"),
+      timezone: TZ,
+    });
+    expect(bare.currentSegmentElapsedMs).toBeNull();
+  });
+
+  it("msToNextElapsedMinuteBoundary aligns to the segment start, not the tick clock", () => {
+    const segments = deriveScheduleSegments(SCHEDULE, TZ);
+    const segStart = Date.parse("2026-08-22T16:00:00Z");
+    // 12 min 40 s in → 20 s to the next elapsed-minute flip
+    expect(
+      msToNextElapsedMinuteBoundary(segments, segStart + 12 * MINUTE + 40 * SECOND)
+    ).toBe(20 * SECOND);
+    // exactly on a boundary → a full minute to the next one
+    expect(msToNextElapsedMinuteBoundary(segments, segStart + 12 * MINUTE)).toBe(
+      MINUTE
+    );
+    // in the gap → no eligible segment
+    expect(
+      msToNextElapsedMinuteBoundary(segments, segStart + 45 * MINUTE)
+    ).toBe(Infinity);
+    // inside the assumption-derived Reception → ineligible
+    expect(
+      msToNextElapsedMinuteBoundary(
+        segments,
+        Date.parse("2026-08-22T23:00:00Z")
+      )
+    ).toBe(Infinity);
+  });
+
+  it("formatElapsedMinutes: minute granularity, hour rollover, sub-minute suppression", () => {
+    expect(formatElapsedMinutes(30 * SECOND)).toBeNull();
+    expect(formatElapsedMinutes(MINUTE)).toBe("1 min");
+    expect(formatElapsedMinutes(12 * MINUTE + 59 * SECOND)).toBe("12 min");
+    expect(formatElapsedMinutes(60 * MINUTE)).toBe("1 hr");
+    expect(formatElapsedMinutes(85 * MINUTE)).toBe("1 hr 25 min");
+    expect(formatElapsedMinutes(125 * MINUTE)).toBe("2 hr 5 min");
   });
 });

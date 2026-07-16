@@ -73,15 +73,43 @@ describe("TemporalHeroOverlay confetti gate", () => {
 });
 
 describe("TemporalHeroOverlay segment states (plan §3.6)", () => {
-  it("names the segment underway instead of the generic live pill", () => {
+  it("names the segment underway with its elapsed counter (explicit end = trusted window)", () => {
     // 10 min into the ceremony (which started 10 min ago)
     const { getByText, queryByText } = renderOverlay(
       -10 * 60 * SECOND,
       4 * HOUR,
       sampleSchedule(-10 * 60 * SECOND),
     );
-    expect(getByText("Ceremony underway")).toBeTruthy();
+    expect(getByText("Ceremony underway · 10 min")).toBeTruthy();
     expect(queryByText("Happening Now")).toBeNull();
+  });
+
+  it("assumption-derived segments get the bare label — no counter on an untrusted window", () => {
+    // Single open-ended entry: endMs comes from the assumed duration.
+    const now = Date.now();
+    const { getByText, queryByText } = renderOverlay(
+      -10 * 60 * SECOND,
+      4 * HOUR,
+      [
+        {
+          id: "party",
+          label: "Party",
+          startAt: new Date(now - 10 * 60 * SECOND).toISOString(),
+          isAccessPassGated: false,
+        },
+      ],
+    );
+    expect(getByText("Party underway")).toBeTruthy();
+    expect(queryByText(/· \d+ min/)).toBeNull();
+  });
+
+  it("suppresses the counter inside the first minute", () => {
+    const { getByText } = renderOverlay(
+      -30 * SECOND,
+      4 * HOUR,
+      sampleSchedule(-30 * SECOND),
+    );
+    expect(getByText("Ceremony underway")).toBeTruthy();
   });
 
   it("shows the next-up pointer in a gap between segments", () => {
