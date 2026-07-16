@@ -1,7 +1,10 @@
 "use client";
 
 import { useTemporal } from "../TemporalContext";
-import { JUST_STARTED_WINDOW_MS } from "@/hooks/use-event-temporal";
+import {
+  JUST_STARTED_WINDOW_MS,
+  formatElapsedMinutes,
+} from "@/hooks/use-event-temporal";
 import { cn } from "@/lib/utils";
 import { ConfettiBurst } from "./ConfettiBurst";
 import styles from "./TemporalComponents.module.css";
@@ -111,7 +114,8 @@ export function LiveIndicator({
   text,
   accentColor,
 }: LiveIndicatorProps) {
-  const { shouldShowLive, currentSegment } = useTemporal();
+  const { shouldShowLive, currentSegment, currentSegmentElapsedMs } =
+    useTemporal();
 
   if (!shouldShowLive) {
     return null;
@@ -123,13 +127,29 @@ export function LiveIndicator({
 
   // Segment-aware copy (plan §3.6): name what's underway when the typed
   // schedule says so; the generic pill remains for whole-span events.
+  // Elapsed counter ("· 12 min") renders only when the hook vouches for the
+  // segment's window (currentSegmentElapsedMs is null on assumed ends) and
+  // at least a minute has passed (formatElapsedMinutes is null before that).
+  const elapsed =
+    currentSegmentElapsedMs !== null
+      ? formatElapsedMinutes(currentSegmentElapsedMs)
+      : null;
   const label =
-    text ?? (currentSegment ? `${currentSegment.label} underway` : "Happening Now");
+    text ??
+    (currentSegment
+      ? `${currentSegment.label} underway${elapsed ? ` · ${elapsed}` : ""}`
+      : "Happening Now");
 
   return (
     <div className={cn(styles.liveIndicator, className)} style={style}>
       <span className={styles.liveDot} aria-hidden="true" />
-      <span className={styles.liveText}>{label}</span>
+      {/* The elapsed suffix is now-derived, so server HTML and client
+          hydration can straddle a minute boundary and disagree by one
+          minute — suppress the (recoverable) mismatch; the first client
+          tick is authoritative. */}
+      <span className={styles.liveText} suppressHydrationWarning>
+        {label}
+      </span>
     </div>
   );
 }

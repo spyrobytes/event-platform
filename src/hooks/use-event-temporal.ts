@@ -43,6 +43,18 @@ export type ScheduleSegment = {
   startMs: number;
   /** entry.endAt → next entry's start → start + ASSUMED_EVENT_DURATION_MS */
   endMs: number;
+  /**
+   * Which rung of the endMs ladder fired: "explicit" (entry.endAt),
+   * "chained" (next entry's start — an organizer-stated boundary too), or
+   * "assumed" (the fallback duration). Trust signal for consumers: the
+   * elapsed counter renders only on non-assumed segments — a precise
+   * counter on an assumed window reads as broken long after the real end.
+   * A chain longer than ASSUMED_EVENT_DURATION_MS is classified "assumed"
+   * even though endMs still chains: a reception "running until" tomorrow's
+   * brunch is a schedule gap, not an organizer-stated 13-hour moment, and
+   * must not earn an all-night "· 11 hr" stopwatch.
+   */
+  endSource: "explicit" | "chained" | "assumed";
   /** Start time in the venue timezone, e.g. "4:00 PM" — for "Next: …" copy.
    *  On `nextSegment`, gains an "Aug 23 · " prefix when the segment falls on
    *  a different venue calendar day than now (same "MMM d" convention as the
@@ -86,6 +98,13 @@ export type EventTemporalState = {
   currentSegment: ScheduleSegment | null;
   /** First segment starting after `now`, if any ("Next: Reception · 5 PM") */
   nextSegment: ScheduleSegment | null;
+  /**
+   * Milliseconds since the current segment started — the live pill's
+   * "· 12 min" elapsed counter. Null when no segment is underway OR the
+   * segment's end is assumption-derived (endSource "assumed"): the counter
+   * implies a confidence in the window that an assumed end doesn't have.
+   */
+  currentSegmentElapsedMs: number | null;
 };
 
 type UseEventTemporalOptions = {
@@ -172,23 +191,92 @@ export function deriveScheduleSegments(
   // contradicting the venue-timezone product rule.
   const displayTz = timezone ?? "UTC";
 
-  return sorted.map((entry, i) => {
+  return sorted.map((entry, i): ScheduleSegment => {
     const startMs = Date.parse(entry.startAt);
     const next = sorted[i + 1];
-    const endMs = entry.endAt
-      ? Date.parse(entry.endAt)
-      : next
-        ? Date.parse(next.startAt)
-        : startMs + ASSUMED_EVENT_DURATION_MS;
+    const nextStartMs = next ? Date.parse(next.startAt) : null;
+    const [endMs, endSource]: [number, ScheduleSegment["endSource"]] =
+      entry.endAt
+        ? [Date.parse(entry.endAt), "explicit"]
+        : nextStartMs !== null
+          ? [
+              nextStartMs,
+              // Overlong chains are a schedule gap wearing a chain's clothes
+              // — keep the endMs (phase behavior unchanged) but don't vouch
+              // for the window (see endSource docs).
+              nextStartMs - startMs <= ASSUMED_EVENT_DURATION_MS
+                ? "chained"
+                : "assumed",
+            ]
+          : [startMs + ASSUMED_EVENT_DURATION_MS, "assumed"];
     return {
       id: entry.id,
       label: entry.label,
       startMs,
       endMs,
+      endSource,
       startTimeDisplay: formatEventTime(entry.startAt, displayTz),
       startDayDisplay: formatInTimeZone(entry.startAt, displayTz, "MMM d"),
     };
   });
+}
+
+/**
+ * Latest-started segment containing `nowMs`, or null. Overlaps resolve to
+ * the most recently started: what began last is what's happening — a
+ * typo-widened earlier endAt must not keep claiming the pill (and its
+ * elapsed counter) after the next moment has begun. Relies on segments
+ * being start-sorted (deriveScheduleSegments guarantees it).
+ */
+export function findCurrentSegment(
+  segments: ScheduleSegment[],
+  nowMs: number
+): ScheduleSegment | null {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const s = segments[i];
+    if (s.startMs <= nowMs && nowMs < s.endMs) return s;
+  }
+  return null;
+}
+
+/** Whether a segment's window is trustworthy enough for the elapsed counter. */
+function isCounterEligible(segment: ScheduleSegment): boolean {
+  return segment.endSource !== "assumed";
+}
+
+/**
+ * ms until the underway counter-eligible segment's next elapsed-minute
+ * boundary (Infinity when no eligible segment is underway). Boundaries are
+ * anchored to the segment's start so the "· N min" counter flips exactly in
+ * wall-clock sync, not up to 59s late on a drifting minute tick.
+ */
+export function msToNextElapsedMinuteBoundary(
+  segments: ScheduleSegment[],
+  nowMs: number
+): number {
+  const seg = findCurrentSegment(segments, nowMs);
+  if (!seg || !isCounterEligible(seg)) return Infinity;
+  return MINUTE - ((nowMs - seg.startMs) % MINUTE);
+}
+
+/**
+ * "12 min" / "1 hr 25 min" elapsed suffix for the live pill. Null under one
+ * minute — the pill's arrival is its own signal, and "0 min" reads oddly.
+ * Minute granularity by design: a seconds counter would turn the calm pill
+ * into a stopwatch.
+ *
+ * Deliberately compact ("1 hr 25 min") vs formatCountdownText's prose
+ * ("1 hour, 25 min"): the pill is a width-constrained badge next to a
+ * pulsing dot, not a sentence. If a third duration surface ever appears,
+ * fold both into one formatter with a compact flag.
+ */
+export function formatElapsedMinutes(elapsedMs: number): string | null {
+  const totalMinutes = Math.floor(elapsedMs / MINUTE);
+  if (totalMinutes < 1) return null;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
 }
 
 /** ms until the next segment start/end boundary after `nowMs` (Infinity if none). */
@@ -339,6 +427,7 @@ function calculateTemporalState(
       segments: [],
       currentSegment: null,
       nextSegment: null,
+      currentSegmentElapsedMs: null,
     };
   }
 
@@ -391,10 +480,16 @@ function calculateTemporalState(
   const countdownText = formatCountdownText(timeRemaining, phase);
 
   // Segment lookup — pure instant math. Overlapping segments resolve to the
-  // earliest (organizer order after the sort); a gap has no currentSegment.
+  // most recently started (see findCurrentSegment); a gap has no
+  // currentSegment.
   const nowMs = now.getTime();
-  const currentSegment =
-    segments.find((s) => s.startMs <= nowMs && nowMs < s.endMs) ?? null;
+  const currentSegment = findCurrentSegment(segments, nowMs);
+  // Elapsed counter only where the window is organizer-stated (explicit
+  // endAt or a tight chain to the next entry's start) — see endSource docs.
+  const currentSegmentElapsedMs =
+    currentSegment && isCounterEligible(currentSegment)
+      ? nowMs - currentSegment.startMs
+      : null;
   let nextSegment = segments.find((s) => s.startMs > nowMs) ?? null;
   // A next-up segment on another venue day carries its day in the display
   // ("Next: Brunch · Aug 23 · 11:00 AM") — a bare time would be ambiguous
@@ -425,6 +520,7 @@ function calculateTemporalState(
     segments,
     currentSegment,
     nextSegment,
+    currentSegmentElapsedMs,
   };
 }
 
@@ -492,10 +588,16 @@ export function useEventTemporal({
           delay = HOUR; // ended: only daysSinceEnded can change
         } else {
           delay = getNextTickDelay(startMs - nowMs);
-          // Segment transitions (underway ↔ gap ↔ next-up) must land on
-          // time too — tick just past the nearest segment boundary when it
-          // comes sooner than the countdown boundary.
-          const boundaryDelta = msToNextSegmentBoundary(segments, nowMs);
+          // Segment transitions (underway ↔ gap ↔ next-up) and the elapsed
+          // counter's minute flips must land on time too — tick just past
+          // the nearest of the two boundary kinds when it comes sooner than
+          // the countdown boundary. (Elapsed-minute boundaries are anchored
+          // to the underway segment's start: same frequency as the existing
+          // post-start minute ticks, corrected phase.)
+          const boundaryDelta = Math.min(
+            msToNextSegmentBoundary(segments, nowMs),
+            msToNextElapsedMinuteBoundary(segments, nowMs)
+          );
           if (boundaryDelta !== Infinity) {
             delay = Math.max(Math.min(delay, boundaryDelta + 50), 250);
           }

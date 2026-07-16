@@ -157,6 +157,7 @@ export function useTemporal(): TemporalContextValue {
       segments: [],
       currentSegment: null,
       nextSegment: null,
+      currentSegmentElapsedMs: null,
       isTemporalEnabled: false,
       getPhaseContent: <T,>(_content: Partial<Record<EventPhase, T>>, fallback: T): T => fallback,
       shouldShowCountdown: false,
