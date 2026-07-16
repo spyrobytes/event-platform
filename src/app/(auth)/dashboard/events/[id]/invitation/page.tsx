@@ -19,6 +19,7 @@ import { ImageAssetPicker } from "@/components/features/ImageAssetPicker";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import {
   CONTENT_LIMITS,
+  normalizeDateWordingStyle,
   type DateWordingStyle,
   type InvitationTemplate,
   type TextDirection,
@@ -51,15 +52,6 @@ type InvitationConfig = {
   couplePhotoUrl: string | null;
   venuePhotoUrl: string | null;
   dateWordingStyle: string;
-  ceremonyDate: string | null;
-  ceremonyTime: string | null;
-  ceremonyVenue: string | null;
-  ceremonyAddress: string | null;
-  receptionDate: string | null;
-  receptionTime: string | null;
-  receptionVenue: string | null;
-  receptionAddress: string | null;
-  rsvpDeadline: string | null;
   storyHeading: string | null;
   storyParagraphs: string[];
   timelineJson: TimelineEntry[] | null;
@@ -106,25 +98,6 @@ const TEXT_DIRECTION_OPTIONS: { value: TextDirection; label: string }[] = [
   { value: "RTL", label: "Right to Left" },
 ];
 
-/**
- * Legacy hand-typed schedule text on InvitationConfig (free-text is
- * end-of-life, canonical-schedule plan §4.3). No longer editable here —
- * saved values keep rendering as overrides until the organizer removes
- * them (button below) or PR 6 drops the columns. rsvpDeadline is NOT in
- * this set: it still has its own input (kept until PR 6) and must survive
- * the remove-hand-typed-text action.
- */
-const LEGACY_SCHEDULE_TEXT_KEYS = [
-  "ceremonyDate",
-  "ceremonyTime",
-  "ceremonyVenue",
-  "ceremonyAddress",
-  "receptionDate",
-  "receptionTime",
-  "receptionVenue",
-  "receptionAddress",
-] as const;
-
 export default function InvitationConfigPage() {
   const params = useParams<{ id: string }>();
   const { getIdToken } = useAuthContext();
@@ -167,13 +140,9 @@ export default function InvitationConfigPage() {
   const [venuePhotoUrl, setVenuePhotoUrl] = useState("");
   const [dateWordingStyle, setDateWordingStyle] =
     useState<DateWordingStyle>("standard");
-  const [rsvpDeadline, setRsvpDeadline] = useState("");
-  // Marks legacy hand-typed schedule text (LEGACY_SCHEDULE_TEXT_KEYS) for
-  // removal on save. Presence itself is derived from `config` below.
-  const [clearLegacyScheduleText, setClearLegacyScheduleText] = useState(false);
   // Typed Event.schedule roles — the card renders ceremony/reception blocks
   // whenever a typed entry exists, so the Split Reveal density hint must see
-  // them even with no hand-typed text.
+  // them.
   const [typedScheduleRoles, setTypedScheduleRoles] = useState({
     ceremony: false,
     reception: false,
@@ -186,11 +155,9 @@ export default function InvitationConfigPage() {
   const [person2Quote, setPerson2Quote] = useState("");
   const [person2QuoteAttr, setPerson2QuoteAttr] = useState("");
 
-  // Track if form has been modified. The pending remove-hand-typed-text
-  // flag counts as an unsaved change on its own, so undoing it (Keep
-  // hand-typed text) doesn't leave a phantom dirty state behind.
+  // Track if form has been modified.
   const [isDirty, setIsDirty] = useState(false);
-  const hasUnsavedChanges = isDirty || clearLegacyScheduleText;
+  const hasUnsavedChanges = isDirty;
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
   const { requestLeave, discardDialogProps } = useUnsavedChangesGuard({
@@ -277,11 +244,8 @@ export default function InvitationConfigPage() {
             setCouplePhotoUrl(configData.data.couplePhotoUrl || "");
             setVenuePhotoUrl(configData.data.venuePhotoUrl || "");
             setDateWordingStyle(
-              configData.data.dateWordingStyle === "formal"
-                ? "formal"
-                : "standard"
+              normalizeDateWordingStyle(configData.data.dateWordingStyle)
             );
-            setRsvpDeadline(configData.data.rsvpDeadline || "");
             setStoryHeading(configData.data.storyHeading || "");
             setStoryParagraphs(configData.data.storyParagraphs?.length ? configData.data.storyParagraphs : [""]);
             setTimelineEntries(configData.data.timelineJson?.length ? configData.data.timelineJson : [{ date: "", label: "", description: "" }]);
@@ -362,22 +326,9 @@ export default function InvitationConfigPage() {
           // Wedding Storybook fields
           couplePhotoUrl: couplePhotoUrl || undefined,
           venuePhotoUrl: venuePhotoUrl || undefined,
-          // ceremonyStartAt/receptionStartAt no longer sent: typed timing is
-          // edited in the Event Schedule editor (canonical-schedule PR 4).
-          // Legacy hand-typed schedule text (ceremony*/reception*) is no
-          // longer offered either (PR 3c): omitted = preserved by the API;
-          // explicit "" = removed (the button in the Ceremony & Reception
-          // card).
+          // Schedule timing/venues are edited in the Event Schedule editor
+          // (canonical-schedule PR 4); this page only picks how they render.
           dateWordingStyle,
-          // Sent unconditionally ("" clears): the API preserves absent
-          // legacy fields, so omitting on empty would make the input
-          // impossible to clear.
-          rsvpDeadline,
-          ...(clearLegacyScheduleText
-            ? Object.fromEntries(
-                LEGACY_SCHEDULE_TEXT_KEYS.map((k) => [k, ""])
-              )
-            : {}),
           storyHeading: storyHeading || undefined,
           storyParagraphs: storyParagraphs.filter((p) => p.trim()) || undefined,
           timelineJson: timelineEntries.filter((e) => e.label.trim()) || undefined,
@@ -397,7 +348,6 @@ export default function InvitationConfigPage() {
 
       const result = await response.json();
       setConfig(result.data);
-      setClearLegacyScheduleText(false);
       setIsDirty(false);
       setSuccessMessage("Configuration saved successfully");
       return true;
@@ -481,8 +431,6 @@ export default function InvitationConfigPage() {
       setCouplePhotoUrl("");
       setVenuePhotoUrl("");
       setDateWordingStyle("standard");
-      setRsvpDeadline("");
-      setClearLegacyScheduleText(false);
       setStoryHeading("");
       setStoryParagraphs([""]);
       setTimelineEntries([{ date: "", label: "", description: "" }]);
@@ -545,17 +493,9 @@ export default function InvitationConfigPage() {
     );
   }
 
-  // Legacy hand-typed schedule text still saved on the config (free-text is
-  // end-of-life, plan §4.3) — it overrides the typed schedule until removed.
-  const hasLegacyScheduleText = LEGACY_SCHEDULE_TEXT_KEYS.some(
-    (k) => !!config?.[k]
-  );
-
   // Density check for Split Reveal — surfaces a hint to switch templates when
   // the form content would crowd V1's fixed-size card. Ceremony/reception
-  // blocks render when a typed schedule entry or legacy display date exists.
-  const legacyKept = (value: string | null | undefined) =>
-    !clearLegacyScheduleText && !!value;
+  // blocks render when a typed schedule entry exists.
   const splitRevealDensity =
     template === "SPLIT_REVEAL"
       ? classifyInvitationDensity({
@@ -564,10 +504,8 @@ export default function InvitationConfigPage() {
           person1FamilyName,
           person2FamilyName,
           headerMode,
-          hasCeremonyDate:
-            typedScheduleRoles.ceremony || legacyKept(config?.ceremonyDate),
-          hasReceptionDate:
-            typedScheduleRoles.reception || legacyKept(config?.receptionDate),
+          hasCeremonyDate: typedScheduleRoles.ceremony,
+          hasReceptionDate: typedScheduleRoles.reception,
         })
       : null;
 
@@ -1048,60 +986,6 @@ export default function InvitationConfigPage() {
                 </p>
               </div>
 
-              {hasLegacyScheduleText && !clearLegacyScheduleText && (
-                <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
-                  <p className="text-sm text-muted-foreground">
-                    This invitation still contains schedule text that was typed
-                    by hand before the Event Schedule existed. Hand-typed dates
-                    and times override the schedule and the wording style
-                    above; hand-typed venues and addresses show only where the
-                    schedule entry doesn&apos;t provide one.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setClearLegacyScheduleText(true);
-                      setSuccessMessage(null);
-                    }}
-                  >
-                    Remove hand-typed text
-                  </Button>
-                </div>
-              )}
-              {clearLegacyScheduleText && (
-                <div className="space-y-3 rounded-lg border border-warning/50 bg-warning/10 p-4">
-                  <p className="text-sm text-foreground">
-                    Hand-typed schedule text will be permanently removed when
-                    you save. The card will derive dates, times and venues from
-                    the Event Schedule instead.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setClearLegacyScheduleText(false)}
-                  >
-                    Keep hand-typed text
-                  </Button>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <Label htmlFor="rsvpDeadline">RSVP Deadline Wording</Label>
-                <Input
-                  id="rsvpDeadline"
-                  value={rsvpDeadline}
-                  onChange={(e) => handleFieldChange(setRsvpDeadline)(e.target.value)}
-                  placeholder="the First of May, 2026"
-                  maxLength={60}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Optional wording override for the RSVP spread — leave blank
-                  to show the event&apos;s RSVP deadline.
-                </p>
-              </div>
             </CardContent>
           </Card>
         )}

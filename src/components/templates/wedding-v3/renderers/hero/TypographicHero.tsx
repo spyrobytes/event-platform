@@ -24,7 +24,7 @@ export function TypographicHero({
   eventRsvpDeadline,
   eventTimezone,
 }: HeroRendererProps) {
-  const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
+  const { title, subtitle, coupleNames, monogram } = config;
 
   const temporal = useTemporal();
 
@@ -43,7 +43,6 @@ export function TypographicHero({
   })();
 
   const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
-    rsvpDeadline,
     eventRsvpDeadline,
     eventTimezone
   );

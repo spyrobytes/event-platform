@@ -24,6 +24,7 @@ import {
 } from "@/components/features/Invitation";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
+import { normalizeDateWordingStyle } from "@/schemas/invitation";
 import { formatEventTime, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import { buildInvitationScheduleFields } from "@/lib/invitation-schedule-fields";
 
@@ -61,17 +62,6 @@ type InvitationConfigData = {
   heroImageUrl: string | null;
   couplePhotoUrl: string | null;
   venuePhotoUrl: string | null;
-  ceremonyStartAt: string | null;
-  receptionStartAt: string | null;
-  ceremonyDate: string | null;
-  ceremonyTime: string | null;
-  ceremonyVenue: string | null;
-  ceremonyAddress: string | null;
-  receptionDate: string | null;
-  receptionTime: string | null;
-  receptionVenue: string | null;
-  receptionAddress: string | null;
-  rsvpDeadline: string | null;
   storyHeading: string | null;
   storyParagraphs: string[];
   timelineJson: Array<{ date: string; label: string; description?: string }> | null;
@@ -181,13 +171,13 @@ export default function InvitationPreviewPage() {
 
   const eventTime = formatEventTime(new Date(event.startAt), event.timezone);
 
-  // Same ceremony/reception ladder as the guest page — shared helper keeps
+  // Same ceremony/reception derivation as the guest page — shared helper keeps
   // preview and /invite/[token] byte-identical (see invitation-schedule-fields.ts).
+  const wordingStyle = normalizeDateWordingStyle(config.dateWordingStyle);
   const scheduleFields = buildInvitationScheduleFields({
     tz: event.timezone,
     schedule: event.schedule,
-    config: config,
-    wordingStyle: config.dateWordingStyle === "formal" ? "formal" : "standard",
+    wordingStyle,
   });
 
   const invitationData: InvitationData = {
@@ -218,9 +208,9 @@ export default function InvitationPreviewPage() {
     venuePhotoUrl: config.venuePhotoUrl || undefined,
     ...scheduleFields,
     rsvpDeadline: resolveRsvpDeadlineDisplay(
-      config.rsvpDeadline || undefined,
-      event.rsvpDeadline || undefined,
-      event.timezone
+      event.rsvpDeadline,
+      event.timezone,
+      wordingStyle
     ),
     storyHeading: config.storyHeading || undefined,
     storyParagraphs: config.storyParagraphs?.length ? config.storyParagraphs : undefined,

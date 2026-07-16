@@ -53,7 +53,6 @@ export function CinematicHero({
     showCountdown = false,
     showScheduleCards = false,
     coupleNames,
-    rsvpDeadline,
   } = config;
 
   const temporal = useTemporal();
@@ -73,7 +72,6 @@ export function CinematicHero({
     : [];
 
   const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
-    rsvpDeadline,
     eventRsvpDeadline,
     eventTimezone
   );
@@ -291,7 +289,7 @@ export function CinematicHero({
               <CountdownCard
                 countdown={countdown}
                 rsvpDeadline={resolvedRsvpDeadline}
-                rsvpDeadlineIso={eventRsvpDeadline ?? rsvpDeadline}
+                rsvpDeadlineIso={eventRsvpDeadline}
               />
             )}
 

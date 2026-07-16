@@ -29,7 +29,7 @@ export function AsymmetricHero({
   eventRsvpDeadline,
   eventTimezone,
 }: HeroRendererProps) {
-  const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
+  const { title, subtitle, coupleNames, monogram } = config;
 
   const temporal = useTemporal();
 
@@ -49,7 +49,6 @@ export function AsymmetricHero({
   })();
 
   const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
-    rsvpDeadline,
     eventRsvpDeadline,
     eventTimezone
   );

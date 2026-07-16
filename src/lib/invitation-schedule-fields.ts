@@ -14,27 +14,10 @@ import type { DateWordingStyle } from "@/schemas/invitation";
  * invite email's `buildSubEventBlocks` ladders (invite-page-verbatim rule:
  * the email must show exactly what the card shows).
  *
- * Field precedence:
- *   date/time strings: free-text wording (transitional shim, plan §4.3)
- *     → typed Event.schedule entry → legacy InvitationConfig.*StartAt
- *   venue/address: typed Event.schedule entry → legacy InvitationConfig
- *
- * `wordingStyle` applies only to the derived rungs (typed + legacy StartAt);
- * free-text renders verbatim — it IS the organizer's wording.
+ * The typed Event.schedule is the only source (plan §4.3, PR 6): free-text
+ * wording and the legacy InvitationConfig.*StartAt columns are gone.
+ * `wordingStyle` picks the deterministic formatter for date/time strings.
  */
-
-export type InvitationScheduleConfig = {
-  ceremonyStartAt: Date | string | null;
-  ceremonyDate: string | null;
-  ceremonyTime: string | null;
-  ceremonyVenue: string | null;
-  ceremonyAddress: string | null;
-  receptionStartAt: Date | string | null;
-  receptionDate: string | null;
-  receptionTime: string | null;
-  receptionVenue: string | null;
-  receptionAddress: string | null;
-};
 
 export type InvitationScheduleFields = {
   ceremonyDate?: string;
@@ -51,51 +34,35 @@ export function buildInvitationScheduleFields(input: {
   tz: string;
   /** Raw Event.schedule Json column */
   schedule: unknown;
-  config: InvitationScheduleConfig | null;
   wordingStyle?: DateWordingStyle;
 }): InvitationScheduleFields {
-  const { tz, config: cfg } = input;
+  const { tz } = input;
   const formal = input.wordingStyle === "formal";
   const fmtDate = formal ? formatEventDateFormal : formatEventDateLong;
   const fmtTime = formal ? formatEventTimeFormal : formatEventTime;
 
   const entries = parseSchedule(input.schedule);
   const typedCeremony = entries ? findScheduleEntry(entries, "ceremony") : null;
-  const typedReception = entries ? findScheduleEntry(entries, "reception") : null;
+  const typedReception = entries
+    ? findScheduleEntry(entries, "reception")
+    : null;
 
   return {
-    ceremonyDate:
-      cfg?.ceremonyDate ||
-      (typedCeremony
-        ? fmtDate(typedCeremony.startAt, tz)
-        : cfg?.ceremonyStartAt
-          ? fmtDate(cfg.ceremonyStartAt, tz)
-          : undefined),
-    ceremonyTime:
-      cfg?.ceremonyTime ||
-      (typedCeremony
-        ? fmtTime(typedCeremony.startAt, tz)
-        : cfg?.ceremonyStartAt
-          ? fmtTime(cfg.ceremonyStartAt, tz)
-          : undefined),
-    ceremonyVenue: typedCeremony?.venue || cfg?.ceremonyVenue || undefined,
-    ceremonyAddress: typedCeremony?.address || cfg?.ceremonyAddress || undefined,
-    receptionDate:
-      cfg?.receptionDate ||
-      (typedReception
-        ? fmtDate(typedReception.startAt, tz)
-        : cfg?.receptionStartAt
-          ? fmtDate(cfg.receptionStartAt, tz)
-          : undefined),
-    receptionTime:
-      cfg?.receptionTime ||
-      (typedReception
-        ? fmtTime(typedReception.startAt, tz)
-        : cfg?.receptionStartAt
-          ? fmtTime(cfg.receptionStartAt, tz)
-          : undefined),
-    receptionVenue: typedReception?.venue || cfg?.receptionVenue || undefined,
-    receptionAddress:
-      typedReception?.address || cfg?.receptionAddress || undefined,
+    ceremonyDate: typedCeremony
+      ? fmtDate(typedCeremony.startAt, tz)
+      : undefined,
+    ceremonyTime: typedCeremony
+      ? fmtTime(typedCeremony.startAt, tz)
+      : undefined,
+    ceremonyVenue: typedCeremony?.venue || undefined,
+    ceremonyAddress: typedCeremony?.address || undefined,
+    receptionDate: typedReception
+      ? fmtDate(typedReception.startAt, tz)
+      : undefined,
+    receptionTime: typedReception
+      ? fmtTime(typedReception.startAt, tz)
+      : undefined,
+    receptionVenue: typedReception?.venue || undefined,
+    receptionAddress: typedReception?.address || undefined,
   };
 }

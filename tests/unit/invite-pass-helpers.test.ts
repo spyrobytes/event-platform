@@ -214,7 +214,6 @@ describe("resolvePartyMembers", () => {
 });
 
 describe("resolvePassMoment", () => {
-  const RECEPTION = T("2026-06-21T18:00:00Z");
   const EVENT_START = T("2026-06-21T14:00:00Z");
 
   const eventBase = {
@@ -223,26 +222,7 @@ describe("resolvePassMoment", () => {
     address: "100 Cathedral Pl",
   };
 
-  it("uses reception fields when receptionStartAt is set", () => {
-    const result = resolvePassMoment({
-      event: {
-        ...eventBase,
-        invitationConfig: {
-          receptionStartAt: RECEPTION,
-          receptionVenue: "The Royal Hall",
-          receptionAddress: "123 Main St",
-        },
-      },
-    });
-    expect(result).toEqual({
-      label: "Reception",
-      startAt: RECEPTION,
-      venue: "The Royal Hall",
-      address: "123 Main St",
-    });
-  });
-
-  it("prefers the typed schedule's reception entry over legacy config (rung 1)", () => {
+  it("uses the typed schedule's reception entry (rung 1)", () => {
     const result = resolvePassMoment({
       event: {
         ...eventBase,
@@ -264,11 +244,6 @@ describe("resolvePassMoment", () => {
             isAccessPassGated: false,
           },
         ],
-        invitationConfig: {
-          receptionStartAt: RECEPTION, // legacy disagrees — typed must win
-          receptionVenue: "The Royal Hall",
-          receptionAddress: "123 Main St",
-        },
       },
     });
     expect(result).toEqual({
@@ -292,7 +267,6 @@ describe("resolvePassMoment", () => {
             isAccessPassGated: true,
           },
         ],
-        invitationConfig: null,
       },
     });
     expect(result.label).toBe("Welcome Dinner");
@@ -319,14 +293,13 @@ describe("resolvePassMoment", () => {
             isAccessPassGated: false,
           },
         ],
-        invitationConfig: null,
       },
     });
     expect(result.label).toBe("Reception");
     expect(result.startAt).toEqual(T("2026-06-21T19:00:00Z"));
   });
 
-  it("falls through to legacy config when the schedule has no reception or gated entry", () => {
+  it("falls back to the event's own moment when the schedule has no reception or gated entry", () => {
     const result = resolvePassMoment({
       event: {
         ...eventBase,
@@ -339,42 +312,6 @@ describe("resolvePassMoment", () => {
             isAccessPassGated: false,
           },
         ],
-        invitationConfig: {
-          receptionStartAt: RECEPTION,
-          receptionVenue: "The Royal Hall",
-          receptionAddress: "123 Main St",
-        },
-      },
-    });
-    expect(result.label).toBe("Reception");
-    expect(result.startAt).toBe(RECEPTION);
-  });
-
-  it("treats a malformed schedule column as absent (legacy fallback, no throw)", () => {
-    const result = resolvePassMoment({
-      event: {
-        ...eventBase,
-        schedule: [{ nonsense: true }],
-        invitationConfig: {
-          receptionStartAt: RECEPTION,
-          receptionVenue: "The Royal Hall",
-          receptionAddress: "123 Main St",
-        },
-      },
-    });
-    expect(result.label).toBe("Reception");
-    expect(result.startAt).toBe(RECEPTION);
-  });
-
-  it("falls back to event.startAt when receptionStartAt is null", () => {
-    const result = resolvePassMoment({
-      event: {
-        ...eventBase,
-        invitationConfig: {
-          receptionStartAt: null,
-          receptionVenue: null,
-          receptionAddress: null,
-        },
       },
     });
     expect(result).toEqual({
@@ -385,9 +322,20 @@ describe("resolvePassMoment", () => {
     });
   });
 
-  it("falls back to event.startAt when there is no invitationConfig at all", () => {
+  it("treats a malformed schedule column as absent (event fallback, no throw)", () => {
     const result = resolvePassMoment({
-      event: { ...eventBase, invitationConfig: null },
+      event: {
+        ...eventBase,
+        schedule: [{ nonsense: true }],
+      },
+    });
+    expect(result.label).toBeNull();
+    expect(result.startAt).toBe(EVENT_START);
+  });
+
+  it("falls back to event.startAt when there is no schedule at all", () => {
+    const result = resolvePassMoment({
+      event: eventBase,
     });
     expect(result.label).toBeNull();
     expect(result.startAt).toBe(EVENT_START);
@@ -395,15 +343,19 @@ describe("resolvePassMoment", () => {
     expect(result.address).toBe("100 Cathedral Pl");
   });
 
-  it("preserves null venue/address when reception is set without those fields", () => {
+  it("preserves null venue/address when the reception entry omits them", () => {
     const result = resolvePassMoment({
       event: {
         ...eventBase,
-        invitationConfig: {
-          receptionStartAt: RECEPTION,
-          receptionVenue: null,
-          receptionAddress: null,
-        },
+        schedule: [
+          {
+            id: "e2",
+            label: "Reception",
+            role: "reception",
+            startAt: "2026-06-21T19:00:00.000Z",
+            isAccessPassGated: false,
+          },
+        ],
       },
     });
     expect(result.label).toBe("Reception");

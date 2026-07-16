@@ -25,6 +25,7 @@ import { formatEventTime, resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import { buildInvitationScheduleFields } from "@/lib/invitation-schedule-fields";
 import type { ThemeId, TypographyPair } from "@/lib/invitation-themes";
 import type { InvitationData, VenueInfo } from "@/schemas/invitation";
+import { normalizeDateWordingStyle } from "@/schemas/invitation";
 
 export const dynamic = "force-dynamic";
 
@@ -184,15 +185,15 @@ export default async function InvitationPage({ params }: PageProps) {
   // Format time
   const eventTime = formatEventTime(new Date(event.startAt), event.timezone);
 
-  // Ceremony/reception strings: typed Event.schedule first, saved free-text
-  // wording as the transitional override (shared ladder — see
-  // invitation-schedule-fields.ts).
+  // Ceremony/reception strings derive from the typed Event.schedule (shared
+  // assembly — see invitation-schedule-fields.ts).
+  const wordingStyle = normalizeDateWordingStyle(
+    invitationConfig?.dateWordingStyle
+  );
   const scheduleFields = buildInvitationScheduleFields({
     tz: event.timezone,
     schedule: event.schedule,
-    config: invitationConfig,
-    wordingStyle:
-      invitationConfig?.dateWordingStyle === "formal" ? "formal" : "standard",
+    wordingStyle,
   });
 
   const invitationData: InvitationData = {
@@ -223,9 +224,9 @@ export default async function InvitationPage({ params }: PageProps) {
     venuePhotoUrl: invitationConfig?.venuePhotoUrl || undefined,
     ...scheduleFields,
     rsvpDeadline: resolveRsvpDeadlineDisplay(
-      invitationConfig?.rsvpDeadline || undefined,
-      event.rsvpDeadline?.toISOString(),
-      event.timezone
+      event.rsvpDeadline,
+      event.timezone,
+      wordingStyle
     ),
     storyHeading: invitationConfig?.storyHeading || undefined,
     storyParagraphs: invitationConfig?.storyParagraphs?.length ? invitationConfig.storyParagraphs : undefined,
