@@ -61,18 +61,23 @@ export function formatEventDateMedium(
 }
 
 /**
- * Resolves an RSVP-deadline string for display in hero variants:
- * a hero-config override wins; otherwise format the event-level ISO
- * deadline in event timezone using the medium form ("June 21, 2026").
+ * Resolves an RSVP-deadline string for display (heroes, invitation card,
+ * invite email) from the enforced `Event.rsvpDeadline` — the one value the
+ * RSVP API actually closes on, so display can never contradict behavior
+ * (canonical-schedule plan §4.3). Deadline wording is deliberately
+ * date-only: the enforced timestamp's time component ("11:59 PM") reads as
+ * noise on an invitation. `wordingStyle` mirrors the invitation card's
+ * formal option ("the First of August").
  */
 export function resolveRsvpDeadlineDisplay(
-  configOverride: string | undefined,
-  eventRsvpDeadline: string | undefined,
-  timezone: string
+  eventRsvpDeadline: Date | string | null | undefined,
+  timezone: string,
+  wordingStyle?: "standard" | "formal"
 ): string | undefined {
-  if (configOverride) return configOverride;
   if (!eventRsvpDeadline) return undefined;
-  return formatEventDateMedium(new Date(eventRsvpDeadline), timezone);
+  const date = new Date(eventRsvpDeadline);
+  if (wordingStyle === "formal") return formatEventDateFormal(date, timezone);
+  return formatEventDateMedium(date, timezone);
 }
 
 /**

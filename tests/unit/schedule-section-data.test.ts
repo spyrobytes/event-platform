@@ -202,9 +202,19 @@ describe("applyTypedScheduleToSections", () => {
     expect(result[1]).toBe(otherSection);
   });
 
-  it("returns sections unchanged when there is no typed schedule (free-text fallback)", () => {
-    const sections = [scheduleSection, otherSection];
-    expect(applyTypedScheduleToSections(sections, null, TZ)).toBe(sections);
-    expect(applyTypedScheduleToSections(sections, [{ bad: 1 }], TZ)).toBe(sections);
+  it("empties the section when there is no typed schedule — stored free-text never resurrects", () => {
+    for (const schedule of [null, [{ bad: 1 }], []]) {
+      const result = applyTypedScheduleToSections(
+        [scheduleSection, otherSection],
+        schedule,
+        TZ
+      );
+      const section = result[0] as typeof scheduleSection;
+      // Display copy survives; hand-typed rows do not.
+      expect(section.data.heading).toBe("Wedding Weekend");
+      expect(section.data.items).toEqual([]);
+      expect(section.data.groups).toBeUndefined();
+      expect(result[1]).toBe(otherSection);
+    }
   });
 });

@@ -33,7 +33,7 @@ export function FullscreenDramaticHero({
   eventRsvpDeadline,
   eventTimezone,
 }: HeroRendererProps) {
-  const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
+  const { title, subtitle, coupleNames, monogram } = config;
   const temporal = useTemporal();
 
   const nameLines = coupleNames
@@ -50,7 +50,6 @@ export function FullscreenDramaticHero({
   })();
 
   const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
-    rsvpDeadline,
     eventRsvpDeadline,
     eventTimezone
   );

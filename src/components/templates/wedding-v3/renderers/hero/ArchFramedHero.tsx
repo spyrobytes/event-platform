@@ -25,7 +25,7 @@ export function ArchFramedHero({
   eventRsvpDeadline,
   eventTimezone,
 }: HeroRendererProps) {
-  const { title, subtitle, coupleNames, monogram, rsvpDeadline } = config;
+  const { title, subtitle, coupleNames, monogram } = config;
   const temporal = useTemporal();
 
   const hasNames = !!coupleNames?.trim();
@@ -39,7 +39,6 @@ export function ArchFramedHero({
   })();
 
   const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
-    rsvpDeadline,
     eventRsvpDeadline,
     eventTimezone
   );

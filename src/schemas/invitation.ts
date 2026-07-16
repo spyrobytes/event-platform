@@ -145,17 +145,6 @@ export const invitationConfigSchema = z.object({
   // Wedding Storybook fields
   couplePhotoUrl: z.string().url().optional().or(z.literal("")),
   venuePhotoUrl: z.string().url().optional().or(z.literal("")),
-  ceremonyStartAt: z.coerce.date().optional(),
-  ceremonyDate: z.string().max(CONTENT_LIMITS.eventDateText.max).optional(),
-  ceremonyTime: z.string().max(CONTENT_LIMITS.eventTimeText.max).optional(),
-  ceremonyVenue: z.string().max(CONTENT_LIMITS.venueName.max).optional(),
-  ceremonyAddress: z.string().max(CONTENT_LIMITS.address.max).optional(),
-  receptionStartAt: z.coerce.date().optional(),
-  receptionDate: z.string().max(CONTENT_LIMITS.eventDateText.max).optional(),
-  receptionTime: z.string().max(60).optional(),
-  receptionVenue: z.string().max(CONTENT_LIMITS.venueName.max).optional(),
-  receptionAddress: z.string().max(CONTENT_LIMITS.address.max).optional(),
-  rsvpDeadline: z.string().max(60).optional(),
   storyHeading: z.string().max(CONTENT_LIMITS.storyHeading.max).optional(),
   storyParagraphs: z.array(z.string().max(CONTENT_LIMITS.storyParagraph.max)).optional(),
   timelineJson: z
@@ -216,15 +205,15 @@ export const invitationDataSchema = z.object({
   familyInviteText: z.string().max(CONTENT_LIMITS.familyInviteText.max).optional(),
   eventTypeText: z.string().max(CONTENT_LIMITS.eventTypeText.max).optional(),
   monogram: z.string().max(CONTENT_LIMITS.monogram.max).optional(),
-  // Wedding Storybook extended fields
+  // Wedding Storybook extended fields. The ceremony/reception strings are
+  // typed-schedule-derived display values (buildInvitationScheduleFields) —
+  // props, not stored wording (canonical-schedule plan §4.3).
   couplePhotoUrl: z.string().url().optional().or(z.literal("")),
   venuePhotoUrl: z.string().url().optional().or(z.literal("")),
-  ceremonyStartAt: z.coerce.date().optional(),
   ceremonyDate: z.string().optional(),
   ceremonyTime: z.string().optional(),
   ceremonyVenue: z.string().optional(),
   ceremonyAddress: z.string().optional(),
-  receptionStartAt: z.coerce.date().optional(),
   receptionDate: z.string().optional(),
   receptionTime: z.string().optional(),
   receptionVenue: z.string().optional(),

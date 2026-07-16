@@ -14,6 +14,7 @@ import {
   buildUnsubscribeUrl,
 } from "@/lib/email";
 import { buildSubEventBlocks } from "@/lib/invite-email-payload";
+import { resolveRsvpDeadlineDisplay } from "@/lib/utils";
 import { ConflictError } from "@/lib/errors";
 
 // Literal required (Next.js segment config). See `scheduleEmailProcessing` in src/lib/email.ts.
@@ -45,17 +46,6 @@ async function buildInviteEmailContext(eventId: string) {
       where: { eventId },
       select: {
         dateWordingStyle: true,
-        ceremonyStartAt: true,
-        ceremonyDate: true,
-        ceremonyTime: true,
-        ceremonyVenue: true,
-        ceremonyAddress: true,
-        receptionStartAt: true,
-        receptionDate: true,
-        receptionTime: true,
-        receptionVenue: true,
-        receptionAddress: true,
-        rsvpDeadline: true,
       },
     }),
   ]);
@@ -72,9 +62,13 @@ async function buildInviteEmailContext(eventId: string) {
   const eventLocation = event.venueName || event.city || undefined;
   const hostName = event.creator.name || event.creator.email;
 
-  // Sub-event blocks (ceremony / traditional / reception): typed-first with
-  // free-text wording override — precedence ladders + the "Traditional"
-  // heuristic live in buildSubEventBlocks (unit-tested).
+  // Sub-event blocks (ceremony / traditional / reception): derived from the
+  // typed Event.schedule — the derivation + the "Traditional" heuristic live
+  // in buildSubEventBlocks (unit-tested).
+  const wordingStyle =
+    invitationConfig?.dateWordingStyle === "formal"
+      ? ("formal" as const)
+      : ("standard" as const);
   const subEvents = buildSubEventBlocks({
     tz,
     eventStartAt: event.startAt,
@@ -83,14 +77,16 @@ async function buildInviteEmailContext(eventId: string) {
     eventVenueName: event.venueName,
     eventAddress: event.address,
     schedule: event.schedule,
-    invitationConfig,
-    wordingStyle:
-      invitationConfig?.dateWordingStyle === "formal" ? "formal" : "standard",
+    wordingStyle,
   });
 
-  const rsvpDeadline =
-    invitationConfig?.rsvpDeadline ||
-    (event.rsvpDeadline ? formatInTimeZone(event.rsvpDeadline, tz, "EEEE, MMMM d, yyyy") : undefined);
+  // Deadline wording derives from the enforced Event.rsvpDeadline so the
+  // email can never contradict when RSVP actually closes (plan §4.3, PR 6).
+  const rsvpDeadline = resolveRsvpDeadlineDisplay(
+    event.rsvpDeadline,
+    tz,
+    wordingStyle
+  );
 
   return {
     eventTitle: event.title,

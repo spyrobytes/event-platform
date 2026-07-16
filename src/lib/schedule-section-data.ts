@@ -12,9 +12,10 @@ import type { Section, ScheduleSection, ScheduleGroup } from "@/schemas/event-pa
  * renderers, and the V3 hero chips — picks up typed data with no component
  * changes.
  *
- * Precedence (per plan §5 PR 3d row): typed entries render first; the
- * free-text scheduleSection.items/groups are a legacy-only fallback for
- * events with no typed schedule, until PR 6 removes them.
+ * The typed schedule is the only source (plan §4.3, PR 6): stored free-text
+ * scheduleSection.items/groups never render — an event with no usable typed
+ * schedule shows an empty schedule section (each renderer already hides or
+ * empty-states on zero items).
  */
 
 type ScheduleItem = ScheduleSection["data"]["items"][number];
@@ -58,8 +59,7 @@ function toItem(
 
 /**
  * Returns typed-derived `{ items, groups? }`, or null when the event has no
- * usable typed schedule (absent, empty, or malformed) — callers keep the
- * legacy free-text data in that case.
+ * usable typed schedule (absent, empty, or malformed).
  */
 export function deriveScheduleSectionData(
   schedule: unknown,
@@ -120,8 +120,9 @@ export function deriveScheduleSectionData(
 /**
  * Substitutes typed-derived schedule data into a page config's sections.
  * Organizer display copy (heading/description) is preserved; only
- * items/groups are replaced. No typed schedule → sections are returned
- * unchanged (free-text fallback keeps rendering).
+ * items/groups are replaced. No typed schedule → the section's items are
+ * emptied, never left as stored free-text: deleting all typed entries must
+ * not resurrect hand-typed rows removed from the product (plan §4.3, PR 6).
  */
 export function applyTypedScheduleToSections(
   sections: Section[],
@@ -129,7 +130,6 @@ export function applyTypedScheduleToSections(
   timezone: string
 ): Section[] {
   const derived = deriveScheduleSectionData(schedule, timezone);
-  if (!derived) return sections;
 
   return sections.map((section) => {
     if (section.type !== "schedule") return section;
@@ -138,8 +138,8 @@ export function applyTypedScheduleToSections(
       ...section,
       data: {
         ...restData,
-        items: derived.items,
-        ...(derived.groups ? { groups: derived.groups } : {}),
+        items: derived?.items ?? [],
+        ...(derived?.groups ? { groups: derived.groups } : {}),
       },
     };
   });

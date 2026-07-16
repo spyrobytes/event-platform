@@ -1,33 +1,19 @@
-import { formatInTimeZone } from "date-fns-tz";
 import { parseSchedule, findScheduleEntry } from "@/lib/schedule-read";
 import { formatEventDateFormal, formatEventTimeFormal } from "@/lib/utils";
+import { formatInTimeZone } from "date-fns-tz";
 import type { DateWordingStyle } from "@/schemas/invitation";
 
 /**
  * Sub-event block assembly for the invite email (canonical-schedule plan §3,
- * PR 3b). Extracted from the invites route so the precedence ladders are
+ * PR 3b). Extracted from the invites route so the derivation is
  * unit-testable.
  *
- * Field precedence, per the invite-page-verbatim rule (the email must show
- * exactly what the invitation card shows):
- *   date/time strings: free-text wording (transitional shim, plan §4.3)
- *     → typed Event.schedule entry → legacy InvitationConfig.*StartAt
- *   venue/address: typed Event.schedule entry → legacy InvitationConfig
- * The typed schedule is canonical wherever no free-text override exists.
+ * The typed Event.schedule is the only source (plan §4.3, PR 6): the
+ * free-text wording and legacy InvitationConfig.*StartAt rungs are gone.
+ * Per the invite-page-verbatim rule the email must show exactly what the
+ * invitation card shows, so `wordingStyle` picks the same deterministic
+ * formatter the card uses.
  */
-
-export type InviteSubEventConfig = {
-  ceremonyStartAt: Date | null;
-  ceremonyDate: string | null;
-  ceremonyTime: string | null;
-  ceremonyVenue: string | null;
-  ceremonyAddress: string | null;
-  receptionStartAt: Date | null;
-  receptionDate: string | null;
-  receptionTime: string | null;
-  receptionVenue: string | null;
-  receptionAddress: string | null;
-};
 
 export type InviteSubEventBlocks = {
   ceremonyDate?: string;
@@ -61,16 +47,14 @@ export function buildSubEventBlocks(input: {
   eventAddress: string | null;
   /** Raw Event.schedule Json column */
   schedule: unknown;
-  invitationConfig: InviteSubEventConfig | null;
   /**
-   * The invitation's date-wording style (InvitationConfig.dateWordingStyle):
-   * applies to the derived rungs only (typed + legacy StartAt) so the email
-   * keeps matching the card when the organizer picks formal wording.
-   * Free-text renders verbatim either way.
+   * The invitation's date-wording style (InvitationConfig.dateWordingStyle)
+   * so the email keeps matching the card when the organizer picks formal
+   * wording.
    */
   wordingStyle?: DateWordingStyle;
 }): InviteSubEventBlocks {
-  const { tz, invitationConfig: cfg } = input;
+  const { tz } = input;
   const formal = input.wordingStyle === "formal";
   const fmtDate = (d: Date | string) =>
     formal ? formatEventDateFormal(d, tz) : formatInTimeZone(d, tz, DATE_FMT);
@@ -79,36 +63,19 @@ export function buildSubEventBlocks(input: {
 
   const entries = parseSchedule(input.schedule);
   const typedCeremony = entries ? findScheduleEntry(entries, "ceremony") : null;
-  const typedReception = entries ? findScheduleEntry(entries, "reception") : null;
+  const typedReception = entries
+    ? findScheduleEntry(entries, "reception")
+    : null;
   const typedTraditional = entries
     ? findScheduleEntry(entries, "traditional")
     : null;
 
-  const ceremonyHasAny =
-    typedCeremony ||
-    cfg?.ceremonyStartAt ||
-    cfg?.ceremonyDate ||
-    cfg?.ceremonyTime ||
-    cfg?.ceremonyVenue;
-  const ceremony = ceremonyHasAny
+  const ceremony = typedCeremony
     ? {
-        ceremonyDate:
-          cfg?.ceremonyDate ||
-          (typedCeremony
-            ? fmtDate(typedCeremony.startAt)
-            : cfg?.ceremonyStartAt
-              ? fmtDate(cfg.ceremonyStartAt)
-              : undefined),
-        ceremonyTime:
-          cfg?.ceremonyTime ||
-          (typedCeremony
-            ? fmtTime(typedCeremony.startAt)
-            : cfg?.ceremonyStartAt
-              ? fmtTime(cfg.ceremonyStartAt)
-              : undefined),
-        ceremonyVenue: typedCeremony?.venue || cfg?.ceremonyVenue || undefined,
-        ceremonyAddress:
-          typedCeremony?.address || cfg?.ceremonyAddress || undefined,
+        ceremonyDate: fmtDate(typedCeremony.startAt),
+        ceremonyTime: fmtTime(typedCeremony.startAt),
+        ceremonyVenue: typedCeremony.venue || undefined,
+        ceremonyAddress: typedCeremony.address || undefined,
       }
     : {};
 
@@ -118,13 +85,10 @@ export function buildSubEventBlocks(input: {
   // "Traditional" sub-event when (a) wedding sub-events are configured AND
   // (b) the main event precedes the ceremony by at least the threshold.
   // Anchor preference mirrors the field ladders: typed ceremony → typed
-  // reception → legacy config equivalents; with no anchor, skip.
+  // reception; with no anchor, skip.
   const ceremonyAnchor =
     (typedCeremony ? new Date(typedCeremony.startAt) : null) ??
-    (typedReception ? new Date(typedReception.startAt) : null) ??
-    cfg?.ceremonyStartAt ??
-    cfg?.receptionStartAt ??
-    null;
+    (typedReception ? new Date(typedReception.startAt) : null);
   const isMainEventDistinct =
     ceremonyAnchor !== null &&
     input.eventStartAt.getTime() + TRADITIONAL_MIN_LEAD_MS <=
@@ -145,31 +109,12 @@ export function buildSubEventBlocks(input: {
         }
       : {};
 
-  const receptionHasAny =
-    typedReception ||
-    cfg?.receptionStartAt ||
-    cfg?.receptionDate ||
-    cfg?.receptionTime ||
-    cfg?.receptionVenue;
-  const reception = receptionHasAny
+  const reception = typedReception
     ? {
-        receptionDate:
-          cfg?.receptionDate ||
-          (typedReception
-            ? fmtDate(typedReception.startAt)
-            : cfg?.receptionStartAt
-              ? fmtDate(cfg.receptionStartAt)
-              : undefined),
-        receptionTime:
-          cfg?.receptionTime ||
-          (typedReception
-            ? fmtTime(typedReception.startAt)
-            : cfg?.receptionStartAt
-              ? fmtTime(cfg.receptionStartAt)
-              : undefined),
-        receptionVenue: typedReception?.venue || cfg?.receptionVenue || undefined,
-        receptionAddress:
-          typedReception?.address || cfg?.receptionAddress || undefined,
+        receptionDate: fmtDate(typedReception.startAt),
+        receptionTime: fmtTime(typedReception.startAt),
+        receptionVenue: typedReception.venue || undefined,
+        receptionAddress: typedReception.address || undefined,
       }
     : {};
 

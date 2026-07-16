@@ -77,9 +77,9 @@ export function resolvePartyMembers(invite: {
 }
 
 export type PassMoment = {
-  // Entry label ("Reception") when sourced from the typed schedule or the
-  // legacy wedding reception fields; null when the moment is the Event row's
-  // own startAt (in which case the event title alone is the label).
+  // Entry label ("Reception") when sourced from the typed schedule; null
+  // when the moment is the Event row's own startAt (in which case the event
+  // title alone is the label).
   label: string | null;
   startAt: Date;
   venue: string | null;
@@ -87,19 +87,15 @@ export type PassMoment = {
 };
 
 // Pass admits to the reception when one is configured; otherwise to the
-// event's primary moment. Rung ladder (canonical-schedule plan §3), typed
-// first with legacy fallback:
+// event's primary moment. Rung ladder (canonical-schedule plan §3):
 //   1. Event.schedule entry with role "reception"
 //   2. first Event.schedule entry flagged isAccessPassGated
-//   3. legacy InvitationConfig.reception* fields
-//   4. the Event row's own startAt
+//   3. the Event row's own startAt
 // NOTE: rungs 1/2 should likely swap once isAccessPassGated becomes
 // user-settable (the flag literally means "what the pass admits to", so it
 // should outrank the role heuristic) — revisit when the access-pass-gated
 // -events plan revives. Today nothing sets the flag, so the order is moot.
-// Rung 3 mirrors the rule applied by the invite-email pipeline
-// (`src/app/api/events/[id]/invites/route.ts:99-131`). The full
-// multi-gated-event design is deferred — see
+// The full multi-gated-event design is deferred — see
 // `internal-docs/access-pass-gated-events-plan.md`.
 export function resolvePassMoment(invite: {
   event: {
@@ -108,11 +104,6 @@ export function resolvePassMoment(invite: {
     address: string | null;
     /** Raw Event.schedule Json column (unknown until parseSchedule vets it) */
     schedule?: unknown;
-    invitationConfig: {
-      receptionStartAt: Date | null;
-      receptionVenue: string | null;
-      receptionAddress: string | null;
-    } | null;
   };
 }): PassMoment {
   const entries = parseSchedule(invite.event.schedule);
@@ -124,7 +115,7 @@ export function resolvePassMoment(invite: {
     if (target) {
       return {
         // Organizer-controlled entry label — also what makes this rung
-        // translatable, unlike the legacy rung's hardcoded English below.
+        // translatable rather than hardcoded English.
         label: target.label,
         startAt: new Date(target.startAt),
         venue: target.venue ?? null,
@@ -133,18 +124,6 @@ export function resolvePassMoment(invite: {
     }
   }
 
-  const config = invite.event.invitationConfig;
-  if (config?.receptionStartAt) {
-    return {
-      // TODO(i18n): hardcoded English. When non-English locales ship, key off
-      // `Event.locale` (already on the schema) — likely via a small lookup
-      // table here, or move the label out and translate at the call site.
-      label: "Reception",
-      startAt: config.receptionStartAt,
-      venue: config.receptionVenue,
-      address: config.receptionAddress,
-    };
-  }
   return {
     label: null,
     startAt: invite.event.startAt,

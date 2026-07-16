@@ -36,7 +36,7 @@ export function CollageMosaicHero({
   eventRsvpDeadline,
   eventTimezone,
 }: HeroRendererProps) {
-  const { title, subtitle, coupleNames, rsvpDeadline } = config;
+  const { title, subtitle, coupleNames } = config;
   const temporal = useTemporal();
 
   const nameLines = coupleNames
@@ -96,7 +96,6 @@ export function CollageMosaicHero({
   })();
 
   const resolvedRsvpDeadline = resolveRsvpDeadlineDisplay(
-    rsvpDeadline,
     eventRsvpDeadline,
     eventTimezone
   );
