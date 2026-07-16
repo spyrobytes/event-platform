@@ -476,4 +476,88 @@ describe("underway elapsed counter", () => {
     expect(formatElapsedMinutes(85 * MINUTE)).toBe("1 hr 25 min");
     expect(formatElapsedMinutes(125 * MINUTE)).toBe("2 hr 5 min");
   });
+
+  it("an overlong chain is classified assumed: no all-night stopwatch across a schedule gap", () => {
+    // Reception 10 PM with no endAt, next entry tomorrow 11 AM — a 13-hour
+    // "chain" is a gap, not an organizer-stated moment. endMs still chains
+    // (phase behavior unchanged) but the counter must not render.
+    const overnight = [
+      {
+        id: "reception",
+        label: "Reception",
+        role: "reception",
+        startAt: "2026-08-22T22:00:00.000Z",
+        isAccessPassGated: false,
+      },
+      {
+        id: "brunch",
+        label: "Farewell Brunch",
+        role: "other",
+        startAt: "2026-08-23T11:00:00.000Z",
+        endAt: "2026-08-23T13:00:00.000Z",
+        isAccessPassGated: false,
+      },
+    ];
+    const segments = deriveScheduleSegments(overnight, TZ);
+    expect(segments[0].endMs).toBe(Date.parse("2026-08-23T11:00:00Z")); // still chains
+    expect(segments[0].endSource).toBe("assumed"); // but is not vouched for
+
+    const midnight = getEventTemporalState("2026-08-22T22:00:00Z", null, {
+      now: new Date("2026-08-23T09:00:00Z"), // 11h in
+      timezone: TZ,
+      schedule: overnight,
+    });
+    expect(midnight.currentSegment?.label).toBe("Reception");
+    expect(midnight.currentSegmentElapsedMs).toBeNull();
+    expect(
+      msToNextElapsedMinuteBoundary(
+        segments,
+        Date.parse("2026-08-23T09:00:00Z")
+      )
+    ).toBe(Infinity);
+  });
+
+  it("a tight chain (≤ assumed duration) stays counter-eligible", () => {
+    const segments = deriveScheduleSegments(SCHEDULE, TZ);
+    // Ceremony chains 5h to Reception's start — within the 6h trust cap.
+    expect(segments[1].endSource).toBe("chained");
+  });
+
+  it("overlapping segments resolve to the most recently started — counter follows the live moment", () => {
+    // Traditional's endAt was typo-widened to overlap the Ceremony.
+    const overlapping = [
+      {
+        id: "traditional",
+        label: "Traditional Ceremony",
+        role: "traditional",
+        startAt: "2026-08-22T16:00:00.000Z",
+        endAt: "2026-08-22T18:00:00.000Z", // typo — overlaps Ceremony
+        isAccessPassGated: false,
+      },
+      {
+        id: "ceremony",
+        label: "Ceremony",
+        role: "ceremony",
+        startAt: "2026-08-22T17:00:00.000Z",
+        endAt: "2026-08-22T17:45:00.000Z",
+        isAccessPassGated: false,
+      },
+    ];
+    const during = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T17:30:00Z"), // both windows contain now
+      timezone: TZ,
+      schedule: overlapping,
+    });
+    expect(during.currentSegment?.label).toBe("Ceremony");
+    expect(during.currentSegmentElapsedMs).toBe(30 * MINUTE);
+
+    // After the Ceremony's end, only the widened Traditional still contains
+    // now — the pill falls back to it.
+    const after = getEventTemporalState(START, null, {
+      now: new Date("2026-08-22T17:50:00Z"),
+      timezone: TZ,
+      schedule: overlapping,
+    });
+    expect(after.currentSegment?.label).toBe("Traditional Ceremony");
+  });
 });

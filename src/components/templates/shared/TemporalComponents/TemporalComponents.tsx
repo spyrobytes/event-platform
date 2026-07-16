@@ -143,7 +143,13 @@ export function LiveIndicator({
   return (
     <div className={cn(styles.liveIndicator, className)} style={style}>
       <span className={styles.liveDot} aria-hidden="true" />
-      <span className={styles.liveText}>{label}</span>
+      {/* The elapsed suffix is now-derived, so server HTML and client
+          hydration can straddle a minute boundary and disagree by one
+          minute — suppress the (recoverable) mismatch; the first client
+          tick is authoritative. */}
+      <span className={styles.liveText} suppressHydrationWarning>
+        {label}
+      </span>
     </div>
   );
 }
